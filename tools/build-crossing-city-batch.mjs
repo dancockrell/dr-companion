@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { planProductionBatches } from './room-production-batches.mjs'
 import { compileRoomCompositions } from './compile-room-compositions.mjs'
+import { compileCrossingShells } from './compile-crossing-shells.mjs'
 
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', '1'], { stdio: 'inherit' })
 const world = JSON.parse(readFileSync('godot/assets/crossing/world.json', 'utf8'))
@@ -11,6 +12,7 @@ const sources = JSON.parse(readFileSync('data/art/room-prompts-priority.json', '
 const selections = JSON.parse(readFileSync('godot/assets/shared_asset_selections.json', 'utf8'))
 const compiled = compileRoomCompositions(world, sources, selections, JSON.parse(readFileSync('godot/assets/crossing/provenance.json', 'utf8')))
 selections.roomCompositions = compiled.roomCompositions
+compileCrossingShells(selections.roomCompositions)
 const selectionPath = 'godot/assets/shared_asset_selections.json'
 const selectionText = JSON.stringify(selections, null, 2)+'\n'
 if (readFileSync(selectionPath,'utf8') !== selectionText) writeFileSync(selectionPath,selectionText)

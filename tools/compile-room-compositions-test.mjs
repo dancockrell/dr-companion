@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { compileRoomCompositions, overlaps, blocksApproach } from './compile-room-compositions.mjs'
+import { compileRoomCompositions, interiorShell, overlaps, blocksApproach } from './compile-room-compositions.mjs'
 const read=p=>JSON.parse(readFileSync(p,'utf8'))
 const world=read('godot/assets/crossing/world.json'), sources=read('data/art/room-prompts-priority.json'), selections=read('godot/assets/shared_asset_selections.json'), provenance=read('godot/assets/crossing/provenance.json')
 const result=compileRoomCompositions(world,sources,selections,provenance)
@@ -12,8 +12,20 @@ assert.deepEqual(compileRoomCompositions({...world,cells:[...world.cells].revers
 for (const recipe of generated) {
   const cell=world.cells.find(c=>c.id===recipe.cellId)
   assert.equal(recipe.status,'partial-generated-review-required')
-  assert.deepEqual(recipe.requiredExits,cell.exits.map(e=>({move:e.move,targetCellId:e.targetCellId,boardAnchor:e.boardAnchor})))
-  const bounds=recipe.pieces.slice(1).map(p=>p.compiledBounds)
+  assert.deepEqual(recipe.requiredExits,cell.exits.map(e=>({move:e.move,targetCellId:e.targetCellId,boardAnchor:e.boardAnchor,tetherKind:e.tetherKind,direction:e.direction})))
+  for (const p of recipe.pieces.filter(p=>p.proceduralMesh)) {
+    assert.equal(p.definition.shape.kind,'room')
+    assert.equal(p.bindings.length,cell.exits.length)
+    for (const binding of p.bindings) {
+      const edge=cell.exits.find(e=>e.move===binding.move && e.targetCellId===binding.targetCellId)
+      assert(edge?.boardAnchor)
+      const normal={north:[0,-1],south:[0,1],east:[1,0],west:[-1,0]}[p.definition.shape.room.openings[binding.openingIndex].wall]
+      assert.equal(Math.sign(edge.boardAnchor.x),normal[0])
+      assert.equal(Math.sign(edge.boardAnchor.z),normal[1])
+    }
+  }
+  const furnishings=recipe.pieces.filter(p=>p.role==='furnishing')
+  const bounds=furnishings.map(p=>p.compiledBounds)
   for (let i=0;i<bounds.length;i++) {
     const b=bounds[i]
     assert(b.minX>=-cell.board.footprint.width/2 && b.maxX<=cell.board.footprint.width/2)
@@ -22,7 +34,7 @@ for (const recipe of generated) {
     for (const e of cell.exits) if (e.boardAnchor) assert(!blocksApproach(b,e.boardAnchor))
     for (let j=i+1;j<bounds.length;j++) assert(!overlaps(b,bounds[j],.35))
     for (const spawn of cell.board.spawnPoints) assert(!overlaps(b,{minX:spawn.anchor.x-.7,maxX:spawn.anchor.x+.7,minZ:spawn.anchor.z-.7,maxZ:spawn.anchor.z+.7},.35))
-    assert(sources[cell.sourceDescriptionId].lore.includes(recipe.pieces[i+1].evidence))
+    assert(sources[cell.sourceDescriptionId].lore.includes(furnishings[i].evidence))
   }
 }
 const cell=world.cells.find(c=>c.id===generated[0].cellId)
@@ -39,4 +51,12 @@ const changed=compileRoomCompositions(single,{...sources,[cell.sourceDescription
 assert.equal(changed.report.reusedRooms,0)
 assert(blocksApproach({minX:2,maxX:4,minZ:2,maxZ:4},{x:9,z:9}))
 assert(!blocksApproach({minX:2,maxX:4,minZ:2,maxZ:4},{x:-9,z:0}))
+const shellCell={board:{footprint:{width:17.6,depth:17.6}},cartographicContent:{block:'building-interior'},exits:[{move:'out',targetCellId:'next',boardAnchor:null}]}
+assert.equal(interiorShell(shellCell,'The room has plaster walls.'),null)
+shellCell.exits[0].boardAnchor={x:9,z:9}
+assert.equal(interiorShell(shellCell,'The room has plaster walls.'),null)
+shellCell.exits[0].boardAnchor={x:0,z:9}
+assert.equal(interiorShell(shellCell,'The room has plaster walls.').pieces[0].definition.shape.room.openings[0].wall,'south')
+shellCell.exits[0].tetherKind='stairs'
+assert.equal(interiorShell(shellCell,'The room has plaster walls.'),null)
 console.log('Compiled room contracts, bounds, approaches, evidence, caching and override checks passed: '+generated.length+' rooms')

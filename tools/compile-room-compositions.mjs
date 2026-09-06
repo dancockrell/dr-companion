@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const COMPILER_VERSION = 'bounded-furnishing-v4'
+export const COMPILER_VERSION = 'rust-interior-v6'
 const prefix='painted-river-port.'
 // Literal supported nouns only. This is a candidate compiler, not a claim that
 // matching prose proves material, count, local position or artistic completion.
@@ -29,6 +29,38 @@ export function blocksApproach(box,anchor,clearance=1) {
   }
   return true
 }
+// Structural candidate, not a claim of recovered building dimensions/materials.
+// Openings follow actual graph directions; unknown and vertical transitions
+// are withheld rather than sealed behind an invented wall or ceiling.
+export function interiorShell(cell,description) {
+  if (cell.cartographicContent?.block!=='building-interior' || !/\b(room|chamber|hallway|corridor|ceiling|walls|floor)\b/i.test(description) || /\b(courtyard|open.air|roofless|outdoors)\b/i.test(description)) return null
+  const width=cell.board.footprint.width-1,depth=cell.board.footprint.depth-1
+  if (width<8 || depth<8) return null
+  const openings=[],bindings=[],approaches=[]
+  for (const exit of cell.exits) {
+    if (['stairs','ladder','ferry','portal','warp'].includes(exit.tetherKind) || ['up','down'].includes(exit.direction)) return null
+    const a=exit.boardAnchor
+    // Unknown or corner directions require a deliberate layout, not a guessed wall.
+    if (!a || !Number.isFinite(a.x) || !Number.isFinite(a.z) || Boolean(a.x)===Boolean(a.z)) return null
+    const wall=a.x ? (a.x>0?'east':'west') : (a.z>0?'south':'north')
+    let index=openings.findIndex(o=>o.wall===wall)
+    if (index<0) { index=openings.length; openings.push({wall,offset:0,width:2.4,height:2.6}) }
+    bindings.push({openingIndex:index,move:exit.move,targetCellId:exit.targetCellId})
+    approaches.push(a)
+  }
+  const room={width,depth,height:3.2,wall_thickness:.25,floor_thickness:.15,openings}
+  const definition={shape:{kind:'room',room},color:[.45,.44,.41,1]}
+  const proceduralMesh='shell_'+digest(definition).slice(0,20)
+  const bounds=[
+    {minX:-width/2-.25,maxX:width/2+.25,minZ:-depth/2-.25,maxZ:-depth/2},
+    {minX:-width/2-.25,maxX:width/2+.25,minZ:depth/2,maxZ:depth/2+.25},
+    {minX:-width/2-.25,maxX:-width/2,minZ:-depth/2,maxZ:depth/2},
+    {minX:width/2,maxX:width/2+.25,minZ:-depth/2,maxZ:depth/2},
+  ]
+  return {pieces:[{proceduralMesh,definition,bindings,role:'shell',lift:.005,
+    evidence:'Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture'}],
+    bounds,approaches,status:'provisional-rust-shell-review-required'}
+}
 export function compileRoomCompositions(world,sources,selections,provenance) {
   const authored=selections.roomCompositions.filter(r=>!r.generatedBy)
   const protectedIds=new Set(authored.map(r=>r.cellId))
@@ -50,16 +82,22 @@ export function compileRoomCompositions(world,sources,selections,provenance) {
       const sentence=description.split(/(?<=[.!?])\s+/).find(s=>pattern.test(s) && !rejectedContext.test(s))
       return sentence ? [{assetId:prefix+name,evidence:sentence}] : []
     })
-    if (!wanted.length) continue
-    const requiredExits=cell.exits.map(e=>({move:e.move,targetCellId:e.targetCellId,boardAnchor:e.boardAnchor}))
-    const approaches=requiredExits.flatMap(e=>e.boardAnchor ? [e.boardAnchor] : [{x:width/2,z:0},{x:-width/2,z:0},{x:0,z:depth/2},{x:0,z:-depth/2}])
-    const inputHash=digest([COMPILER_VERSION,cell.sourceDescriptionHash,description,cell.board,cell.cartographicContent,requiredExits,wanted.map(w=>available.get(w.assetId)??w.assetId),selections.nativeCatalog.revision])
+    const shell=interiorShell(cell,description)
+    if (!shell && cell.cartographicContent?.block==='building-interior') exceptions.push({
+      cellId:cell.id,reasons:['Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback']
+    })
+    if (!wanted.length && !shell) continue
+    const requiredExits=cell.exits.map(e=>({move:e.move,targetCellId:e.targetCellId,boardAnchor:e.boardAnchor,tetherKind:e.tetherKind,direction:e.direction}))
+    const approaches=shell?.approaches ?? requiredExits.flatMap(e=>e.boardAnchor ? [e.boardAnchor] : [{x:width/2,z:0},{x:-width/2,z:0},{x:0,z:depth/2},{x:0,z:-depth/2}])
+    const inputHash=digest([COMPILER_VERSION,cell.sourceDescriptionHash,description,cell.board,cell.cartographicContent,requiredExits,shell,wanted.map(w=>available.get(w.assetId)??w.assetId),selections.nativeCatalog.revision])
     if (old.get(cell.id)?.inputHash===inputHash) { generated.push(old.get(cell.id)); reused++; continue }
     const interior=cell.spatialMode==='interior-cutaway' || cell.cartographicContent?.block==='building-interior' || /\b(?:stone|tiled|wooden|onyx)[ -]floor\b/i.test(description)
     const pieces=[{surfaceKind:interior?'interior-floor-5m':'terrain-cell-5m',center:[0,0],envelope:[1,1],lift:0,role:'base',color:'#72716b'}]
     const occupied=[{minX:-2,maxX:2,minZ:-2,maxZ:2}]
+    if (shell) occupied.push(...shell.bounds)
     for (const spawn of cell.board.spawnPoints ?? []) occupied.push({minX:spawn.anchor.x-.7,maxX:spawn.anchor.x+.7,minZ:spawn.anchor.z-.7,maxZ:spawn.anchor.z+.7})
     const missing=['Room-specific shell, finishes, counts and landmark details require further compilation and review','Inferred furniture placement is not a recovered historical floor plan']
+    if (shell) missing.push('Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished')
     for (const requirement of wanted) {
       const record=available.get(requirement.assetId)
       if (!record) { missing.push('Missing catalog asset: '+requirement.assetId); continue }
@@ -82,6 +120,7 @@ export function compileRoomCompositions(world,sources,selections,provenance) {
       occupied.push(fit.bounds)
       pieces.push({assetId:requirement.assetId,center:[fit.x/width,fit.z/depth],envelope:[(fit.bounds.maxX-fit.bounds.minX+.001)/width,(fit.bounds.maxZ-fit.bounds.minZ+.001)/depth],yawDegrees:fit.yaw,lift:0,role:'furnishing',evidence:requirement.evidence,compiledBounds:fit.bounds})
     }
+    if (shell) pieces.push(...shell.pieces)
     if (pieces.length===1) { exceptions.push({cellId:cell.id,reasons:missing}); continue }
     generated.push({cellId:cell.id,descriptionHash:cell.sourceDescriptionHash,status:'partial-generated-review-required',generatedBy:COMPILER_VERSION,inputHash,requiredExits,requiredFootprint:cell.board.footprint,evidence:'Literal source phrases retained on each furnishing; source binding still requires per-room review.',placementPolicy:'Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.',missing,pieces})
   }

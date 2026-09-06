@@ -25,6 +25,7 @@ const BRIDGE_WOOD := SHARED_ROOT + "/source/cc0/kenney/nature-kit-2.1/bridge_woo
 var _shared_available := false
 var _warned_missing_shared_assets := false
 var _native_source: Node3D
+var _procedural_source: Node3D
 var _native_records: Dictionary = {}
 var _room_compositions: Dictionary = {}
 var _native_attempted := false
@@ -47,6 +48,8 @@ func _ready() -> void:
 	_shared_available = ResourceLoader.exists(ROCK_SMALL_A) and ResourceLoader.exists(BRIDGE_WOOD)
 
 func _exit_tree() -> void:
+	if is_instance_valid(_procedural_source):
+		_procedural_source.free()
 	if is_instance_valid(_native_source):
 		_native_source.free()
 
@@ -54,6 +57,9 @@ func _load_native_catalog() -> void:
 	if _native_attempted:
 		return
 	_native_attempted = true
+	var shell_path := "res://assets/crossing/procedural-shells.scn"
+	if ResourceLoader.exists(shell_path):
+		_procedural_source = (load(shell_path) as PackedScene).instantiate()
 	var selections: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/shared_asset_selections.json"))
 	for recipe in selections.get("roomCompositions", []):
 		_room_compositions[recipe.cellId] = recipe
@@ -85,7 +91,7 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 		for required in recipe.requiredExits:
 			var found := false
 			for edge in actual:
-				if edge.get("move") == required.move and edge.get("targetCellId") == required.targetCellId and edge.get("boardAnchor") == required.boardAnchor:
+				if edge.get("move") == required.move and edge.get("targetCellId") == required.targetCellId and edge.get("boardAnchor") == required.boardAnchor and edge.get("tetherKind") == required.get("tetherKind") and edge.get("direction") == required.get("direction"):
 					found = true
 			if not found:
 				return null
@@ -99,6 +105,25 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 	var exit_anchors: Dictionary = {}
 	for authored_placement in recipe.pieces:
 		var placement: Dictionary = authored_placement.duplicate(true)
+		if placement.has("proceduralMesh"):
+			if not is_instance_valid(_procedural_source) or not _procedural_source.has_node(NodePath(placement.proceduralMesh)):
+				holder.free()
+				return null
+			var shell: Node3D = _procedural_source.get_node(NodePath(placement.proceduralMesh)).duplicate()
+			shell.position.y = ground_top + float(placement.lift)
+			shell.set_meta("procedural_mesh", placement.proceduralMesh)
+			shell.set_meta("exit_bindings", placement.bindings)
+			var apertures: Array = shell.get_meta("scene_forge_apertures", [])
+			for binding in placement.bindings:
+				var index := int(binding.openingIndex)
+				if index < 0 or index >= apertures.size() or exit_anchors.has(binding.move):
+					shell.free()
+					holder.free()
+					return null
+				var p: Array = apertures[index].position
+				exit_anchors[binding.move] = {"x": p[0], "y": float(p[1]) + float(placement.lift), "z": p[2]}
+			holder.add_child(shell)
+			continue
 		if placement.has("surfaceKind"):
 			# Description-bound surfaces use the same registered factory as the
 			# primitive world. Do not invent a second water renderer for recipes.

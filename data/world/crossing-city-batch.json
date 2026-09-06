@@ -7,7 +7,7 @@
     "descriptions": 840,
     "missingDescriptions": 220,
     "partialRecipes": 26,
-    "generatedRecipes": 17,
+    "generatedRecipes": 59,
     "complete": 0,
     "compassMismatches": 493,
     "sourceCompassMismatches": 2
@@ -259,7 +259,6 @@
           "1-613",
           "1-614",
           "1-616",
-          "1-651",
           "1-67",
           "1-68",
           "1-691",
@@ -282,11 +281,8 @@
           "1-899",
           "1-9",
           "1-90",
-          "1-912",
-          "1-913",
           "1-938",
           "1-96",
-          "1-965",
           "1-97"
         ]
       },
@@ -555,254 +551,6 @@
         ]
       },
       {
-        "family": "interior-shell-and-fittings",
-        "roomIds": [
-          "1-1000",
-          "1-1001",
-          "1-1002",
-          "1-1003",
-          "1-1018",
-          "1-1021",
-          "1-1028",
-          "1-1035",
-          "1-1045",
-          "1-1046",
-          "1-188",
-          "1-202",
-          "1-203",
-          "1-215",
-          "1-302",
-          "1-303",
-          "1-304",
-          "1-317",
-          "1-318",
-          "1-319",
-          "1-321",
-          "1-323",
-          "1-331",
-          "1-333",
-          "1-341",
-          "1-343",
-          "1-344",
-          "1-345",
-          "1-347",
-          "1-349",
-          "1-350",
-          "1-352",
-          "1-355",
-          "1-360",
-          "1-363",
-          "1-365",
-          "1-427",
-          "1-428",
-          "1-429",
-          "1-430",
-          "1-431",
-          "1-437",
-          "1-455",
-          "1-470",
-          "1-485",
-          "1-487",
-          "1-489",
-          "1-490",
-          "1-492",
-          "1-494",
-          "1-495",
-          "1-504",
-          "1-525",
-          "1-526",
-          "1-527",
-          "1-528",
-          "1-529",
-          "1-534",
-          "1-535",
-          "1-536",
-          "1-537",
-          "1-538",
-          "1-542",
-          "1-562",
-          "1-578",
-          "1-618",
-          "1-619",
-          "1-653",
-          "1-659",
-          "1-661",
-          "1-667",
-          "1-668",
-          "1-669",
-          "1-671",
-          "1-672",
-          "1-674",
-          "1-685",
-          "1-686",
-          "1-722",
-          "1-739",
-          "1-778",
-          "1-779",
-          "1-780",
-          "1-781",
-          "1-789",
-          "1-791",
-          "1-795",
-          "1-796",
-          "1-816",
-          "1-836",
-          "1-838",
-          "1-848",
-          "1-874",
-          "1-876",
-          "1-877",
-          "1-878",
-          "1-902",
-          "1-906",
-          "1-907",
-          "1-909",
-          "1-911",
-          "1-913",
-          "1-915",
-          "1-916",
-          "1-919",
-          "1-920",
-          "1-921",
-          "1-922",
-          "1-923",
-          "1-924",
-          "1-938",
-          "1-940",
-          "1-951",
-          "1-952",
-          "1-953",
-          "1-954",
-          "1-955",
-          "1-975",
-          "1-987",
-          "1-993",
-          "1-999"
-        ],
-        "unbuiltRoomIds": [
-          "1-1000",
-          "1-1001",
-          "1-1002",
-          "1-1003",
-          "1-1018",
-          "1-1021",
-          "1-1028",
-          "1-1035",
-          "1-1045",
-          "1-1046",
-          "1-188",
-          "1-202",
-          "1-203",
-          "1-215",
-          "1-302",
-          "1-303",
-          "1-304",
-          "1-317",
-          "1-318",
-          "1-319",
-          "1-321",
-          "1-323",
-          "1-331",
-          "1-333",
-          "1-341",
-          "1-343",
-          "1-344",
-          "1-345",
-          "1-347",
-          "1-349",
-          "1-350",
-          "1-352",
-          "1-355",
-          "1-360",
-          "1-363",
-          "1-365",
-          "1-427",
-          "1-428",
-          "1-429",
-          "1-430",
-          "1-431",
-          "1-437",
-          "1-455",
-          "1-470",
-          "1-485",
-          "1-487",
-          "1-489",
-          "1-490",
-          "1-492",
-          "1-494",
-          "1-495",
-          "1-504",
-          "1-525",
-          "1-526",
-          "1-527",
-          "1-528",
-          "1-529",
-          "1-534",
-          "1-535",
-          "1-536",
-          "1-537",
-          "1-538",
-          "1-542",
-          "1-562",
-          "1-578",
-          "1-618",
-          "1-619",
-          "1-653",
-          "1-659",
-          "1-661",
-          "1-667",
-          "1-668",
-          "1-669",
-          "1-671",
-          "1-672",
-          "1-674",
-          "1-685",
-          "1-686",
-          "1-722",
-          "1-739",
-          "1-778",
-          "1-779",
-          "1-780",
-          "1-781",
-          "1-789",
-          "1-791",
-          "1-795",
-          "1-796",
-          "1-816",
-          "1-836",
-          "1-838",
-          "1-848",
-          "1-874",
-          "1-876",
-          "1-877",
-          "1-878",
-          "1-902",
-          "1-906",
-          "1-907",
-          "1-909",
-          "1-911",
-          "1-913",
-          "1-915",
-          "1-916",
-          "1-919",
-          "1-920",
-          "1-921",
-          "1-923",
-          "1-924",
-          "1-938",
-          "1-940",
-          "1-951",
-          "1-952",
-          "1-953",
-          "1-954",
-          "1-955",
-          "1-975",
-          "1-987",
-          "1-993",
-          "1-999"
-        ]
-      },
-      {
         "family": "street-and-junction",
         "roomIds": [
           "1-1000",
@@ -1027,7 +775,6 @@
           "1-613",
           "1-614",
           "1-652",
-          "1-674",
           "1-74",
           "1-75",
           "1-76",
@@ -1050,8 +797,240 @@
           "1-96",
           "1-97",
           "1-975",
-          "1-995",
+          "1-995"
+        ]
+      },
+      {
+        "family": "interior-shell-and-fittings",
+        "roomIds": [
+          "1-1000",
+          "1-1001",
+          "1-1002",
+          "1-1003",
+          "1-1018",
+          "1-1021",
+          "1-1028",
+          "1-1035",
+          "1-1045",
+          "1-1046",
+          "1-188",
+          "1-202",
+          "1-203",
+          "1-215",
+          "1-302",
+          "1-303",
+          "1-304",
+          "1-317",
+          "1-318",
+          "1-319",
+          "1-321",
+          "1-323",
+          "1-331",
+          "1-333",
+          "1-341",
+          "1-343",
+          "1-344",
+          "1-345",
+          "1-347",
+          "1-349",
+          "1-350",
+          "1-352",
+          "1-355",
+          "1-360",
+          "1-363",
+          "1-365",
+          "1-427",
+          "1-428",
+          "1-429",
+          "1-430",
+          "1-431",
+          "1-437",
+          "1-455",
+          "1-470",
+          "1-485",
+          "1-487",
+          "1-489",
+          "1-490",
+          "1-492",
+          "1-494",
+          "1-495",
+          "1-504",
+          "1-525",
+          "1-526",
+          "1-527",
+          "1-528",
+          "1-529",
+          "1-534",
+          "1-535",
+          "1-536",
+          "1-537",
+          "1-538",
+          "1-542",
+          "1-562",
+          "1-578",
+          "1-618",
+          "1-619",
+          "1-653",
+          "1-659",
+          "1-661",
+          "1-667",
+          "1-668",
+          "1-669",
+          "1-671",
+          "1-672",
+          "1-674",
+          "1-685",
+          "1-686",
+          "1-722",
+          "1-739",
+          "1-778",
+          "1-779",
+          "1-780",
+          "1-781",
+          "1-789",
+          "1-791",
+          "1-795",
+          "1-796",
+          "1-816",
+          "1-836",
+          "1-838",
+          "1-848",
+          "1-874",
+          "1-876",
+          "1-877",
+          "1-878",
+          "1-902",
+          "1-906",
+          "1-907",
+          "1-909",
+          "1-911",
+          "1-913",
+          "1-915",
+          "1-916",
+          "1-919",
+          "1-920",
+          "1-921",
+          "1-922",
+          "1-923",
+          "1-924",
+          "1-938",
+          "1-940",
+          "1-951",
+          "1-952",
+          "1-953",
+          "1-954",
+          "1-955",
+          "1-975",
+          "1-987",
+          "1-993",
           "1-999"
+        ],
+        "unbuiltRoomIds": [
+          "1-1000",
+          "1-1001",
+          "1-1002",
+          "1-1003",
+          "1-1028",
+          "1-1035",
+          "1-1045",
+          "1-1046",
+          "1-188",
+          "1-203",
+          "1-215",
+          "1-302",
+          "1-303",
+          "1-317",
+          "1-318",
+          "1-319",
+          "1-321",
+          "1-323",
+          "1-331",
+          "1-333",
+          "1-341",
+          "1-343",
+          "1-344",
+          "1-345",
+          "1-347",
+          "1-349",
+          "1-352",
+          "1-355",
+          "1-360",
+          "1-363",
+          "1-365",
+          "1-427",
+          "1-428",
+          "1-429",
+          "1-430",
+          "1-431",
+          "1-437",
+          "1-455",
+          "1-470",
+          "1-485",
+          "1-487",
+          "1-489",
+          "1-490",
+          "1-492",
+          "1-494",
+          "1-495",
+          "1-504",
+          "1-525",
+          "1-527",
+          "1-528",
+          "1-529",
+          "1-534",
+          "1-535",
+          "1-536",
+          "1-537",
+          "1-538",
+          "1-542",
+          "1-562",
+          "1-618",
+          "1-619",
+          "1-653",
+          "1-659",
+          "1-661",
+          "1-667",
+          "1-668",
+          "1-669",
+          "1-671",
+          "1-672",
+          "1-685",
+          "1-686",
+          "1-722",
+          "1-739",
+          "1-779",
+          "1-780",
+          "1-781",
+          "1-789",
+          "1-791",
+          "1-795",
+          "1-796",
+          "1-836",
+          "1-848",
+          "1-874",
+          "1-876",
+          "1-877",
+          "1-878",
+          "1-906",
+          "1-907",
+          "1-909",
+          "1-911",
+          "1-915",
+          "1-916",
+          "1-919",
+          "1-920",
+          "1-921",
+          "1-923",
+          "1-924",
+          "1-938",
+          "1-940",
+          "1-951",
+          "1-952",
+          "1-953",
+          "1-954",
+          "1-955",
+          "1-975",
+          "1-987"
         ]
       },
       {
@@ -1188,22 +1167,17 @@
         "unbuiltRoomIds": [
           "1-10",
           "1-1006",
-          "1-1018",
           "1-1019",
-          "1-1021",
           "1-1023",
           "1-1024",
           "1-1025",
           "1-1039",
           "1-1040",
           "1-1041",
-          "1-1048",
           "1-189",
           "1-199",
-          "1-209",
           "1-217",
           "1-220",
-          "1-222",
           "1-228",
           "1-229",
           "1-233",
@@ -1227,7 +1201,6 @@
           "1-338",
           "1-341",
           "1-346",
-          "1-361",
           "1-366",
           "1-369",
           "1-451",
@@ -1242,7 +1215,6 @@
           "1-567",
           "1-568",
           "1-571",
-          "1-578",
           "1-580",
           "1-581",
           "1-582",
@@ -1267,11 +1239,7 @@
           "1-791",
           "1-794",
           "1-811",
-          "1-812",
-          "1-816",
-          "1-818",
           "1-819",
-          "1-838",
           "1-845",
           "1-848",
           "1-865",
@@ -1279,19 +1247,14 @@
           "1-899",
           "1-9",
           "1-900",
-          "1-902",
           "1-906",
           "1-907",
           "1-909",
-          "1-912",
-          "1-913",
-          "1-914",
           "1-919",
           "1-920",
           "1-921",
           "1-923",
           "1-924",
-          "1-925",
           "1-938",
           "1-940",
           "1-941",
@@ -1299,7 +1262,6 @@
           "1-962",
           "1-963",
           "1-964",
-          "1-965",
           "1-973",
           "1-992"
         ]
@@ -1438,7 +1400,6 @@
           "1-333",
           "1-34",
           "1-35",
-          "1-353",
           "1-387",
           "1-395",
           "1-396",
@@ -1448,7 +1409,6 @@
           "1-46",
           "1-47",
           "1-48",
-          "1-493",
           "1-52",
           "1-569",
           "1-592",
@@ -8162,13 +8122,31 @@
     }
   },
   "compositionCompilation": {
-    "compiler": "bounded-furnishing-v4",
-    "generatedRooms": 17,
+    "compiler": "rust-interior-v6",
+    "generatedRooms": 59,
     "exceptions": [
       {
         "cellId": "1-10",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-1000",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1001",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1003",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8184,9 +8162,69 @@
         ]
       },
       {
+        "cellId": "1-1019",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-102",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-1020",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1023",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1024",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1025",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1026",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1027",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1028",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1035",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-1039",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8208,6 +8246,12 @@
         ]
       },
       {
+        "cellId": "1-1042",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-1043",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -8217,6 +8261,12 @@
         "cellId": "1-1044",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-1045",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8274,9 +8324,21 @@
         ]
       },
       {
+        "cellId": "1-1058",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-1059",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-1060",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8490,9 +8552,63 @@
         ]
       },
       {
+        "cellId": "1-185",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-186",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-187",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-188",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-189",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-190",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-196",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-200",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-203",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-208",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8502,9 +8618,81 @@
         ]
       },
       {
+        "cellId": "1-211",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-212",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-213",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-215",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-216",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-217",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-220",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-224",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-228",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-229",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-230",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-232",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-233",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8523,6 +8711,12 @@
         "cellId": "1-239",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-240",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8730,9 +8924,51 @@
         ]
       },
       {
+        "cellId": "1-301",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-302",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-303",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-305",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-306",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-307",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-308",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-309",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8742,9 +8978,39 @@
         ]
       },
       {
+        "cellId": "1-311",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-312",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-313",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-314",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-317",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-318",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8754,9 +9020,171 @@
         ]
       },
       {
+        "cellId": "1-320",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-321",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-322",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-323",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-324",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-326",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-327",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-331",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-332",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-333",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-334",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-338",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-34",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-340",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-341",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-343",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-344",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-345",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-346",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-347",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-349",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-351",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-352",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-354",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-355",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-356",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-357",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-359",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8766,9 +9194,57 @@
         ]
       },
       {
+        "cellId": "1-360",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-363",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-364",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-365",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-367",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-368",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-369",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-37",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-370",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8790,6 +9266,18 @@
         ]
       },
       {
+        "cellId": "1-376",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-378",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-383",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -8802,6 +9290,12 @@
         ]
       },
       {
+        "cellId": "1-385",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-388",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -8811,6 +9305,12 @@
         "cellId": "1-39",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-391",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8838,6 +9338,12 @@
         ]
       },
       {
+        "cellId": "1-401",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-402",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -8847,6 +9353,18 @@
         "cellId": "1-403",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-406",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-407",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -8958,6 +9476,60 @@
         ]
       },
       {
+        "cellId": "1-426",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-427",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-428",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-429",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-430",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-431",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-432",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-433",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-437",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-44",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9012,6 +9584,12 @@
         ]
       },
       {
+        "cellId": "1-45",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-452",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9021,6 +9599,12 @@
         "cellId": "1-453",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-455",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9042,15 +9626,111 @@
         ]
       },
       {
+        "cellId": "1-464",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-465",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-466",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-467",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
         ]
       },
       {
+        "cellId": "1-468",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-470",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-471",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-472",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-473",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-474",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-478",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-479",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-48",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-480",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-484",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-485",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-486",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-487",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9087,6 +9767,24 @@
         "cellId": "1-5",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-500",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-501",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-504",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9132,15 +9830,57 @@
         ]
       },
       {
+        "cellId": "1-525",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-527",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-529",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-53",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
         ]
       },
       {
+        "cellId": "1-530",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-531",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-533",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-534",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-535",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9174,9 +9914,75 @@
         ]
       },
       {
+        "cellId": "1-543",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-545",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-552",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-56",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-560",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-562",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-563",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-564",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-565",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-566",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-567",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-568",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9192,6 +9998,24 @@
         ]
       },
       {
+        "cellId": "1-570",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-571",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-580",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-581",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9201,6 +10025,18 @@
         "cellId": "1-582",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-583",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-589",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9249,6 +10085,24 @@
         "cellId": "1-601",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-602",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-604",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-605",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9309,6 +10163,18 @@
         "cellId": "1-617",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-618",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-619",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9408,6 +10274,12 @@
         ]
       },
       {
+        "cellId": "1-635",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-638",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9432,9 +10304,63 @@
         ]
       },
       {
+        "cellId": "1-653",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-657",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-658",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-659",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-66",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-660",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-661",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-662",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-663",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-665",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9444,15 +10370,201 @@
         ]
       },
       {
+        "cellId": "1-667",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-668",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-669",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-671",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-672",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-673",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-68",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
         ]
       },
       {
+        "cellId": "1-684",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-685",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-686",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-691",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-692",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-695",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-696",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-697",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-698",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-699",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-700",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-701",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-703",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-704",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-707",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-709",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-711",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-712",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-716",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-717",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-718",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-721",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-722",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-723",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-724",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-725",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9510,6 +10622,24 @@
         ]
       },
       {
+        "cellId": "1-735",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-736",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-747",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-748",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9534,9 +10664,105 @@
         ]
       },
       {
+        "cellId": "1-755",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-758",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-759",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-76",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-760",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-761",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-762",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-764",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-769",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-770",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-771",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-772",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-773",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-774",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-775",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-776",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-777",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9558,9 +10784,27 @@
         ]
       },
       {
+        "cellId": "1-783",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-784",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-785",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-786",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9570,9 +10814,45 @@
         ]
       },
       {
+        "cellId": "1-789",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-79",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-791",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-793",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-794",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-795",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-796",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9585,6 +10865,24 @@
         "cellId": "1-80",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-800",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-804",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-805",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9612,9 +10910,63 @@
         ]
       },
       {
+        "cellId": "1-811",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-814",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-815",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-817",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-819",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-820",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-821",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-823",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-824",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-825",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9648,9 +11000,51 @@
         ]
       },
       {
+        "cellId": "1-830",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-831",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-832",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-833",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-834",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-835",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-836",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-837",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9666,6 +11060,72 @@
         ]
       },
       {
+        "cellId": "1-840",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-841",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-842",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-843",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-844",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-845",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-846",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-847",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-848",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-849",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-851",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-852",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9678,15 +11138,57 @@
         ]
       },
       {
+        "cellId": "1-855",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-856",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-857",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-858",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-859",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-86",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
         ]
       },
       {
+        "cellId": "1-860",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-862",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-865",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9702,9 +11204,33 @@
         ]
       },
       {
+        "cellId": "1-869",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-870",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-874",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-877",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-878",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9762,9 +11288,27 @@
         ]
       },
       {
+        "cellId": "1-897",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-899",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-90",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-900",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9780,6 +11324,24 @@
         ]
       },
       {
+        "cellId": "1-906",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-907",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-908",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-909",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9789,6 +11351,12 @@
         "cellId": "1-91",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-911",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9804,6 +11372,12 @@
         ]
       },
       {
+        "cellId": "1-919",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-920",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
@@ -9813,6 +11387,12 @@
         "cellId": "1-921",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-922",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9834,15 +11414,99 @@
         ]
       },
       {
+        "cellId": "1-938",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-939",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-940",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-941",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-943",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-944",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-951",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
         ]
       },
       {
+        "cellId": "1-952",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-953",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-954",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-955",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-956",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-957",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-958",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-959",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-960",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9861,6 +11525,18 @@
         "cellId": "1-963",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-964",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-966",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       },
       {
@@ -9900,9 +11576,81 @@
         ]
       },
       {
+        "cellId": "1-973",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-974",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-975",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-979",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-980",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-981",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-982",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-983",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
         "cellId": "1-984",
         "reasons": [
           "Shared-room evidence or conditional state requires resolution before automatic placement"
+        ]
+      },
+      {
+        "cellId": "1-987",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-992",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-995",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
+        ]
+      },
+      {
+        "cellId": "1-998",
+        "reasons": [
+          "Rust enclosure withheld: needs explicit supported cardinal anchors, sufficient footprint and unambiguous enclosure prose; no neighbor-position fallback"
         ]
       }
     ]
@@ -38210,9 +39958,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -38296,9 +40050,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -38845,9 +40605,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -39156,9 +40922,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -39242,9 +41014,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -39669,9 +41447,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -40931,9 +42715,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -41047,9 +42837,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -52249,9 +54045,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -53504,9 +55306,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -57454,9 +59262,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -57797,9 +59611,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -58496,9 +60316,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -58853,9 +60679,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -71500,7 +73332,8 @@
       "recipeStatus": "partial-generated-review-required",
       "remainingRecipeWork": [
         "Room-specific shell, finishes, counts and landmark details require further compilation and review",
-        "Inferred furniture placement is not a recovered historical floor plan"
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
       ],
       "connections": [
         {
@@ -73507,9 +75340,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -74112,9 +75951,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -78533,9 +80378,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -81935,9 +83786,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -84485,9 +86342,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -89853,9 +91716,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [],
       "productionStatus": "incomplete"
     },
@@ -93451,9 +95320,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -95759,9 +97634,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -106795,9 +108676,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -110912,9 +112799,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -110998,9 +112891,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -111335,9 +113234,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -111535,9 +113440,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -113989,9 +115900,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -117050,9 +118967,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -120361,9 +122284,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -120689,9 +122618,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -121615,9 +123550,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -121740,9 +123681,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -121856,9 +123803,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -123002,9 +124955,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -123254,7 +125213,8 @@
       "recipeStatus": "partial-generated-review-required",
       "remainingRecipeWork": [
         "Room-specific shell, finishes, counts and landmark details require further compilation and review",
-        "Inferred furniture placement is not a recovered historical floor plan"
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
       ],
       "connections": [
         {
@@ -125133,9 +127093,15 @@
       },
       "assetRequirements": [],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -127147,9 +129113,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",
@@ -130016,9 +131988,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -130785,9 +132763,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "south",
@@ -132508,9 +134492,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "west",
@@ -132766,9 +134756,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "north",
@@ -135817,9 +137813,15 @@
         }
       ],
       "currentModels": [],
-      "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "currentSurfaces": [
+        "interior-floor-5m"
+      ],
+      "recipeStatus": "partial-generated-review-required",
+      "remainingRecipeWork": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
       "connections": [
         {
           "command": "east",

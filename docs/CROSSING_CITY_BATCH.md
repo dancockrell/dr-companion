@@ -11,7 +11,7 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 - descriptions: 840
 - missingDescriptions: 220
 - partialRecipes: 26
-- generatedRecipes: 17
+- generatedRecipes: 59
 - complete: 0
 - compassMismatches: 493
 - sourceCompassMismatches: 2
@@ -30,12 +30,12 @@ Target workflow: extract evidence once; compile constrained scene recipes in bat
 
 ### Highest-coverage kit work
 
-- building-frontage: 128 unbuilt rooms (139 described rooms total)
+- building-frontage: 124 unbuilt rooms (139 described rooms total)
 - garden-and-boundary: 122 unbuilt rooms (135 described rooms total)
-- interior-shell-and-fittings: 120 unbuilt rooms (121 described rooms total)
-- street-and-junction: 118 unbuilt rooms (127 described rooms total)
-- workshop-and-commercial-display: 116 unbuilt rooms (127 described rooms total)
-- riverine-and-maritime: 83 unbuilt rooms (86 described rooms total)
+- street-and-junction: 116 unbuilt rooms (127 described rooms total)
+- interior-shell-and-fittings: 105 unbuilt rooms (121 described rooms total)
+- workshop-and-commercial-display: 99 unbuilt rooms (127 described rooms total)
+- riverine-and-maritime: 81 unbuilt rooms (86 described rooms total)
 - rock-cave-and-underground: 47 unbuilt rooms (47 described rooms total)
 - vertical-connection: 38 unbuilt rooms (38 described rooms total)
 

@@ -47,6 +47,13 @@ func _run() -> void:
 				for tile in model.get_children():
 					check(tile.scale.x <= 1.001 and tile.scale.z <= 1.001 and is_equal_approx(tile.scale.y, 1.0), "Ground modules preserve native height and never stretch horizontally")
 			var bounds := _bounds(model, node)
+			if model is MultiMeshInstance3D:
+				check(model.multimesh.custom_aabb.size.length() > 0, "Saved shell retains nonempty render culling bounds")
+				check(model.multimesh.get_instance_transform(0).is_equal_approx(Transform3D.IDENTITY), "Packaged mesh instance preserves identity transform")
+				check(model.multimesh.instance_count == 1, "Packed shell contains one reusable definition instance")
+				bounds = model.transform * model.multimesh.mesh.get_aabb()
+				check(not model.get_meta("scene_forge_apertures", []).is_empty() or cell.exits.is_empty(), "Shell retains real aperture descriptors")
+				check(node.get_meta("exit_anchors").size() == cell.exits.size(), "Every generated shell exit binds an aperture")
 			check(bounds.position.x >= -size.x/2 - 0.001 and bounds.end.x <= size.x/2 + 0.001 and bounds.position.z >= -size.z/2 - 0.001 and bounds.end.z <= size.z/2 + 0.001, "Full visual geometry stays within published footprint")
 			var shells := model.find_children("CompleteExterior", "Node3D", true, false)
 			if not shells.is_empty():
@@ -68,8 +75,15 @@ func _run() -> void:
 			changed.board.footprint.width += 1
 			check(content.build_room_composition(changed) == null, "Changed footprint refuses cached generated placements")
 			changed = cell.duplicate(true)
-			changed.exits[0].move = "different command"
+			if changed.exits.is_empty():
+				changed.exits.append({"move": "new exit"})
+			else:
+				changed.exits[0].move = "different command"
 			check(content.build_room_composition(changed) == null, "Changed graph refuses cached generated clearances")
+			if not cell.exits.is_empty():
+				changed = cell.duplicate(true)
+				changed.exits[0].tetherKind = "ladder"
+				check(content.build_room_composition(changed) == null, "Changed traversal kind refuses old generated shell")
 	check(content.build_room_composition(cells["1-467"]) == null, "Pond without an authored composition refuses unrelated geometry")
 	for room_id in ["1-191", "1-192"]:
 		var shop: Node3D = content.build_room_composition(cells[room_id])

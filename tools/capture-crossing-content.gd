@@ -64,6 +64,10 @@ func _run() -> void:
 					material.normal_enabled = false
 					mesh.material_override = material
 		camera.size = 36.0
+		var room_holder: Node3D = world._spawned_cells.get(entry[0])
+		print("Capture detail ", entry[0], ": ", room_holder.get_node("DetailContent").get_child_count())
+		for display in room_holder.find_children("*", "MultiMeshInstance3D", true, false):
+			print("Shared shell ", display.name, " visible=", display.is_visible_in_tree(), " transform=", display.global_transform, " count=", display.multimesh.visible_instance_count, " aabb=", display.multimesh.get_aabb())
 		if "--no-textures" in requested:
 			for mesh in world.find_children("*", "MeshInstance3D", true, false):
 				for surface in mesh.mesh.get_surface_count():

@@ -7,6 +7,9 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "docs/verification/crossing-native-room-1-197.png",
+    "tools/compile-crossing-shells.mjs",
+    "docs/CROSSING_RUST_SHELLS.md",
     "src/lib/world-content-rules.mjs",
     "src/data/world/",
     "tools/build-world-content.mjs",
@@ -95,6 +98,9 @@
   "completion": {
     "commit": "Native-scale floor repetition and socket-bound approaches: included in this checkpoint",
     "checks": [
+      "Rust integration: 59 generated compositions, 44 shell-bearing rooms, 12 shared meshes; source/caching/binding tests passed",
+      "18 Godot headless scripts passed with 5457 checks, including saved culling bounds and changed traversal-kind refusal",
+      "Actual hidden viewer capture 1-197 rejected: shell invisible; empty automatic AABB corrected but visible runtime outcome still unresolved",
       "Continuation: 774 Godot checks and 27 geometry checks passed; twelve room captures plus overview regenerated; Town Green North inspected",
       "459 Godot checks across 18 scripts passed",
       "27 geometry drift checks passed",

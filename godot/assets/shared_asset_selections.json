@@ -3257,16 +3257,196 @@
       ]
     },
     {
+      "cellId": "1-1018",
+      "descriptionHash": "ec8e5d2d9d44595a",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "5180d575237d871a6efbc287f1ee2f5e511efb2ab282ee9f2bbf21a2a56dd38a",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-431",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-431"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-1021",
+      "descriptionHash": "8e190788f843bf8d",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "9a05724ffd3e3adece715c433a568f6c67c96790e8b58fe10b1e00a582746646",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-906",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-906"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-1027",
       "descriptionHash": "f20c288a5e843a39",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "8b710a877b06787590730e697d8dca503c780a8c9192e67badca2deb600325c3",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "c5579748ce3d72ba2cef613d60720de2a0b783ed7ee7b88e469cec52e7ceca5b",
       "requiredExits": [
         {
           "move": "go obsidian entryway",
           "targetCellId": "1-898",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "other",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3320,16 +3500,1089 @@
       ]
     },
     {
+      "cellId": "1-1048",
+      "descriptionHash": "3c30c6863416231a",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "43beab3c2ffd9da9b0f733c0dbaf2d375930acd9a9d1531528c5b9d2aa7bd432",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-965",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-965"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-197",
+      "descriptionHash": "bb97555409b81eac",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "f55887f6c4ee09cae6791141680a5c3059369aa47a33719f14ee5bd84c152a33",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-196",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-196"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-198",
+      "descriptionHash": "8f5400d55a28c9bf",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "873e763a641f4c410687bb4ad131997c576e44bcf3c680b063fd203ab2102ffe",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-196",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-196"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-202",
+      "descriptionHash": "8be89d316d197d35",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "cde393686580594bb1ef96e39f8529f0526a55a9c7c9a2965819e8e5d7834aff",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-217",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        },
+        {
+          "move": "east",
+          "targetCellId": "1-201",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "south",
+          "targetCellId": "1-216",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-203",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_c1e5bf9a256846136681",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-217"
+            },
+            {
+              "openingIndex": 1,
+              "move": "east",
+              "targetCellId": "1-201"
+            },
+            {
+              "openingIndex": 2,
+              "move": "south",
+              "targetCellId": "1-216"
+            },
+            {
+              "openingIndex": 3,
+              "move": "west",
+              "targetCellId": "1-203"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-204",
+      "descriptionHash": "b005665fab2195c4",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "24d1d4feba722a76eb609476f4cbf93f06a160ae3b2ccc686d7cb29726db3f79",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-203",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-203"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-205",
+      "descriptionHash": "8036c3b1cd05a654",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "45603e10f96e87eb9b202ff5e41b25681f88f123e9b22810608258d97e825246",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-203",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-203"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-209",
+      "descriptionHash": "f9b4d50c74e58bcf",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "c6f78df60a28541a361e7d714f6c592bb2f84acb4abe1fcc2999f409fc5cde62",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-207",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-207"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-221",
+      "descriptionHash": "c8e65cd3525fb3ee",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "ac9f41d62cd29b4b92dbfb7711f037b2488e1985e0b9bd9b9ea27208c0eda6df",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-220",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-222",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ff4af6d3fc4269bc0986",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-220"
+            },
+            {
+              "openingIndex": 1,
+              "move": "west",
+              "targetCellId": "1-222"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-222",
+      "descriptionHash": "d2f0a8c64c3aa0c6",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "d6f640f6ff66dda98f864671811117a0f2e78d66a08ee0f3cd70543f5abb36c2",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-221",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-221"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-304",
+      "descriptionHash": "ef09c06307f00d23",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "11828b3ab381f18b7479ed0d57ea59b1483d42e43fa6f5372329f85bd8109e61",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-302",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-302"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-315",
+      "descriptionHash": "b56e456b9833b586",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "cdc2b5c392edfc1a975105bc4a17fd8c619272b72740f6d8aaf2684fc02d1395",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-313",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-313"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-326",
       "descriptionHash": "c684a708fb52632a",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "f4f8d6e9a5f9dd704f493df7acd528ac280a464b7a39b9b696bd38fcfd6d2121",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "f70efdf573055f6bfb189383354dee96402a98172c6108b1297e3ebfca484fb6",
       "requiredExits": [
         {
           "move": "out",
           "targetCellId": "1-325",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "out"
         }
       ],
       "requiredFootprint": {
@@ -3386,13 +4639,15 @@
       "cellId": "1-334",
       "descriptionHash": "09bf4fcc1a14ad58",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "e1d9d1edda11700a54742e9f19222897ebf8cdc0b31e0c1342701ad24ead5c16",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "bb581dc4dc17fd82aa47b5ba7ce0104848f17e6d09d6c948adde7af2de914570",
       "requiredExits": [
         {
           "move": "go fros door",
           "targetCellId": "1-331",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3449,28 +4704,36 @@
       "cellId": "1-348",
       "descriptionHash": "172e3290cd189a44",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "10aa050995b6dc8c6235d80d4b30ea0a7144a6ea03a5d68578ad9c3256964777",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "9f6bca02201bd4b6f8bdb8b62778960f8d0d68e6ef2f4bf18dfc883efb8d40ba",
       "requiredExits": [
         {
           "move": "go low building",
           "targetCellId": "1-349",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "other",
+          "direction": "go"
         },
         {
           "move": "go deobar archway",
           "targetCellId": "1-351",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         },
         {
           "move": "go arched door",
           "targetCellId": "1-344",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         },
         {
           "move": "go recessed cellar",
           "targetCellId": "1-773",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "other",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3524,16 +4787,420 @@
       ]
     },
     {
+      "cellId": "1-350",
+      "descriptionHash": "fd3fb1e9f20d52e5",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "d2f4be6d22f361d20636a38e32b369dad4e614544f90987db242d4cd9f7797d6",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-349",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-349"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-353",
+      "descriptionHash": "034d0ba244cbc338",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "f81606ee7fa74ceb6cf6481cfa0a042bf0b80ea47f6b64ceba4f200414c4ee17",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-361",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        },
+        {
+          "move": "east",
+          "targetCellId": "1-352",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_2b4f1dddc62506d9c7ac",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-361"
+            },
+            {
+              "openingIndex": 1,
+              "move": "east",
+              "targetCellId": "1-352"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-358",
+      "descriptionHash": "e1181554f403b08d",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "67e42fb32b5914227127bfd6459a98be18bfd82c88ae1833d4183c134989d129",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-357",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-357"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-361",
+      "descriptionHash": "dfe3c2461498d35c",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "218a50d9ec8e6deb26d9b1570e2bad0c8f4ad408f9365e784c2ad2c4ed0f0071",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-353",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-362",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_cc7af3ac2967c837272d",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-353"
+            },
+            {
+              "openingIndex": 1,
+              "move": "west",
+              "targetCellId": "1-362"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-378",
       "descriptionHash": "1753c37a7dc9be4e",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "808205c2492edb21002d158d3063bde837e8c6a6ec5ef41f96ad61d98f2213e3",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "851529cd55f24f56eab417b63ae018f95b6bf2fe144bbbceb4ea97a497625b12",
       "requiredExits": [
         {
           "move": "go archway",
           "targetCellId": "1-377",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3590,18 +5257,22 @@
       "cellId": "1-432",
       "descriptionHash": "16a2c2113d7358a2",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "9c37a7e530296458bbca0350aed1ce22179d749eecb011bf95a242efaebc837e",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "36f2af25d0402abd4fb57ea94d89704ee9ec85341cc89e7e82c192e38ed6a0d0",
       "requiredExits": [
         {
           "move": "go wide arch",
           "targetCellId": "1-1",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         },
         {
           "move": "go walnut ramp",
           "targetCellId": "1-426",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "other",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3658,8 +5329,8 @@
       "cellId": "1-469",
       "descriptionHash": "22efbd94d5bbf7c2",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "3e437cb27e76ed01b5eb18179b77bdf1a2e796637bd7523376672ec997760f4e",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "0f0c01feb41811c443aa7058433b6b6442763114a11e40049233d32fe9c771cc",
       "requiredExits": [
         {
           "move": "west",
@@ -3669,7 +5340,9 @@
             "y": 0,
             "z": 0,
             "yawDeg": 270
-          }
+          },
+          "tetherKind": "road",
+          "direction": "west"
         }
       ],
       "requiredFootprint": {
@@ -3682,7 +5355,8 @@
       "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
       "missing": [
         "Room-specific shell, finishes, counts and landmark details require further compilation and review",
-        "Inferred furniture placement is not a recovered historical floor plan"
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
       ],
       "pieces": [
         {
@@ -3719,6 +5393,754 @@
             "minZ": 5.347499966621399,
             "maxZ": 6.652500033378599
           }
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-468"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-488",
+      "descriptionHash": "487876ec995751fc",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "1b98f8e34debed2f19c99f8384dfc4d7285a4d2d1776a0697ff7a2e4c1f1422a",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-487",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-487"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-493",
+      "descriptionHash": "fe5699b461ea2ff1",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "99d494c0ef8f7182c50c7d6091e0a2a20a720f4a524ed14a33adacbc28ae2397",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-492",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-492"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-526",
+      "descriptionHash": "fe7324458ae0f2a7",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "c9fc9465502f2f39e096451a8a4dd9cc55c08e719a94ea7994bf3097609c9f89",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-525",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-525"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-555",
+      "descriptionHash": "f06e4518c0ef0031",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "e439d1e2ab79162f584776cc7b58aed2545886ed4f1968de1520b35409f09dce",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-554",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "south",
+          "targetCellId": "1-553",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ec9bee4c8d56b8be81d8",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-554"
+            },
+            {
+              "openingIndex": 1,
+              "move": "south",
+              "targetCellId": "1-553"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-578",
+      "descriptionHash": "f3e53dacc5319694",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "4a69d64edf74f56f897a532c3ea3cfd5e6c1e3c8cacffe612716c34faaa19545",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-577",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-577"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-620",
+      "descriptionHash": "87f0d633c04b4258",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "b9a81bf2302945052666d4c931e9dde5e3baf22cb885a27c057eaecc9cc9fb84",
+      "requiredExits": [],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_c6e7c0f52f9ec41f96fd",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": []
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-651",
+      "descriptionHash": "091c7280cf668ec0",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "3c9702980ba9cd29528ec8d14e8efa69523cce4ff98b1aa46ad6f936355816e2",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-401",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-401"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-674",
+      "descriptionHash": "13ffd991a88b5748",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "06e469f25b941bf546608b231762106bff98e9a324b58e2d28b1dcc09daabc91",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-675",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-675"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
         }
       ]
     },
@@ -3726,13 +6148,15 @@
       "cellId": "1-687",
       "descriptionHash": "0d36136e0a0e760e",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "1dbb976c6bdb242ed3bce8fa7160d1abfd1df6cd3a7b21ea84b88a45577dcdd4",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "2a6ce6c2d182e9cc9650d0648dfbaecea569c8dd52743863240deebd38ab2cac",
       "requiredExits": [
         {
           "move": "go archway",
           "targetCellId": "1-686",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3789,13 +6213,15 @@
       "cellId": "1-690",
       "descriptionHash": "0c9c16adaba0e2ac",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "b9d2691b4f8d47b89a38484dbaed2479b994d33888ca6dc0715028d29af143aa",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "ebba584b58aaa88ee5661969b87f488bd77f1cf00e55ccd07ae78edef1ea2d33",
       "requiredExits": [
         {
           "move": "go archway",
           "targetCellId": "1-689",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3852,13 +6278,15 @@
       "cellId": "1-700",
       "descriptionHash": "24d71b5ea2ae85f5",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "9db30ca3bd25e0e3daabeecb3b132c25356ef82326c7b8c219e94c9afe8ac879",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "281f13095e85bd285a19177c5a2603703e03e5e6fcb4671c2991369a3743972e",
       "requiredExits": [
         {
           "move": "go main bar",
           "targetCellId": "1-699",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "other",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -3915,13 +6343,15 @@
       "cellId": "1-703",
       "descriptionHash": "a266d8b0f67e1439",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "ebd10e6bb50bf7e2a11d4501790abf50c2206290832c4bfaf4dc53277132a1ae",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "1089fd56dfb28e9234deb62e7fa28f2b5aa179c65bbb2914052e926817a30bc8",
       "requiredExits": [
         {
           "move": "out",
           "targetCellId": "1-74",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "out"
         }
       ],
       "requiredFootprint": {
@@ -3978,8 +6408,8 @@
       "cellId": "1-757",
       "descriptionHash": "d347654a688911ae",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "373820c0a98ddbd27121d7358938156831faaaed8fed78f8ae17cbdfc5a4d996",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "3f186ea0afa8c5e309dde7fe30038ce603d76e053be51d7914802c5e8f61abdc",
       "requiredExits": [
         {
           "move": "east",
@@ -3989,12 +6419,16 @@
             "y": 0,
             "z": 0,
             "yawDeg": 90
-          }
+          },
+          "tetherKind": "road",
+          "direction": "east"
         },
         {
           "move": "go low gate",
           "targetCellId": "1-758",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -4048,16 +6482,130 @@
       ]
     },
     {
+      "cellId": "1-778",
+      "descriptionHash": "987c14d5d12612ba",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "489dcc0cdc3b59f8c1ee326037c7f0b41fa927256f8afaf114b02e0cecc99881",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-777",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-779",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_d25245d6d1d790150ec2",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-777"
+            },
+            {
+              "openingIndex": 1,
+              "move": "west",
+              "targetCellId": "1-779"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-786",
       "descriptionHash": "c962aa10b50e8bc6",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "ca17d60e25c9c29177027b78d0747ce7a866f7564052162010fc94d39576d187",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "4868bd06ac4a5538a67a9cca343596f2a629dc52cbc2de7ee2ac56ab9c3345b6",
       "requiredExits": [
         {
           "move": "go flame-shaped opening",
           "targetCellId": "1-777",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -4111,16 +6659,552 @@
       ]
     },
     {
+      "cellId": "1-812",
+      "descriptionHash": "22e50409781dc8a8",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "93f59761beddaddd284851db3ab4e065bdd068923a95a0ec421329eeabfd3b74",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-811",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-811"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-813",
+      "descriptionHash": "37aea117bc85f696",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "07699d8dd183e2e9b09ead6e535476840cede7f0c53a48b169934655f06693ef",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-811",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-811"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-816",
+      "descriptionHash": "942b297329de824d",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "5366c28250e89ac99bff8de40c915d4cd7148f22970bf415958a9236a3719a10",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-815",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-815"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-818",
+      "descriptionHash": "94539a41129cce9b",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "09dd92ca379aee732d0019b5dd39bb0a65ad2b503852fa17e0b8cf82c7462b0c",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-817",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-817"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-838",
+      "descriptionHash": "7f60ef6cdd1e0013",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "934b8bc7a292b1f5f9eee97ba97fdd1ed7381702a69817993b34d2a4e8f204ec",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-835",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-835"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-871",
+      "descriptionHash": "2dc14f6ae7a8f1ee",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "3e0d91a4c089cb89c0bd1427044507d2c49de4e2f5e67e2b449598aacd4438c4",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-870",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-870"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-897",
       "descriptionHash": "7552c8be7c279ff0",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "54601c085bfc890f9157e73987f699cd83461f82f89432d356a60a33ee183dc3",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "e8578baaec479dcb482212d15e3275cdb11fd387081017c8fdadbced9b046570",
       "requiredExits": [
         {
           "move": "out",
           "targetCellId": "1-325",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "out"
         }
       ],
       "requiredFootprint": {
@@ -4174,16 +7258,311 @@
       ]
     },
     {
+      "cellId": "1-902",
+      "descriptionHash": "44a46fdda3b4f1ae",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "0c5d78bee199b68bd02ca34aa718336d7e0e882fc2fa64b2b664f4e879075f61",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-865",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        },
+        {
+          "move": "east",
+          "targetCellId": "1-905",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "south",
+          "targetCellId": "1-906",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-960",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_c1e5bf9a256846136681",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-865"
+            },
+            {
+              "openingIndex": 1,
+              "move": "east",
+              "targetCellId": "1-905"
+            },
+            {
+              "openingIndex": 2,
+              "move": "south",
+              "targetCellId": "1-906"
+            },
+            {
+              "openingIndex": 3,
+              "move": "west",
+              "targetCellId": "1-960"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-905",
+      "descriptionHash": "28d792d61a853fac",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "8e6211e3ac3e6f0c46490dae2c743c06a34fb2467ffcac8a4f924ba9ace9a1b0",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-962",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        },
+        {
+          "move": "south",
+          "targetCellId": "1-963",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-902",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_1b64f715bbee1b0bcb1c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-962"
+            },
+            {
+              "openingIndex": 1,
+              "move": "south",
+              "targetCellId": "1-963"
+            },
+            {
+              "openingIndex": 2,
+              "move": "west",
+              "targetCellId": "1-902"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-908",
       "descriptionHash": "0204653e25bdf82e",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "e9075a6d730080f310f35b6c26223e68be4a07be63695bbb7434e1951081a58b",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "09ef75ac076526b138c1cb4a31cf2ceb2034aa3acf616654503bd4ac6875c50f",
       "requiredExits": [
         {
           "move": "go arch",
           "targetCellId": "1-906",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -4237,16 +7616,331 @@
       ]
     },
     {
+      "cellId": "1-912",
+      "descriptionHash": "8ddc022a94dd09f8",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "543493a5acf707f874aff3435b016a5e0672db31ab3352ca0b71f0f2f1458e1b",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-913",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "south",
+          "targetCellId": "1-911",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ec9bee4c8d56b8be81d8",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-913"
+            },
+            {
+              "openingIndex": 1,
+              "move": "south",
+              "targetCellId": "1-911"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-913",
+      "descriptionHash": "b638579a1516afd7",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "ea6c14b4ea07174fffff89366c69f8370bfe415511a6d9d0777603daef5406eb",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-914",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-912",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ff4af6d3fc4269bc0986",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-914"
+            },
+            {
+              "openingIndex": 1,
+              "move": "west",
+              "targetCellId": "1-912"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-914",
+      "descriptionHash": "c52c7b8f6b11d72d",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "87e9ca1ef6b2aa4ba2d1d951052f1160f837a367da8859414702844d7bc698a1",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-913",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-913"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-922",
       "descriptionHash": "6aa6302c63b777a8",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "6956a63586a3a1580a60e64f63a336c6083d74ab19f03c388f948aab7229ccae",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "bfa4203f541871a78a7032c9a3b9e2686d724dd03876cca32a5f4525ae45d1ee",
       "requiredExits": [
         {
           "move": "go oak door",
           "targetCellId": "1-911",
-          "boardAnchor": null
+          "boardAnchor": null,
+          "tetherKind": "threshold",
+          "direction": "go"
         }
       ],
       "requiredFootprint": {
@@ -4300,11 +7994,100 @@
       ]
     },
     {
+      "cellId": "1-925",
+      "descriptionHash": "a8e7f4efdd9a61a1",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "dcede11ab38b50220878e4d5c5d48010d3b9022f636f5c6af1d436bbc5477901",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-851",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_0affeae6b5c5987c9d28",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-851"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
       "cellId": "1-927",
       "descriptionHash": "ec0699bf97a49ae3",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v4",
-      "inputHash": "aa3ddbecb9ee86a976c144b370e070141be61ea45338cec2aae03ac89ca09ed5",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "35af1cd265aa2740367e90f0e44be5f4f66980b25247b26e6ae74e54e0b230e3",
       "requiredExits": [
         {
           "move": "south",
@@ -4314,7 +8097,9 @@
             "y": 0,
             "z": 9,
             "yawDeg": 180
-          }
+          },
+          "tetherKind": "road",
+          "direction": "south"
         }
       ],
       "requiredFootprint": {
@@ -4327,7 +8112,8 @@
       "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
       "missing": [
         "Room-specific shell, finishes, counts and landmark details require further compilation and review",
-        "Inferred furniture placement is not a recovered historical floor plan"
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
       ],
       "pieces": [
         {
@@ -4364,6 +8150,424 @@
             "minZ": 5.347499966621399,
             "maxZ": 6.652500033378599
           }
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-851"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-946",
+      "descriptionHash": "aa4bc01dc07d72f4",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "461b99b7e58d700a3024be32c1a14f3421c0cd4c6e6d1ee7b6512926e3f27a04",
+      "requiredExits": [
+        {
+          "move": "west",
+          "targetCellId": "1-945",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_37649197d5fad9465803",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "west",
+              "targetCellId": "1-945"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-965",
+      "descriptionHash": "c7769a421b78043f",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "cc98705a1f98d811beab97c287ea511805d974dfaba672b49381d01567ef2818",
+      "requiredExits": [
+        {
+          "move": "east",
+          "targetCellId": "1-964",
+          "boardAnchor": {
+            "x": 9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 90
+          },
+          "tetherKind": "road",
+          "direction": "east"
+        },
+        {
+          "move": "west",
+          "targetCellId": "1-1048",
+          "boardAnchor": {
+            "x": -9,
+            "y": 0,
+            "z": 0,
+            "yawDeg": 270
+          },
+          "tetherKind": "road",
+          "direction": "west"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ff4af6d3fc4269bc0986",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "east",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  },
+                  {
+                    "wall": "west",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "east",
+              "targetCellId": "1-964"
+            },
+            {
+              "openingIndex": 1,
+              "move": "west",
+              "targetCellId": "1-1048"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-993",
+      "descriptionHash": "c513b328a2efd799",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "8d87340d735204c620aee37c1e4d4a91a61ffc08b897d4fe39053700299812f3",
+      "requiredExits": [
+        {
+          "move": "north",
+          "targetCellId": "1-185",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": -9,
+            "yawDeg": 0
+          },
+          "tetherKind": "road",
+          "direction": "north"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 1,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_ce85481a36248b77d66f",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "north",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "north",
+              "targetCellId": "1-185"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
+        }
+      ]
+    },
+    {
+      "cellId": "1-999",
+      "descriptionHash": "bb0c47780bcdd3c5",
+      "status": "partial-generated-review-required",
+      "generatedBy": "rust-interior-v6",
+      "inputHash": "ce28a839ef9bff879595f61e455fdf43ac5a176351df25217e186991e45cc1e7",
+      "requiredExits": [
+        {
+          "move": "south",
+          "targetCellId": "1-998",
+          "boardAnchor": {
+            "x": 0,
+            "y": 0,
+            "z": 9,
+            "yawDeg": 180
+          },
+          "tetherKind": "road",
+          "direction": "south"
+        }
+      ],
+      "requiredFootprint": {
+        "width": 17.6,
+        "depth": 17.6,
+        "height": 3,
+        "unit": "metre"
+      },
+      "evidence": "Literal source phrases retained on each furnishing; source binding still requires per-room review.",
+      "placementPolicy": "Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.",
+      "missing": [
+        "Room-specific shell, finishes, counts and landmark details require further compilation and review",
+        "Inferred furniture placement is not a recovered historical floor plan",
+        "Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished"
+      ],
+      "pieces": [
+        {
+          "surfaceKind": "interior-floor-5m",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "role": "base",
+          "color": "#72716b"
+        },
+        {
+          "proceduralMesh": "shell_9faa11b37180bd814e0c",
+          "definition": {
+            "shape": {
+              "kind": "room",
+              "room": {
+                "width": 16.6,
+                "depth": 16.6,
+                "height": 3.2,
+                "wall_thickness": 0.25,
+                "floor_thickness": 0.15,
+                "openings": [
+                  {
+                    "wall": "south",
+                    "offset": 0,
+                    "width": 2.4,
+                    "height": 2.6
+                  }
+                ]
+              }
+            },
+            "color": [
+              0.45,
+              0.44,
+              0.41,
+              1
+            ]
+          },
+          "bindings": [
+            {
+              "openingIndex": 0,
+              "move": "south",
+              "targetCellId": "1-998"
+            }
+          ],
+          "role": "shell",
+          "lift": 0.005,
+          "evidence": "Provisional neutral enclosure; dimensions are presentation constraints, not recovered architecture"
         }
       ]
     }
