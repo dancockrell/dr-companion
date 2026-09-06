@@ -255,8 +255,18 @@ console.log('\n-- a review that is not the agreed object has reviewed nothing --
   await runWorkerOnce(d)
   ok('the instructions still begin with the caller\'s own prompt',
     sent?.instructions.startsWith('classify'), sent?.instructions?.slice(0, 20))
+  // Every field the validator reads has to appear in the prompt's schema, and
+  // the check is written that way round rather than as one literal block: a
+  // schema that has drifted from the validator produces `invalid_output`
+  // forever with nothing to say why, and a field the prompt never mentions is
+  // one no model will ever fill in. G11 added the third.
+  const schema = sent?.instructions ?? ''
   ok('and end with the schema the validator enforces',
-    /\{ "notable": string\[\], "question"\?: string \}/.test(sent?.instructions ?? ''))
+    /"notable": string\[\]/.test(schema) && /"question"\?: string/.test(schema))
+  ok('including the one optional field that can become a command',
+    /"suggestion"\?: \{ "command": string, "commandType": string \}/.test(schema))
+  ok('and it says plainly that a suggestion is never run automatically',
+    /must confirm it/.test(schema))
 }
 
 console.log('\n-- the worker cannot reach the game --')
@@ -267,6 +277,113 @@ console.log('\n-- the worker cannot reach the game --')
     !/from '\.\/(gameActions|gameCommand|gameLink)/.test(src))
   ok('no send or invoke surface anywhere in the worker',
     !/\b(sendGame|requestGameAction|invokeTauri|game_send)\b/.test(src))
+  // G11 gave the live review a `suggestion` field, so the property above is no
+  // longer carried by the shape of the contract alone. It is still true, and
+  // these two say why: the store arrives as a structural interface admitting
+  // `create`, so there is no `SuggestionStore` reference here and no way to
+  // spell the method that sends.
+  ok('the suggestion store is not imported, only described',
+    !/from '\.\/aiSuggestions/.test(src))
+  ok('and the worker has no way to spell the method that sends',
+    !/requestExecution/.test(src))
+}
+
+console.log('\n-- a proposed command becomes a record, and only a record --')
+{
+  const proposing = {
+    describe: () => ({ available: true }),
+    generate: async () => ({
+      ok: true,
+      text: '{"notable":["a chest"],"suggestion":{"command":"look chest","commandType":"look"}}',
+      tokens: 4,
+    }),
+  }
+  // A spy that records what the worker asked for and can also refuse, so both
+  // halves of the outcome are observable. `send` is deliberately absent: the
+  // interface the worker is handed has no such method, which is the property.
+  const made = []
+  const suggestions = {
+    create: (params) => {
+      made.push(params)
+      return { ok: true, suggestion: { id: 'suggestion:1' } }
+    },
+  }
+  const d = setup({ provider: proposing, suggestions, stateVersion: 12 })
+  d.journal.append('room', { id: 1 }, 41)
+  const out = await runWorkerOnce(d)
+
+  ok('the review parsed with its suggestion', out.review?.suggestion?.command === 'look chest',
+    JSON.stringify(out.review))
+  ok('exactly one record was proposed', made.length === 1, String(made.length))
+  ok('carrying the command unchanged', made[0]?.exactCommand === 'look chest', made[0]?.exactCommand)
+  ok('pinned to the state version the caller handed in', made[0]?.basedOnStateVersion === 12,
+    String(made[0]?.basedOnStateVersion))
+  ok('with an expiry in the future', made[0]?.expiresAt > d.now, String(made[0]?.expiresAt))
+  // The journal assigns the sequence number; the third argument to `append`
+  // is the timestamp. Asserted against what the journal actually handed the
+  // turn, so this cannot pass by agreeing with a number invented here.
+  ok('and citing the events it reviewed',
+    made[0]?.evidenceRefs.length === 1 &&
+    made[0]?.evidenceRefs[0] === `event:${d.journal.acknowledged()}`,
+    JSON.stringify(made[0]?.evidenceRefs))
+  ok('the outcome names the record rather than the command', out.suggestionId === 'suggestion:1')
+  ok('and reports no refusal', out.suggestionRefused === null)
+
+  // A host that wired no store produces no suggestions rather than crashing,
+  // the same way it produces no claims.
+  const bare = setup({ provider: proposing })
+  bare.journal.append('room', { id: 1 }, 41)
+  const noStore = await runWorkerOnce(bare)
+  ok('with no store wired, the turn still succeeds', noStore.did === 'review')
+  ok('and records nothing', noStore.suggestionId === null && noStore.suggestionRefused === null)
+
+  // "The model proposed nothing" and "the proposal was refused" must not look
+  // the same to a host that has to explain an empty panel.
+  const refusing = {
+    create: () => ({ ok: false, reason: 'a “look” suggestion must begin with “look”' }),
+  }
+  const denied = setup({ provider: proposing, suggestions: refusing, stateVersion: 12 })
+  denied.journal.append('room', { id: 1 }, 41)
+  const out2 = await runWorkerOnce(denied)
+  ok('a refused proposal has no id', out2.suggestionId === null)
+  ok('and says why', /must begin/.test(out2.suggestionRefused ?? ''), out2.suggestionRefused)
+
+  // A review with no suggestion must not manufacture one.
+  const quiet = setup({ suggestions, stateVersion: 12 })
+  made.length = 0
+  quiet.journal.append('room', { id: 1 }, 41)
+  const out3 = await runWorkerOnce(quiet)
+  ok('a review that proposed nothing records nothing', made.length === 0 && out3.suggestionId === null)
+}
+
+console.log('\n-- the validator is strict about the field that can become a command --')
+{
+  const malformed = [
+    '{"notable":[],"suggestion":{"command":"look chest"}}',
+    '{"notable":[],"suggestion":{"commandType":"look"}}',
+    '{"notable":[],"suggestion":"look chest"}',
+    '{"notable":[],"suggestion":{"command":7,"commandType":"look"}}',
+    '{"notable":[],"suggestion":null}',
+  ]
+  for (const text of malformed) {
+    const provider = {
+      describe: () => ({ available: true }),
+      generate: async () => ({ ok: true, text, tokens: 2 }),
+    }
+    const made = []
+    const d = setup({
+      provider,
+      suggestions: { create: (p) => { made.push(p); return { ok: true, suggestion: { id: 'x' } } } },
+    })
+    d.journal.append('room', { id: 1 }, 1)
+    const before = d.journal.acknowledged()
+    const out = await runWorkerOnce(d)
+    ok(`a malformed suggestion is invalid_output, not a record: ${text.slice(24, 60)}`,
+      out.result.ok === false && out.result.failure === 'invalid_output' && made.length === 0,
+      JSON.stringify({ failure: out.result.failure, made: made.length }))
+    ok('and the cursor did not move past events nothing reviewed',
+      d.journal.acknowledged() === before)
+  }
 }
 
 console.log('\n-- a refused prompt is a reported failure, not an unhandled rejection --')
