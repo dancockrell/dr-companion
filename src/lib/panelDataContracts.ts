@@ -58,6 +58,12 @@ export interface PanelDataContract {
 }
 
 export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
+  scene: {
+    purpose:
+      "The scene editor - what the room the character is standing in looks like on the board, and how to correct the batch that classified all 17,750 of them. Works offline: the batch's answers are committed data and the overrides are local, so a room can be edited from the place search with no character at all.",
+    dataNeeded: ['mapZone', 'mapHere', 'src/data/world/<zone>.json (via loadWorldContent)', 'drc.scene.v1 (via sceneOverrides.ts)'],
+    requiresLiveCharacter: false,
+  },
   map: {
     purpose:
       'Retiring from this wrapper once Godot owns world/route presentation (see docs/CLAUDE_3D_VIEWER_BRIEF.md) - kept here only as the current, still-live fallback until that migration slice lands.',

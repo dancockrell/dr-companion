@@ -59,10 +59,10 @@ const UNREGISTERED_KIND := "not-a-registered-kind-345"
 ## factory rather than the placeholder.
 const TERRAIN_KIND := "terrain-cell-5m"
 
-## The real count when nothing aborts is 27. A GDScript runtime error does not
+## The real count when nothing aborts is 33. A GDScript runtime error does not
 ## stop _initialize reaching the summary, so without this floor a crash on the
 ## first line would print "0 checked, 0 failed" and read as a pass.
-const MIN_EXPECTED_CHECKS := 22
+const MIN_EXPECTED_CHECKS := 28
 
 var _checked := 0
 var _failed := 0
@@ -234,12 +234,57 @@ func _run() -> void:
 		is_equal_approx(registry.ground_size_metres(boardless).x, registry.MISSING_FOOTPRINT_MARKER_METRES),
 		"%.2f m" % registry.ground_size_metres(boardless).x)
 
+	# A primitive somebody placed with the scene editor, which publishes an
+	# `offset` in metres from the cell's own origin. Every primitive before the
+	# editor existed went to the origin, so a build() that ignores the field
+	# looks identical to one that honours an offset of zero - which is why the
+	# probe below is deliberately not zero on either axis, and why the two axes
+	# are different numbers so one cannot be standing in for both.
+	var placed_node: Node3D = registry.build(loader.cells[ROOM_ID], {
+		"kind": TERRAIN_KIND, "role": "landform", "offset": {"x": 1.25, "z": -0.75}})
+	_ok("a placed primitive is drawn where the manifest put it",
+		is_equal_approx(placed_node.position.x, 1.25) and is_equal_approx(placed_node.position.z, -0.75),
+		str(placed_node.position))
+	var unplaced_node: Node3D = registry.build(loader.cells[ROOM_ID], {
+		"kind": TERRAIN_KIND, "role": "base"})
+	_ok("and one with no offset stays at the cell origin, which is where every rule-derived primitive goes",
+		unplaced_node.position.is_equal_approx(Vector3.ZERO), str(unplaced_node.position))
+
+	# Held to the cell's own block rather than to a number typed here, and the
+	# probe is well outside any cell the fixture publishes, so a clamp that had
+	# stopped reading the cell would let it through.
+	var escaped_node: Node3D = registry.build(loader.cells[ROOM_ID], {
+		"kind": TERRAIN_KIND, "role": "landform", "offset": {"x": 40.0, "z": -40.0}})
+	_ok("a placement outside the cell is pulled back to the cell's own edge",
+		is_equal_approx(escaped_node.position.x, published["width"] * 0.5)
+			and is_equal_approx(escaped_node.position.z, -published["depth"] * 0.5),
+		"%s against half of %.2f x %.2f m" % [str(escaped_node.position), published["width"], published["depth"]])
+
+	# The placeholder path has to place too. A kind with no factory is exactly
+	# when somebody is looking to see where their prop went.
+	var placed_placeholder: Node3D = registry.build(loader.cells[ROOM_ID], {
+		"kind": UNREGISTERED_KIND, "role": "landform", "offset": {"x": -2.0, "z": 0.5}})
+	_ok("an unregistered kind's placeholder is placed at the offset too",
+		is_equal_approx(placed_placeholder.position.x, -2.0) and is_equal_approx(placed_placeholder.position.z, 0.5),
+		str(placed_placeholder.position))
+
+	# A malformed offset is reported and ignored, not guessed at.
+	var bad_offset_node: Node3D = registry.build(loader.cells[ROOM_ID], {
+		"kind": TERRAIN_KIND, "role": "landform", "offset": {"x": "east", "z": 0.5}})
+	_ok("an offset that is not two numbers leaves the primitive at the origin",
+		bad_offset_node.position.is_equal_approx(Vector3.ZERO), str(bad_offset_node.position))
+
 	probe_node.free()
 	real_node.free()
 	tall_node.free()
 	marker.free()
 	heightless_node.free()
 	ground_node.free()
+	placed_node.free()
+	unplaced_node.free()
+	escaped_node.free()
+	placed_placeholder.free()
+	bad_offset_node.free()
 
 func _ok(label: String, condition: bool, detail: String = "") -> void:
 	_checked += 1

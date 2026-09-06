@@ -20,6 +20,7 @@ import { StatsPanel } from '../shared/StatsPanel.tsx'
 import { ScriptLauncher } from '../shared/ScriptLauncher.tsx'
 import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel.tsx'
 import { BattlePanel } from '../shared/BattlePanel.tsx'
+import { ScenePanel } from '../shared/ScenePanel.tsx'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog.ts'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
@@ -37,6 +38,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   room: 'Battle',
   game: 'Game',
   scripts: 'Script Library',
+  scene: 'Scene',
 }
 
 /**
@@ -86,6 +88,7 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
       categoryOf={(n) => getScriptCatalogEntry(n).category}
     />
   ),
+  scene: () => <ScenePanel />,
 }
 
 export function panelTitle(id: PanelId): string {

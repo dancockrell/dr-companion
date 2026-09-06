@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "tools/build-scene-registry.mjs",
+  "source": "godot/scripts/shared_asset_content.gd",
+  "kinds": [
+    {
+      "kind": "terrain-cell-5m",
+      "role": "base"
+    },
+    {
+      "kind": "interior-floor-5m",
+      "role": "base"
+    },
+    {
+      "kind": "water-ribbon-5m",
+      "role": "landform"
+    },
+    {
+      "kind": "rough-edge-boundary-kit",
+      "role": "boundary"
+    },
+    {
+      "kind": "bridge-span-5m",
+      "role": "landform"
+    }
+  ],
+  "placeable": [
+    "water-ribbon-5m",
+    "bridge-span-5m"
+  ],
+  "unusedKinds": [],
+  "groundKinds": [
+    "street",
+    "path",
+    "interior",
+    "cave",
+    "water",
+    "snow",
+    "swamp",
+    "sand",
+    "forest",
+    "farmland",
+    "grass",
+    "rock",
+    "unknown"
+  ],
+  "blockKinds": [
+    "outdoor-open",
+    "building-interior",
+    "cave",
+    "water"
+  ],
+  "landmarkKinds": [
+    "healer",
+    "justice",
+    "post",
+    "locksmith",
+    "jeweler",
+    "tailor",
+    "food",
+    "stable",
+    "performance",
+    "bath",
+    "auction",
+    "storage",
+    "office",
+    "bank",
+    "trainer",
+    "weapon",
+    "armor",
+    "alchemy",
+    "magic",
+    "portal",
+    "dock",
+    "guild",
+    "travel",
+    "temple",
+    "craft",
+    "library",
+    "inn",
+    "shop",
+    "hunt"
+  ],
+  "landmarksDrawn": false,
+  "sceneArt": [
+    "/grok-art/room-scenes/ancient-forest-36342832.jpg",
+    "/grok-art/room-scenes/apple-orchard-23efadaf.jpg",
+    "/grok-art/room-scenes/autumn-mountain-stream-44d208fc.jpg",
+    "/grok-art/room-scenes/cliff-valley-e8aa1349.jpg",
+    "/grok-art/room-scenes/crystal-mine-3638b938.jpg",
+    "/grok-art/room-scenes/deep-forest-sunbeams-403f52df.jpg",
+    "/grok-art/room-scenes/glasshouse-garden-4d19a989.jpg",
+    "/grok-art/room-scenes/mountain-meadow-84245eb6.jpg",
+    "/grok-art/room-scenes/reed-marsh-0fb4267f.jpg",
+    "/grok-art/room-scenes/riverside-timber-town-5707fe76.jpg",
+    "/grok-art/room-scenes/town-square-2650911f.jpg",
+    "/grok-art/room-scenes/working-river-docks-174a62c2.jpg",
+    "/grok-art/room-scenes/young-woodland-2d872f5f.jpg",
+    "/magnific-art/room-scenes/brambles-route-0083ms.jpg",
+    "/magnific-art/room-scenes/brambles-route-1500ms.jpg",
+    "/magnific-art/room-scenes/brambles-route-3250ms.jpg",
+    "/magnific-art/room-scenes/brambles-route-5000ms.jpg"
+  ]
+}

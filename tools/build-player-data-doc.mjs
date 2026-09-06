@@ -147,6 +147,7 @@ const DESCRIBES = {
   'drc.armor-loadouts.v1': "A character's corrections to the derived armour coverage, which the live inventory feed cannot supply.",
   'drc.ai-provider.v1': 'The address of a model server on this machine, if the player has chosen to run one. Absent on every install that has not. One URL and nothing else: no key, no token, no game text - the provider refuses any address that is not 127.0.0.1 or localhost, so this cannot name somewhere off the machine.',
   'drc.appearance.v1': 'Which 3D model the player picked for an item, overriding the compiled default for its class. Item names and asset ids only; no game text.',
+  'drc.scene.v1': 'Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character.',
   'drc.ai-jobs.v1': 'Background AI jobs and their status. Absent unless the optional local model has been used.',
   'drc.ai-share-sources.v1': 'Game channels whose private messages you have chosen to let a local model read. Empty unless you set it: whispers, thoughts and group chat are excluded from every prompt by default.',
   'drc.ai-claims.v1': 'Candidate claims the AI worker proposed, with their evidence references, producer and review state. Candidates only: nothing here is map, pin or bestiary data until a person promotes it.',

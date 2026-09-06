@@ -99,6 +99,20 @@ const RULES: Array<{
   { kind: 'hunt', label: 'Hunting or danger', icon: 'crosshair', color: 'red', pattern: /\b(hunting|target range|goblins?|boars?|rats?|ogres?|wyverns?|vipers?|zombies?|undead|spirits?|bloodvines?|moths?|gryphons?|deer|cougars?|wolves|vermin)\b/i },
 ]
 
+/**
+ * Every landmark kind that can actually be decided, in rule order.
+ *
+ * Derived from `RULES` rather than restated from the `LandmarkKind` union
+ * above, and those are not the same list: the union is what the type system
+ * admits, this is what any caller can ever produce and what
+ * `landmarkPresentation` can answer for. A kind in the union with no rule is
+ * unreachable, and a picker offering it would offer a choice that resolves to
+ * nothing.
+ *
+ * Deduplicated, because a kind may carry more than one rule.
+ */
+export const LANDMARK_KINDS: readonly LandmarkKind[] = [...new Set(RULES.map((rule) => rule.kind))]
+
 /** One category-to-icon/color contract shared by every map surface. */
 export function landmarkPresentation(kind: LandmarkKind): Pick<MapLandmark, 'icon' | 'color'> {
   const rule = RULES.find((candidate) => candidate.kind === kind)
