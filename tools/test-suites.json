@@ -41,6 +41,8 @@
   "test:music-first-run",
   "test:music-library",
   "test:aliases",
+  "test:player-config",
+  "test:player-config-import",
   "test:off-classes",
   "test:stream",
   "test:streamstate",

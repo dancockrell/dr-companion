@@ -177,6 +177,8 @@
     "test:audio-playback": "node --experimental-strip-types tools/audio-playback-test.mjs",
     "test:sound-actions": "node tools/sound-actions-test.mjs",
     "test:aliases": "node tools/aliases-test.mjs",
+    "test:player-config": "node tools/player-config-test.mjs",
+    "test:player-config-import": "node tools/player-config-import-test.mjs",
     "test:off-classes": "node tools/off-classes-test.mjs",
     "test:stream": "node tools/stream-test.mjs",
     "test:link": "node tools/link-test.mjs",

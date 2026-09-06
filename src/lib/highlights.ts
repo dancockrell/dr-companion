@@ -38,6 +38,30 @@
 
 export type HighlightType = 'line' | 'string' | 'beginswith' | 'regexp'
 
+/**
+ * What `resolveHighlights` needs of a stored rule.
+ *
+ * Structural rather than an import of `playerConfig.ts`'s `HighlightRule`, so
+ * this module - which every rendered line runs through - keeps no dependency
+ * on the store. `playerConfig.ts`'s types satisfy these by construction, and
+ * `tsc` says so at the one call site.
+ */
+export interface HighlightPresetRule {
+  id: string
+  fg: string
+}
+
+export interface HighlightStoreRule {
+  id: string
+  enabled: boolean
+  type: HighlightType
+  pattern: string
+  presetId?: string
+  colour?: string
+  sound?: string
+  cls?: string
+}
+
 export interface Highlight {
   type: HighlightType
   colour: string
@@ -317,4 +341,77 @@ export function segments(line: string, p: Painted): Array<{ text: string; colour
   }
   if (at < line.length) out.push({ text: line.slice(at), colour: p.lineColour })
   return out
+}
+
+/**
+ * Store rules to the runtime `Highlight[]` `paint()` already takes.
+ *
+ * The one resolver for this domain: preset ids resolved to colours, disabled
+ * rules dropped, regexps compiled and probed by the same
+ * `PATTERN_BUDGET_MS` guard `parseHighlights` uses, because a pattern that
+ * freezes the game pane does so whether it arrived from a file or from a form.
+ *
+ * Refusals are returned rather than swallowed. A rule that names a preset the
+ * player has since deleted renders in the default colour **and** appears in
+ * `refused`, so the editor can say so beside the rule; dropping it silently is
+ * what Genie does and is the failure this whole module declined to inherit.
+ */
+export function resolveHighlights(cfg: {
+  highlights: readonly HighlightStoreRule[]
+  presets: readonly HighlightPresetRule[]
+}): { entries: Highlight[]; refused: Array<{ id: string; why: string }> } {
+  const entries: Highlight[] = []
+  const refused: Array<{ id: string; why: string }> = []
+  const byId = new Map(cfg.presets.map((p) => [p.id, p]))
+
+  cfg.highlights.forEach((rule, index) => {
+    if (!rule.enabled) {
+      refused.push({ id: rule.id, why: `"${rule.pattern}" is switched off` })
+      return
+    }
+
+    let colour = rule.colour ?? ''
+    if (rule.presetId) {
+      const preset = byId.get(rule.presetId)
+      if (preset) colour = preset.fg
+      else {
+        refused.push({
+          id: rule.id,
+          why: `names a preset that no longer exists (${rule.presetId}); shown in the default colour`,
+        })
+      }
+    }
+
+    const entry: Highlight = {
+      type: rule.type,
+      colour,
+      pattern: rule.pattern,
+      ...(rule.cls ? { cls: rule.cls } : {}),
+      ...(rule.sound ? { sound: rule.sound } : {}),
+      sourceLine: index,
+    }
+
+    if (rule.type === 'regexp') {
+      try {
+        entry.re = new RegExp(rule.pattern)
+      } catch (e) {
+        refused.push({ id: rule.id, why: (e as Error).message })
+        return
+      }
+      const worst = slowestProbeMs(entry.re)
+      if (worst > PATTERN_BUDGET_MS) {
+        refused.push({
+          id: rule.id,
+          why:
+            `took ${worst.toFixed(0)}ms on a 22-character probe (nested quantifiers ` +
+            'backtrack exponentially); it would freeze the game pane, so it is not loaded',
+        })
+        return
+      }
+    }
+
+    entries.push(entry)
+  })
+
+  return { entries, refused }
 }

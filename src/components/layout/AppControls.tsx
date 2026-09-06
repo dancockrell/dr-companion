@@ -1,10 +1,11 @@
 import { lazy, useState } from 'react'
-import { Pin, PinOff, Circle, Settings, Map as MapIcon } from 'lucide-react'
+import { Pin, PinOff, Circle, Settings, SlidersHorizontal, Map as MapIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri.ts'
 import { useMapDock, setMapDock } from '../../lib/mapDock.ts'
 import { cn } from '../../lib/cn.ts'
 import { LazySurface } from '../shared/LazySurface.tsx'
+import { openPanelWindow } from '../../lib/panelWindows.ts'
 
 const SettingsSheet = lazy(() => import('./SettingsSheet.tsx').then((module) => ({ default: module.SettingsSheet })))
 
@@ -47,6 +48,7 @@ export function AppControls() {
    * that disagrees with its own tooltip is worse than either alone.
    */
   const mapLabel = mapDock.docked ? 'Hide the map column' : 'Show the map column'
+  const configLabel = 'Player config: highlights, aliases, macros'
   const pinLabel =
     (alwaysOnTop ? 'Unpin' : 'Always on top') +
     (isTauri() ? '' : ' (works fully in the desktop app)')
@@ -115,11 +117,20 @@ export function AppControls() {
           {alwaysOnTop ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
         </button>
 
-        {/* The Genie config button stood here until N6. It opened an editor
-          * that wrote back into another program's `Config\*.cfg` files, which
-          * is not a thing this app can honestly offer once it no longer routes
-          * through that program. Deleted rather than relabelled: see the
-          * commit, and `docs/PLAN_TO_1_0.md` N-a. */}
+        {/* The Genie config button stood here until N6, which deleted it
+          * because it opened an editor that wrote back into another program's
+          * config files. This is not that button: it opens the app's own rules
+          * (`playerConfig.ts`), which are stored here and nowhere else. Lane Q,
+          * Q1. */}
+        <button
+          type="button"
+          title={configLabel}
+          aria-label={configLabel}
+          className="pointer-events-auto rounded p-1 text-ink-faint hover:text-ink"
+          onClick={() => void openPanelWindow("config", "Player config")}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+        </button>
 
         <button
           type="button"
