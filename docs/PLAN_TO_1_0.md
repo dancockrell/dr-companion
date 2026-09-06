@@ -135,7 +135,8 @@ Each has already been hit in this repository. None is hypothetical.
 8. **A fresh worktree cannot `cargo build`** until `npm run vendor:stub` and
    `git submodule update --init --recursive`. The error says
    `resource path vendor\Ruby4Lich5.exe doesn't exist`.
-9. **`cargo fmt` before pushing Rust.** CI runs `cargo fmt -- --check`.
+9. **`cargo fmt` before pushing Rust.** `npm run gate` runs
+   `cargo fmt --check`; nothing else does.
 10. **Stage by path. Never `git add -A` or `git commit -a`.** After committing,
     `git show --stat HEAD` must list only your files.
 11. **Use a worktree per branch.** Never `git checkout` inside
@@ -172,18 +173,33 @@ Each has already been hit in this repository. None is hypothetical.
     node script that asserts how many lines it changed and refuses on
     surprise, and run `node tools/plan-audit.mjs` before committing —
     "parsed only 0 increments" was the first sign.
-21. **`gh pr merge --auto` merges immediately here. It is not "merge when
-    green".** `main` has no branch protection and no rulesets
+21. **There is no CI. `npm run gate` on your own machine is the gate.**
+    Actions was disabled for this repository on 6 September 2026 (minutes were
+    at 1,903 of 2,000 for the month, $127.80 of it this repository) and every
+    workflow in `.github/workflows/` was deleted. Nothing off this machine
+    builds, tests or verifies anything, and `gh pr checks <n>` now reports no
+    checks at all — which reads exactly like a repository whose checks have
+    not started yet. A PR with no red rows is not a PR that passed.
+
+    ```bash
+    gh api repos/dancockrell/dr-companion/actions/permissions   # enabled: false
+    git ls-tree origin/main .github/workflows                   # empty
+    git ls-tree origin/main .github/                            # control: still there
+    ```
+
+    `main` also has no branch protection and no rulesets
     (`gh api repos/dancockrell/dr-companion/branches/main/protection` → 404,
-    `.../rulesets` → `[]`), and auto-merge has no rule to wait for, so it
-    merges on the spot. Measured on PR #318: merged 12:04:47, its `tauri` job
-    finished 12:07:41 — nearly three minutes later. It passed, so nothing
-    broke, and that is exactly why this is worth writing down: the mechanism
-    is invisible until the day a job fails. Always
-    `gh pr checks <n> --watch --fail-fast` first, confirm every row passes,
-    and only then `gh pr merge <n> --squash --delete-branch`. Enabling branch
-    protection would make the safe thing automatic; it is a repository setting
-    and therefore Dan's to turn on (section 10).
+    `.../rulesets` → `[]`), so `gh pr merge --auto` merges on the spot and
+    always did. That used to be a race against a job that would have caught
+    you; now there is no job. **Run `npm run gate`, read its last line, and
+    only then merge.** It prints its own denominator (`6 of 6 stages ran`) and
+    refuses to call a stage it could not run a pass, so a partial verification
+    cannot read as a whole one.
+
+    What this does not cover, and nothing else does either: `npm run
+    test:godot` (eleven scripts, 131 checks) needs a Godot 4.3 binary, and the
+    gate names it as not covered on every run rather than letting its absence
+    go unnoticed.
 22. **This tree checks out CRLF, so a multi-line fragment built with `\n`
     matches nothing.** It bites hardest in the tools that edit tracked files
     on purpose — a sabotage harness, a codemod — because it fails silently in
@@ -224,8 +240,7 @@ then the restore-hash match.
 ### 2.4 Close
 
 ```bash
-npx tsc -b > /tmp/tsc.log 2>&1; echo "tsc exit: $?"
-node tools/run-tests.mjs > /tmp/suite.log 2>&1; echo "suite exit: $?"; tail -2 /tmp/suite.log
+npm run gate > /tmp/gate.log 2>&1; echo "gate exit: $?"; tail -12 /tmp/gate.log
 node tools/plan-audit.mjs
 git add <touches...> docs/PLAN_TO_1_0.md .agents/claims/<task-id>.json
 git diff --cached --check && echo "whitespace clean"
@@ -240,8 +255,13 @@ EOF
 )"
 ```
 
-Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
---delete-branch`; then trap 13.
+There are no checks to wait for (trap 21): `gh pr checks <n>` reports none,
+and that is indistinguishable from checks that have not started. The green
+`npm run gate` above is the whole gate, so merge with
+`gh pr merge <n> --squash --delete-branch`; then trap 13.
+
+Redirect to a file and read `$?` rather than piping: a pipe reports the last
+command's status, so `npm run gate | tail` is always a success.
 
 ---
 
@@ -254,7 +274,7 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | **B** | Prove the live chain | `viewer.rs`, `world_root.gd`, `tools/live-chain-check.mjs`, `docs/verification/` | none |
 | **D** | Layout toward the approved mockup | `App.tsx`, `columns.ts`, `layout.ts`, `MapWindow.tsx`, `panelDataContracts.ts` | D0 decided, A1 |
 | **E** | First run and setup | `first-run/*`, `lich.rs`, Settings Bridge section, `docs/verification/` | none |
-| **F** | Release engineering | `.github/workflows/release.yml`, versions, About/licences | none |
+| **F** | Release engineering | `docs/RELEASE.md`, `tools/build-release-config.mjs`, `tools/verify-release-bundle.mjs`, versions, About/licences | none |
 | **G** | AI slices 5–7 | new `aiEvidenceStore.ts`, `aiKnowledgeTools.ts`, `aiClaimStore.ts`, `aiJobProducers.ts`, `aiSuggestions.ts` | Lane A complete |
 | **H** | Local model provider | new `aiLocalProvider.ts`, Settings AI section | A2 |
 | **I** | Design tokens (#176, #179) | `src/components/**`, `src/index.css`, new `tools/color-token-test.mjs` | none |
@@ -493,8 +513,10 @@ passes.
   and one script proposal reach review with provenance; scanner tests green.
 - **Gate 5 — Public quality:** I1–I11, J complete, F5–F8.
   Check: token test strict (allowlist empty); #175/#176/#179 closed.
-- **Gate 6 — Release:** F9–F12. Check: `v1.0.0-beta.1` artefact installs,
-  runs, uninstalls on the clean VM, recorded.
+- **Gate 6 — Release:** F9–F12. Check: `npm run gate` green on the tagged
+  commit, then a locally built `v1.0.0-beta.1` installer — its sha256 recorded
+  by hand, because nothing prints it for you any more — installs, runs and
+  uninstalls on the clean VM, recorded.
 - **Gate 7 — 1.0:** F13–F14; two consecutive beta weeks with no data-loss
   report; zero open ship-blockers; the seven bars of section 5 each recorded.
 
@@ -780,7 +802,7 @@ in the chain (token/port files, auth, reconnect) is already written.
   commit: (this PR) verified: 2026-09-05 minutes: 25
   touches: none
   depends-on: none
-  do: Godot 4.3 (`grep -n "config/features" godot/project.godot`); the release workflow names the exact zip (`grep -n Godot_v4 .github/workflows/release.yml`) — download the same by hand outside the repo. `git submodule update --init --recursive`; `GODOT4=<path> npm run godot:export`.
+  do: Godot 4.3 (`grep -n "config/features" godot/project.godot`); `godot/project.godot` is the authority on the version and the zip is `Godot_v<version>-stable_win64.zip` from that release — download it by hand outside the repo, and check its sha512 against the release's own `SHA512-SUMS.txt`. (The release workflow used to name the zip and its sum; it was deleted 6 Sep 2026 with the rest of CI, so a grep for it now returns a silent zero.) `git submodule update --init --recursive`; `GODOT4=<path> npm run godot:export`.
   verify: `ls -la godot/build/DRCompanionWorldViewer.exe` → size > 1 MB.
   pitfalls: 8.
 
@@ -1120,7 +1142,7 @@ whether it is embedded, docked or a separate window is D0.
 
 - [x] **F8  Uninstall test on the CI artefact** (≈10)
   commit: (this PR, with #338) verified: 2026-09-05 minutes: 190
-  touches: .github/workflows/ci.yml, new:src-tauri/installer-hooks.nsh, src-tauri/tauri.conf.json, tools/bundle-test.mjs, new:tools/vm-inventory.ps1, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
+  touches: gone:.github/workflows/ci.yml, new:src-tauri/installer-hooks.nsh, src-tauri/tauri.conf.json, tools/bundle-test.mjs, new:tools/vm-inventory.ps1, new:docs/verification/uninstall-2026-09-05.md, docs/verification/first-run-2026-09-05.md
   depends-on: E3, F1
   do: E3 again with the CI-built installer; append to the E2 doc.
   blocked-on-that-turned-out-to-be-stale: E3 merged in PR #335 this morning. The real blocker was one nobody had named: **there was no CI artefact.** `ci.yml`'s `tauri` job ran `tauri build` and ended, so a 217 MB installer was built on every push to `main` and thrown away with the runner — `gh api .../actions/runs/33972082431/artifacts` returns `0` on a run whose `tauri` job says `success`. The phrase "the CI artefact", which this increment and F9 are both written against, named something that had never existed. PR #338 adds the upload plus a step that refuses unless exactly one `*-setup.exe` is present and prints its sha256 to the run summary.
@@ -1132,8 +1154,13 @@ whether it is embedded, docked or a separate window is D0.
 - [ ] **F9  `v1.0.0-beta.1`** (≈20)
   touches: none
   depends-on: F2, gates 0–2
-  do: `npm run version:set -- 1.0.0-beta.1`; commit; tag; push; watch; download; E2/E3 on it.
-  verify: draft release with the installer; VM record appended.
+  do: `npm run version:set -- 1.0.0-beta.1`; commit; `npm run gate` (green, read the
+  last line); `npm run tauri:build` **locally** — there is no CI to build it (trap 21);
+  `sha256sum src-tauri/target/release/bundle/nsis/*-setup.exe` and record it by hand;
+  tag; `gh release create --draft` with the installer attached; E2/E3 on that exact
+  file, checking its digest in the guest against the one recorded here.
+  verify: draft release with the installer; VM record appended, carrying the digest
+  at both ends so the chain of custody still has two.
 
 - [ ] **F10  Publish the beta** (≈10)
   touches: none
@@ -1150,13 +1177,15 @@ whether it is embedded, docked or a separate window is D0.
 - [ ] **F12  `v1.0.0-rc.1`** (≈20)
   touches: none
   depends-on: F11 two weeks clean
-  do: as F9 with the rc version; E2/E3/E10 on the VM from `clean`.
+  do: as F9 with the rc version (local build, digest recorded by hand);
+  E2/E3/E10 on the VM from `clean`.
   verify: recorded.
 
 - [ ] **F13  `v1.0.0`** (≈20)
   touches: none
   depends-on: F12 one week clean
-  do: as F9; release notes name the seven bars of section 5 with the recording of each.
+  do: as F9 (local build, digest recorded by hand); release notes name the seven
+  bars of section 5 with the recording of each.
   verify: release page links seven records.
 
 - [ ] **F14  Announce** (≈15)
@@ -2357,17 +2386,14 @@ the decision; a later session may reopen one by writing why here.
   normative parts move into `docs/LOCAL_AI_BACKGROUND_WORKER.md` (C8) and its
   execution parts are now increments here, so there is one source of truth
   for each. The PDF stays a dated review artefact in your files. *Decided:* **not committed**, 5 Sep 2026.
-- **Branch protection on `main`** — the one item here that is not a
-  recommendation because it is not mine to make. `main` has no protection and
-  no rulesets, so nothing requires CI to pass before a merge and
-  `gh pr merge --auto` merges on the spot rather than waiting (trap 21; PR
-  #318 merged three minutes before its `tauri` job finished). Every lane is
-  told to watch the checks by hand, which works and depends on everyone
-  remembering. A protection rule requiring the existing `checks`, `tauri` and
-  `analyze` jobs would make the safe path the only path, at the cost of
-  needing a pull request for every change to `main`. Turning it on is a
-  repository setting and yours. *Decided:* —
-
+- **Branch protection on `main`** — *withdrawn 6 Sep 2026, premise gone.*
+  This asked Dan to require the `checks`, `tauri` and `analyze` jobs before a
+  merge. Those jobs no longer exist: he asked for Actions to be stripped from
+  this repository the same day, on cost, and there is nothing left for a
+  protection rule to require. Verification is `npm run gate` on the machine
+  doing the merging (trap 21). Nothing enforces it, and saying so plainly is
+  the honest state rather than leaving a recommendation here that reads as
+  outstanding.
 ---
 
 ## 11. The 5 September implementation-handoff PDF, evaluated

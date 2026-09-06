@@ -73,7 +73,9 @@
  *     4.4, and neither is a board dimension. Scanning them made this suite fail
  *     on any worktree that follows docs/PLAN_TO_1_0.md §0.4 - which runs
  *     `git submodule update --init` - while passing in CI, where
- *     `actions/checkout` leaves `submodules:` unset and the directory is empty.
+ *     a checkout leaves `submodules:` unset and the directory is empty. (That
+ *     was `actions/checkout` in CI; CI is gone as of 6 Sep 2026, and a fresh
+ *     worktree without `git submodule update --init` is the same state.)
  *     A check whose verdict depends on whether a submodule happens to be
  *     initialised is not a check about this repository.
  *

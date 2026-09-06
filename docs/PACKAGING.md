@@ -51,7 +51,9 @@ Artifacts:
 
 ## CI
 
-This is built, not planned. `.github/workflows/release.yml` runs on a `v*` tag,
+This is built, not planned. Releases are built on the maintainer's machine
+(`docs/RELEASE.md`); there is no release workflow, because Actions was
+disabled for this repository on 6 September 2026. What used to run on a `v*` tag,
 on `windows-latest`, calls `npm run tauri:build`, and attaches
 `src-tauri/target/release/bundle/nsis/*.exe` to a draft release, so players
 never see a terminal. `docs/RELEASE.md` is the procedure; the workflow file is

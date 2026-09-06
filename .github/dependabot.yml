@@ -1,4 +1,13 @@
 # Grouped and monthly: one PR per ecosystem, not one per package.
+#
+# There is no `github-actions` ecosystem here any more. This repository has no
+# workflows and Actions is disabled for it, so an action bump would be a pull
+# request nobody could act on. The entry went with its subject rather than sit
+# here producing noise. npm and cargo are unaffected: they describe what this
+# app ships, not what verifies it.
+#
+#   gh api repos/dancockrell/dr-companion/actions/permissions   # enabled: false
+#   git ls-tree HEAD .github/workflows                          # empty
 version: 2
 updates:
   - package-ecosystem: npm
@@ -25,9 +34,3 @@ updates:
     schedule: { interval: monthly }
     groups:
       cargo: { patterns: ['*'] }
-
-  - package-ecosystem: github-actions
-    directory: /
-    schedule: { interval: monthly }
-    groups:
-      actions: { patterns: ['*'] }
