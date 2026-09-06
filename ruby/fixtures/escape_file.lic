@@ -9,11 +9,25 @@
 # The `rescue` is deliberate. A candidate that swallows its own error is the
 # case where a violation would go unrecorded if the guard only raised, so
 # `Contain::Violation` descends from `Exception` and this cannot catch it.
+#
+# The path has to be absolute *on the machine the fixture runs on*, and that is
+# not a detail. This file first read a hardcoded `C:/Users/Public/...`, which is
+# absolute on Windows and an ordinary relative directory name on Linux: the
+# runner is started with its cwd set to the sandbox, so on CI that path expanded
+# to `<sandbox>/C:/Users/Public/...`, landed INSIDE the fence, and the guard
+# correctly allowed it. The fixture then read a file that was not there, caught
+# the `Errno::ENOENT` in the `rescue` below, and the whole escape happened
+# without an escape. It passed on Windows and failed on Linux, which is the
+# honest outcome: the check was measuring the platform, not the guard.
 
 echo 'escape_file: starting'
 
+# `File::ALT_SEPARATOR` is non-nil only on Windows, and it is core Ruby, so this
+# needs neither rubygems nor a `require` the restricted load path would refuse.
+outside = File::ALT_SEPARATOR ? 'C:/Users/Public/dr-companion-not-a-real-file.txt' : '/etc/dr-companion-not-a-real-file.txt'
+
 begin
-  settings = File.read('C:/Users/Public/dr-companion-not-a-real-file.txt')
+  settings = File.read(outside)
   echo "escape_file: read #{settings.length} bytes"
 rescue StandardError => e
   echo "escape_file: swallowed #{e.class}"
