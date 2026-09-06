@@ -16,6 +16,7 @@ import { AiWorkerPanel } from './components/shared/AiWorkerPanel.tsx'
 import { AppControls } from './components/layout/AppControls.tsx'
 import { SafetyFooter } from './components/layout/SafetyFooter.tsx'
 import { SituationBanner } from './components/layout/SituationBanner.tsx'
+import { DemoBanner } from './components/layout/DemoBanner.tsx'
 import { Console } from './components/layout/Console.tsx'
 import { QuickSwitchBar } from './components/layout/QuickSwitchBar.tsx'
 import { MapWindow } from './components/MapWindow.tsx'
@@ -376,6 +377,7 @@ export default function App() {
   }
 
   const character = useAppStore((s) => s.character)
+  const bridgeMode = useAppStore((s) => s.bridgeMode)
   const battleActive = character?.situation.includes('in_combat') ?? false
   const leftRailWantVisible = leftRailW
   /* In combat the board becomes the primary surface and the rails pay for it
@@ -547,6 +549,10 @@ export default function App() {
       <AppControls />
       <StorageWarning />
       {setupComplete && <SituationBanner />}
+      {/* Across the whole window, not a badge in a corner - see DemoBanner.tsx
+          and issue #382. Above the workspace row so it is present in the empty
+          state and the populated one alike. */}
+      {setupComplete && bridgeMode === 'mock' && <DemoBanner />}
       {/* Runs regardless of what is on screen - see GameSignals.tsx's own
           header on why this cannot live inside a panel that might not
           mount. */}

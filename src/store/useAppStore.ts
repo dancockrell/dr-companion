@@ -4,6 +4,7 @@ import { bridge } from '../bridge/index.ts'
 import type { IntentName } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence.ts'
+import { initialBridgeMode } from '../lib/bridgeModeSelect.ts'
 import { DEFAULT_FRONTEND } from '../lib/frontends.ts'
 import {
   APP_VERSION,
@@ -140,7 +141,9 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   bridgeAuthNote: '',
   // null = unknown, same reasoning as bridgeAuth above. Never "none".
   bridgeIntents: null,
-  bridgeMode: prefs.bridgeMode,
+  // One selector, so nothing else in the app decides mock-or-real. See
+  // bridgeModeSelect.ts.
+  bridgeMode: initialBridgeMode(prefs.bridgeMode),
   trainFocus: prefs.trainFocus,
   autoSuggestHealer: prefs.autoSuggestHealer,
   huntFavorites: prefs.huntFavorites ?? [],

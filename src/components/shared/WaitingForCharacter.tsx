@@ -19,6 +19,8 @@ import { useAppStore } from '../../store/useAppStore.ts'
  */
 export function WaitingForCharacter() {
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
+  const setBridgeMode = useAppStore((s) => s.setBridgeMode)
+  const connectBridge = useAppStore((s) => s.connectBridge)
 
   return (
     <div className="flex h-full min-w-0 flex-col items-start justify-center gap-3 p-6">
@@ -35,15 +37,34 @@ export function WaitingForCharacter() {
        * running to a silly measure on a wide one.
        */}
       <div className="w-full max-w-lg">
-        <p className="text-sm text-ink">Waiting for a character.</p>
-
+        {/*
+         * The heading names the two ways forward, and it is the largest type
+         * on the screen because this is now the first thing a new install
+         * shows - the app no longer opens on an invented character (issue
+         * #382). "Waiting for a character" was accurate and answered a
+         * question nobody had asked yet: somebody who has just finished setup
+         * does not know whether they are supposed to do something.
+         *
+         * It is inside the branch rather than above it because the two states
+         * are different situations, not one situation with more detail.
+         * Nothing is attached, versus the bridge is up and the character has
+         * not reported in - a single heading would be wrong in one of them.
+         */}
         {bridgeConnected ? (
-          <p className="mt-1 text-xs text-ink-muted">
-            The bridge is up but no character has reported in yet. Log in, or run{' '}
-            <code className="text-ink">,companion_bridge</code> in the game.
-          </p>
+          <>
+            <p className="text-base font-semibold text-ink">Waiting for a character.</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              The bridge is up but no character has reported in yet. Log in, or run{' '}
+              <code className="text-ink">,companion_bridge</code> in the game.
+            </p>
+          </>
         ) : (
           <>
+            <p className="text-base font-semibold text-ink">Nothing is connected yet.</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              Attach to Lich to see your own character, or start the demo to
+              look around an invented one.
+            </p>
             {/*
              * The likeliest state here is not "not started yet". It is
              * playing already, through Genie, with Lich not in the loop at
@@ -83,12 +104,25 @@ export function WaitingForCharacter() {
         )}
       </div>
       <div className="flex gap-2">
+        {/*
+         * Asking for the demo is now an act, not the absence of one.
+         *
+         * This used to call `simulateConnect()`, which is `connectBridge()`
+         * under another name and worked only because mock was already the
+         * mode on every fresh install. With `live` the default (issue #382)
+         * that would have attached the real bridge and left the button
+         * apparently doing nothing. The pair below is the same pair Settings
+         * uses for its Mock button: set the mode, then connect.
+         */}
         <button
           type="button"
-          onClick={() => useAppStore.getState().simulateConnect()}
+          onClick={() => {
+            setBridgeMode('mock')
+            connectBridge()
+          }}
           className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
         >
-          Open the demo dashboard
+          Start the demo
         </button>
         <button
           type="button"
