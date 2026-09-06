@@ -74,6 +74,48 @@ Three outcomes, and only the first is a merge:
 partial run is not the gate, and it is not a substitute for a full one before
 merging.
 
+## Two lanes may gate at once
+
+Yes. `npm run gate` is safe to run while another lane is running it.
+
+It was not, until issue #502. `npm run gate` runs `cargo test`, and the Rust
+suite built its scratch directories from constant names under `%TEMP%`,
+deleting them on the way *in* — so two test processes shared one directory and
+each one's setup destroyed the other's fixture mid-test. Measured on
+`0d34dff1`, running the built lib test binary from `src-tauri/`:
+
+```
+1 process   x  5 runs of vendor_tests     0 of   5 failed
+6 processes x 25 runs of vendor_tests    54 of 150 failed
+6 processes x 25 runs of bridge_token    54 of 150 failed
+4 processes x  4 full-suite runs          2 of  16 failed
+```
+
+A single process was green every time. Every one of those reds was a false
+red aimed at code that is fine, which costs a peer's time and a round trip to
+withdraw.
+
+The rule that keeps this true, and it is checked rather than promised:
+
+> **Every test fixture must be unique to the process that made it.** A Rust
+> test that needs a directory calls `crate::test_support::scratch_dir(label)`
+> — unique per process *and* per call, deleted on drop, never on entry. A
+> test that needs a port binds `127.0.0.1:0` and reads the port back.
+
+`npm run test:rust-isolation` (`tools/rust-test-isolation-test.mjs`, part of
+`test:all`, so the gate already runs it) reads every `.rs` file under
+`src-tauri/src` and fails naming the file and line if a temp path is not
+process-unique or a listener claims a fixed port. It prints how many sites it
+examined and refuses to pass on a scan that found too few, so a broken scan
+reports itself rather than reporting a clean tree.
+
+**Still one `cargo build` at a time.** That ceiling is about the machine —
+linking is what saturates it — and it is unchanged. This section is about
+`cargo test`, which is now isolated; it is not permission to run two builds.
+
+`DRC_TEST_PORT` is still per-lane: the JavaScript suites that bind a port read
+it, and two lanes passing the same value collide there for reasons that have
+nothing to do with the Rust suite.
 ## If `--delete-branch` fails
 
 `gh pr merge --squash --delete-branch` prints `main is already used by

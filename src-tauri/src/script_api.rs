@@ -211,6 +211,11 @@ fn handle_client(
 
     if !authed {
         let _ = send_json(&mut out, &json!({"type": "auth_failed"}));
+        // A refusal is a close, and a close has to be a FIN rather than an
+        // RST or the client sees `ConnectionReset` where it should see EOF -
+        // losing the `auth_failed` frame that says why it was refused.
+        // Issue #502; the mechanism is documented in `local_socket`.
+        crate::local_socket::close_after_refusal(&mut out, reader.get_ref());
         return;
     }
     let _ = send_json(&mut out, &json!({"type": "auth_ok"}));
@@ -448,10 +453,16 @@ mod tests {
         {
             let mut s2 = r.get_ref().try_clone().unwrap();
             send_json(&mut s2, &json!({"type": "auth", "token": "wrong"})).unwrap();
+            // Pipelined bytes the refusal path never reads - the queue that
+            // turns a close into an RST without `close_after_refusal`. See
+            // issue #502 and `local_socket`.
+            s2.write_all(&vec![b'x'; 8192]).unwrap();
         }
+        // The refusal *text*, not merely "an error".
         assert_eq!(read_json(&mut r)["type"], "auth_failed");
         let mut rest = Vec::new();
-        r.read_to_end(&mut rest).unwrap();
+        r.read_to_end(&mut rest)
+            .expect("a refused client must see a clean EOF, not a connection reset");
         assert!(
             rest.is_empty(),
             "nothing more should arrive after a refused auth"

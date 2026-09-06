@@ -1654,9 +1654,7 @@ mod tests {
     /// than deserializing the file.
     #[test]
     fn reads_names_and_never_the_password() {
-        let dir = std::env::temp_dir().join("drc-lich-entry-test");
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = crate::test_support::scratch_dir("lich-entry");
 
         let secret = "hunter2-do-not-leak";
         std::fs::write(
@@ -1667,7 +1665,7 @@ mod tests {
         )
         .unwrap();
 
-        let names = saved_characters(&dir).expect("file is readable");
+        let names = saved_characters(dir.path()).expect("file is readable");
         assert_eq!(names, vec!["Phemius", "Dan the Bold"]);
 
         // Not "the password is not in position 0". Nothing anywhere in the
@@ -1676,8 +1674,6 @@ mod tests {
             !names.iter().any(|n| n.contains(secret)),
             "a password reached the character list"
         );
-
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Absent is not empty. A missing file has to be distinguishable from a
@@ -1686,30 +1682,26 @@ mod tests {
     /// first-time setup.
     #[test]
     fn missing_file_is_unknown_not_empty() {
-        let dir = std::env::temp_dir().join("drc-lich-missing-test");
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = crate::test_support::scratch_dir("lich-missing");
 
         assert!(
-            saved_characters(&dir).is_none(),
+            saved_characters(dir.path()).is_none(),
             "no file must not read as no characters"
         );
 
         std::fs::write(dir.join("entry.yaml"), "---\naccounts: {}\n").unwrap();
         assert_eq!(
-            saved_characters(&dir),
+            saved_characters(dir.path()),
             Some(vec![]),
             "an empty file is an answer"
         );
-
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// rubyw over ruby, so no console window is left behind Lich.
     #[test]
     fn prefers_the_windowed_interpreter_when_present() {
-        let dir = std::env::temp_dir().join("drc-ruby-pick-test").join("bin");
-        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+        let root = crate::test_support::scratch_dir("ruby-pick");
+        let dir = root.join("bin");
         std::fs::create_dir_all(&dir).unwrap();
         let ruby = dir.join("ruby.exe");
         std::fs::write(&ruby, b"").unwrap();
@@ -1723,8 +1715,6 @@ mod tests {
 
         std::fs::write(dir.join("rubyw.exe"), b"").unwrap();
         assert!(windowed_ruby(&ruby.to_string_lossy()).ends_with("rubyw.exe"));
-
-        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
     }
 
     /// E11. Three states, not two, and the third is the one worth having.
@@ -2283,7 +2273,13 @@ mod tests {
         let pid = child.id();
         SPAWNED_LICH.hold(child);
 
-        let path = std::env::temp_dir().join(format!("drc-stop-{pid}.sal"));
+        let path = std::env::temp_dir().join(format!(
+            // The child's pid, plus this process's own, so two
+            // concurrent `cargo test` runs cannot name one file
+            // (issue #502).
+            "drc-stop-{pid}-{}.sal",
+            std::process::id()
+        ));
         std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
         remember_launch_file_for_test(path.clone());
 
@@ -2335,7 +2331,13 @@ mod tests {
         let pid = child.id();
         SPAWNED_LICH.hold(child);
 
-        let path = std::env::temp_dir().join(format!("drc-release-{pid}.sal"));
+        let path = std::env::temp_dir().join(format!(
+            // The child's pid, plus this process's own, so two
+            // concurrent `cargo test` runs cannot name one file
+            // (issue #502).
+            "drc-release-{pid}-{}.sal",
+            std::process::id()
+        ));
         std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
         remember_launch_file_for_test(path.clone());
 

@@ -242,19 +242,33 @@ mod tests {
     /// ```
     const TEST_PREFIX: &str = "dr-companion-test.";
 
-    /// One nonce for the whole test process.
+    /// One nonce for the whole test process: nanoseconds since the epoch,
+    /// then this process's own id.
     ///
     /// Shared rather than per-service so the sweep can tell *this* run's
     /// entries from a stale one: tests run in parallel threads, and a sweep
     /// that deleted anything carrying `TEST_PREFIX` would happily delete a
-    /// sibling test's entry mid-assertion. It still differs between runs, so a
-    /// leftover can never make a check pass.
-    static RUN_NONCE: std::sync::LazyLock<u128> = std::sync::LazyLock::new(|| {
-        std::time::SystemTime::now()
+    /// sibling test's entry mid-assertion.
+    ///
+    /// The process id is not decoration. Two `cargo test` runs started
+    /// inside one clock tick got the *same* nanosecond reading and therefore
+    /// the same service name, and then each one's `has` saw the other's
+    /// entry. Issue #502: the Windows credential store is a machine-wide
+    /// namespace exactly as `%TEMP%` is, and the same rule applies to it —
+    /// every fixture unique to the process that made it.
+    static RUN_NONCE: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+        let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("the clock is after 1970")
-            .as_nanos()
+            .as_nanos();
+        format!("{nanos}-{}", std::process::id())
     });
+
+    /// How old a leftover has to be before the sweep will touch it.
+    ///
+    /// A concurrent `cargo test` process is minutes old at most, so an hour
+    /// is far outside anything live and far inside anything abandoned.
+    const STALE_AFTER: std::time::Duration = std::time::Duration::from_secs(3600);
 
     /// A service name no player's credentials can be under.
     ///
@@ -262,7 +276,7 @@ mod tests {
     /// before its cleanup — cannot see each other's entries, and so a leftover
     /// from a previous run can never make a check pass.
     fn test_service(what: &str) -> String {
-        let nonce = *RUN_NONCE;
+        let nonce = &*RUN_NONCE;
         let service = format!("{TEST_PREFIX}{what}.{nonce}");
         // The seam is only worth having if it cannot collide with the real
         // one. Assert it rather than trusting the name.
@@ -365,6 +379,31 @@ mod tests {
     /// asserted in `test_service` — so this cannot touch a player's entry.
     /// Deliberately not asserted on: there is usually nothing to sweep, and a
     /// sweep that found nothing is the normal case rather than a failure.
+    /// Whether a `TEST_PREFIX` target is old enough that no running test
+    /// process can still own it.
+    ///
+    /// Three answers, not two: the `None` arms below mean *I could not tell*
+    /// and are treated as "leave it alone", because deleting on a reading
+    /// you could not take is how the sweep broke concurrent runs in the
+    /// first place.
+    #[cfg(windows)]
+    fn is_stale(target: &str) -> bool {
+        // ...dr-companion-test.<what>.<nanos>-<pid>
+        let Some(tail) = target.rsplit('.').next() else {
+            return false;
+        };
+        let Some(nanos) = tail.split('-').next() else {
+            return false;
+        };
+        let Ok(made_at) = nanos.parse::<u128>() else {
+            return false;
+        };
+        let Ok(now) = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) else {
+            return false;
+        };
+        now.as_nanos().saturating_sub(made_at) > STALE_AFTER.as_nanos()
+    }
+
     #[cfg(windows)]
     fn sweep_stale_test_entries() {
         let out = match std::process::Command::new("cmdkey").arg("/list").output() {
@@ -376,10 +415,17 @@ mod tests {
                 continue;
             };
             let target = rest.trim();
-            // This run's own entries are off limits: sibling tests are
-            // running in other threads right now and are using them.
-            let nonce = RUN_NONCE.to_string();
-            if !target.contains(TEST_PREFIX) || target.contains(&nonce) {
+            if !target.contains(TEST_PREFIX) {
+                continue;
+            }
+            // Age, not identity. Skipping only *this* run's nonce is what
+            // the sweep used to do, and under two concurrent `cargo test`
+            // processes that meant each one deleted the other's live
+            // fixtures mid-assertion (issue #502). An entry is swept only
+            // once it is far too old to belong to any run still going, and
+            // one whose age cannot be read is left alone rather than
+            // guessed at.
+            if !is_stale(target) {
                 continue;
             }
             let _ = std::process::Command::new("cmdkey")
