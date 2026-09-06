@@ -90,8 +90,10 @@ import type { RoomContent } from './worldContent.ts'
 import {
   loadSceneOverrides,
   resolveScene,
+  sceneOverrideDiagnostics,
   type ResolvedScene,
   type SceneOverrides,
+  type SceneRefusal,
 } from './sceneOverrides.ts'
 import { invokeTauri } from './tauri.ts'
 import type {
@@ -220,6 +222,21 @@ function worldPosition(room: MapZoneRoom): Vec3 {
 }
 
 /**
+ * A snapshot plus what the compile could not apply.
+ *
+ * `diagnostics` is not part of the wire protocol and
+ * `publishWorldSnapshotIfChanged` drops it before the native call: Godot draws
+ * cells and has nothing to do with an override for a room that is not in this
+ * zone. It exists because the compiler is where such an override is silently
+ * discarded (#461), and a thing discarded in silence is indistinguishable from
+ * a thing that was never there. The panel is the consumer - it is where the
+ * person who typed the override is looking.
+ */
+export interface CompiledWorldSnapshot extends WorldSnapshot {
+  diagnostics: SceneRefusal[]
+}
+
+/**
  * Pure compiler: today's `MapZone`/current room/character status in, a
  * `WorldSnapshot` out - or `null` when there isn't enough confirmed state to
  * publish one honestly (see each guard's own comment). Never throws, never
@@ -259,7 +276,7 @@ export function compileWorldSnapshot(params: {
    */
   overrides?: SceneOverrides | null
   sequence: number
-}): WorldSnapshot | null {
+}): CompiledWorldSnapshot | null {
   const { zone, here, character, inventory, content, overrides, sequence } = params
 
   // No zone, no zone id, or the zone itself reported failure: there is
@@ -413,6 +430,13 @@ export function compileWorldSnapshot(params: {
     entities,
     groundItems,
     player,
+    // Computed against this snapshot's own cell ids rather than against the
+    // map, so it reports what *this* compile could not place and cannot go
+    // stale against the zone it is describing.
+    diagnostics: sceneOverrideDiagnostics(
+      { id: zoneId, roomIds: new Set(cells.map((cell) => cell.id)) },
+      sceneOverrides
+    ),
   }
 }
 
@@ -577,7 +601,13 @@ export async function publishWorldSnapshotIfChanged(
     const zoneChanged = nextZone !== lastPublishedZone
     if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) return
     const nextSequence = sequence + 1
-    await invokeTauri('publish_world_snapshot', { snapshot: { ...snapshot, sequence: nextSequence } })
+    // `diagnostics` is the compiler's report to the panel and not part of the
+    // wire protocol, so it is dropped here by name rather than carried and
+    // ignored - `presentation_bridge.rs` re-serializes what it deserializes,
+    // and an undeclared field there would be dropped in transit anyway, which
+    // is a thing that looks like a delivery.
+    const { diagnostics: _diagnostics, ...wire } = snapshot
+    await invokeTauri('publish_world_snapshot', { snapshot: { ...wire, sequence: nextSequence } })
     // A failed native call throws. Only advance the deduplication state after
     // the bridge accepted the publish, so the next update can retry honestly.
     sequence = nextSequence

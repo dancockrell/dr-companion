@@ -38,12 +38,12 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { landmarkFor } from '../src/lib/mapLandmarks.ts'
-// `isDrawable` rather than a check written here. It is the same question the
-// editor asks before storing a choice and the same one `resolveScene` asks
-// before honouring one, and a third statement of it in this file would be the
-// copy that drifts. Importing it costs nothing at module scope: it reads the
-// compiled registry and never touches the store.
-import { isDrawable } from '../src/lib/sceneOverrides.ts'
+// The editor's own schema rather than a check written here. It is the same
+// question the editor asks before storing a choice and the same one
+// `resolveScene` asks before honouring one, and a third statement of it in this
+// file would be the copy that drifts. Importing it costs nothing at module
+// scope: it reads the compiled registry and never touches the store.
+import { parseSceneOverrideSet } from '../src/lib/sceneOverrides.ts'
 import { expandCompassDirection } from '../src/lib/isometric-board-layout.mjs'
 import {
   COHORT_MAJORITY_DENOMINATOR,
@@ -227,27 +227,28 @@ const colourKind = new Map(colourRows.filter((row) => row.admitted).map((row) =>
  * honoured: a ground kind Godot has no factory for renders as the placeholder
  * box, and baking one into the committed content would put it in front of every
  * player rather than only the one who typed it.
+ *
+ * The validation is `parseSceneOverrideSet` from `sceneOverrides.ts` rather
+ * than a second reader here. This file had its own copy of "is this a room, is
+ * this field drawable" until #461 gave that rule one home; two readers of one
+ * format are two answers to what a file says, and the pipeline's answer is the
+ * one that gets committed. Room *existence* is still checked below against
+ * `zoneRoomIds`, which this tool has and the schema does not.
  */
 function loadPlayerOverrides() {
   if (!existsSync(OVERRIDES_PATH)) return { rooms: null, dropped: 0, rawRooms: 0 }
   const file = JSON.parse(readFileSync(OVERRIDES_PATH, 'utf8'))
   const incoming = file && typeof file === 'object' ? (file.overrides ?? {}) : {}
-  const rooms = new Map()
-  let dropped = 0
-  for (const [roomId, override] of Object.entries(incoming)) {
-    if (!override || typeof override !== 'object') {
-      dropped += 1
-      continue
-    }
-    const kept = {}
-    for (const field of ['ground', 'block', 'landmark']) {
-      if (!(field in override)) continue
-      if (isDrawable(field, override[field])) kept[field] = override[field]
-      else dropped += 1
-    }
-    if (Object.keys(kept).length > 0) rooms.set(roomId, kept)
+  const parsed = parseSceneOverrideSet(incoming, { requireDrawable: true })
+  const rooms = new Map(Object.entries(parsed.overrides))
+  return {
+    rooms,
+    // Fields, not rooms: a key that is not a room id is a different fault from
+    // a ground kind Godot cannot draw, and the line below counts the second.
+    dropped: parsed.refusals.filter((refusal) => refusal.field !== null).length,
+    rawRooms: Object.keys(incoming).length,
+    refusals: parsed.refusals,
   }
-  return { rooms, dropped, rawRooms: Object.keys(incoming).length }
 }
 
 const playerFile = loadPlayerOverrides()

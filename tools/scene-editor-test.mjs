@@ -34,7 +34,7 @@ globalThis.localStorage = {
   clear: () => store.clear(),
 }
 
-const { compileWorldSnapshot } = await import('../src/lib/presentationBridge.ts')
+const { compileWorldSnapshot, projectionKey } = await import('../src/lib/presentationBridge.ts')
 const {
   SCENE_STORAGE_KEY,
   PLACEMENT_HALF_EXTENT,
@@ -47,9 +47,14 @@ const {
   resetSceneOverridesCache,
   exportSceneOverrides,
   importSceneOverrides,
+  parseSceneOverrideSet,
+  sceneOverrideDiagnostics,
+  sceneStoreRefusals,
+  SCENE_LIMITS,
   clampToCell,
   isDrawable,
 } = await import('../src/lib/sceneOverrides.ts')
+const { storageHealth } = await import('../src/lib/storage.ts')
 const { GROUND_KINDS, BLOCK_KINDS, blockKindFor, primitivesFor } = await import(
   '../src/lib/world-content-rules.mjs'
 )
@@ -238,8 +243,13 @@ setSceneField('1-42', 'primitives', [{ kind: options.placeable[0], x: 1.5, z: -0
 const exported = JSON.stringify(exportSceneOverrides(), null, 2)
 
 reset()
-const { merged } = importSceneOverrides(JSON.parse(exported))
-saveSceneOverrides(merged)
+const roundTrip = importSceneOverrides(JSON.parse(exported))
+ok(
+  "this build's own export is accepted by this build",
+  roundTrip.ok === true,
+  roundTrip.ok ? '' : roundTrip.reason
+)
+saveSceneOverrides(roundTrip.ok ? roundTrip.merged : {})
 ok(
   'export then import into an empty store round-trips byte-identical',
   JSON.stringify(exportSceneOverrides(), null, 2) === exported,
@@ -255,11 +265,255 @@ const mine = { '1-42': { ground: 'cave' } }
 const conflicted = importSceneOverrides(JSON.parse(exported), mine)
 ok(
   'an import never overwrites a local choice',
-  conflicted.merged['1-42'].ground === 'cave' && conflicted.result.conflicts.some((c) => c.field === 'ground')
+  conflicted.ok && conflicted.merged['1-42'].ground === 'cave' && conflicted.result.conflicts.some((c) => c.field === 'ground')
+)
+const withLava = importSceneOverrides(
+  { version: 1, provenance: 'player', overrides: { '1-1': { ground: 'lava' } } },
+  {}
 )
 ok(
   'an import counts what this build cannot draw rather than dropping it silently',
-  importSceneOverrides({ version: 1, overrides: { '1-1': { ground: 'lava' } } }, {}).result.undrawable === 1
+  withLava.ok && withLava.result.undrawable === 1
+)
+ok(
+  'and names the room and the value rather than only counting them',
+  withLava.ok &&
+    withLava.result.refusals.length === 1 &&
+    withLava.result.refusals[0].roomId === '1-1' &&
+    withLava.result.refusals[0].field === 'ground' &&
+    withLava.result.refusals[0].reason.includes('lava'),
+  withLava.ok ? withLava.result.refusals[0]?.reason.slice(0, 70) : ''
+)
+
+// ---------------------------------------------------------------------------
+// 5b. The import schema, one refusal case at a time (#461).
+// ---------------------------------------------------------------------------
+// Every case here was accepted before this schema existed, and each was
+// measured on the real module rather than argued: `version: 99` imported as
+// version 1, `isDrawable('primitives')` admitted arbitrary nested payloads, a
+// 1 MB string was a usable room-id key, a room that does not exist was stored
+// and then dropped at compile without a word, and the whole blob had no bound
+// against a 5 MiB origin quota.
+//
+// The control goes first. Every case below asserts a *refusal*, and a parser
+// that refused everything - including its own export - would satisfy all of
+// them while being useless, which is the same defect as a check that cannot
+// fail wearing the opposite coat.
+
+const good = { version: 1, provenance: 'player', overrides: { '1-42': { ground: 'forest' } } }
+const knownRooms = new Set(['1-42', '1-97'])
+ok(
+  'CONTROL a well-formed file with a real room is accepted',
+  importSceneOverrides(good, {}, { knownRooms }).ok === true,
+  'without this, every refusal below is satisfied by a parser that refuses everything'
+)
+
+const refusal = (what, file, needle, options = {}) => {
+  const outcome = importSceneOverrides(file, {}, options)
+  ok(
+    what,
+    outcome.ok === false && outcome.reason.includes(needle),
+    outcome.ok === false ? outcome.reason.slice(0, 90) : 'accepted'
+  )
+}
+refusal('a file with no version at all is refused', { provenance: 'player', overrides: good.overrides }, 'no version')
+refusal('a future version is refused and named', { ...good, version: 99 }, '99')
+refusal('a file with no provenance is refused', { version: 1, overrides: good.overrides }, 'provenance')
+refusal('a file that is not an object is refused', [good], 'not a scene export')
+
+/** Each of these is refused per room rather than per file: the rest of the
+ * import is still worth taking, and a person needs to know which room. */
+const perRoom = (what, overrides, needle, options = { knownRooms }) => {
+  const outcome = importSceneOverrides({ version: 1, provenance: 'player', overrides }, {}, options)
+  const reasons = outcome.ok ? outcome.result.refusals.map((r) => r.reason) : [outcome.reason]
+  ok(
+    what,
+    outcome.ok === true &&
+      Object.keys(outcome.merged).length === 0 &&
+      reasons.some((reason) => reason.includes(needle)),
+    reasons.join(' | ').slice(0, 100)
+  )
+}
+perRoom('a room-id key that is not a room id is refused and named', { 'not a room': { ground: 'forest' } }, 'not a room id')
+perRoom(
+  'a megabyte-long room-id key is refused without quoting a megabyte back',
+  { ['z'.repeat(1024 * 1024)]: { ground: 'forest' } },
+  'not a room id'
+)
+// Through `JSON.parse`, which is how an import actually arrives: as an object
+// literal `__proto__` sets the prototype and there is no key to refuse, so a
+// case written that way would pass against a parser that does nothing.
+perRoom('__proto__ as a room-id key is refused', JSON.parse('{"__proto__":{"ground":"forest"}}'), 'not a room id')
+perRoom('a room this map does not have is refused and named', { '1-99999': { ground: 'forest' } }, '1-99999')
+perRoom('an unknown kind is refused and named', { '1-42': { ground: 'lava' } }, 'lava')
+perRoom(
+  'a primitive carrying anything but kind, x and z is refused naming the extra key',
+  { '1-42': { primitives: [{ kind: options.placeable[0], x: 0, z: 0, payload: { a: { b: 'x'.repeat(64) } } }] } },
+  'payload'
+)
+perRoom(
+  'more primitives in one room than the cap is refused naming the count',
+  {
+    '1-42': {
+      primitives: Array.from({ length: SCENE_LIMITS.primitivesPerRoom + 1 }, () => ({
+        kind: options.placeable[0],
+        x: 0,
+        z: 0,
+      })),
+    },
+  },
+  `${SCENE_LIMITS.primitivesPerRoom}`
+)
+perRoom(
+  'a string value longer than a registry value can be is refused',
+  { '1-42': { art: `${options.art[0]}${'x'.repeat(SCENE_LIMITS.valueChars)}` } },
+  'not a art'
+)
+
+// The per-room cap is only reachable where kinds are not held to the registry -
+// which is the store's own load path, since every registry kind is short. So it
+// is asked of the schema directly rather than through an import that cannot
+// build a room that large.
+const fatRoom = parseSceneOverrideSet(
+  {
+    '1-42': {
+      primitives: Array.from({ length: SCENE_LIMITS.primitivesPerRoom }, () => ({
+        kind: 'k'.repeat(SCENE_LIMITS.kindChars),
+        x: 1.2345678901234,
+        z: -2.1098765432109,
+      })),
+    },
+  },
+  { requireDrawable: false }
+)
+ok(
+  'a room past the per-room cap is refused naming the room and its size',
+  Object.keys(fatRoom.overrides).length === 0 &&
+    fatRoom.refusals.some((r) => r.roomId === '1-42' && r.reason.includes(`${SCENE_LIMITS.roomChars}`)),
+  fatRoom.refusals[0]?.reason.slice(0, 90) ?? '(accepted)'
+)
+ok(
+  'CONTROL every value the registry offers passes the schema',
+  (() => {
+    const one = (field, value) =>
+      Object.keys(
+        parseSceneOverrideSet({ '1-42': { [field]: value } }, { requireDrawable: true }).overrides
+      ).length === 1
+    return (
+      options.ground.every((v) => one('ground', v)) &&
+      options.block.every((v) => one('block', v)) &&
+      options.landmark.every((v) => one('landmark', v)) &&
+      options.art.every((v) => one('art', v)) &&
+      options.placeable.every((v) => one('primitives', [{ kind: v, x: 0, z: 0 }]))
+    )
+  })(),
+  `${options.ground.length + options.block.length + options.landmark.length + options.art.length + options.placeable.length} values, longest art ${Math.max(...options.art.map((a) => a.length))} against a bound of ${SCENE_LIMITS.valueChars}`
+)
+
+// The total cap, over real room ids so nothing else can be doing the refusing.
+const many = {}
+for (let id = 1; id <= 1060; id += 1)
+  many[`1-${id}`] = {
+    ground: 'water',
+    block: 'outdoor-open',
+    landmark: null,
+    art: options.art[0],
+    primitives: Array.from({ length: 24 }, () => ({ kind: options.placeable[0], x: 1.25, z: -2 })),
+  }
+const everyRoom = new Set(Object.keys(many))
+const oversize = importSceneOverrides({ version: 1, provenance: 'player', overrides: many }, {}, { knownRooms: everyRoom })
+const overflowed = oversize.ok ? oversize.result.refusals.filter((r) => r.reason.includes('did not fit')) : []
+ok(
+  'a set past the total cap keeps what fits and names every room it refused',
+  oversize.ok === true && overflowed.length > 0 && Object.keys(oversize.merged).length > 0,
+  `${oversize.ok ? Object.keys(oversize.merged).length : 0} rooms kept, ${overflowed.length} refused, cap ${SCENE_LIMITS.totalChars} characters`
+)
+ok(
+  'and what it kept is inside the cap it published',
+  oversize.ok === true && JSON.stringify(oversize.merged).length <= SCENE_LIMITS.totalChars,
+  `${oversize.ok ? JSON.stringify(oversize.merged).length : 0} of ${SCENE_LIMITS.totalChars}`
+)
+ok(
+  'the caps are stated as one exported object rather than typed where they are used',
+  SCENE_LIMITS.roomChars > 0 && SCENE_LIMITS.totalChars > SCENE_LIMITS.roomChars && SCENE_LIMITS.formatVersion === 1,
+  `${SCENE_LIMITS.roomChars} per room, ${SCENE_LIMITS.totalChars} in total, format ${SCENE_LIMITS.formatVersion}`
+)
+ok(
+  'rooms not checked is its own answer rather than a quiet pass',
+  (() => {
+    const unchecked = importSceneOverrides(good, {})
+    return unchecked.ok && unchecked.result.roomsChecked === false
+  })() &&
+    (() => {
+      const checked = importSceneOverrides(good, {}, { knownRooms })
+      return checked.ok && checked.result.roomsChecked === true
+    })(),
+  'an importer with no room list has not proved the rooms are real'
+)
+
+// ---------------------------------------------------------------------------
+// 5c. The store's own load path, which is the same schema with kinds left be.
+// ---------------------------------------------------------------------------
+
+reset()
+store.set(
+  SCENE_STORAGE_KEY,
+  JSON.stringify({ '1-42': { ground: 'forest' }, 'not a room': { ground: 'forest' }, '1-43': { ground: 'lava' } })
+)
+const loaded = loadSceneOverrides()
+ok(
+  'the store drops a key that is not a room id',
+  loaded['not a room'] === undefined && sceneStoreRefusals().some((r) => r.reason.includes('not a room id')),
+  sceneStoreRefusals()[0]?.reason.slice(0, 70) ?? '(no refusal recorded)'
+)
+ok(
+  'and keeps a kind this build cannot draw rather than deleting somebody’s work',
+  loaded['1-43']?.ground === 'lava',
+  'resolveScene ignores it; a content pack that re-registers the kind brings it back'
+)
+ok('and keeps the rooms that are fine', loaded['1-42']?.ground === 'forest')
+
+// ---------------------------------------------------------------------------
+// 5d. A write that does not land is not a write (#461 finding 4).
+// ---------------------------------------------------------------------------
+
+reset()
+const control = setSceneField('1-42', 'ground', 'street')
+ok('CONTROL an ordinary write succeeds and is on disk', control.ok === true && store.has(SCENE_STORAGE_KEY))
+const onDisk = store.get(SCENE_STORAGE_KEY)
+
+const realSetItem = globalThis.localStorage.setItem
+globalThis.localStorage.setItem = () => {
+  throw new DOMException('exceeded the quota', 'QuotaExceededError')
+}
+const atQuota = setSceneField('1-97', 'ground', 'water')
+ok(
+  'a write the store refuses is reported as a failure, not as ok',
+  atQuota.ok === false,
+  atQuota.ok ? 'setSceneField said ok while the write was lost' : atQuota.reason.slice(0, 80)
+)
+ok(
+  'and the refusal says the change will not survive a reload',
+  atQuota.ok === false && /reload/.test(atQuota.reason),
+  atQuota.ok ? '' : atQuota.reason.slice(0, 90)
+)
+ok('and nothing reached the store', store.get(SCENE_STORAGE_KEY) === onDisk)
+
+// A store that keeps nothing and says nothing: `setItem` returns cleanly and
+// the value is not there afterwards. This is the case the read-back exists for
+// and the only one that can tell it apart from a healthy write.
+globalThis.localStorage.setItem = () => {}
+const silentlyLost = setSceneField('1-97', 'ground', 'water')
+ok(
+  'a write that is accepted and not kept is reported too',
+  silentlyLost.ok === false,
+  silentlyLost.ok ? 'setItem returned cleanly and the value was never stored' : silentlyLost.reason.slice(0, 80)
+)
+globalThis.localStorage.setItem = realSetItem
+ok(
+  'the failing store is reported to the app-wide banner as well',
+  storageHealth().failedWrites > 0,
+  JSON.stringify(storageHealth())
 )
 
 // ---------------------------------------------------------------------------
@@ -353,6 +607,60 @@ ok(
 ok(
   'the rule-derived primitives are still there beside it',
   placed.content.primitives.some((p) => !p.offset && p.kind === 'terrain-cell-5m')
+)
+
+// ---------------------------------------------------------------------------
+// 6b. What the compile could not apply reaches somebody (#461 finding 3).
+// ---------------------------------------------------------------------------
+// An override naming a room this zone does not have was stored, dropped by the
+// compiler and reported nowhere - the snapshot had no field that could carry
+// it. The denominator goes first: an ordinary compile must report *nothing*, or
+// a diagnostics array that always has something in it says as little as one
+// that never does.
+
+reset()
+setSceneField(`${ZONE}-${subject.id}`, 'ground', 'water')
+const clean = compile()
+ok(
+  'CONTROL a compile with only real overrides reports no diagnostics',
+  Array.isArray(clean.diagnostics) && clean.diagnostics.length === 0,
+  JSON.stringify(clean.diagnostics ?? null)
+)
+
+// Written straight to the store, because the schema now refuses this room
+// through every other door - which is the point: the compile has to be able to
+// report what an older build, a hand-edited store or a future format left it.
+store.set(SCENE_STORAGE_KEY, JSON.stringify({ '1-99999': { ground: 'water' }, '90-1': { ground: 'water' } }))
+resetSceneOverridesCache()
+const withGhost = compile()
+ok(
+  'a compile names an override for a room this zone does not have',
+  withGhost.diagnostics.some((d) => d.roomId === '1-99999' && d.reason.includes('1-99999')),
+  withGhost.diagnostics.map((d) => d.reason).join(' | ').slice(0, 90)
+)
+ok(
+  'and says nothing about another zone’s rooms, which are not this compile’s business',
+  withGhost.diagnostics.every((d) => d.roomId !== '90-1'),
+  `${withGhost.diagnostics.length} diagnostics for zone ${ZONE}`
+)
+ok(
+  'diagnostics are not part of what decides a republish',
+  !projectionKey(withGhost).includes('diagnostics'),
+  'the report is for the panel; a changed report must not cost a native publish'
+)
+
+store.set(SCENE_STORAGE_KEY, JSON.stringify({ [`${ZONE}-${subject.id}`]: { ground: 'lava' } }))
+resetSceneOverridesCache()
+const withUndrawable = compile()
+ok(
+  'a compile names a stored field this build cannot draw rather than ignoring it in silence',
+  withUndrawable.diagnostics.some((d) => d.field === 'ground' && d.reason.includes('lava')),
+  withUndrawable.diagnostics.map((d) => d.reason).join(' | ').slice(0, 90)
+)
+ok(
+  'and still publishes the batch answer for that cell',
+  withUndrawable.cells.find((c) => c.id === `${ZONE}-${subject.id}`)?.content?.groundKind === subject.ground,
+  'resolveScene ignores the value; it is the report that was missing, not the fallback'
 )
 
 // ---------------------------------------------------------------------------
@@ -558,7 +866,7 @@ reset()
 // The floor. Set below the real count and never touched otherwise: a truncated
 // run, a module that failed to import, or a section quietly deleted would
 // otherwise print "0 failed" and exit 0, which is what a passing run looks like.
-const FLOOR = 50
+const FLOOR = 80
 if (pass + fail < FLOOR) {
   console.log(`\nFAIL only ${pass + fail} checks ran, below the floor of ${FLOOR}. The run was truncated.`)
   process.exit(1)

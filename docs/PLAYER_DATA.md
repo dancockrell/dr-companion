@@ -93,7 +93,7 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.portrait.v1` | The portrait chosen for each character. | `src/lib/portraits.ts` |
 | `drc.quickswitch.v3` | What is pinned to the Quick Switch bar and in what order: tasks (with their language), commands and raw scripts. | `src/lib/quickSwitch.ts` |
 | `drc.right-rail-width.v1` | How wide the context side is, as a fraction of the window. Replaces `drc.experience-width.v2`; the experience strip moved to the console row and this rail holds alerts, actions and the AI worker. | `src/App.tsx` |
-| `drc.scene.v1` | Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. | `src/lib/sceneOverrides.ts` |
+| `drc.scene.v1` | Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. Bounded: 1,048,576 characters in total, 4,096 for any one room and 64 placed primitives in one cell, checked on every write and on every import (`SCENE_LIMITS` in `src/lib/sceneOverrides.ts`). An import past the total is refused room by room, naming each - unbounded, this one key could take the whole origin to its quota and every other key on this list would start failing to save. | `src/lib/sceneOverrides.ts` |
 | `drc.script-icons.v1` | Icon overrides for scripts, one entry per script rather than one per profile. | `src/lib/scriptIconOverrides.ts` |
 | `drc.watched-rooms.v1` | Rooms the player is watching, per profile. | `src/lib/watchedRooms.ts` |
 
@@ -105,8 +105,15 @@ rather than one per key.
 
 `writeJSON` and `writeText` do not throw and do not silently succeed. A
 failed write is classified - `quota`, `security`, `serialization`,
-`unavailable`, `unknown` - the value is kept in memory as a pending write,
-and every subscriber is told.
+`unavailable`, `lost`, `unknown` - the value is kept in memory as a pending
+write, and every subscriber is told.
+
+**`lost` is the one a caller cannot see for itself.** `writeJSONVerified`
+reads the key back after writing it and compares the characters, because a
+store that accepts a value and keeps nothing returns from `setItem` with no
+complaint at all. Any caller that reports "saved" to the player should use it:
+the scene editor does, and returns the failure into the panel rather than
+leaving the app-wide banner to be the only thing that disagrees.
 
 **What the player sees.** `src/components/shared/StorageWarning.tsx` renders
 a banner in all three shells (`src/App.tsx` mounts it three times, once per

@@ -38,7 +38,7 @@
  */
 import registry from '../data/sceneRegistry.json' with { type: 'json' }
 import { blockKindFor, spatialModeFor, tierFor } from './world-content-rules.mjs'
-import { readJSON, writeJSON } from './storage.ts'
+import { readJSON, writeJSONVerified, type StorageWriteResult } from './storage.ts'
 import type { RoomContent } from './worldContent.ts'
 
 export const SCENE_STORAGE_KEY = 'drc.scene.v1'
@@ -111,6 +111,11 @@ export type SceneFieldSource = 'guess' | 'override' | 'none'
 
 export type SceneField = 'ground' | 'block' | 'landmark' | 'art' | 'primitives'
 
+/** Every field an override may carry, in the order an export writes them. One
+ * list: the schema, the exporter and the importer all read it, so a sixth field
+ * cannot arrive in one of them and be silently dropped by the others. */
+export const SCENE_FIELDS: readonly SceneField[] = ['ground', 'block', 'landmark', 'art', 'primitives']
+
 export interface ResolvedScene {
   ground: string
   block: string
@@ -176,10 +181,31 @@ export function resetSceneOverridesCache(): void {
   cached = null
 }
 
+/** What the last load of the store could not keep. Read by the panel, which is
+ * the only place a person can act on it. Empty on a healthy store, which is
+ * every store this build has ever written: it fills only when a file was
+ * hand-edited, when a future format was written by a newer build, or when
+ * something else on the machine put a value under this key. */
+let storeRefusals: SceneRefusal[] = []
+
+/** Why the store dropped something on the way in. Never a claim about the
+ * registry: an unregistered kind is left alone here on purpose - see
+ * `parseSceneOverrideSet`'s `requireDrawable`. */
+export function sceneStoreRefusals(): SceneRefusal[] {
+  return storeRefusals
+}
+
 export function loadSceneOverrides(): SceneOverrides {
   if (cached) return cached
-  const value = readJSON<SceneOverrides>(SCENE_STORAGE_KEY, {})
-  cached = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  const raw = readJSON<unknown>(SCENE_STORAGE_KEY, {})
+  // The same schema the importer uses, with kinds left alone. A store written
+  // by a build whose registry admitted a kind this one does not is not a
+  // corrupt store - `resolveScene` ignores such a value and keeps it, so a
+  // content pack that re-registers the kind brings the player's choice back.
+  // Validating kinds here would delete the work that design exists to protect.
+  const parsed = parseSceneOverrideSet(raw, { requireDrawable: false })
+  storeRefusals = parsed.refusals
+  cached = parsed.overrides
   return cached
 }
 
@@ -209,8 +235,23 @@ export function sceneOverridesRevision(): number {
   return revision
 }
 
-export function saveSceneOverrides(value: SceneOverrides): void {
-  writeJSON(SCENE_STORAGE_KEY, value)
+/**
+ * Write the set, and say whether it actually landed.
+ *
+ * The result is returned rather than discarded, which is the whole of issue
+ * #461's fourth finding: at quota this reported nothing, `setSceneField`
+ * returned `{ok: true}`, the in-memory cache held the edit and the panel drew
+ * it as saved. The reload disagreed. `writeJSONVerified` reads the key back, so
+ * a store that accepts and keeps nothing is a failure here rather than a
+ * surprise later.
+ *
+ * The cache is still updated on a failed write, deliberately: the session-only
+ * value is what `StorageWarning`'s Retry retries, and dropping it would make a
+ * full quota erase the player's work in front of them. What must not happen is
+ * calling that saved, and the returned result is how a caller avoids it.
+ */
+export function saveSceneOverrides(value: SceneOverrides): StorageWriteResult {
+  const written = writeJSONVerified(SCENE_STORAGE_KEY, value)
   // A fresh object, never the one handed in. `setSceneField` builds its next
   // state by copying what `loadSceneOverrides()` returned, and if the caller
   // ever passes that same reference back, `useSyncExternalStore` compares it
@@ -219,6 +260,7 @@ export function saveSceneOverrides(value: SceneOverrides): void {
   // capture caught before this line existed.
   cached = { ...value }
   announce()
+  return written
 }
 
 function announce(): void {
@@ -269,6 +311,268 @@ export function isDrawable(field: SceneField, value: unknown): boolean {
   }
 }
 
+// ---------------------------------------------------------------------------
+// The schema. One statement of what an override set may say, at the boundary.
+// ---------------------------------------------------------------------------
+
+/**
+ * The bounds every path into this store is held to.
+ *
+ * Chosen from a measurement rather than from a round number that felt safe.
+ * Issue #461 measured the store with none of these: every room in the game on
+ * every field is 4,361,241 characters, which localStorage counts as UTF-16 -
+ * 8.32 MiB against an origin quota measured at 5 MiB in this app's own webview
+ * (`docs/verification/scene-import-2026-09-06.md` records the measurement and
+ * the command). The store shares that quota with prefs, highlights, layout and
+ * every other key the app keeps, so the scene editor may not have all of it.
+ *
+ * - `totalChars` 1,048,576 is 2 MiB as UTF-16, under half the origin's whole
+ *   quota. One zone with every room and every field decided measures 188,634
+ *   characters (Crossing, 1,060 rooms), so this holds five such zones, or a
+ *   single-field opinion about every room in the game (509,491 characters).
+ *   Somebody who has genuinely decided more than that has a pipeline file, not
+ *   a browser preference: `data/scene-overrides.json` is the committed tier and
+ *   has no quota.
+ * - `roomChars` 4,096 is about twenty times the 178 characters a fully decided
+ *   room measures, and comfortably fits `primitivesPerRoom` at ~40 characters
+ *   each. Its job is to refuse a payload, not to ration a room.
+ * - `primitivesPerRoom` 64 against a 4.4 m cell. The picker places one per
+ *   click and the viewer builds every one of them.
+ * - `roomIdPattern` is the map's own id shape: 85 zone ids, every one of them
+ *   `[0-9A-Za-z]` and at most five characters, and room numbers 1 to 1,060.
+ *   It also refuses `__proto__`, which has no `-` in it, and which the old
+ *   importer counted as added while assigning it set a prototype instead of a
+ *   key.
+ */
+export const SCENE_LIMITS = {
+  /** The only `SceneExport.version` this build reads. */
+  formatVersion: 1,
+  roomIdPattern: /^[0-9A-Za-z]{1,8}-[0-9]{1,6}$/,
+  primitivesPerRoom: 64,
+  roomChars: 4096,
+  totalChars: 1048576,
+  /** A primitive's kind is a registry id, not a document: the longest the
+   * registry holds is 15 characters. Bounded so a refusal message can quote it
+   * without quoting a megabyte. */
+  kindChars: 64,
+  /** A field value. 256 rather than `kindChars` because `art` is a url and the
+   * longest the registry ships is 57 - a bound that fits today's longest value
+   * with four characters to spare would be a trap for whoever adds the next
+   * backdrop. `tools/scene-editor-test.mjs` puts every option the registry
+   * offers through the schema, so a value this refuses fails the build. */
+  valueChars: 256,
+} as const
+
+/**
+ * One thing a parse would not keep, and why.
+ *
+ * A count is not enough and #461 said so from both ends: "refused 3" tells an
+ * importer of 200 rooms nothing about which three, and an override silently
+ * dropped at compile told them nothing at all. Every refusal names its room,
+ * its field where it has one, and a sentence a person can act on.
+ */
+export interface SceneRefusal {
+  roomId: string | null
+  field: SceneField | null
+  reason: string
+}
+
+/** So a refusal about a 1 MB key does not itself carry a megabyte. */
+function shorten(value: unknown, limit = 48): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value) ?? String(value)
+  return text.length <= limit ? text : `${text.slice(0, limit)}… (${text.length} characters)`
+}
+
+/**
+ * The typed shape of a placed primitive, and nothing else on the object.
+ *
+ * `isDrawable` checked `kind`, `x` and `z` and accepted every other key, so an
+ * import could carry arbitrary nested payloads into prefs verbatim - #461's
+ * second finding, and the mechanism by which its fourth became reachable
+ * without 17,750 rooms. Extra keys are refused and named rather than stripped:
+ * a file carrying a field this build does not understand is a file whose author
+ * expected it to mean something, and quietly dropping it is how the two ends
+ * come to disagree about what was transferred.
+ */
+function parsePrimitives(value: unknown): { ok: true; value: PlacedPrimitive[] } | { ok: false; reason: string } {
+  if (!Array.isArray(value)) return { ok: false, reason: `primitives must be a list, not ${shorten(value)}.` }
+  if (value.length > SCENE_LIMITS.primitivesPerRoom)
+    return { ok: false, reason: `${value.length} primitives in one room, and the limit is ${SCENE_LIMITS.primitivesPerRoom}.` }
+  const out: PlacedPrimitive[] = []
+  for (const entry of value) {
+    if (entry == null || typeof entry !== 'object' || Array.isArray(entry))
+      return { ok: false, reason: `a primitive must be an object, not ${shorten(entry)}.` }
+    const extra = Object.keys(entry).filter((key) => key !== 'kind' && key !== 'x' && key !== 'z')
+    if (extra.length > 0)
+      return { ok: false, reason: `a primitive carries ${extra.map((k) => shorten(k, 24)).join(', ')}; this build reads kind, x and z and nothing else.` }
+    const { kind, x, z } = entry as Partial<PlacedPrimitive>
+    if (typeof kind !== 'string' || kind.length === 0 || kind.length > SCENE_LIMITS.kindChars)
+      return { ok: false, reason: `${shorten(kind)} is not a primitive kind.` }
+    if (!Number.isFinite(x) || !Number.isFinite(z))
+      return { ok: false, reason: `a primitive at ${shorten(x)}, ${shorten(z)} has no finite position.` }
+    if (Math.abs(x as number) > PLACEMENT_HALF_EXTENT || Math.abs(z as number) > PLACEMENT_HALF_EXTENT)
+      return { ok: false, reason: `a primitive at ${x}, ${z} is outside the cell, which runs ±${PLACEMENT_HALF_EXTENT} m.` }
+    out.push({ kind, x: x as number, z: z as number })
+  }
+  return { ok: true, value: out }
+}
+
+/** What a parse kept, what it would not keep, and whether rooms were checked
+ * at all. Three states on that last one on purpose: a caller with no room list
+ * to check against has not proved the rooms are real, and saying so is not the
+ * same as saying they are. */
+export interface SceneParsedSet {
+  overrides: SceneOverrides
+  refusals: SceneRefusal[]
+  /** False when no `knownRooms` was supplied: room existence was not checked. */
+  roomsChecked: boolean
+}
+
+/**
+ * Validate an override set: the one gate the store's load path and the importer
+ * both go through.
+ *
+ * `requireDrawable` is the single difference between the two callers and it is
+ * a deliberate one. An import is somebody else's file arriving now, so a field
+ * naming a kind this build has no factory for is refused and named. The store's
+ * own load is not: `resolveScene` ignores an unregistered kind and leaves it
+ * where it is, so that a content pack re-registering the kind brings the
+ * player's choice back, and a loader that deleted such values would destroy the
+ * work that design exists to protect. Structure, shape and size are checked
+ * identically on both paths.
+ */
+export function parseSceneOverrideSet(
+  value: unknown,
+  options: { requireDrawable: boolean; knownRooms?: ReadonlySet<string> | null }
+): SceneParsedSet {
+  const refusals: SceneRefusal[] = []
+  const overrides: SceneOverrides = {}
+  const roomsChecked = options.knownRooms != null
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    refusals.push({ roomId: null, field: null, reason: `An override set must be an object of rooms, not ${shorten(value)}.` })
+    return { overrides, refusals, roomsChecked }
+  }
+
+  let totalChars = 2 // the braces the set itself costs
+  for (const [roomId, room] of Object.entries(value as Record<string, unknown>)) {
+    if (!SCENE_LIMITS.roomIdPattern.test(roomId)) {
+      refusals.push({
+        roomId: shorten(roomId, 24),
+        field: null,
+        reason: `${shorten(roomId, 24)} is not a room id. They read <zone>-<room>, like 1-42.`,
+      })
+      continue
+    }
+    if (options.knownRooms && !options.knownRooms.has(roomId)) {
+      refusals.push({ roomId, field: null, reason: `${roomId} is not a room in this map.` })
+      continue
+    }
+    if (room == null || typeof room !== 'object' || Array.isArray(room)) {
+      refusals.push({ roomId, field: null, reason: `${roomId} holds ${shorten(room)}, which is not an override.` })
+      continue
+    }
+
+    const kept: SceneOverride = {}
+    const unknownFields = Object.keys(room).filter((key) => !SCENE_FIELDS.includes(key as SceneField))
+    if (unknownFields.length > 0)
+      refusals.push({
+        roomId,
+        field: null,
+        reason: `${roomId} carries ${unknownFields.map((k) => shorten(k, 24)).join(', ')}, which this build does not read.`,
+      })
+    for (const field of SCENE_FIELDS) {
+      if (!(field in room)) continue
+      const raw = (room as Record<string, unknown>)[field]
+      if (field === 'primitives') {
+        const parsed = parsePrimitives(raw)
+        if (!parsed.ok) {
+          refusals.push({ roomId, field, reason: `${roomId}: ${parsed.reason}` })
+          continue
+        }
+        if (options.requireDrawable && !isDrawable('primitives', parsed.value)) {
+          refusals.push({ roomId, field, reason: undrawable(field, parsed.value) })
+          continue
+        }
+        kept.primitives = parsed.value
+        continue
+      }
+      if (field === 'landmark' && raw === null) {
+        kept.landmark = null
+        continue
+      }
+      if (typeof raw !== 'string' || raw.length > SCENE_LIMITS.valueChars) {
+        refusals.push({ roomId, field, reason: `${roomId}: ${shorten(raw)} is not a ${field}.` })
+        continue
+      }
+      if (options.requireDrawable && !isDrawable(field, raw)) {
+        refusals.push({ roomId, field, reason: undrawable(field, raw) })
+        continue
+      }
+      ;(kept as Record<string, unknown>)[field] = raw
+    }
+
+    if (Object.keys(kept).length === 0) continue
+    const cost = JSON.stringify(kept).length + roomId.length + 4
+    if (cost > SCENE_LIMITS.roomChars) {
+      refusals.push({ roomId, field: null, reason: `${roomId} is ${cost} characters and one room may be ${SCENE_LIMITS.roomChars}.` })
+      continue
+    }
+    if (totalChars + cost > SCENE_LIMITS.totalChars) {
+      refusals.push({
+        roomId,
+        field: null,
+        reason: `${roomId} did not fit: the set is already ${totalChars} characters and the whole store may be ${SCENE_LIMITS.totalChars}.`,
+      })
+      continue
+    }
+    totalChars += cost
+    overrides[roomId] = kept
+  }
+
+  return { overrides, refusals, roomsChecked }
+}
+
+function undrawable(field: SceneField, value: unknown): string {
+  return `${shorten(value)} is not a ${field} this build can draw. The viewer's registry (${registry.source}) admits: ${optionsFor(field).join(', ') || '(none)'}.`
+}
+
+/**
+ * Validate a whole exported file, envelope and all.
+ *
+ * `version` and `provenance` were type-only until #461: a file saying
+ * `version: 99` imported as if it were version 1, which is the "a field nobody
+ * reads is an absence with more steps" shape with the field sitting in the type
+ * the whole time. There is no migration table here because there is no older
+ * format to migrate from - version 1 is the first and only one this app has
+ * ever written. When there is a version 2, the migration goes in this function,
+ * ahead of the set parse, and this comment is how the next person knows that is
+ * where it belongs rather than in a second reader beside it.
+ */
+export function parseSceneOverrides(
+  file: unknown,
+  options: { knownRooms?: ReadonlySet<string> | null } = {}
+): { ok: true; parsed: SceneParsedSet } | { ok: false; reason: string } {
+  if (file == null || typeof file !== 'object' || Array.isArray(file))
+    return { ok: false, reason: `That is not a scene export: it is ${shorten(file)}.` }
+  const envelope = file as Partial<SceneExport>
+  if (!('version' in envelope))
+    return { ok: false, reason: `That file has no version. A scene export says version ${SCENE_LIMITS.formatVersion}.` }
+  if (envelope.version !== SCENE_LIMITS.formatVersion)
+    return {
+      ok: false,
+      reason: `That file says version ${shorten(envelope.version)}. This build reads version ${SCENE_LIMITS.formatVersion} and has no way to migrate from ${shorten(envelope.version)}.`,
+    }
+  if (typeof envelope.provenance !== 'string' || envelope.provenance.length === 0 || envelope.provenance.length > SCENE_LIMITS.valueChars)
+    return {
+      ok: false,
+      reason: `That file has no provenance saying where it came from. A scene export says provenance "player".`,
+    }
+  return {
+    ok: true,
+    parsed: parseSceneOverrideSet(envelope.overrides, { requireDrawable: true, knownRooms: options.knownRooms }),
+  }
+}
+
 export type SceneWriteResult = { ok: true } | { ok: false; reason: string }
 
 /**
@@ -280,17 +584,26 @@ export type SceneWriteResult = { ok: true } | { ok: false; reason: string }
  * not change and nothing says why.
  */
 export function setSceneField(roomId: string, field: SceneField, value: unknown): SceneWriteResult {
-  if (!isDrawable(field, value)) {
-    return {
-      ok: false,
-      reason: `${JSON.stringify(value)} is not a ${field} this build can draw. The viewer's registry (${registry.source}) admits: ${optionsFor(field).join(', ') || '(none)'}.`,
-    }
-  }
+  if (!isDrawable(field, value)) return { ok: false, reason: undrawable(field, value) }
   const all = { ...loadSceneOverrides() }
   const next: SceneOverride = { ...(all[roomId] ?? {}) }
   ;(next as Record<string, unknown>)[field] = value
   all[roomId] = next
-  saveSceneOverrides(all)
+  // The same schema the importer and the load path use, over the set this write
+  // would produce. The panel cannot reach a bad room id or an oversize room -
+  // it offers one room at a time from the zone - and checking here anyway is
+  // what makes the bound a property of the store rather than of the one caller
+  // that happens to be careful.
+  const checked = parseSceneOverrideSet(all, { requireDrawable: false })
+  const refused = checked.refusals.find((r) => r.roomId === roomId || r.roomId === shorten(roomId, 24))
+  if (refused) return { ok: false, reason: refused.reason }
+  const written = saveSceneOverrides(all)
+  if (!written.ok) {
+    return {
+      ok: false,
+      reason: `This device would not save that: ${written.message} The change is on screen for this session only, and will be gone after a reload.`,
+    }
+  }
   return { ok: true }
 }
 
@@ -396,18 +709,21 @@ export function resolveSceneForRoom(roomId: string, guess: RoomContent | null): 
  * One player's curated set, in the shape `tools/build-world-content.mjs` reads
  * back as its first rule.
  *
- * `provenance` says what the file is rather than being read on import: a reader
- * who finds one on disk knows it is somebody's hand corrections and not a
- * generated table. Same field, same reason, as `AppearanceExport`.
+ * `provenance` says what the file is: a reader who finds one on disk knows it
+ * is somebody's hand corrections and not a generated table. Same field, same
+ * reason, as `AppearanceExport`. Both it and `version` are read by
+ * `parseSceneOverrides` and a file without them is refused - they were
+ * type-only until #461, which is the state where a field's existence is doing
+ * no work at all.
  */
 export interface SceneExport {
   version: 1
-  provenance: 'player'
+  provenance: string
   overrides: SceneOverrides
 }
 
 export function exportSceneOverrides(overrides: SceneOverrides = loadSceneOverrides()): SceneExport {
-  return { version: 1, provenance: 'player', overrides: sorted(overrides) }
+  return { version: SCENE_LIMITS.formatVersion, provenance: 'player', overrides: sorted(overrides) }
 }
 
 /**
@@ -421,7 +737,7 @@ function sorted(overrides: SceneOverrides): SceneOverrides {
   for (const roomId of Object.keys(overrides).sort()) {
     const room = overrides[roomId]
     const next: SceneOverride = {}
-    for (const field of ['ground', 'block', 'landmark', 'art', 'primitives'] as const) {
+    for (const field of SCENE_FIELDS) {
       if (field in room) (next as Record<string, unknown>)[field] = room[field]
     }
     out[roomId] = next
@@ -437,33 +753,57 @@ export interface SceneImportResult {
    * already expressed their own. */
   conflicts: Array<{ roomId: string; field: SceneField; mine: unknown; theirs: unknown }>
   /** Fields naming something this build cannot draw. Counted rather than
-   * dropped in silence. */
+   * dropped in silence, and named one by one in `refusals`. */
   undrawable: number
   /** Rooms in the file that were already identical here. */
   unchanged: number
+  /** Everything the schema would not keep, each naming its cause. A count of
+   * three tells an importer of 200 rooms nothing about which three. */
+  refusals: SceneRefusal[]
+  /** False when the caller supplied no room list, so nothing here was checked
+   * against the map. Not the same claim as "every room is real". */
+  roomsChecked: boolean
 }
 
+/**
+ * Merge somebody else's file into this machine's set.
+ *
+ * Two stages, and the first is the one #461 was about: nothing reaches the
+ * merge that `parseSceneOverrides` has not admitted, so a version this build
+ * cannot read, a file with no provenance, a key that is not a room id, a room
+ * this map does not have, a primitive carrying a nested payload and a set past
+ * the size caps are each refused by name before any of it is stored. The second
+ * stage is unchanged: the local player's own choice always wins a conflict.
+ *
+ * `knownRooms` is how room existence is checked, and it is a parameter because
+ * this module cannot ask: the cartography is 85 files loaded a zone at a time,
+ * and the panel is the caller that knows which zones a file names. Omitted, the
+ * rooms are not checked and `roomsChecked` says so - which is a third answer,
+ * not a quiet pass.
+ */
 export function importSceneOverrides(
   file: unknown,
-  mine: SceneOverrides = loadSceneOverrides()
-): { result: SceneImportResult; merged: SceneOverrides } {
-  const result: SceneImportResult = { added: 0, conflicts: [], undrawable: 0, unchanged: 0 }
+  mine: SceneOverrides = loadSceneOverrides(),
+  options: { knownRooms?: ReadonlySet<string> | null } = {}
+): { ok: false; reason: string } | { ok: true; result: SceneImportResult; merged: SceneOverrides } {
+  const parsed = parseSceneOverrides(file, options)
+  if (!parsed.ok) return parsed
+  const incoming = parsed.parsed.overrides
+  const result: SceneImportResult = {
+    added: 0,
+    conflicts: [],
+    undrawable: parsed.parsed.refusals.filter((r) => r.field !== null).length,
+    unchanged: 0,
+    refusals: parsed.parsed.refusals,
+    roomsChecked: parsed.parsed.roomsChecked,
+  }
   const merged: SceneOverrides = structuredClone(mine)
-  const incoming =
-    file && typeof file === 'object' && !Array.isArray(file) && typeof (file as SceneExport).overrides === 'object'
-      ? ((file as SceneExport).overrides ?? {})
-      : {}
 
   for (const roomId of Object.keys(incoming).sort()) {
     const theirs = incoming[roomId]
-    if (!theirs || typeof theirs !== 'object') continue
-    for (const field of ['ground', 'block', 'landmark', 'art', 'primitives'] as const) {
+    for (const field of SCENE_FIELDS) {
       if (!(field in theirs)) continue
       const value = theirs[field]
-      if (!isDrawable(field, value)) {
-        result.undrawable += 1
-        continue
-      }
       const here = merged[roomId]
       if (here && field in here) {
         if (JSON.stringify(here[field]) === JSON.stringify(value)) result.unchanged += 1
@@ -475,5 +815,48 @@ export function importSceneOverrides(
       result.added += 1
     }
   }
-  return { result, merged: sorted(merged) }
+
+  // The merge can exceed the total cap even when both halves were inside it, so
+  // it is checked again on the way out and the rooms that did not fit are named
+  // rather than written and then lost at the quota.
+  const bounded = parseSceneOverrideSet(sorted(merged), { requireDrawable: false })
+  result.refusals = [...result.refusals, ...bounded.refusals]
+  return { ok: true, result, merged: bounded.overrides }
+}
+
+/**
+ * What a compile could not apply, for the rooms it was asked about.
+ *
+ * #461's third finding: an override naming a room that does not exist was
+ * accepted, stored, and then dropped by `compileWorldSnapshot` without a word -
+ * the compiler maps over the zone's rooms and never consults an unmatched key,
+ * and the snapshot had no field that could have said so. This is that field's
+ * source, and both the compiler and the panel read it, so the panel cannot
+ * report a different set of problems from the one the viewer actually has.
+ *
+ * Scoped to one zone on purpose. An override for a room in Ratha is not a fault
+ * while Crossing is being compiled - it is simply not this zone's business - so
+ * only keys carrying this zone's id are judged, and a key for another zone is
+ * not mentioned at all.
+ */
+export function sceneOverrideDiagnostics(
+  zone: { id: string; roomIds: ReadonlySet<string> },
+  overrides: SceneOverrides = loadSceneOverrides()
+): SceneRefusal[] {
+  const out: SceneRefusal[] = []
+  for (const [roomId, override] of Object.entries(overrides)) {
+    const dash = roomId.lastIndexOf('-')
+    if (dash < 0 || roomId.slice(0, dash) !== zone.id) continue
+    if (!zone.roomIds.has(roomId)) {
+      out.push({ roomId, field: null, reason: `${roomId} is not a room in ${zone.id}, so nothing was drawn for it.` })
+      continue
+    }
+    for (const field of SCENE_FIELDS) {
+      if (!(field in override)) continue
+      const value = override[field]
+      if (field === 'landmark' && value === null) continue
+      if (!isDrawable(field, value)) out.push({ roomId, field, reason: `${roomId}: ${undrawable(field, value)}` })
+    }
+  }
+  return out
 }
