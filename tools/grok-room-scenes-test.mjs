@@ -1,10 +1,12 @@
 import { familyFor, grokRoomScene, stableSceneIndex } from '../src/data/grokRoomScenes.ts'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
+let passes = 0
 let failures = 0
 const check = (label, condition) => {
   console.log(`${condition ? 'OK  ' : 'FAIL'} ${label}`)
-  if (!condition) failures++
+  if (condition) passes++
+  else failures++
 }
 
 check('an explicit town square still selects town art', familyFor('A busy town square') === 'town')
@@ -88,5 +90,21 @@ for (const dir of ['public/rooms', 'public/room-scenes']) {
 }
 check('generated patterns cannot reintroduce a legacy room-art path', !/["']\/(?:rooms|room-scenes)\//.test(readFileSync('src/data/roomScenePatterns.ts', 'utf8')))
 
-console.log(failures ? `\n${failures} failed` : '\nall Grok room scene checks passed')
-process.exit(failures ? 1 : 0)
+console.log('')
+const total = passes + failures
+// Far below the real count (88) on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 59
+if (total < MIN_EXPECTED) {
+  console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `total`, not `passes`: the denominator has to be the number of checks that
+// ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${total} checked, ${failures} failed`)
+if (failures) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all Grok room scene checks passed')

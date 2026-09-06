@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 
+let passes = 0
 let failures = 0
 function check(label, value) {
-  if (value) console.log(`OK   ${label}`)
+  if (value) { console.log(`OK   ${label}`); passes += 1 }
   else { console.error(`FAIL ${label}`); failures += 1 }
 }
 
@@ -142,5 +143,18 @@ check('the mock invasion balances eighteen PCs against eighteen live monsters', 
 check('the mock invasion fills the searchable floor with a large varied pile', stringLiterals(invasionItems).length >= 50 && /roomItems = level > 20 \? \[\.\.\.DEMO_INVASION_ITEMS\]/.test(mockBridge))
 check('the mock uses a long, real data-derived room description in a fresh clone', /DEMO_INVASION_ROOM = 308/.test(demoRoom) && /room-prompts-priority\.json/.test(demoRoom) && /Paneled in dark mahogany/.test(demoRoom) && demoRoom.length > 900 && /DEMO_INVASION_ROOM_TEXT/.test(roomText))
 
+console.log('')
+const total = passes + failures
+// Far below the real count (81) on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 54
+if (total < MIN_EXPECTED) {
+  console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `total`, not `passes`: the denominator has to be the number of checks that
+// ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${total} checked, ${failures} failed`)
 if (failures) process.exit(1)
-console.log('\nall battlespace checks passed')
+console.log('all battlespace checks passed')
