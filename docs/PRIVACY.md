@@ -21,7 +21,7 @@
 
 ## Every destination
 
-6 hosts appear in the source. 5 of them this app
+8 hosts appear in the source. 7 of them this app
 contacts itself; the rest are links, which do nothing until you click them and
 are then fetched by your browser, not by this app.
 
@@ -65,6 +65,22 @@ are then fetched by your browser, not by this app.
 - **Where in the code:** `src-tauri/src/setup/bundles.rs`, allowlisted to `GenieClient/` and `elanthia-online/` paths.
 - A script is only fetched when a player asks for that script.
 
+### `upload.wikimedia.org`
+
+**Contacted by the app.** The music library, when a player presses Install music. 178 of its 182 files come from here.
+
+- **What is sent:** Nothing about the player. A download of public files, in one run, with no identifier attached.
+- **Where in the code:** `src-tauri/src/music.rs`, through the same `download_verified` and the same allowlist as everything above (`src-tauri/src/setup/downloads.rs`).
+- Never contacted on startup or on a first run. The library is 4.36 GB, it is not in the installer, and nothing here is fetched until the button is pressed. Each file is checked against a SHA-256 that shipped inside the app in `data/audio/manifest.json`, so no list of what to download is fetched either.
+
+### `opengameart.org`
+
+**Contacted by the app.** The other four files of the music library - the biome ambience loops.
+
+- **What is sent:** Nothing about the player.
+- **Where in the code:** `src-tauri/src/music.rs`, in the same allowlist.
+- Same button, same run, same verification as the entry above.
+
 ### `rubyinstaller.org`
 
 **A link only - the app never opens it.** A link, shown when Ruby is missing and the player would rather install it themselves.
@@ -86,8 +102,8 @@ grep -rn "fetch(\|reqwest\|https://" src/ src-tauri/src/ | grep -v -E "test|127\
 direction is the one that matters for a privacy statement: it is what stops
 the document describing an app that no longer exists.
 
-The scan currently matches 57 lines across 333 source
-files and finds 6 hosts, which is the number of sections above. It
+The scan currently matches 66 lines across 335 source
+files and finds 8 hosts, which is the number of sections above. It
 cannot tell a request from a link - both are an `https://` in a file - so
 that distinction is recorded by hand against each call site, and is the part a
 reader should check rather than take on trust.

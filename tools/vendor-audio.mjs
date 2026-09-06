@@ -10,7 +10,20 @@
  *
  *   node tools/vendor-audio.mjs                fetch anything missing
  *   node tools/vendor-audio.mjs --check        report what's missing, fetch nothing
+ *   node tools/vendor-audio.mjs --record       write sha256 + bytes into the manifest
  *   node tools/vendor-audio.mjs --attributions rewrite data/audio/ATTRIBUTIONS.md from the manifest
+ *
+ * `--record` exists because the app can now install this library itself
+ * (`src-tauri/src/music.rs`), and a download it cannot verify is not one it
+ * should make. It hashes what is on disk and writes `sha256` and `bytes` back
+ * into each manifest entry, so the pins are measured from real bytes rather
+ * than copied from a header. That distinction is not pedantry: a HEAD sweep of
+ * these same 182 URLs came back rate-limited and reported 168 of them as 2144
+ * bytes, the length of Wikimedia's error page, which reads exactly like a
+ * small file.
+ *
+ * Once an entry is pinned, `fetchOne` verifies against it, so a fetch that
+ * comes back wrong is refused here as well as in the app.
  *
  * `--attributions` exists because hand-maintaining a credits list stopped
  * being realistic once tools/source-radio.mjs made it normal to add dozens
@@ -19,7 +32,8 @@
  * quietly let drift. Generated, not hand-edited: any wording added directly
  * to ATTRIBUTIONS.md is lost the next time this runs.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -30,6 +44,9 @@ const attributionsPath = join(root, 'data/audio/ATTRIBUTIONS.md')
 
 const CHECK_ONLY = process.argv.includes('--check')
 const ATTRIBUTIONS_ONLY = process.argv.includes('--attributions')
+const RECORD = process.argv.includes('--record')
+
+const sha256 = (buf) => createHash('sha256').update(buf).digest('hex')
 
 /** Every entry in the manifest, flattened, with its own kind attached. */
 function entries(manifest) {
@@ -75,8 +92,65 @@ async function fetchOne(e) {
     return { ...e, status: `suspicious-response (${contentType || 'no content-type'}, ${buf.length} bytes)` }
   }
 
+  // A pinned entry is checked before it lands. Same hash the app checks in
+  // `download_verified`, so a source that changes under us fails in one place
+  // rather than being fetched here and rejected there.
+  if (e.sha256) {
+    const actual = sha256(buf)
+    if (actual !== e.sha256) {
+      return { ...e, status: `sha-mismatch (expected ${e.sha256.slice(0, 12)}, got ${actual.slice(0, 12)})` }
+    }
+  }
+
   writeFileSync(dest, buf)
   return { ...e, status: `fetched (${buf.length} bytes)` }
+}
+
+/**
+ * Hash every file that is on disk and write the pins back into the manifest.
+ *
+ * Reports how many entries it looked at and how many it could not pin, and
+ * refuses to write when it pinned nothing - an empty pass and a pass over an
+ * empty directory print the same "done" otherwise.
+ */
+function record(manifest) {
+  // `zone` entries are playlists, not files - they name track ids and have no
+  // `file` of their own. Filtering here rather than in `entries()` keeps the
+  // fetch path's own view of the manifest exactly as it was.
+  const list = entries(manifest).filter((e) => e.file)
+  const pins = new Map()
+  let missing = 0
+  for (const e of list) {
+    const dest = join(audioDir, e.file)
+    if (!existsSync(dest)) {
+      missing++
+      console.log(`not on disk, cannot pin  ${e.kind}/${e.key}  ${e.file}`)
+      continue
+    }
+    pins.set(e.file, { sha256: sha256(readFileSync(dest)), bytes: statSync(dest).size })
+  }
+  if (pins.size === 0) {
+    console.error(`ABORT: pinned 0 of ${list.length} entries - run the fetch first`)
+    process.exit(1)
+  }
+
+  const apply = (entry) => {
+    const pin = pins.get(entry.file)
+    if (!pin) return
+    entry.sha256 = pin.sha256
+    entry.bytes = pin.bytes
+  }
+  for (const e of Object.values(manifest.biome ?? {})) apply(e)
+  for (const e of Object.values(manifest.zone ?? {})) apply(e)
+  for (const e of manifest.radio ?? []) apply(e)
+
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  const total = [...pins.values()].reduce((sum, p) => sum + p.bytes, 0)
+  console.log(
+    `\npinned ${pins.size} of ${list.length} entries, ${missing} not on disk` +
+      ` - ${(total / 1024 ** 3).toFixed(2)} GB`
+  )
+  if (missing) process.exit(1)
 }
 
 function renderAttributions(manifest) {
@@ -129,6 +203,11 @@ async function main() {
     process.exit(1)
   }
   const manifest = JSON.parse(await import('node:fs').then((fs) => fs.readFileSync(manifestPath, 'utf8')))
+
+  if (RECORD) {
+    record(manifest)
+    return
+  }
 
   if (ATTRIBUTIONS_ONLY) {
     writeFileSync(attributionsPath, renderAttributions(manifest))

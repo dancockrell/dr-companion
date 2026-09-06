@@ -43,6 +43,25 @@ Every download is a button you pressed, after seeing:
 - the full path it will be written to
 - what happens to it afterwards
 
+**2b. The music library is the same deal, and it is large.**
+The app can play a curated library of 182 tracks. None of it is in the
+installer: measured by fetching every file and weighing what landed, it is
+4.36 GB, against an installer of roughly 211 MB. So it works like every other
+download here - a button in the sound transport that states the size before you
+press it, nothing fetched until you do, every file checked against a SHA-256
+that shipped inside the app rather than one fetched alongside the files.
+
+It installs into `%LOCALAPPDATA%\DR Companion Data\audio`, which the
+uninstaller can remove, and it can be cancelled while it runs. Until it is
+installed the transport says `Music not installed` and offers the install; it
+does not pretend to be playing something.
+
+The sources are `upload.wikimedia.org` and `opengameart.org`, the only two
+hosts `data/audio/manifest.json` names. Every track's licence is in
+[`THIRD_PARTY.md`](../THIRD_PARTY.md) and per-track credits in
+[`data/audio/ATTRIBUTIONS.md`](../data/audio/ATTRIBUTIONS.md). None of it is
+DragonRealms audio.
+
 **3. Downloads are verified, and a bad one is deleted.**
 Checksums come from GitHub's release API, the same authenticated source as the
 download link. The file is hashed as it streams. On a mismatch it is deleted

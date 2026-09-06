@@ -68,7 +68,7 @@ bundler, the type system and the CSS toolchain all contribute to what ships.
 
 ## Rust crates
 
-319 crates reach the shipped Windows binary, resolved for
+320 crates reach the shipped Windows binary, resolved for
 `x86_64-pc-windows-msvc`. `src-tauri/Cargo.lock` lists more than this: it carries
 every platform's crates, including the GTK and Android ones this app has never
 built, and naming those here would claim to ship software it does not.
@@ -76,7 +76,7 @@ built, and naming those here would claim to ship software it does not.
 | Licence | Crates |
 |---|---:|
 | MIT OR Apache-2.0 | 156 |
-| MIT | 60 |
+| MIT | 61 |
 | Apache-2.0 OR MIT | 30 |
 | Unicode-3.0 | 18 |
 | MIT/Apache-2.0 | 12 |
@@ -206,6 +206,7 @@ built, and naming those here would claim to ship software it does not.
 | `http` | 1.5.0 | MIT OR Apache-2.0 |
 | `http-body` | 1.1.0 | MIT |
 | `http-body-util` | 0.1.5 | MIT |
+| `http-range` | 0.1.5 | MIT |
 | `httparse` | 1.10.1 | MIT OR Apache-2.0 |
 | `hybrid-array` | 0.4.14 | MIT OR Apache-2.0 |
 | `hyper` | 1.11.0 | MIT |
@@ -450,3 +451,35 @@ The world viewer draws on a shared asset library, tracked as a submodule at
 Nothing in that library contributes routes, exits, collision, navigation or
 any other game fact; it is presentation only, which is a rule of the admission
 process rather than a property of the licences.
+
+## Music library (optional, installed on request)
+
+The app can download a curated music library. It is **not** in the installer:
+measured by fetching every entry and weighing what landed, it is
+4.36 GB across 182 files, against an installer of roughly 211 MB.
+Nothing is fetched until a player presses **Install music** in the sound
+transport, each file is pinned by sha256 in `data/audio/manifest.json`, and it
+installs into the app data directory so an uninstall can remove it.
+
+None of it is DragonRealms audio: Simutronics owns their game's sound and this
+project has no licence to it. Every track is separately sourced, and the
+licences present are:
+
+| Licence | Tracks |
+|---|---|
+| Public domain | 67 |
+| CC BY-SA 3.0 | 32 |
+| CC0 | 30 |
+| CC BY-SA 4.0 | 22 |
+| CC BY 3.0 | 10 |
+| CC BY-SA 2.0 | 9 |
+| CC BY 4.0 | 7 |
+| CC-BY 3.0 | 2 |
+| CC BY-SA 2.0 DE | 2 |
+| CC BY 3.0 us | 1 |
+
+Per-track credits - title, composer, performer, source URL and licence for all
+182 - are generated into `data/audio/ATTRIBUTIONS.md` by
+`node tools/vendor-audio.mjs --attributions`, from the same manifest this
+table is built from. That file rather than a second copy here: two lists of the
+same 182 tracks would disagree the first time one was regenerated.

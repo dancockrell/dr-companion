@@ -50,6 +50,7 @@ import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 // repo) even though Vite accepts a bare JSON import without it. Without the
 // attribute this module fails to import outside a bundler at all.
 import manifest from '../../data/audio/manifest.json' with { type: 'json' }
+import { audioUrl, isLibraryUrl } from './musicLibrary.ts'
 
 export interface RadioTrack {
   id: string
@@ -87,9 +88,21 @@ export const RADIO_STATIONS: RadioStation[] = (() => {
   return [...byId.values()]
 })()
 
-const RADIO_FILES: Record<string, string> = Object.fromEntries(
-  (manifest.radio ?? []).map((r) => [r.id, `/audio/${r.file}`])
+/**
+ * Track id -> the file the manifest names for it. Not a URL: a URL is built
+ * by `audioUrl` at the moment of play, because where the file is served from
+ * can change while the app is running - installing the library moves every
+ * track from a bundled path that has nothing at it to the app data directory
+ * that does. A map of URLs built at module load would still be pointing at
+ * the empty location afterwards.
+ */
+const RADIO_FILE_NAMES: Record<string, string> = Object.fromEntries(
+  (manifest.radio ?? []).map((r) => [r.id, r.file])
 )
+function radioFileUrl(id: string): string | undefined {
+  const file = RADIO_FILE_NAMES[id]
+  return file === undefined ? undefined : audioUrl(file)
+}
 
 /** Track id -> display metadata, for the "now playing" line - radio and zone
  * playlists both draw from this same pool, so one lookup covers both. */
@@ -491,9 +504,8 @@ type PlayingMeta = Omit<NowPlaying, 'status' | 'error'>
  * a reasonable thing to offer, while a bundled file that fails means the
  * files are not there.
  */
-const BUNDLED_AUDIO_PREFIX = '/audio/'
 function isBundledTrack(src: string): boolean {
-  return src.startsWith(BUNDLED_AUDIO_PREFIX)
+  return isLibraryUrl(src)
 }
 
 /**
@@ -554,14 +566,22 @@ export function resetMusicLibraryVerdict() {
   libraryProbe = null
 }
 
-/** The one state a missing library produces, whatever was being played. */
+/**
+ * The one state a missing library produces, whatever was being played.
+ *
+ * The wording changed when the install existed to name (this lane): saying
+ * only that the build shipped without the files was true and was a dead end,
+ * which is what a person actually complained about. It now says what to press.
+ * The transport renders the button itself - see `MusicTransport` - so this
+ * string and that control cannot describe different actions.
+ */
 function libraryAbsentState(source: NowPlaying['source']): NowPlaying {
   return {
     title: 'Music not installed',
     composer: '',
     source,
     status: 'unavailable',
-    error: 'This build shipped without the music files, so there is nothing to play.',
+    error: 'The music library is not installed yet. Install it to play anything here.',
   }
 }
 
@@ -755,10 +775,23 @@ class RadioPlayer {
   }
 
   private playCurrent() {
-    const track = this.queue[this.pos]
-    if (!track) return
+    // A queued id the manifest no longer names has no file to play. Stepping
+    // past it here rather than handing `playMusic` an undefined URL keeps a
+    // renamed track from being reported as the whole library missing.
+    // Bounded by the queue length and iterative rather than recursive: a
+    // playlist where *every* id had gone stale would otherwise recurse
+    // through `advance` until the stack ran out.
+    let track = this.queue[this.pos]
+    let src = track ? radioFileUrl(track.id) : undefined
+    for (let skipped = 0; track && src === undefined && skipped < this.queue.length; skipped++) {
+      console.warn(`Music: no file for track "${track.id}" - skipping it`)
+      this.pos = (this.pos + 1) % this.queue.length
+      track = this.queue[this.pos]
+      src = track ? radioFileUrl(track.id) : undefined
+    }
+    if (!track || src === undefined) return
     playMusic(
-      RADIO_FILES[track.id],
+      src,
       { title: track.title, composer: track.composer, source: 'radio' },
       {
       loop: false,
@@ -815,7 +848,7 @@ class ZoneMusicPlayer {
 
   private playCurrent() {
     const id = this.queue[this.pos]
-    const file = id ? RADIO_FILES[id] : undefined
+    const file = id ? radioFileUrl(id) : undefined
     if (!file) return
     const meta = id ? TRACK_META[id] : undefined
     if (!meta) return
@@ -892,7 +925,7 @@ class PlaylistPlayer {
 
   private playCurrent() {
     const id = this.queue[this.pos]
-    const file = id ? RADIO_FILES[id] : undefined
+    const file = id ? radioFileUrl(id) : undefined
     if (!file) return
     const meta = id ? TRACK_META[id] : undefined
     if (!meta) return

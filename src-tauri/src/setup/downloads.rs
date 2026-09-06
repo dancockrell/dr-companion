@@ -33,7 +33,7 @@ pub(crate) fn emit_setup_progress<R: tauri::Runtime>(
     );
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct DownloadResult {
     pub path: String,
     pub bytes: u64,
@@ -41,19 +41,65 @@ pub struct DownloadResult {
     pub verified: bool,
 }
 
+/// Every place this app is allowed to fetch bytes from.
+///
+/// One list rather than a per-caller check, so a new download path cannot
+/// quietly widen it: the first three are the setup wizard's (Lich, Genie, and
+/// the object host GitHub redirects release assets to), the last two are the
+/// optional music library's sources - the only two hosts
+/// `data/audio/manifest.json` names across all 182 entries.
+///
+/// These are URL *prefixes*, matched with `starts_with`, so the path is part
+/// of the check and the host cannot be reached through a path segment of some
+/// other URL.
+pub(crate) const ALLOWED_DOWNLOAD_PREFIXES: [&str; 5] = [
+    "https://github.com/elanthia-online/",
+    "https://github.com/GenieClient/",
+    "https://objects.githubusercontent.com/",
+    "https://upload.wikimedia.org/wikipedia/commons/",
+    "https://opengameart.org/sites/default/files/",
+];
+
+pub(crate) fn allowed_download_url(url: &str) -> bool {
+    ALLOWED_DOWNLOAD_PREFIXES
+        .iter()
+        .any(|prefix| url.starts_with(prefix))
+}
+
 /// Fetch one release asset and verify it before moving it into place.
 pub async fn download_verified(
     url: &str,
     expected_sha256: &str,
     dest: &str,
+    on_progress: impl FnMut(u64, u64),
+) -> Result<DownloadResult, String> {
+    download_verified_from(
+        url,
+        expected_sha256,
+        dest,
+        &ALLOWED_DOWNLOAD_PREFIXES,
+        on_progress,
+    )
+    .await
+}
+
+/// The body of `download_verified`, with the allowlist as a parameter.
+///
+/// The parameter exists so the verifier can be run deliberately in a test
+/// against a local server, rather than only against hosts nobody can make
+/// answer wrongly on demand - CLAUDE.md's "a branch nobody can execute on
+/// purpose is a branch nobody can prove they fixed". Every shipping caller
+/// goes through `download_verified` and gets `ALLOWED_DOWNLOAD_PREFIXES`;
+/// nothing here reads an environment variable, so the seam cannot be opened
+/// at run time.
+pub(crate) async fn download_verified_from(
+    url: &str,
+    expected_sha256: &str,
+    dest: &str,
+    allowed: &[&str],
     mut on_progress: impl FnMut(u64, u64),
 ) -> Result<DownloadResult, String> {
-    const ALLOWED: [&str; 3] = [
-        "https://github.com/elanthia-online/",
-        "https://github.com/GenieClient/",
-        "https://objects.githubusercontent.com/",
-    ];
-    if !ALLOWED.iter().any(|prefix| url.starts_with(prefix)) {
+    if !allowed.iter().any(|prefix| url.starts_with(prefix)) {
         return Err(format!(
             "refusing to download from an unexpected host: {url}"
         ));
