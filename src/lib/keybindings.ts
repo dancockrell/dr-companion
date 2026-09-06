@@ -18,6 +18,8 @@
  * the pure half. The installer determines ownership from the live DOM.
  */
 
+import { isGenieScript, normalizeModifiers, type MacroRule } from './playerConfig.ts'
+
 /** NumPad movement, read directly off Dan's Genie config. */
 const MOVEMENT: Record<string, string> = {
   Numpad8: 'n',
@@ -127,9 +129,104 @@ export function isInteractionTarget(target: EventTarget | null): boolean {
 
 export type KeyResolution =
   | { kind: 'game'; command: string }
+  | { kind: 'macro'; id: string; commands: string[] }
   | { kind: 'stop' }
   | { kind: 'quickswitch'; slot: number }
   | null
+
+/**
+ * The chord a keydown names, in Genie's own vocabulary, or null for a key no
+ * macro could be bound to.
+ *
+ * One translation, shared by the resolver below and by the Macros tab's "press
+ * a key" capture, so the editor cannot store a chord under a name the resolver
+ * will never produce. That is not hypothetical tidiness: two spellings of one
+ * physical key is a binding that saves, displays correctly and never fires.
+ */
+export function chordOf(e: {
+  code: string
+  ctrlKey?: boolean
+  shiftKey?: boolean
+  altKey?: boolean
+}): { key: string; modifiers: Array<'Shift' | 'Control' | 'Alt'> } | null {
+  const key = codeToGenieKey(e.code)
+  if (key === null) return null
+  const mods: string[] = []
+  if (e.shiftKey === true) mods.push('Shift')
+  if (e.ctrlKey === true) mods.push('Control')
+  if (e.altKey === true) mods.push('Alt')
+  return { key, modifiers: normalizeModifiers(mods) }
+}
+
+/** One chord as one string, for display and for comparing two bindings. */
+export function chordLabel(
+  key: string,
+  modifiers: readonly string[] = []
+): string {
+  return [...normalizeModifiers(modifiers), key].join('+')
+}
+
+/**
+ * What this app does with the chord when the player has bound nothing to it.
+ *
+ * Exported so the Macros tab can say "NumPad8 already walks north" beside a
+ * new binding instead of letting a player discover the collision by pressing
+ * it. The player's binding still wins - see `resolveKeybinding` - and this is
+ * what they are choosing to override, named.
+ *
+ * Only the unmodified chord can collide: every built-in is a bare key.
+ */
+export function builtinForChord(
+  key: string,
+  modifiers: readonly string[] = []
+): string | null {
+  if (normalizeModifiers(modifiers).length > 0) return null
+  for (const [code, command] of Object.entries(GAME_KEYS)) {
+    if (codeToGenieKey(code) === key) return command
+  }
+  for (const [code, slot] of Object.entries(QUICK_SWITCH_KEYS)) {
+    if (codeToGenieKey(code) === key) return `Quick Switch slot ${slot + 1}`
+  }
+  return null
+}
+
+/**
+ * Why this macro may not be switched on, or null when it may.
+ *
+ * The same answer as `aliasEnableRefusal`, asked of the other domain and
+ * against the same predicate. 25 of the 95 macros in the real config measured
+ * for Q1 carry Genie script and import switched off.
+ */
+export function macroEnableRefusal(rule: Pick<MacroRule, 'key' | 'commands'>): string | null {
+  const scripted = rule.commands.filter((c) => isGenieScript(c))
+  return scripted.length
+    ? `${rule.key} contains Genie script (${scripted[0]}). This app has no script ` +
+        'engine, so it cannot be switched on.'
+    : null
+}
+
+/**
+ * The player's binding for this chord, or null.
+ *
+ * A disabled rule, and one carrying script, are both skipped here rather than
+ * filtered by the caller: the resolver is what actually decides, so a rule that
+ * must not run must be unreachable from this function rather than from a list
+ * somebody remembered to clean.
+ */
+function macroForEvent(
+  e: { code: string; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean },
+  macros: readonly MacroRule[]
+): MacroRule | null {
+  const chord = chordOf(e)
+  if (!chord) return null
+  const want = chordLabel(chord.key, chord.modifiers)
+  for (const macro of macros) {
+    if (!macro.enabled) continue
+    if (macroEnableRefusal(macro)) continue
+    if (chordLabel(macro.key, macro.modifiers) === want) return macro
+  }
+  return null
+}
 
 /**
  * Pure decision: what should this keydown do, if anything.
@@ -139,8 +236,9 @@ export type KeyResolution =
  * emergency stop without turning "close this panel" into a gameplay action.
  */
 export function resolveKeybinding(
-  e: { key: string; code: string; ctrlKey?: boolean; shiftKey?: boolean },
-  blocked: boolean
+  e: { key: string; code: string; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean },
+  blocked: boolean,
+  macros: readonly MacroRule[] = []
 ): KeyResolution {
   if (blocked) {
     return e.key === 'Escape' && e.ctrlKey === true && e.shiftKey === true
@@ -148,10 +246,85 @@ export function resolveKeybinding(
       : null
   }
   if (e.key === 'Escape') return { kind: 'stop' }
+  // The player's own binding beats the shipped default on the same chord, and
+  // the default stays for every chord they have not bound. Otherwise a player
+  // who binds NumPad8 gets `n` and no error, which is the failure this lane
+  // exists to remove. Escape is deliberately above this: an emergency stop a
+  // config can take away is not one.
+  const macro = macroForEvent(e, macros)
+  if (macro) return { kind: 'macro', id: macro.id, commands: [...macro.commands] }
   const command = GAME_KEYS[e.code]
   if (command) return { kind: 'game', command }
   const slot = QUICK_SWITCH_KEYS[e.code]
   return slot !== undefined ? { kind: 'quickswitch', slot } : null
+}
+
+export interface MacroRunOptions {
+  /**
+   * Sends one command. Production passes
+   * `requestGameAction(command, label, 'macro')` — the outbound lane, whose
+   * `macro` source and pacing already exist. A second send path with its own
+   * gate would be a fork of the thing that makes Stop work.
+   */
+  send: (command: string) => void
+  /**
+   * Claims the shared in-flight slot, returning why not or null when it may
+   * run. Production passes `claimMacroSend` from `macroFlight.ts` — the gate
+   * the action bars already use, so a double press cannot queue a second macro
+   * behind the first whichever surface fired it.
+   */
+  claim?: () => string | null
+  /**
+   * Show, do not send. Nothing is claimed and nothing goes out; the plan comes
+   * back so the editor can display exactly what the lane would receive, in
+   * order. The dry run is the only way to check a macro against a character
+   * standing in a bank, and a dry run that sent anything would be worse than
+   * having none.
+   */
+  dryRun?: boolean
+  /**
+   * Expand one command before it is planned. Production passes
+   * `expandAlias(c, aliases, { variables })`, so a macro and a typed line go
+   * through the *same* resolver: a macro that wrote `$shop` and a command line
+   * that wrote `$shop` producing different text would be two alias engines,
+   * and the dry run below would be showing the player the wrong one's answer.
+   */
+  expand?: (command: string) => string
+}
+
+export interface MacroRunResult {
+  /** What would be sent, in order. Always populated, dry run or not. */
+  plan: string[]
+  /** What actually went out. Empty on a dry run and on a refusal. */
+  sent: string[]
+  /** Why nothing was sent, in words for the player, or null. */
+  refused: string | null
+  dryRun: boolean
+}
+
+/**
+ * Run one macro's commands, or say what running it would do.
+ *
+ * One function for both, on purpose: a dry run that walked a different code
+ * path from the real fire would be showing the player a second implementation's
+ * opinion of what the first would do.
+ */
+export function runMacroCommands(
+  commands: readonly string[],
+  opts: MacroRunOptions
+): MacroRunResult {
+  const plan = commands
+    .map((c) => (opts.expand ? opts.expand(c) : c).trim())
+    .filter(Boolean)
+  if (opts.dryRun === true) return { plan, sent: [], refused: null, dryRun: true }
+  const refused = opts.claim ? opts.claim() : null
+  if (refused) return { plan, sent: [], refused, dryRun: false }
+  const sent: string[] = []
+  for (const command of plan) {
+    opts.send(command)
+    sent.push(command)
+  }
+  return { plan, sent, refused: null, dryRun: false }
 }
 
 export interface KeybindingHooks {
@@ -161,6 +334,19 @@ export interface KeybindingHooks {
   stopAll: () => void
   /** Switch to (or, if already running, stop) the Nth pinned Quick Switch slot. */
   quickSwitch: (slot: number) => void
+  /**
+   * Fire a player macro. Required rather than optional: a build that forgot to
+   * wire it would resolve the chord, swallow the key and send nothing, which
+   * looks exactly like a binding that does not work.
+   */
+  runMacro: (macro: { id: string; commands: string[] }) => void
+  /**
+   * The player's bindings, read at keydown rather than captured at install.
+   * The store is cached, so this is a map lookup, and reading it live means a
+   * macro saved in the panel works on the next press instead of after a
+   * reload.
+   */
+  macros?: () => readonly MacroRule[]
 }
 
 /** Installs the one global listener. Returns the cleanup. */
@@ -168,11 +354,12 @@ export function installKeybindings(hooks: KeybindingHooks): () => void {
   function onKeyDown(e: KeyboardEvent) {
     const foregroundOpen = !!document.querySelector(SHORTCUT_SCOPE_SELECTOR)
     const controlOwnsKey = e.key !== 'Escape' && isInteractionTarget(e.target)
-    const action = resolveKeybinding(e, foregroundOpen || controlOwnsKey)
+    const action = resolveKeybinding(e, foregroundOpen || controlOwnsKey, hooks.macros?.() ?? [])
     if (!action) return
     e.preventDefault()
     if (action.kind === 'stop') hooks.stopAll()
     else if (action.kind === 'quickswitch') hooks.quickSwitch(action.slot)
+    else if (action.kind === 'macro') hooks.runMacro({ id: action.id, commands: action.commands })
     else hooks.sendGame(action.command)
   }
   window.addEventListener('keydown', onKeyDown)

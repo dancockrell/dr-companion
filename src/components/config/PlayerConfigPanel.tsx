@@ -28,8 +28,11 @@ import {
   type ImportReport,
 } from '../../lib/playerConfigImport.ts'
 import { invokeTauri, isTauri } from '../../lib/tauri.ts'
+import { AliasesTab } from './AliasesTab.tsx'
 import { HighlightsTab } from './HighlightsTab.tsx'
+import { MacrosTab } from './MacrosTab.tsx'
 import { PresetsTab } from './PresetsTab.tsx'
+import { VariablesTab } from './VariablesTab.tsx'
 
 const TAB_LABEL: Record<Domain, string> = {
   presets: 'Presets',
@@ -48,11 +51,11 @@ const TAB_LABEL: Record<Domain, string> = {
 const TAB_PLACEHOLDER: Record<Domain, string> = {
   presets: 'Colour presets a highlight can name.',
   highlights: 'Colour and sound rules for game text.',
-  aliases: 'Short words that expand into commands. The editor arrives with Q3.',
-  macros: 'Keys that send a list of commands. The editor arrives with Q3.',
+  aliases: 'Short words that expand into commands.',
+  macros: 'Keys that send a list of commands.',
   substitutes: 'Text rewritten before it is shown. The editor arrives with Q4.',
   gags: 'Lines hidden from the game pane. The editor arrives with Q4.',
-  variables: 'Values an alias or a macro can use as $name. The editor arrives with Q3.',
+  variables: 'Values an alias or a macro can use as $name.',
 }
 
 /**
@@ -65,6 +68,9 @@ const TAB_PLACEHOLDER: Record<Domain, string> = {
 const TAB_EDITOR: Partial<Record<Domain, () => ReactElement>> = {
   presets: PresetsTab,
   highlights: HighlightsTab,
+  aliases: AliasesTab,
+  macros: MacrosTab,
+  variables: VariablesTab,
 }
 
 interface Loaded {

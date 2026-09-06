@@ -19,7 +19,7 @@ import { readFileSync, existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { parseAliases, expandAlias } from '../src/lib/aliases.ts'
+import { parseAliases, expandAlias, resolveAliases, resolveVariables, aliasEnableRefusal } from '../src/lib/aliases.ts'
 
 let failed = 0
 const ok = (name, cond, detail = '') => {
@@ -148,6 +148,96 @@ console.log('\n-- a self-referential alias terminates and says why --')
   ok('given enough depth the same chain finishes cleanly', short.capped === false && short.text === 'finally done', JSON.stringify(short))
 }
 
+console.log('\n-- variables: $name resolves, $0 does not, an unknown one is reported --')
+{
+  const table = [
+    { name: 'sell', expansion: 'go $shop; sell $0' },
+    { name: 'poke', expansion: 'poke $stranger with $1' },
+  ]
+  const variables = new Map([['shop', 'the pawnshop']])
+
+  const r = expandAlias('sell my sword', table, { variables })
+  ok('a $name becomes its value', r.text === 'go the pawnshop; sell my sword', r.text)
+  ok('and $0 is still the positional argument, not a variable lookup', r.text.endsWith('sell my sword'), r.text)
+  ok('nothing is reported missing when every token resolved', r.unknownVariables.length === 0, r.unknownVariables.join(','))
+
+  // The property that matters more than the substitution: a token nothing
+  // answers goes out verbatim and is named. Blanking it would send a command
+  // missing a word, which reads as a command the player meant to type.
+  const miss = expandAlias('poke', table, { variables })
+  ok('an undefined $name passes through verbatim', miss.text.includes('$stranger'), miss.text)
+  ok('and is reported by name', miss.unknownVariables.join(',') === 'stranger', miss.unknownVariables.join(','))
+  ok('a missing positional is still blank, not reported as a variable', miss.text === 'poke $stranger with ', JSON.stringify(miss.text))
+
+  // A `$name` outside any alias resolves too. Genie's own configs write them
+  // straight into a macro's command list (`go $shop`), where no alias fires to
+  // carry the token, so substituting only inside an expansion would leave the
+  // commonest case unresolved.
+  const bare = expandAlias('go $shop', [], { variables })
+  ok('a $name in a line no alias matched still resolves', bare.text === 'go the pawnshop', bare.text)
+  ok('and the line counts as unexpanded, because no alias fired', bare.expanded === false, String(bare.expanded))
+
+  // Substituted once, at the end: a value containing a $ is a value, not a
+  // second lookup, and a second pass would be a rule nobody wrote down.
+  const dollars = expandAlias('go $shop', [], { variables: new Map([['shop', 'the $den'], ['den', 'WRONG']]) })
+  ok('a value carrying a $ is not substituted again', dollars.text === 'go the $den', dollars.text)
+
+  // No table at all is what every caller had before Q3, and the behaviour has
+  // to be unchanged: the token is left alone.
+  const none = expandAlias('sell my sword', table)
+  ok('with no variable table the token is untouched', none.text === 'go $shop; sell my sword', none.text)
+  ok('the old numeric third argument still means maxDepth', expandAlias('a', [{ name: 'a', expansion: 'b' }, { name: 'b', expansion: 'a' }], 8).capped === true)
+
+  // A digit token must never be looked up as a variable, whatever is in the
+  // table - $0 and $shop are different vocabularies sharing one sigil.
+  const trap = expandAlias('sell x', [{ name: 'sell', expansion: 'buy $0' }], {
+    variables: new Map([['0', 'WRONG']]),
+  })
+  ok('$0 is not a variable lookup even when the table holds "0"', trap.text === 'buy x', trap.text)
+}
+
+console.log('\n-- the variable resolver, and the store rules it reads --')
+{
+  const cfg = {
+    variables: [
+      { id: 'v1', enabled: true, source: 'player', name: 'shop', value: 'the pawnshop' },
+      { id: 'v2', enabled: false, source: 'player', name: 'patient', value: 'the guard' },
+      { id: 'v3', enabled: true, source: 'genie-import', name: 'shop', value: 'the smithy' },
+    ],
+  }
+  const { variables, refused } = resolveVariables(cfg)
+  ok('an enabled variable resolves', variables.get('shop') !== undefined)
+  ok('a switched-off one does not, and says so', !variables.has('patient') && refused.some((r) => r.id === 'v2'), JSON.stringify(refused))
+  ok('the last of two rows with one name wins, and the collision is reported', variables.get('shop') === 'the smithy' && refused.some((r) => r.id === 'v3'), variables.get('shop'))
+  ok('the denominator: one name per enabled row, deduplicated', variables.size === 1, String(variables.size))
+}
+
+console.log('\n-- a script-bearing alias cannot be switched on, and is refused by name --')
+{
+  const scripted = { name: 'combat', expansion: '#class {combat} on' }
+  const escaped = { name: 'weird', expansion: 'say hello' + String.fromCharCode(92) + 'x41' }
+  const plain = { name: 'appc', expansion: 'appraise $0 careful' }
+
+  ok('a # directive is refused', (aliasEnableRefusal(scripted) ?? '').includes('combat'), String(aliasEnableRefusal(scripted)))
+  ok('an escape is refused', aliasEnableRefusal(escaped) !== null, String(aliasEnableRefusal(escaped)))
+  ok('an ordinary expansion is not', aliasEnableRefusal(plain) === null)
+
+  // The property, not the toggle: a scripted rule that somehow arrived enabled
+  // - hand-edited storage, an older build - must still not reach the runtime.
+  const cfg = {
+    aliases: [
+      { id: 'a1', enabled: true, source: 'genie-import', ...scripted },
+      { id: 'a2', enabled: true, source: 'player', ...plain },
+      { id: 'a3', enabled: false, source: 'player', name: 'off', expansion: 'stand' },
+    ],
+  }
+  const { entries, refused } = resolveAliases(cfg)
+  ok('the resolver drops the scripted rule even marked enabled', !entries.some((e) => e.name === 'combat'), entries.map((e) => e.name).join(','))
+  ok('and names the script as the reason rather than the switch', (refused.find((r) => r.id === 'a1')?.why ?? '').includes('script'), JSON.stringify(refused.find((r) => r.id === 'a1')))
+  ok('a switched-off rule is refused for being switched off', (refused.find((r) => r.id === 'a3')?.why ?? '').includes('switched off'))
+  ok('the ordinary rule still resolves', entries.length === 1 && entries[0].name === 'appc', String(entries.length))
+}
+
 console.log('\n-- sabotage: breaking one thing reddens only what depends on it --')
 {
   const SRC = readFileSync('src/lib/aliases.ts', 'utf8')
@@ -155,10 +245,19 @@ console.log('\n-- sabotage: breaking one thing reddens only what depends on it -
   // The mutant lives outside src/lib, so its relative import of tauri.ts
   // would not resolve - point it at the real file's absolute path instead of
   // also copying tauri.ts in, which would risk testing a stale copy of it.
-  const tauriUrl = pathToFileURL(join(process.cwd(), 'src/lib/tauri.ts')).href
+  // Every relative import is repointed at the real file's absolute path
+  // rather than copying its dependencies into the temp directory, which would
+  // risk testing a stale copy of them. Rewritten generically in Q3 because it
+  // named one file by hand and `aliases.ts` has since grown another import:
+  // a loader that knows one filename goes stale in silence.
+  const absolute = (spec) =>
+    pathToFileURL(join(process.cwd(), 'src/lib', spec.replace('./', ''))).href
 
   async function loadMutant(label, transform) {
-    const mutated = transform(SRC).replace("from './tauri.ts'", `from '${tauriUrl}'`)
+    const mutated = transform(SRC).replace(
+      /from '(\.\/[^']+)'/g,
+      (_, spec) => `from '${absolute(spec)}'`
+    )
     if (mutated === SRC) {
       throw new Error(`sabotage "${label}" did not change the source - the target text was not found`)
     }
@@ -199,6 +298,25 @@ console.log('\n-- sabotage: breaking one thing reddens only what depends on it -
     // Substitution itself was not touched.
     const table = [{ name: 'appc', expansion: 'appraise $0 careful' }]
     ok('sabotage is scoped: substitution is unaffected', mod.expandAlias('appc x', table).text === 'appraise x careful')
+  }
+
+  // Break variable substitution: every $name is left alone, which is exactly
+  // what this module did before Q3 - so the mutant is a working older version
+  // of itself, and only the variable checks may notice.
+  {
+    const mod = await loadMutant('no-variables', (s) =>
+      s.replace(
+        'const value = variables?.get(name)',
+        'const value = undefined'
+      )
+    )
+    const table = [{ name: 'sell', expansion: 'go $shop; sell $0' }]
+    const variables = new Map([['shop', 'the pawnshop']])
+    const r = mod.expandAlias('sell my sword', table, { variables })
+    ok('sabotage lands: $name is no longer expanded', r.text.includes('$shop'), r.text)
+    ok('and the token is reported as unanswered', r.unknownVariables.join(',') === 'shop', r.unknownVariables.join(','))
+    // Scoped: positional substitution is a different replace and must survive.
+    ok('sabotage is scoped: $0 still substitutes', r.text.endsWith('sell my sword'), r.text)
   }
 
   // Break "unknown word passes through" by removing the early return that

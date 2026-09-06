@@ -58,10 +58,12 @@ try {
   check('an empty store reads as absent rather than as an error', /Read: absent/.test(before))
   // The default tab is `highlights`, which has an editor now. A tab that does
   // not is what this check is about, so it looks at one: an unbuilt tab has to
-  // read as unbuilt rather than as broken.
-  await b.click('[data-testid="config-tab-aliases"]')
+  // read as unbuilt rather than as broken. Q2 pointed this at `aliases`, and
+  // Q3 built that tab, so it moves to one of the two Q4 still owes rather than
+  // being deleted - the property outlives whichever tab happens to be last.
+  await b.click('[data-testid="config-tab-substitutes"]')
   const unbuilt = await b.eval('document.body.innerText')
-  check('an unbuilt tab names the increment that will fill it', /editor arrives with Q3/.test(unbuilt))
+  check('an unbuilt tab names the increment that will fill it', /editor arrives with Q4/.test(unbuilt))
   await b.click('[data-testid="config-tab-highlights"]')
   check('nothing is stored before anything is imported', (await b.eval("localStorage.getItem('drc.player-config.aliases.v1')")) === null)
 
@@ -242,6 +244,104 @@ try {
   check('every control is inside the panel at 720x480', overflow.bad.length === 0, overflow.bad.join(', '))
   await b.screenshot(out('player-config-2026-09-06-highlights.png'))
   console.log(`wrote ${out('player-config-2026-09-06-highlights.png')}`)
+
+  const restored = await b.resize(900, 1000)
+  check('the window is back to the size this shot is taken at', restored.w === 900 && restored.h === 1000, JSON.stringify(restored))
+
+  /*
+   * Q3's three tabs, driven the way a person drives them.
+   *
+   * `tools/macro-dry-run-test.mjs` proves the dry run sends nothing and that
+   * the chooser prefers a player binding. Neither mounts a component, so
+   * neither can say that a macro can be created here at all, or that the
+   * ordered list a dry run produces reaches the screen. This does that half,
+   * and it is also where the screenshot comes from.
+   */
+  const seeded = await b.run(`
+    localStorage.setItem('drc.player-config.variables.v1', JSON.stringify({
+      version: 1,
+      entries: [{ id: 'var-shop', enabled: true, source: 'player', name: 'shop', value: 'the pawnshop' }],
+    }));
+    localStorage.setItem('drc.player-config.macros.v1', JSON.stringify({
+      version: 1,
+      entries: [
+        { id: 'mac-walk', enabled: true, source: 'player', key: 'F3', modifiers: [],
+          commands: ['stand', 'go $shop', 'look'] },
+        { id: 'mac-script', enabled: false, source: 'genie-import', key: 'F5', modifiers: [],
+          commands: ['#queue {north}'] },
+      ],
+    }));
+    localStorage.setItem('drc.player-config.aliases.v1', JSON.stringify({
+      version: 1,
+      entries: [
+        { id: 'ali-sell', enabled: true, source: 'player', name: 'sell', expansion: 'go $shop; sell $0' },
+        { id: 'ali-cls', enabled: false, source: 'genie-import', name: 'combat', expansion: '#class {combat} on' },
+      ],
+    }));
+    return true;
+  `)
+  check('the fixture was written before the panel was reloaded', seeded === true)
+
+  await b.goto(`${base}?view=panel&id=config`, { waitFor: '[data-testid="player-config-panel"]' })
+
+  await b.eval('document.querySelector(\'[data-testid="config-tab-aliases"]\').click()')
+  const aliasText = await b.eval('document.querySelector(\'[data-testid="aliases-tab"]\')?.innerText ?? ""')
+  check('the Aliases tab has an editor rather than a placeholder', aliasText.length > 0, `${aliasText.length} characters`)
+  check('a scripted alias says why it cannot be switched on', /Genie script/.test(aliasText), '')
+  const scriptedToggle = await b.eval(
+    'document.querySelector(\'[data-testid="alias-enabled-combat"]\')?.disabled === true'
+  )
+  check('and its switch is refused, not merely unticked', scriptedToggle === true)
+
+  await b.eval('document.querySelector(\'[data-testid="config-tab-variables"]\').click()')
+  const varText = await b.eval('document.querySelector(\'[data-testid="variables-tab"]\')?.innerText ?? ""')
+  check('the Variables tab lists the names this app does not support', /roomid/.test(varText) && /downid/.test(varText), '')
+
+  await b.eval('document.querySelector(\'[data-testid="config-tab-macros"]\').click()')
+  const macroText = await b.eval('document.querySelector(\'[data-testid="macros-tab"]\')?.innerText ?? ""')
+  check('the Macros tab shows the bound chord', /F3/.test(macroText), '')
+
+  // A macro created through the form, not seeded: the seeded ones prove
+  // display, and only this proves a player can make one.
+  // Two steps with a render between them, the way a person does it: the click
+  // arms the capture and React has to commit that state before the keydown can
+  // be read. Doing both in one task passes the key to a handler still holding
+  // the pre-click state, which is a property of this test and not of the app -
+  // and the first version of this check failed for exactly that reason.
+  await b.run(`
+    const capture = document.querySelector('[data-testid="macro-capture"]');
+    capture.click();
+    return capture.innerText;
+  `)
+  await new Promise((r) => setTimeout(r, 200))
+  const captured = await b.run(`
+    const set = (el, value) => {
+      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement : HTMLInputElement;
+      Object.getOwnPropertyDescriptor(proto.prototype, 'value').set.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const capture = document.querySelector('[data-testid="macro-capture"]');
+    capture.dispatchEvent(new KeyboardEvent('keydown', { code: 'F6', key: 'F6', bubbles: true }));
+    set(document.querySelector('[data-testid="macro-commands"]'), 'stand' + String.fromCharCode(10) + 'go gate');
+    return true;
+  `)
+  check('the capture accepted a key press', captured === true)
+  await new Promise((r) => setTimeout(r, 200))
+  await b.eval('document.querySelector(\'[data-testid="macro-add"]\').click()')
+  await new Promise((r) => setTimeout(r, 200))
+  const storedMacros = JSON.parse((await b.eval("localStorage.getItem('drc.player-config.macros.v1')")) ?? 'null')
+  const made = (storedMacros?.entries ?? []).find((e) => e.key === 'F6')
+  check('a macro made in the panel reaches the store', !!made, JSON.stringify(made?.commands))
+  check('with its commands, in order', JSON.stringify(made?.commands) === JSON.stringify(['stand', 'go gate']))
+
+  await b.eval('document.querySelector(\'[data-testid="macro-dry-run-F3"]\').click()')
+  const plan = await b.eval('document.querySelector(\'[data-testid="macro-plan-F3"]\')?.innerText ?? ""')
+  check('the dry run puts the ordered list on screen', /stand/.test(plan) && /look/.test(plan), plan.replace(/\n/g, ' | '))
+  check('with variables resolved, so it shows what the lane would receive', /the pawnshop/.test(plan), '')
+  check('and says plainly that nothing was sent', /Nothing was sent/.test(plan), '')
+
+  await b.screenshot(out('player-config-2026-09-06-macros.png'))
+  console.log(`wrote ${out('player-config-2026-09-06-macros.png')}`)
 } finally {
   await b.close()
 }
