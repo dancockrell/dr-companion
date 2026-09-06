@@ -254,8 +254,31 @@ console.log('\n-- an unrunnable pattern is refused at save and never reaches the
   ok('a pattern that does not compile is refused', typeof broken === 'string' && broken.length > 0, String(broken))
   ok('and the refusal names the problem rather than saying "invalid"', /group|paren|\)/i.test(broken ?? ''), String(broken))
 
+  /*
+   * Was `refused with its measured time`, asserting `/took \d+ms/`. That named
+   * the mechanism rather than the property, and it went red when #482 gave
+   * `compilePattern` a structural half that answers before any timing and says
+   * which construct is wrong - a strictly better refusal for the player to
+   * read. The property is that a substitute or gag which would freeze the game
+   * pane is refused with a reason naming its own pattern, and that is what is
+   * asserted now. Changed deliberately, and disclosed here, because editing a
+   * test to make one's own change pass is otherwise indistinguishable from this.
+   *
+   * Both halves stay covered: the second case is a backreference, which the
+   * analyser does not model, so its refusal can only have come from a timing.
+   */
   const slow = rules.ruleRefusal('(a+)+$', true)
-  ok('a pattern that backtracks is refused with its measured time', /took \d+ms/.test(slow ?? ''), String(slow))
+  ok(
+    'a pattern that backtracks is refused, naming what about it is wrong',
+    /\(a\+\)\+ repeats/.test(slow ?? ''),
+    String(slow).slice(0, 70)
+  )
+  const timed = rules.ruleRefusal('(a|\\1a)+$', true)
+  ok(
+    'and one the analyser cannot read is still refused on its measured time',
+    /took \d+ms/.test(timed ?? ''),
+    String(timed).slice(0, 70)
+  )
 
   ok('a literal of the same text is fine', rules.ruleRefusal('(a+)+$', false) === null)
   ok('an ordinary pattern is allowed', rules.ruleRefusal('\\bkobold\\s+guard\\b', true) === null)

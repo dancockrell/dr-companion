@@ -64,7 +64,7 @@ import {
   type SubstituteRule,
   type VariableRule,
 } from './playerConfig.ts'
-import { compilePattern } from './highlights.ts'
+import { compilePattern, refuseDeletingPreset } from './highlights.ts'
 import { ruleRefusal } from './lineRules.ts'
 import { readEnvelope, type ExportEnvelope } from './exportEnvelope.ts'
 import { readPlayerFile, writePlayerFile } from './playerFiles.ts'
@@ -101,6 +101,27 @@ export interface TransferDisabled {
   why: string
 }
 
+/**
+ * A preset the import removes with highlights still naming it.
+ *
+ * `why` is `refuseDeletingPreset`'s own sentence, unedited. That is the whole
+ * point of the type: the editor already refuses to delete a preset while
+ * highlights point at it (#490 named `PresetsTab` as the only caller), and a
+ * `replace-all` that deletes the same preset from underneath the same
+ * highlights said nothing. Two warnings about one situation, worded by two
+ * places, would disagree the first time either was improved - so there is one,
+ * and the import quotes it.
+ */
+export interface TransferOrphan {
+  presetId: string
+  /** The preset's name as the player knows it, or the id where the incoming
+   *  document is the only thing that ever mentioned it. */
+  presetName: string
+  /** The highlights left pointing at it, named rather than counted. */
+  highlights: Array<{ id: string; type: string; pattern: string }>
+  why: string
+}
+
 export interface TransferReport {
   mode: MergeMode
   provenance: string
@@ -118,6 +139,9 @@ export interface TransferReport {
   removed: Record<Domain, number>
   refused: TransferRefusal[]
   disabled: TransferDisabled[]
+  /** Presets this import removes that surviving highlights still name. Empty
+   *  for every `update`, because `update` removes nothing. */
+  orphaned: TransferOrphan[]
 }
 
 const zeroes = (): Record<Domain, number> =>
@@ -336,8 +360,64 @@ export function previewPlayerConfigImport(
       removed: merge.removed,
       refused: parsed.parsed.refused,
       disabled: parsed.parsed.disabled,
+      // Computed from the merged config the caller is about to write, not from
+      // the document: a highlight is orphaned by what survives, and only the
+      // merge knows that.
+      orphaned: orphanedByImport(current, config),
     },
   }
+}
+
+/**
+ * Highlights that would come out of this import naming a preset that is no
+ * longer there.
+ *
+ * `wouldRemove` reports identities per domain and nothing crosses between
+ * them, which is why `replace-all` could delete a preset while the highlights
+ * pointing at it survived and nothing said so (#490). The case that bites is a
+ * partial document: one carrying somebody's highlights and not their presets,
+ * or carrying presets under different ids. Then seven lines quietly change
+ * colour and the report's numbers all add up.
+ *
+ * Not a data-loss bug - `resolveHighlights` resolves a dangling `presetId` to
+ * the default colour and says so in `refused`, so nothing is dropped. It is
+ * the same warning the editor gives before deleting a preset by hand, given
+ * before a document deletes twenty of them at once, and it is that function's
+ * words rather than a second wording of the same fact.
+ */
+export function orphanedByImport(
+  current: PlayerConfig,
+  merged: PlayerConfig
+): TransferOrphan[] {
+  const kept = new Set(merged.presets.map((p) => p.id))
+  const names = new Map<string, string>()
+  for (const h of merged.highlights) {
+    if (!h.presetId || kept.has(h.presetId)) continue
+    if (names.has(h.presetId)) continue
+    names.set(h.presetId, current.presets.find((p) => p.id === h.presetId)?.name ?? h.presetId)
+  }
+
+  const out: TransferOrphan[] = []
+  for (const [presetId, presetName] of names) {
+    const refusal = refuseDeletingPreset({ id: presetId, name: presetName }, merged.highlights)
+    // `ok` cannot happen: the id came out of those very highlights. Handled
+    // rather than asserted, because a silent `[]` here would be exactly the
+    // warning gap this function was written to close.
+    if (refusal.ok) continue
+    out.push({
+      presetId,
+      presetName,
+      highlights: refusal.users.map((h) => ({ id: h.id, type: h.type, pattern: h.pattern })),
+      why: refusal.why,
+    })
+  }
+  return out
+}
+
+/** How many highlights this import would leave without their preset. The
+ *  sentence the panel shows, and the number a check can assert. */
+export function orphanCount(orphans: readonly TransferOrphan[]): number {
+  return orphans.reduce((n, o) => n + o.highlights.length, 0)
 }
 
 /** The same preview from text, so the panel has one entry point rather than

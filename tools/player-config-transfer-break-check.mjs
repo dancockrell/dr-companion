@@ -93,6 +93,20 @@ const CASES = [
     expect: ['version this build cannot read', 'names the version'],
   },
   {
+    label: 'the import stops warning about orphaned highlights',
+    file: 'src/lib/playerConfigTransfer.ts',
+    find: '      orphaned: orphanedByImport(current, config),',
+    replace: '      orphaned: [],',
+    expect: ['the report warns about them', 'counting the highlights'],
+  },
+  {
+    label: 'the orphan warning is worded here instead of quoting the editor',
+    file: 'src/lib/playerConfigTransfer.ts',
+    find: '      why: refusal.why,',
+    replace: "      why: `${presetName} is used by ${refusal.users.length} highlights.`,",
+    expect: ["the editor's own wording"],
+  },
+  {
     label: 'one domain is dropped from the export',
     file: 'src/lib/playerConfigTransfer.ts',
     find: '  for (const domain of DOMAINS) ordered[domain] = doc[domain]',
@@ -177,8 +191,8 @@ console.log('')
 }
 
 console.log(`\n${CASES.length} sabotages, ${checked} checked, ${bad} failed`)
-if (CASES.length < 4 || checked < 14) {
-  console.log(`FAIL ${CASES.length} sabotages and ${checked} checks; this file has never had fewer than 4 and 14`)
+if (CASES.length < 6 || checked < 20) {
+  console.log(`FAIL ${CASES.length} sabotages and ${checked} checks; this file has never had fewer than 6 and 20`)
   process.exit(1)
 }
 // git, not this file's own bookkeeping: the md5 per case proves each restore

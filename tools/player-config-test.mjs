@@ -31,11 +31,30 @@ import { readFileSync, writeFileSync, mkdtempSync, readdirSync, rmSync, statSync
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-// Minimal localStorage shim, the same shape tools/storage-test.mjs uses.
+/*
+ * Minimal localStorage shim, the same shape tools/storage-test.mjs uses, plus
+ * one mode it did not have.
+ *
+ * `keepNothing` accepts every `setItem`, throws nothing, and stores nothing.
+ * Not a hypothetical: #461 measured a real backing store doing exactly that,
+ * which is why `writeJSONVerified` exists, and #483 measured this module's own
+ * `persist()` calling the unverified writer anyway - `setDomain` returned
+ * `{ok:true}`, updated its cache, and the editor showed two aliases where the
+ * store held one.
+ *
+ * The shim is named in that issue as half the defect: a mock that keeps
+ * everything cannot reach the state under test, so no registered check could
+ * have caught this however carefully it was written. A fixture that cannot
+ * produce the failure is a fixture that certifies its absence.
+ */
 const store = new Map()
+let keepNothing = false
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),
-  setItem: (k, v) => store.set(k, String(v)),
+  setItem: (k, v) => {
+    if (keepNothing) return
+    store.set(k, String(v))
+  },
   removeItem: (k) => store.delete(k),
 }
 
@@ -255,6 +274,59 @@ console.log('\n-- nothing reads a Genie config leaf any more except the importer
   )
 }
 
+console.log('\n-- a store that accepts a write and keeps nothing (#483) --')
+{
+  const alias = (id) => ({ id, enabled: true, source: 'player', name: id, expansion: 'x' })
+  // The store is shared with everything below, including the sabotage cases,
+  // which read rules written further up. Snapshotted and put back rather than
+  // cleared: a check that quietly changes the state the next one depends on is
+  // a check that reddens somebody else's property instead of its own.
+  const held = new Map(store)
+  store.clear()
+  cfg.resetPlayerConfigCache()
+
+  // The control, and it is the half that makes the rest mean anything: an
+  // ordinary write does land through this very code, so what follows is the
+  // store's behaviour and not a broken harness.
+  const control = cfg.setDomain('aliases', [alias('a1')])
+  ok('control: an ordinary write lands and reads back', control.ok && cfg.domainEntries('aliases').length === 1)
+
+  keepNothing = true
+  const write = cfg.setDomain('aliases', [alias('a1'), alias('a2')])
+  keepNothing = false
+
+  ok('setDomain refuses a write the store did not keep', write.ok === false, JSON.stringify(write))
+  // `lost` and `quota` are different faults and a reader has to be able to
+  // tell them apart: one means try again in a moment, the other means the
+  // value never arrived and nothing threw.
+  ok("and calls it 'lost' rather than folding it into quota", write.ok === false && write.kind === 'lost', write.ok ? '' : write.kind)
+  ok('and names the lengths so it can be diagnosed', write.ok === false && /accepted [0-9]+ characters/.test(write.message), write.ok ? '' : write.message)
+
+  // The consequence, which is what a player would actually see. The in-memory
+  // copy must not have moved: an editor holding a rule the store does not is
+  // an editor showing a rule that vanishes on the next reload.
+  ok('the cache is not updated behind a lost write', cfg.domainEntries('aliases').length === 1, `${cfg.domainEntries('aliases').length} in memory`)
+  const raw = JSON.parse(store.get(cfg.storageKeyFor('aliases')) ?? 'null')
+  ok('and what is stored still matches what is on screen', raw?.entries?.length === 1, JSON.stringify(raw?.entries?.length))
+
+  // Every one of the seven, not only the convenient one. Q6's import writes
+  // all seven keys in one pass, and one silently truncated key out of seven
+  // used to report the same {ok:true} as seven that landed.
+  let refusedFor = 0
+  for (const domain of cfg.DOMAINS) {
+    store.clear()
+    cfg.resetPlayerConfigCache()
+    keepNothing = true
+    if (cfg.setDomain(domain, []).ok === false) refusedFor += 1
+    keepNothing = false
+  }
+  ok('every one of the seven domains refuses it', refusedFor === cfg.DOMAINS.length, `${refusedFor} of ${cfg.DOMAINS.length}`)
+  store.clear()
+  for (const [k, v] of held) store.set(k, v)
+  cfg.resetPlayerConfigCache()
+  ok('the store this section borrowed is put back', store.size === held.size, `${store.size} of ${held.size} keys`)
+}
+
 console.log('\n-- sabotage: each break reddens the case that names it, and only it --')
 {
   // Inside the repo rather than in the system temp directory: a mutant of a
@@ -305,6 +377,38 @@ console.log('\n-- sabotage: each break reddens the case that names it, and only 
       mod.migratePlayerConfig(null, 'aliases').status === 'absent' &&
         mod.migratePlayerConfig({ version: 99, entries: [] }, 'aliases').status === 'refused'
     )
+  }
+
+  /*
+   * (1b) `persist` goes back to the unverified writer - the exact state #483
+   * measured on `main`. The mutant is asked with the store dropping every
+   * value: it must report the write as fine, and the real module beside it
+   * must not. Two modules, one input, opposite answers, which is a stronger
+   * statement than either alone.
+   */
+  {
+    const mod = await loadMutant(
+      'unverified-write',
+      'src/lib/playerConfig.ts',
+      (s) => s.replace('  return writeJSONVerified(key, {', '  return writeJSON(key, {')
+        .replace(
+          "import { readJSON, writeJSONVerified, type StorageWriteResult } from './storage.ts'",
+          "import { readJSON, writeJSON, type StorageWriteResult } from './storage.ts'"
+        ),
+      [['./storage.ts', 'src/lib/storage.ts']]
+    )
+    const entry = { id: 'a-9', enabled: true, source: 'player', name: 'sab', expansion: 'x' }
+    const held = new Map(store)
+    store.clear()
+    keepNothing = true
+    const mutantSaid = mod.setDomain('aliases', [entry])
+    const realSaid = cfg.setDomain('aliases', [entry])
+    keepNothing = false
+    ok('sabotage lands: the unverified writer calls a lost write a success', mutantSaid.ok === true, JSON.stringify(mutantSaid))
+    ok('sabotage is scoped: the real module refuses the same write', realSaid.ok === false, JSON.stringify(realSaid))
+    store.clear()
+    for (const [k, v] of held) store.set(k, v)
+    cfg.resetPlayerConfigCache()
   }
 
   // (2) The version check skipped: a newer key read as if it were current.

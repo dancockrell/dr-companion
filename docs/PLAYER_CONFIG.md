@@ -58,6 +58,100 @@ git show 2327a971^:src/lib/variables.ts
 git show 2327a971^:src/lib/macros.ts
 ```
 
+### 2.4 What the pattern guard refuses, and what it measured
+
+A `regexp` highlight, substitute or gag goes through `compilePattern` in
+`src/lib/highlights.ts` before anything runs it, because `paint()` runs once
+per rendered line and the game pane keeps 400: a pattern that backtracks
+exponentially is not a slow client, it is a window with no route back except
+killing the app, and the rule is stored, so it hangs again on the next
+launch. There is no way to interrupt a running regexp in JavaScript.
+
+The gate asks two questions, in this order.
+
+**First the structure** (`patternRefusal`). What is refused is an **ambiguous
+repetition**: a group repeated without limit whose body can consume the same
+characters in more than one way. That is narrower than "a quantifier inside a
+quantified group", which is what this rule was in its first version and which
+is wrong — it refuses `([A-Za-z]+ )+\.`, which measures 0.0ms at 60 characters,
+because a mandatory space leaves exactly one way to cut the text into
+iterations. The danger is the ambiguity, not the nesting.
+
+| Refused | Example | Why |
+|---|---|---|
+| A group repeating something that already repeats without limit | `(a+)+`, `(.*)*`, `((\w|\s)+)+`, `(\d+)+` | Repeating a repetition is ambiguous by construction: the same characters divide between the two in 2^n ways, and a failing tail makes the engine try all of them. |
+| A repeated group **ending in an optional part**, with something unbounded inside | `(\w+\s?)+`, `(\s*\w+\s*)+`, `(.*\s?)+`, `(\w+\s*)+` | The body can stop early, so the next repetition picks up mid-token and the same arithmetic applies. This is #482's own pattern. |
+| A repeated group whose alternatives can start with the same character | `(a\|a)*`, `(herb\|herbs)+` | Same arithmetic again, reached through the alternation rather than through a second quantifier. |
+
+| Not refused | Example | Why |
+|---|---|---|
+| A quantified group with no inner quantifier and disjoint branches | `(say\|whisper)+`, `(\w\|\s)+` | Deterministic: at each character exactly one branch can apply. |
+| A repeated group whose body ends in a mandatory part | `([A-Za-z]+ )+\.`, `(\w+\s+)+arrives$` | Unambiguous, and measured at 0.0ms over 60 characters. |
+| Syntax the parser does not model | `\p{Lu}`, `\u{1F600}`, a backreference | Reported as **not modelled** rather than as clean. The timing below is then the only evidence, which is a weaker claim, and saying so is the point. |
+
+A lookaround is **not** an exemption, though an earlier draft of this table said
+it was. `(?=(\w+)+)ok` is refused: zero width does not mean zero work, and a
+lookahead that fails backtracks exactly as hard as anything else. The scan
+descends into it, and skips it only when judging whether the *enclosing* group's
+body is ambiguous, where a zero-width part cannot make it so.
+
+One pattern moved from `tools/highlight-test.mjs`'s list of rules that must be
+allowed to load into its list of rules that must be refused:
+`(\w+\s+)+of the (\w+\s*)+$`. Measured with a plain `RegExp` on a line that
+reaches `of the` and then fails, it took 1.6ms over 40 trailing characters and
+16.4ms over 50, climbing about tenfold per ten characters after that; a room
+description is two hundred. The old 22-character probes sat on the flat part of
+that curve, so the suite had been asserting since it was written that a pattern
+which freezes the game pane must load.
+
+**The false-positive rate is measured, not asserted.** Over every rule on this
+machine that a player actually has:
+
+| Corpus | Rules | Refused |
+|---|---|---|
+| `dr-genie-settings/Config/highlights.cfg` | 58 | 0 |
+| `Genie Client 4/Config/highlights.cfg` | 53 | 0 |
+| `Genie Client 4/Config/aliases.cfg` | 356 | 0 |
+| **Total** | **467** | **0** |
+
+`gags.cfg`, `substitutes.cfg` and `triggers.cfg` are present and hold no
+entries, which the check reports as its own state rather than as a pass.
+
+Where this table and the check disagree, **the check is right and this table
+is stale**:
+
+```
+node tools/pattern-analyser-test.mjs
+DRC_PATTERN_CORPUS=/path/to/one.cfg;/path/to/two.cfg node tools/pattern-analyser-test.mjs
+```
+
+It refuses to conclude anything from a corpus that is not there: an absent
+config is a named skip carried into the summary, and a config that is present
+but reads as zero rules fails, because a false-positive rate of zero over zero
+rules establishes nothing.
+
+**Then the timing** (`slowestProbeMs`). Sixteen fixed 22-character probes, as
+before, plus probes built from the candidate's own opening at 40, 50, 60, 70
+and 80 characters. The second set is #482: every fixed probe is an unanchored
+body, so `^You rummage (\w+\s?)+kronars$` — an ordinary loot highlight —
+failed at its first token on all sixteen in O(1), measured ~0ms, was admitted,
+and then took **21.7 seconds** on a 60-character prefix of the line it was
+written for. `probePrefix` synthesises `You rummage ` from the pattern itself,
+so the probe reaches the quantifier instead of being turned away at the anchor.
+
+**Structure runs first, and that ordering is load-bearing rather than
+tidiness.** Sabotaging `patternRefusal` to return "clean" and re-running the
+guard measured `^You see (.*\s?)+X$` at **76.3 seconds inside a single probe**
+— the guard paying the exact cost it exists to prevent — and left `(.*)*$` and
+`(herb|herbs)+` accepted outright. So the probes are a real net (they refuse
+#482's pattern in 43ms with the analyser gone) and they are not a substitute
+for reading the structure, in both directions. That is a command, not a
+paragraph:
+
+```
+node tools/pattern-analyser-break-check.mjs
+```
+
 ## 3. The shape of the design
 
 One store, one resolver per domain, and the resolvers are the ones the runtime
@@ -182,7 +276,14 @@ export interface PlayerConfig {
 ### 4.1 Storage
 
 One localStorage key per domain, through `src/lib/storage.ts`'s `readJSON` /
-`writeJSON` — the same primitives `persistence.ts` uses:
+**`writeJSONVerified`** — the verified writer, not the plain `writeJSON`
+`persistence.ts` uses. `{ok:true}` from `setItem` is not a claim the value
+persisted: #461 measured a store that accepted a write, threw nothing and kept
+nothing, and #483 measured all seven of these keys going through the
+unverified writer anyway, so `setDomain` reported success, updated its cache,
+and showed the player a rule the next reload would not have. The verified
+writer reads the key back and reports a mismatch as its own failure kind,
+`lost`, which is neither a quota error nor a success:
 
 ```
 drc.player-config.presets.v1        { "version": 1, "entries": [ … ] }
@@ -729,6 +830,23 @@ script, or a macro one of whose commands is, is stored with its text intact and
 player is told, because otherwise it reads as the import half-working. A
 document this app wrote never contains one switched on, so a round trip does
 not trip over it; a hand-edited one can, and has its own case.
+
+A fifth thing is reported and is not a count either: **highlights this import
+would leave naming a preset it removes**. `wouldRemove` reports identities per
+domain and nothing crosses between them, so a `replace-all` could delete a
+preset while the highlights pointing at it survived, and nothing said so
+(#490). The case that bites is a partial document — one carrying somebody's
+highlights and not their presets, or presets under different ids — and it is
+not data loss: `resolveHighlights` resolves a dangling `presetId` to the
+default colour and reports it, so seven lines quietly change colour while
+every number in the report adds up.
+
+The warning is `refuseDeletingPreset`'s own sentence, unedited — the same
+function the Presets editor already refuses a by-hand delete with, listing the
+rules rather than counting them. Two wordings of one situation would disagree
+the first time either was improved, so `orphanedByImport` quotes it and the
+suite compares the two strings. It is shown at the confirmation step, before
+the only action here that can delete a preset, and again in the report.
 
 ### 13.3 One validator, not a second one
 

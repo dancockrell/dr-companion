@@ -88,6 +88,7 @@ globalThis.localStorage = {
 
 const cfg = await import('../src/lib/playerConfig.ts')
 const tr = await import('../src/lib/playerConfigTransfer.ts')
+const hl = await import('../src/lib/highlights.ts')
 
 let checked = 0
 let failed = 0
@@ -322,6 +323,77 @@ console.log('\n-- update, replace all, and what each does to a rule the file lac
   ok('keeping the local id', upd.ok && upd.config.aliases.find((a) => a.name === 'appc')?.id === before.aliases.find((a) => a.name === 'appc')?.id)
   const keep = tr.previewPlayerConfigImport(edited, 'keep-mine', before)
   ok('keep-mine leaves it alone and counts it unchanged', keep.ok && keep.report.updated.aliases === 0 && keep.report.unchanged.aliases === 3)
+}
+
+console.log('\n-- a replace-all that takes a preset out from under its highlights (#490) --')
+{
+  /*
+   * The case that bites is a partial document: one carrying the player's
+   * highlights and not their presets, or carrying presets under different
+   * ids. `wouldRemove` reports identities per domain and nothing crosses
+   * between them, so the presets went and the highlights that named them
+   * stayed, silently changing colour, with every number in the report adding
+   * up correctly.
+   *
+   * Not data loss - `resolveHighlights` resolves a dangling presetId to the
+   * default colour and says so - which is exactly why nothing louder would
+   * ever have caught it.
+   */
+  const current = cfg.emptyPlayerConfig()
+  current.presets = [{ id: 'p1', enabled: true, source: 'player', name: 'speech', fg: '#F5DEB3' }]
+  current.highlights = [
+    { id: 'h9', enabled: true, source: 'player', type: 'string', pattern: 'says,', presetId: 'p1' },
+    { id: 'h8', enabled: true, source: 'player', type: 'string', pattern: 'whispers,', presetId: 'p1' },
+  ]
+
+  const partial = {
+    ...cfg.emptyPlayerConfig(),
+    version: cfg.PLAYER_CONFIG_VERSION,
+    provenance: 'a friend',
+    highlights: current.highlights,
+  }
+
+  const preview = tr.previewPlayerConfigImport(partial, 'replace-all', current)
+  ok('the preview reads', preview.ok, preview.ok ? '' : preview.reason)
+  ok('the preset is on its way out', preview.ok && preview.report.removed.presets === 1, preview.ok ? `${preview.report.removed.presets}` : '')
+  ok('and the highlights that name it survive', preview.ok && preview.config.highlights.length === 2)
+
+  const orphans = preview.ok ? preview.report.orphaned : []
+  ok('the report warns about them', orphans.length === 1, JSON.stringify(orphans.map((o) => o.presetId)))
+  ok('counting the highlights, not the presets', tr.orphanCount(orphans) === 2, `${tr.orphanCount(orphans)}`)
+  // Named, not counted. "2 highlights would lose their preset" is a fact
+  // nobody can act on, and finding those two by hand is the work the warning
+  // is supposed to save - the same reason `refuseDeletingPreset` lists them.
+  ok(
+    'and naming each rule rather than counting them',
+    orphans.length === 1 && orphans[0].highlights.map((h) => h.pattern).join(',') === 'says,,whispers,',
+    JSON.stringify(orphans[0]?.highlights?.map((h) => h.pattern))
+  )
+  ok('under the name the player knows the preset by', orphans[0]?.presetName === 'speech', orphans[0]?.presetName)
+
+  /*
+   * The warning is the editor's own sentence, unedited. Asserted by
+   * comparing the two strings rather than by reading the import: two wordings
+   * of one situation drift the first time either is improved, and this is the
+   * check that would redden if somebody wrote a second one here.
+   */
+  const editor = hl.refuseDeletingPreset({ id: 'p1', name: 'speech' }, preview.ok ? preview.config.highlights : [])
+  ok('and it is the editor\'s own wording, not a second one', !editor.ok && orphans[0]?.why === editor.why, orphans[0]?.why)
+
+  // Controls, both directions. A warning that fires on everything carries as
+  // little information as one that never fires.
+  const whole = { ...cfg.emptyPlayerConfig(), version: cfg.PLAYER_CONFIG_VERSION, provenance: 'a friend', presets: current.presets, highlights: current.highlights }
+  const kept = tr.previewPlayerConfigImport(whole, 'replace-all', current)
+  ok('control: a document carrying the presets orphans nothing', kept.ok && kept.report.orphaned.length === 0, kept.ok ? JSON.stringify(kept.report.orphaned) : '')
+  const update = tr.previewPlayerConfigImport(partial, 'update', current)
+  ok('control: update removes nothing, so it orphans nothing', update.ok && update.report.orphaned.length === 0, update.ok ? JSON.stringify(update.report.orphaned) : '')
+
+  // The panel has to read the field, or the warning has moved from one place
+  // nobody looks to another. One grep, and it is the step this class of
+  // defect is always missing.
+  const panel = readFileSync('src/components/config/ExportImportTab.tsx', 'utf8')
+  ok('the panel reads report.orphaned', /report\.orphaned/.test(panel))
+  ok('and warns before a replace-all rather than only after it', /confirming && pendingOrphans/.test(panel))
 }
 
 console.log('\n-- the file, and two windows of this app --')
