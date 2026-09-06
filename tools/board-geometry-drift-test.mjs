@@ -93,7 +93,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { sep as SEPARATOR } from 'node:path'
-import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES, boardLayoutFor } from '../src/lib/isometric-board-layout.mjs'
+import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES, TOKEN_MESHES, boardLayoutFor, tokenLiftFor } from '../src/lib/isometric-board-layout.mjs'
 // The walk, the submodule exclusion and the comment stripper used to live in
 // this file. They moved to `tools/godot-source-scan.mjs` when a second GDScript
 // scan (`tools/nullable-field-coercion-test.mjs`) needed the same three, rather
@@ -126,6 +126,12 @@ const MINIMUM_GD_FILES = 15
 /** 12 are derived today. The number that goes to zero when the derivation
  * below breaks, rather than when the viewer is clean. */
 const MINIMUM_REFUSED_VALUES = 8
+
+/** 4 token kinds and 7 spawn points per cell are published today. Floors, so a
+ * layout module that stopped publishing tokens fails here rather than clearing
+ * every token rule below by having none. */
+const MINIMUM_TOKEN_KINDS = 4
+const MINIMUM_SPAWN_POINTS = 7
 
 /**
  * What `world_root.gd` sized every cell's click target at until issue #366.
@@ -582,6 +588,103 @@ ok(
   heightOffenders[0] ?? `${placementScripts.length} placement scripts scanned`,
 )
 for (const offender of heightOffenders.slice(1)) console.log(`     also ${offender}`)
+
+// -- and no token's own height typed into a placement script either --
+//
+// Issue #385. The scan above refuses a height typed where a token is *put*, and
+// that was only half the rule: a token is centred on its anchor, so how tall it
+// is decides how far above the face it has to stand. Those were two numbers in
+// two languages - `sphere.height = 0.68` in `entity_projection_layer.gd` and a
+// published lift of 0.34 in `src/lib/isometric-board-layout.mjs` - and changing
+// the first to 1.60 put the hostile token 0.46 m inside its block with every
+// guard in this repository green, this file included.
+//
+// So a mesh height is now the cell's too: the board publishes each token's
+// dimensions on the spawn point that places it, and the viewer builds what the
+// cell published. Which makes the drift refusable by shape, exactly as the lift
+// is: a `.height =` in a placement script may take what it was handed, and may
+// not be a number.
+//
+// Scope limit, stated rather than left to be discovered: this refuses a height,
+// not a radius. `sphere.radius = 0.42` on an inspect hitbox and the assessment
+// ring's torus radii are decoration measured from the token, not the thing that
+// decides whether the token stands on the face - and refusing them would fire
+// on lines that are correct today, which is how a check comes to be ignored.
+// The plan half of a token's mesh is published alongside its height regardless,
+// so the viewer has no reason to type one.
+const BARE_HEIGHT_ASSIGNMENT = /\.height\s*=\s*(-?\d+(?:\.\d+)?)\s*$/
+
+const typedMeshHeights = (text) => {
+  const hits = []
+  text.split('\n').forEach((line, index) => {
+    const matched = BARE_HEIGHT_ASSIGNMENT.exec(codeOnly(line).trimEnd())
+    if (matched && Number.parseFloat(matched[1]) !== 0) {
+      hits.push({ line: index + 1, text: line.trim(), value: matched[1] })
+    }
+  })
+  return hits
+}
+
+ok(
+  'the mesh-height scanner sees a token sized by hand',
+  typedMeshHeights('\t\tsphere.height = 1.60').length === 1,
+  'positive control: the exact line issue #385 changed to demonstrate the drift',
+)
+ok(
+  'and does not see one taken from what the cell published',
+  typedMeshHeights('\t\t\tsphere.height = height\n\t\t\tcapsule.height = float(token["height"])').length === 0,
+  'negative control: the shape the viewer uses now',
+)
+ok(
+  'nor one in a comment, nor a zero',
+  typedMeshHeights('\t# it used to be sphere.height = 0.68 here\n\tvar a := 1\n\tmesh.height = 0').length === 0,
+  'negative control',
+)
+
+const meshHeightOffenders = []
+for (const file of placementScripts) {
+  for (const hit of typedMeshHeights(readFileSync(file, 'utf8'))) {
+    meshHeightOffenders.push(`${file.split(SEPARATOR).join('/')}:${hit.line}  ${hit.text}   <- ${hit.value} is a mesh height typed by hand`)
+  }
+}
+ok(
+  `no script that places something on a block types a token's own height either`,
+  meshHeightOffenders.length === 0,
+  meshHeightOffenders[0] ?? `${placementScripts.length} placement scripts scanned`,
+)
+for (const offender of meshHeightOffenders.slice(1)) console.log(`     also ${offender}`)
+
+// -- and the lift is written as half that published height, in one place --
+//
+// The value check and the shape check, same pair as CELL_BLOCK_METRES above.
+// `tokenLiftFor()` is the only statement of "a token is centred on its anchor";
+// a lift written out on a spawn point line would be a second one, and the two
+// would be free to drift the way the mesh height and the lift already did.
+const roles = Object.keys(TOKEN_MESHES)
+ok(
+  'every token kind publishes its own mesh height',
+  roles.length >= MINIMUM_TOKEN_KINDS && roles.every((role) => Number.isFinite(TOKEN_MESHES[role].height) && TOKEN_MESHES[role].height > 0),
+  `${roles.length} kinds, floor ${MINIMUM_TOKEN_KINDS}: ${roles.map((role) => `${role} ${TOKEN_MESHES[role].height} m`).join(', ')}`,
+)
+ok(
+  'and every published lift is half of it, in value',
+  roles.every((role) => tokenLiftFor(role) === TOKEN_MESHES[role].height / 2),
+  roles.map((role) => `${role} ${tokenLiftFor(role)}`).join(', '),
+)
+const publishedPoints = [boardLayoutFor({}), boardLayoutFor({ classification: { spatialMode: 'interior-cutaway' } })].flatMap((l) => l.spawnPoints)
+ok(
+  'and every published spawn point carries the token its lift was derived from',
+  publishedPoints.length >= MINIMUM_SPAWN_POINTS &&
+    publishedPoints.every((point) => point.token?.height === TOKEN_MESHES[point.role]?.height && point.anchor.y === tokenLiftFor(point.role)),
+  `${publishedPoints.length} spawn points across both cell kinds, floor ${MINIMUM_SPAWN_POINTS}`,
+)
+ok(
+  'and in how it is written, so a lift cannot silently become a second number',
+  /tokenLiftFor\(role\)/.test(layout) &&
+    /return mesh \? mesh\.height \/ 2 : 0/.test(layout) &&
+    !/anchor:\s*\{[^}]*\by:\s*-?\d/.test(layout),
+  `${LAYOUT_SOURCE}: no spawn point writes out a y of its own`,
+)
 
 console.log(`\n${pass + fail} checked, ${fail} failed`)
 if (fail) process.exit(1)
