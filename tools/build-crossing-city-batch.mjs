@@ -1,6 +1,6 @@
 // One production batch, not a selection of attractive rooms. Read the complete
 // descriptions and retain evidence beside every asset requirement and exit.
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', '1'], { stdio: 'inherit' })
@@ -8,6 +8,9 @@ const world = JSON.parse(readFileSync('godot/assets/crossing/world.json', 'utf8'
 const sources = JSON.parse(readFileSync('data/art/room-prompts-priority.json', 'utf8'))
 const selections = JSON.parse(readFileSync('godot/assets/shared_asset_selections.json', 'utf8'))
 const recipes = new Map(selections.roomCompositions.map(r => [r.cellId, r]))
+const archivePath = 'data/world/crossing-archive-candidates.json'
+const archive = existsSync(archivePath) ? JSON.parse(readFileSync(archivePath, 'utf8')) : null
+const researchCandidates = new Map((archive?.rooms ?? []).map(r => [r.cellId, r]))
 const byId = new Map(world.cells.map(c => [c.id, c]))
 const familyRules = [
   ['street-and-junction', /\b(cobblestone|cobblestones|paving|paved|street|road|lane|boulevard)\b/i],
@@ -46,6 +49,11 @@ const rooms = world.cells.map(cell => {
   return { id: cell.id, title: cell.title, sourceDescriptionId: cell.sourceDescriptionId,
     descriptionHash: cell.sourceDescriptionHash, description,
     evidenceScope: source ? (source.room === cell.roomId ? 'representative-room' : 'shared-place-binding-needs-room-review') : 'missing',
+    descriptionResearch: !description && researchCandidates.has(cell.id) ? {
+      sourceRevision: archive.source.revision, status: researchCandidates.get(cell.id).status,
+      candidateIds: researchCandidates.get(cell.id).candidates.map(c=>c.archiveRoomId),
+      report: archivePath,
+    } : null,
     sourceUrl: source?.sourceUrl ?? null, sourceGrid: cell.sourceGrid, position: cell.position,
     spatialClassification: cell.spatialMode, classificationStatus: 'heuristic-needs-review',
     assetRequirements: requirements, currentModels: recipe?.pieces.map(p => p.assetId) ?? [],
@@ -76,6 +84,7 @@ writeFileSync('docs/CROSSING_CITY_BATCH.md', [
   '## Required architecture', '',
   'Street continuations, intersections, waterfronts and building approaches must be composed as connected arrangements. Footprints need not all be square. A legal graph edge remains authoritative even when literal geometric adjacency is impossible; communicate the exception with a typed tether. Interior visibility layers are not evidence of physical upstairs/downstairs. Only supported elevation relationships may be represented as such.', '',
   '## Missing descriptions', '', ...rooms.filter(r=>!r.description).map(r=>'- '+r.id+' — '+r.title), '',
+  'Historical recovery candidates are recorded in data/world/crossing-archive-candidates.json. Refresh them with tools/audit-crossing-archive.ps1 after regenerating this batch, then regenerate the batch again to attach the candidates. Archive matches never approve prose, topology or models automatically.', '',
   '## Completion gate', '', ...batch.acceptance.map(v=>'- '+v), '',
   'A populated inventory is not a populated city. No current partial recipe is certified complete by this batch compiler.', '',
 ].join('\n'))

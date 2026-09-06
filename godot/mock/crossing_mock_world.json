@@ -2702,14 +2702,17 @@
         "y": -160,
         "z": 0
       },
-      "status": "missing-description",
-      "sourceDescriptionId": null,
-      "tier": "unresolved",
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green Pond",
+      "sourceDescriptionHash": "7882e5c91c3c600b",
+      "tier": "special",
       "tags": [
-        "unresolved"
+        "banking",
+        "water",
+        "landmark"
       ],
-      "spatialMode": "unresolved",
-      "palette": "neutral-unresolved",
+      "spatialMode": "waterfront",
+      "palette": "river-blue-green",
       "board": {
         "footprint": {
           "width": 17.6,
@@ -2815,6 +2818,18 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
+        },
+        {
+          "kind": "water-ribbon-5m",
+          "role": "landform"
+        },
+        {
+          "kind": "special-landmark-silhouette",
+          "role": "landmark"
+        },
+        {
+          "kind": "civic-vault-threshold-kit",
+          "role": "landmark"
         }
       ],
       "exits": [

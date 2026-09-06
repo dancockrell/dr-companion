@@ -56,7 +56,7 @@ func _run() -> void:
 		changed = cell.duplicate(true)
 		changed.id = "unrelated-room"
 		check(content.build_room_composition(changed) == null, "Similar text cannot assign another room's geometry")
-	check(content.build_room_composition(cells["1-467"]) == null, "Unknown pond remains unresolved")
+	check(content.build_room_composition(cells["1-467"]) == null, "Pond without an authored composition refuses unrelated geometry")
 	for room_id in ["1-14", "1-225"]:
 		var approach_room: Node3D = content.build_room_composition(cells[room_id])
 		var building: Node3D = approach_room.get_child(1)

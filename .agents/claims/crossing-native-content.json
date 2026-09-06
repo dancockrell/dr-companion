@@ -7,6 +7,8 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "tools/audit-crossing-archive.ps1",
+    "data/world/crossing-archive-candidates.json",
     "tools/geometric-room-briefs-test.mjs",
     "tools/build-crossing-city-batch.mjs",
     "data/world/crossing-city-batch.json",

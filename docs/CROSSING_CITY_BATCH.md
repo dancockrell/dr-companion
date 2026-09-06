@@ -8,8 +8,8 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 
 - rooms: 1060
 - directedExits: 2389
-- descriptions: 975
-- missingDescriptions: 85
+- descriptions: 976
+- missingDescriptions: 84
 - partialRecipes: 19
 - complete: 0
 - compassMismatches: 842
@@ -81,7 +81,6 @@ Street continuations, intersections, waterfronts and building approaches must be
 - 1-337 — Wilds, Pine Needle Path
 - 1-434 — Northwall Trail, Wooded Grove
 - 1-439 — A Damp Cavern
-- 1-467 — The Crossing, Town Green Pond
 - 1-476 — Riverbank Trail
 - 1-505 — The Strand, Tree-lined Path
 - 1-506 — The Strand, Tree-lined Path
@@ -119,6 +118,8 @@ Street continuations, intersections, waterfronts and building approaches must be
 - 1-1004 — The Raven's Court, Indoor Pond
 - 1-1007 — Crossing Escape Tunnels, Hodierna's Path
 - 1-1017 — The Seacaves of Peri'el, Tidal Cave
+
+Historical recovery candidates are recorded in data/world/crossing-archive-candidates.json. Refresh them with tools/audit-crossing-archive.ps1 after regenerating this batch, then regenerate the batch again to attach the candidates. Archive matches never approve prose, topology or models automatically.
 
 ## Completion gate
 

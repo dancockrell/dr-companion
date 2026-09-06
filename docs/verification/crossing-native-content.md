@@ -2,6 +2,28 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Whole-city description recovery
+
+A pinned 2020 DragonRealms XML mapping archive is now audited against every
+missing Crossing room, using exact titles, exact plain-string commands, and
+destination titles rather than assuming equivalent room numbers. The report
+contains IDs, comparisons and description hashes, not copied archive prose.
+It never changes current topology or approves assets. Of the remaining 84
+missing rooms, 23 have a unique candidate matching all outgoing neighbor titles,
+59 are partial/ambiguous and 2 have no exact title match. The archive is
+historical and even the strongest match requires review.
+
+Town Green Pond (client room 467) was independently checked against
+[Elanthipedia's normal and winter descriptions](https://elanthipedia.play.net/Town_Green_Pond).
+A short paraphrased evidence record now describes its silty bank and seasonal
+furnishings. Wiki/Lich room 10177 is not the client map ID. This admits source
+evidence, not a finished pond model or a permanently spawned gelapod.
+
+Run tools/audit-crossing-archive.ps1 after rebuilding the city batch, then rebuild
+the batch again to attach candidate IDs. Source pin and hashes are in
+data/world/crossing-archive-candidates.json. All 774 Godot checks, geometric brief
+checks, primitive-world checks and archive consistency assertions passed.
+
 ### Rejected experiment: globally monotone spacing
 
 A trial used one monotone transform per source axis and a nonoverlap constraint

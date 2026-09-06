@@ -1,4 +1,18 @@
 {
+  "1::Town Green Pond": {
+    "source": "description",
+    "zone": "1",
+    "zoneName": "Crossing",
+    "room": 467,
+    "title": "The Crossing, Town Green Pond",
+    "place": "Town Green Pond",
+    "roomCount": 1,
+    "lore": "A tiny urban pond has a soft silty bank. The normal-season furnishings include wooden benches and a picnic table with gingham cloth. Winter freezes the water and brings seasonal equipment instead. A resident gelapod is described in the normal season, but its presence and seasonal furnishings must follow confirmed game state, not static scenery assumptions.",
+    "sourceUrl": "https://elanthipedia.play.net/Town_Green_Pond",
+    "sourceNote": "Paraphrased visual facts checked 2026-09-06. Client map room 467 is not wiki/Lich room ID 10177; matched full title and out exit. Normal and winter states are alternatives, not simultaneous decorations.",
+    "prompt": "",
+    "negative": ""
+  },
  "1::Milgrym's Weapons, Showroom": {
   "source": "description",
   "zone": "1",
