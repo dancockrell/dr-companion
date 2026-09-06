@@ -2,6 +2,18 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Typed architectural exit correction
+
+Whole-word singular matching previously missed doorway, archway, gateway,
+doors, backdoor, trapdoor, stairs, stairway and staircase commands. The
+canonical tether classifier now recognizes these bounded forms while keeping
+portal/ferry precedence and avoiding substring matches such as outdoor.
+This changes 120 Crossing edges from other to threshold and 51 from other
+to stairs. Commands and target IDs are preserved, including armory 192's
+go doorway to 193. Regression tests exercise both classifier inputs and
+the generated real Crossing transitions. This is semantic routing evidence,
+not proof of physical door or stair placement.
+
 ### Internal-room compaction
 
 The canonical packedRoomPositions implementation now has an internal-room

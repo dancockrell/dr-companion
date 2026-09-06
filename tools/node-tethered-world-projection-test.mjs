@@ -1,9 +1,22 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { classifyTether } from '../src/lib/isometric-board-layout.mjs'
 
 const fail = (message) => { console.error(`FAIL ${message}`); process.exitCode = 1 }
 const pass = (message) => console.log(`OK   ${message}`)
 const outputPath = 'data/world/out/1-node-tethered-world.json'
+for (const command of ['go doorway', 'go iron doors', 'go hedged archway', 'go gateway', 'go hospital backdoor', 'go small trapdoor']) {
+  if (classifyTether(command, 'go') === 'threshold') pass(command + ' is a threshold')
+  else fail(command + ' lost its threshold type')
+}
+for (const command of ['go stone stairs', 'climb winding stairway', 'climb spiral staircase', 'climb attic stairs']) {
+  if (classifyTether(command, 'go') === 'stairs') pass(command + ' is a vertical stair connection')
+  else fail(command + ' lost its stair type')
+}
+for (const [command, expected] of [['go outdoor shrine','other'], ['go garden','other'], ['go moongate archway','portal'], ['go ferry gate','ferry']]) {
+  if (classifyTether(command, 'go') === expected) pass(command + ' retains bounded matching and transport precedence')
+  else fail(command + ' acquired a misleading tether type')
+}
 
 execFileSync(process.execPath, ['tools/build-node-tethered-world-projection.mjs', '1'], { stdio: 'inherit' })
 if (!existsSync(outputPath)) fail('the node-tethered projection is generated')
@@ -11,6 +24,14 @@ else {
   const projection = JSON.parse(readFileSync(outputPath, 'utf8'))
   const nodeIds = new Set(projection.nodes.map((node) => node.id))
   const townGreenNorth = projection.nodes.find((node) => node.id === '1-14')
+  const armoryDoor = projection.transitions.find(t => t.fromNodeId === '1-192' && t.command === 'go doorway')
+  if (armoryDoor?.tetherKind === 'threshold' && armoryDoor.toNodeId === '1-193')
+    pass('actual armory doorway remains the same legal edge and exports as threshold')
+  else fail('armory doorway projection changed destination or lost threshold type')
+  const stairRoutes = projection.transitions.filter(t => /\b(stairs|stairway|staircase)\b/.test(t.command))
+  if (stairRoutes.length > 0 && stairRoutes.every(t => t.tetherKind === 'stairs'))
+    pass('actual Crossing stair forms export as vertical connections')
+  else fail('actual Crossing stair forms lost vertical classification')
   const north = projection.transitions.find((transition) => transition.fromNodeId === '1-14' && transition.command === 'north')
   const portal = projection.transitions.find((transition) => /portal|vortex|rift|moongate/i.test(transition.command))
   const ladder = projection.transitions.find((transition) => /ladder|branch|drain pipe/i.test(transition.command))

@@ -5213,7 +5213,7 @@
         {
           "command": "go black doorway",
           "targetCellId": "1-218",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -6600,7 +6600,7 @@
         {
           "command": "go hedged archway",
           "targetCellId": "1-967",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -11715,7 +11715,7 @@
         {
           "command": "go iron doors",
           "targetCellId": "1-357",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -14935,7 +14935,7 @@
         {
           "command": "go scruffy doorway",
           "targetCellId": "1-338",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -15618,7 +15618,7 @@
         {
           "command": "go stone stairs",
           "targetCellId": "1-398",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -16353,7 +16353,7 @@
         {
           "command": "go ivy-covered gateway",
           "targetCellId": "1-336",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -17207,7 +17207,7 @@
         {
           "command": "go crumbling archway",
           "targetCellId": "1-173",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -18062,7 +18062,7 @@
         {
           "command": "go hospital backdoor",
           "targetCellId": "1-737",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -18560,7 +18560,7 @@
         {
           "command": "go stone stairway",
           "targetCellId": "1-386",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -20565,7 +20565,7 @@
         {
           "command": "go stone stairs",
           "targetCellId": "1-395",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -22551,7 +22551,7 @@
         {
           "command": "go oval doorway",
           "targetCellId": "1-185",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -23003,7 +23003,7 @@
         {
           "command": "go scarred doorway",
           "targetCellId": "1-190",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -23057,7 +23057,7 @@
         {
           "command": "go scarred doorway",
           "targetCellId": "1-189",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -23278,7 +23278,7 @@
         {
           "command": "go doorway",
           "targetCellId": "1-193",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -24696,7 +24696,7 @@
         {
           "command": "go polished doors",
           "targetCellId": "1-759",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -26380,7 +26380,7 @@
         {
           "command": "go curtained doorway",
           "targetCellId": "1-227",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -35077,7 +35077,7 @@
         {
           "command": "climb winding stairway",
           "targetCellId": "1-777",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -35354,7 +35354,7 @@
         {
           "command": "climb spiral staircase",
           "targetCellId": "1-770",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -35920,7 +35920,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-316",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -36306,7 +36306,7 @@
         {
           "command": "go council doors",
           "targetCellId": "1-321",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -36328,7 +36328,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-311",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -36442,7 +36442,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-322",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -36556,7 +36556,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-323",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -36833,7 +36833,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-317",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -36898,7 +36898,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-318",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -38003,7 +38003,7 @@
         {
           "command": "go open gateway",
           "targetCellId": "1-127",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -38091,7 +38091,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-585",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -38892,7 +38892,7 @@
         {
           "command": "go curtained doorway",
           "targetCellId": "1-347",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -38957,7 +38957,7 @@
         {
           "command": "go curtained doorway",
           "targetCellId": "1-346",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -39039,7 +39039,7 @@
         {
           "command": "go deobar archway",
           "targetCellId": "1-351",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -39870,7 +39870,7 @@
         {
           "command": "go brass-edged doorway",
           "targetCellId": "1-567",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -40167,7 +40167,7 @@
         {
           "command": "go swinging doors",
           "targetCellId": "1-564",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -41710,7 +41710,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-378",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -41786,7 +41786,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-377",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -43796,7 +43796,7 @@
         {
           "command": "go stone stairs",
           "targetCellId": "1-121",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -44664,7 +44664,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-298",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -44805,7 +44805,7 @@
         {
           "command": "go stone archway",
           "targetCellId": "1-410",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -44865,7 +44865,7 @@
         {
           "command": "go stone archway",
           "targetCellId": "1-409",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -46489,7 +46489,7 @@
         {
           "command": "go swinging doors",
           "targetCellId": "1-427",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -46577,7 +46577,7 @@
         {
           "command": "go some stairs",
           "targetCellId": "1-307",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -46728,7 +46728,7 @@
         {
           "command": "go swinging doors",
           "targetCellId": "1-426",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -47733,7 +47733,7 @@
         {
           "command": "go small trapdoor",
           "targetCellId": "1-636",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -49963,7 +49963,7 @@
         {
           "command": "go narrow doorway",
           "targetCellId": "1-869",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -50288,7 +50288,7 @@
         {
           "command": "go gold-gilded archway",
           "targetCellId": "1-1058",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -50440,7 +50440,7 @@
         {
           "command": "go draped archway",
           "targetCellId": "1-471",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -50549,7 +50549,7 @@
         {
           "command": "climb sweeping staircase",
           "targetCellId": "1-473",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -50707,7 +50707,7 @@
         {
           "command": "climb sweeping staircase",
           "targetCellId": "1-471",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51121,7 +51121,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-482",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51306,7 +51306,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-479",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51382,7 +51382,7 @@
         {
           "command": "go louvered doors",
           "targetCellId": "1-484",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51458,7 +51458,7 @@
         {
           "command": "go louvered doors",
           "targetCellId": "1-483",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51480,7 +51480,7 @@
         {
           "command": "go curtained archway",
           "targetCellId": "1-485",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51550,7 +51550,7 @@
         {
           "command": "go curtained archway",
           "targetCellId": "1-484",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51594,7 +51594,7 @@
         {
           "command": "climb oak stairs",
           "targetCellId": "1-487",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -51816,7 +51816,7 @@
         {
           "command": "climb oak stairs",
           "targetCellId": "1-485",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -55394,7 +55394,7 @@
         {
           "command": "climb ironwork stairs",
           "targetCellId": "1-635",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -56218,7 +56218,7 @@
         {
           "command": "go glass doors",
           "targetCellId": "1-546",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -56635,7 +56635,7 @@
         {
           "command": "climb marble staircase",
           "targetCellId": "1-533",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -56749,7 +56749,7 @@
         {
           "command": "climb marble staircase",
           "targetCellId": "1-532",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -57761,7 +57761,7 @@
         {
           "command": "go trapdoor",
           "targetCellId": "1-861",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -57902,7 +57902,7 @@
         {
           "command": "go glass doors",
           "targetCellId": "1-528",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -58680,7 +58680,7 @@
         {
           "command": "go curtained archway",
           "targetCellId": "1-561",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -59297,7 +59297,7 @@
         {
           "command": "go curtained archway",
           "targetCellId": "1-554",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -59493,7 +59493,7 @@
         {
           "command": "go swinging doors",
           "targetCellId": "1-359",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -60390,7 +60390,7 @@
         {
           "command": "go steel doorway",
           "targetCellId": "1-584",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -60499,7 +60499,7 @@
         {
           "command": "go black archway",
           "targetCellId": "1-577",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -60630,7 +60630,7 @@
         {
           "command": "go black archway",
           "targetCellId": "1-576",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -61134,7 +61134,7 @@
         {
           "command": "go steel doorway",
           "targetCellId": "1-575",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -61216,7 +61216,7 @@
         {
           "command": "go open archway",
           "targetCellId": "1-586",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -61298,7 +61298,7 @@
         {
           "command": "go open archway",
           "targetCellId": "1-585",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -63483,7 +63483,7 @@
         {
           "command": "climb sandstone staircase",
           "targetCellId": "1-896",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -66350,7 +66350,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-520",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68194,7 +68194,7 @@
         {
           "command": "go beaded doorway",
           "targetCellId": "1-656",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68252,7 +68252,7 @@
         {
           "command": "go beaded doorway",
           "targetCellId": "1-655",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68470,7 +68470,7 @@
         {
           "command": "go high archway",
           "targetCellId": "1-660",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68492,7 +68492,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-663",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68590,7 +68590,7 @@
         {
           "command": "go high doorway",
           "targetCellId": "1-659",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68780,7 +68780,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-659",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -68949,7 +68949,7 @@
         {
           "command": "climb wrought-iron staircase",
           "targetCellId": "1-664",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -70736,7 +70736,7 @@
         {
           "command": "climb staircase",
           "targetCellId": "1-1012",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -70828,7 +70828,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-687",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -70882,7 +70882,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-686",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -71058,7 +71058,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-690",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -71140,7 +71140,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-689",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -71435,7 +71435,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-695",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -71457,7 +71457,7 @@
         {
           "command": "climb plain stairway",
           "targetCellId": "1-892",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -71517,7 +71517,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-694",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -72625,7 +72625,7 @@
         {
           "command": "climb dimly-lit staircase",
           "targetCellId": "1-711",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -72875,7 +72875,7 @@
         {
           "command": "climb wooden staircase",
           "targetCellId": "1-719",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -73321,7 +73321,7 @@
         {
           "command": "climb wooden staircase",
           "targetCellId": "1-713",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -74770,7 +74770,7 @@
         {
           "command": "go hospital backdoor",
           "targetCellId": "1-141",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -74933,7 +74933,7 @@
         {
           "command": "climb dark staircase",
           "targetCellId": "1-743",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -75553,7 +75553,7 @@
         {
           "command": "climb dark staircase",
           "targetCellId": "1-738",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -76246,7 +76246,7 @@
         {
           "command": "climb oak staircase",
           "targetCellId": "1-755",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -76524,7 +76524,7 @@
         {
           "command": "climb oak staircase",
           "targetCellId": "1-751",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -76789,7 +76789,7 @@
         {
           "command": "go polished doors",
           "targetCellId": "1-206",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -77433,7 +77433,7 @@
         {
           "command": "climb staircase",
           "targetCellId": "1-305",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -77651,7 +77651,7 @@
         {
           "command": "climb wooden stairway",
           "targetCellId": "1-348",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -77927,7 +77927,7 @@
         {
           "command": "go archway",
           "targetCellId": "1-783",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -77949,7 +77949,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-785",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -77993,7 +77993,7 @@
         {
           "command": "climb stairway",
           "targetCellId": "1-302",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -78513,7 +78513,7 @@
         {
           "command": "go ebonwood archway",
           "targetCellId": "1-777",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -78632,7 +78632,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-777",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -78768,7 +78768,7 @@
         {
           "command": "go wooden doors",
           "targetCellId": "1-798",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -78855,7 +78855,7 @@
         {
           "command": "go arched doorway",
           "targetCellId": "1-789",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -79149,7 +79149,7 @@
         {
           "command": "go soulstone archway",
           "targetCellId": "1-792",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -79277,7 +79277,7 @@
         {
           "command": "go ironwood doors",
           "targetCellId": "1-796",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -79571,7 +79571,7 @@
         {
           "command": "go ironwood doors",
           "targetCellId": "1-792",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -79593,7 +79593,7 @@
         {
           "command": "climb ironwood staircase",
           "targetCellId": "1-798",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -79711,7 +79711,7 @@
         {
           "command": "climb ironwood staircase",
           "targetCellId": "1-796",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -79733,7 +79733,7 @@
         {
           "command": "go wooden doors",
           "targetCellId": "1-787",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81206,7 +81206,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-814",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81390,7 +81390,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-811",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81412,7 +81412,7 @@
         {
           "command": "go east archway",
           "targetCellId": "1-815",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81434,7 +81434,7 @@
         {
           "command": "go west archway",
           "targetCellId": "1-817",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81791,7 +81791,7 @@
         {
           "command": "climb wooden staircase",
           "targetCellId": "1-820",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81835,7 +81835,7 @@
         {
           "command": "go wooden doors",
           "targetCellId": "1-821",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81889,7 +81889,7 @@
         {
           "command": "climb wooden staircase",
           "targetCellId": "1-819",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -81992,7 +81992,7 @@
         {
           "command": "go wooden doors",
           "targetCellId": "1-819",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82133,7 +82133,7 @@
         {
           "command": "climb iron staircase",
           "targetCellId": "1-825",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82323,7 +82323,7 @@
         {
           "command": "climb iron staircase",
           "targetCellId": "1-822",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82345,7 +82345,7 @@
         {
           "command": "go tiled archway",
           "targetCellId": "1-826",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82426,7 +82426,7 @@
         {
           "command": "go tiled archway",
           "targetCellId": "1-825",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82782,7 +82782,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-832",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82923,7 +82923,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-830",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -82983,7 +82983,7 @@
         {
           "command": "go double doors",
           "targetCellId": "1-160",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83071,7 +83071,7 @@
         {
           "command": "climb winding staircase",
           "targetCellId": "1-835",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83287,7 +83287,7 @@
         {
           "command": "climb winding staircase",
           "targetCellId": "1-833",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83401,7 +83401,7 @@
         {
           "command": "go satinwood archway",
           "targetCellId": "1-843",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83423,7 +83423,7 @@
         {
           "command": "go ironwood archway",
           "targetCellId": "1-842",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83445,7 +83445,7 @@
         {
           "command": "go acanth archway",
           "targetCellId": "1-841",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83532,7 +83532,7 @@
         {
           "command": "go rosewood archway",
           "targetCellId": "1-846",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83554,7 +83554,7 @@
         {
           "command": "go flamewood archway",
           "targetCellId": "1-845",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83576,7 +83576,7 @@
         {
           "command": "go ebonwood archway",
           "targetCellId": "1-844",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83727,7 +83727,7 @@
         {
           "command": "go golden archway",
           "targetCellId": "1-840",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83781,7 +83781,7 @@
         {
           "command": "go golden archway",
           "targetCellId": "1-839",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83835,7 +83835,7 @@
         {
           "command": "go acanth archway",
           "targetCellId": "1-836",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83943,7 +83943,7 @@
         {
           "command": "go satinwood archway",
           "targetCellId": "1-836",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -83997,7 +83997,7 @@
         {
           "command": "go ebonwood archway",
           "targetCellId": "1-837",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -84057,7 +84057,7 @@
         {
           "command": "go flamewood archway",
           "targetCellId": "1-837",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -84111,7 +84111,7 @@
         {
           "command": "go rosewood archway",
           "targetCellId": "1-837",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -85095,7 +85095,7 @@
         {
           "command": "go trapdoor",
           "targetCellId": "1-545",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -85702,7 +85702,7 @@
         {
           "command": "go narrow doorway",
           "targetCellId": "1-464",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -87677,7 +87677,7 @@
         {
           "command": "climb plain stairway",
           "targetCellId": "1-694",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -87765,7 +87765,7 @@
         {
           "command": "climb plain stairway",
           "targetCellId": "1-894",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -87853,7 +87853,7 @@
         {
           "command": "climb plain stairway",
           "targetCellId": "1-893",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -87979,7 +87979,7 @@
         {
           "command": "climb sandstone staircase",
           "targetCellId": "1-602",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -88234,7 +88234,7 @@
         {
           "command": "go curtained archway",
           "targetCellId": "1-900",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -88294,7 +88294,7 @@
         {
           "command": "go curtained archway",
           "targetCellId": "1-899",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -88937,7 +88937,7 @@
         {
           "command": "go stone doors",
           "targetCellId": "1-1025",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -89821,7 +89821,7 @@
         {
           "command": "go wicker archway",
           "targetCellId": "1-1024",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91677,7 +91677,7 @@
         {
           "command": "go housing doorway",
           "targetCellId": "1-941",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91699,7 +91699,7 @@
         {
           "command": "go exchange doorway",
           "targetCellId": "1-942",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91721,7 +91721,7 @@
         {
           "command": "go acquisitions doorway",
           "targetCellId": "1-943",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91743,7 +91743,7 @@
         {
           "command": "go expansions doorway",
           "targetCellId": "1-944",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91803,7 +91803,7 @@
         {
           "command": "go pine doorway",
           "targetCellId": "1-940",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91863,7 +91863,7 @@
         {
           "command": "go oak doorway",
           "targetCellId": "1-940",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91917,7 +91917,7 @@
         {
           "command": "go deobar doorway",
           "targetCellId": "1-940",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -91971,7 +91971,7 @@
         {
           "command": "go maple doorway",
           "targetCellId": "1-940",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -93796,7 +93796,7 @@
         {
           "command": "go hedged archway",
           "targetCellId": "1-44",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -94501,7 +94501,7 @@
         {
           "command": "go small archway",
           "targetCellId": "1-978",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -94808,7 +94808,7 @@
         {
           "command": "go small archway",
           "targetCellId": "1-975",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -95679,7 +95679,7 @@
         {
           "command": "go mahogany archway",
           "targetCellId": "1-989",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -97250,7 +97250,7 @@
         {
           "command": "climb staircase",
           "targetCellId": "1-685",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -97365,7 +97365,7 @@
         {
           "command": "climb staircase",
           "targetCellId": "1-1014",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -97453,7 +97453,7 @@
         {
           "command": "climb staircase",
           "targetCellId": "1-1013",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -98045,7 +98045,7 @@
         {
           "command": "go wicker archway",
           "targetCellId": "1-915",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -98105,7 +98105,7 @@
         {
           "command": "go stone doors",
           "targetCellId": "1-906",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -99828,7 +99828,7 @@
         {
           "command": "climb attic stairs",
           "targetCellId": "1-1047",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -100200,7 +100200,7 @@
         {
           "command": "climb stairs",
           "targetCellId": "1-1042",
-          "tetherKind": "other",
+          "tetherKind": "stairs",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
@@ -101177,7 +101177,7 @@
         {
           "command": "go gold-gilded archway",
           "targetCellId": "1-468",
-          "tetherKind": "other",
+          "tetherKind": "threshold",
           "sourceAnchor": null,
           "targetLoaded": true,
           "presentationDelta": {
