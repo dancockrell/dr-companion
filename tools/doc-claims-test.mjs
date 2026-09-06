@@ -400,7 +400,16 @@ const pkg = JSON.parse(read('package.json'))
   // The other direction. Without it, deleting the paragraph passes.
   const saysIt = population.filter((f) => flat(read(f)).includes(TRUE_CLAIM))
   ok('the true sentence is stated where the retired one stood', saysIt.length >= 3, `${saysIt.length} file(s): ${saysIt.join(', ')}`)
-  ok('PRIVACY.md names the account server the password goes to', read('docs/PRIVACY.md').includes('eaccess.play.net'))
+  // Matched as a whole section heading, anchored, rather than as a bare
+  // substring anywhere in the file. Two reasons: a hostname mentioned in
+  // passing is not the same as a described destination, and CodeQL's
+  // js/incomplete-url-substring-sanitization rightly flags `.includes(host)`
+  // - it cannot tell a documentation check from a URL check, and the anchored
+  // form is the better assertion regardless.
+  ok(
+    'PRIVACY.md gives the account server the password goes to its own section',
+    /^### `eaccess\.play\.net`$/m.test(read('docs/PRIVACY.md')),
+  )
 
   // 3. "not stored", against the code rather than the prose. The denominator
   //    is the prefs interface's own field list: if the extractor breaks, "no
