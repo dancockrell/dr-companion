@@ -471,6 +471,26 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null, req
         return path
       },
 
+      /**
+       * Run a script in every document this page loads from now on, *before*
+       * any of the page's own script.
+       *
+       * `run` cannot do this. The app's store reads the persisted preference
+       * and asks `isTauri()` at module-evaluation time, so anything installed
+       * after a navigation has already missed the only moment that mattered.
+       * This is `Page.addScriptToEvaluateOnNewDocument`, the browser's own
+       * answer to the same problem.
+       *
+       * It exists for `panel-controls-shots.mjs`, which has to make
+       * `isTauri()` true so the native-only pop-out controls render at all -
+       * they are the subject of that measurement, and in a plain browser they
+       * do not exist. What that stand-in can and cannot say is written out in
+       * that file rather than implied here.
+       */
+      async addInit(source) {
+        await call('Page.addScriptToEvaluateOnNewDocument', { source })
+      },
+
       /** Console errors the page produced, so a silent failure is not silent. */
       consoleErrors() {
         return events
