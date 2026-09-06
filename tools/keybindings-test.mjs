@@ -6,7 +6,7 @@
  * a sentence: a movement key firing while the player is composing a command,
  * and Escape being the one key that must reach them anyway.
  */
-import { installKeybindings, isInteractionTarget, isTypingTarget, resolveKeybinding, codeToGenieKey, KEYBINDING_HELP } from '../src/lib/keybindings.ts'
+import { installKeybindings, isInteractionTarget, isTypingTarget, resolveKeybinding, codeToGenieKey, builtinForChord, chordOf, chordLabel, KEYBINDING_HELP } from '../src/lib/keybindings.ts'
 import { readFileSync } from 'node:fs'
 
 let checked = 0
@@ -121,10 +121,15 @@ console.log('\n-- The installed listener respects the foreground boundary --')
   globalThis.document = {
     querySelector: () => foregroundOpen ? {} : null,
   }
+  let macroRuns = []
   const cleanup = installKeybindings({
     sendGame: () => { sent++ },
     stopAll: () => { stopped++ },
     quickSwitch: () => { switched++ },
+    runMacro: (macro) => { macroRuns.push(macro) },
+    macros: () => [
+      { id: 'mac-f3', enabled: true, source: 'player', key: 'F3', modifiers: [], commands: ['stand', 'go gate'] },
+    ],
   })
   const fire = (event) => listener({ preventDefault: () => {}, target: null, ctrlKey: false, shiftKey: false, ...event })
   fire({ key: 'Escape', code: 'Escape' })
@@ -138,6 +143,19 @@ console.log('\n-- The installed listener respects the foreground boundary --')
   foregroundOpen = false
   fire({ key: 'Escape', code: 'Escape' })
   ok('bare Escape resumes after the foreground closes', stopped, 2)
+  // The macro case through the installed listener, not only through the pure
+  // resolver: a build that resolved the chord and wired no hook would swallow
+  // the key and send nothing, which looks exactly like a binding that does not
+  // work.
+  fire({ key: 'F3', code: 'F3' })
+  ok('a bound chord runs the player macro exactly once', macroRuns.length, 1)
+  ok('with its commands, in order', macroRuns[0]?.commands, ['stand', 'go gate'])
+  ok('and sends nothing down the plain keybind path', sent, 0)
+  foregroundOpen = true
+  macroRuns = []
+  fire({ key: 'F3', code: 'F3' })
+  ok('a foreground panel owns a macro chord too', macroRuns.length, 0)
+  foregroundOpen = false
   cleanup()
 }
 
@@ -169,6 +187,33 @@ console.log('\n-- Digit1..Digit9 switch Quick Switch slots, zero-indexed --')
 // window" actually exists. Everything decided by resolveKeybinding and
 // interaction ownership above it, which is where the actual logic lives, is
 // covered here.
+
+console.log('\n-- The chooser: a player binding beats the built-in on the same chord --')
+{
+  // Tested where the wrong answer is available. NumPad8 is a built-in movement
+  // key, so this is a chooser with two candidates; a chord nothing ships a
+  // default for would only prove the code runs.
+  const macro = { id: 'mac-1', enabled: true, source: 'player', key: 'NumPad8', modifiers: [], commands: ['stand', 'north'] }
+  ok('the built-in answers when nothing is bound', resolveKeybinding({ key: '8', code: 'Numpad8' }, false), { kind: 'game', command: 'n' })
+  ok('the player binding wins that chord', resolveKeybinding({ key: '8', code: 'Numpad8' }, false, [macro]), { kind: 'macro', id: 'mac-1', commands: ['stand', 'north'] })
+  // And the built-in stays reachable by its own default, which is the half a
+  // one-key "player wins" check cannot see.
+  ok('NumPad2 still walks south with that table loaded', resolveKeybinding({ key: '2', code: 'Numpad2' }, false, [macro]), { kind: 'game', command: 's' })
+  ok('F2 still asks for health', resolveKeybinding({ key: 'F2', code: 'F2' }, false, [macro]), { kind: 'game', command: 'health' })
+  ok('Digit1 still reaches Quick Switch slot 0', resolveKeybinding({ key: '1', code: 'Digit1' }, false, [macro]), { kind: 'quickswitch', slot: 0 })
+  ok('a switched-off binding hands the chord back to the built-in', resolveKeybinding({ key: '8', code: 'Numpad8' }, false, [{ ...macro, enabled: false }]), { kind: 'game', command: 'n' })
+  ok('Escape is not overridable', resolveKeybinding({ key: 'Escape', code: 'Escape' }, false, [{ ...macro, key: 'Escape' }]), { kind: 'stop' })
+
+  // The editor and the resolver have to name a chord the same way, or a
+  // binding saves, displays correctly and never fires.
+  ok('chordOf reads the capture the resolver would', chordOf({ code: 'Numpad8', shiftKey: true, ctrlKey: true }), { key: 'NumPad8', modifiers: ['Shift', 'Control'] })
+  ok('modifiers normalise to one order', chordLabel('NumPad8', ['Alt', 'Control', 'Shift']), 'Shift+Control+Alt+NumPad8')
+  ok('an unbindable key is refused rather than stored oddly', chordOf({ code: 'Tab' }), null)
+  ok('the editor can say what the chord already does', builtinForChord('NumPad8'), 'n')
+  ok('and that only a bare chord collides', builtinForChord('NumPad8', ['Control']), null)
+  ok('a Quick Switch collision is named too', builtinForChord('D1'), 'Quick Switch slot 1')
+  ok('a free chord reports no collision', builtinForChord('F3'), null)
+}
 
 console.log('\n-- codeToGenieKey matches every key name Dan\'s real macros.cfg actually uses --')
 {
@@ -221,7 +266,7 @@ console.log('\n-- Every modal uses the shared accessible focus contract --')
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or
 // half-loaded run, not a regression test on the number of cases.
-const MIN_EXPECTED = 68
+const MIN_EXPECTED = 100
 if (checked < MIN_EXPECTED) {
   console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

@@ -38,6 +38,8 @@ import { parseHighlights } from './highlights.ts'
 import { parseAliases } from './aliases.ts'
 import {
   emptyPlayerConfig,
+  isBookkeepingVariable,
+  isGenieScript,
   newId,
   normalizeModifiers,
   type AliasRule,
@@ -314,29 +316,17 @@ export function parseGags(text: string): { entries: Gag[]; skipped: string[] } {
  * ------------------------------------------------------------------ */
 
 /**
- * Genie's own bookkeeping in `variables.cfg`, which is most of a real one.
+ * Genie's own bookkeeping, and a command this app cannot execute.
  *
- * `roomid`, `downid` and the whole `Time.*` block are written by Genie while
- * it plays, not settings a person tuned. Importing them would put a stale room
- * id in a player's variable table and let an alias resolve `$roomid` to
- * somewhere they were last May. Counted and named rather than dropped.
+ * Both moved to `playerConfig.ts` by Q3 and re-exported here, because the
+ * editors need the same two answers and an importer is the wrong owner for a
+ * property of a *stored* rule: `aliases.ts` asking this module would have made
+ * a cycle, and a second copy of either predicate is the fork that would let the
+ * import and the editor disagree about which rules are runnable.
  */
-const BOOKKEEPING = (name: string) =>
-  name === 'roomid' || name === 'downid' || name.startsWith('Time.')
+export { isBookkeepingVariable, isGenieScript }
 
-/**
- * A command this app cannot execute: Genie script.
- *
- * `#class`, `#queue`, `#setvar` and the `\x` escapes several real F-key macros
- * use are directives to a script engine this app does not have. The entry is
- * imported with its text intact and `enabled: false`, so the player sees
- * exactly what Genie had and nothing fires a directive nobody implements.
- */
-export function isGenieScript(command: string): boolean {
-  return command
-    .split(';')
-    .some((part) => part.trim().startsWith('#') || /\\x/.test(part))
-}
+const BOOKKEEPING = isBookkeepingVariable
 
 const UNSUPPORTED_ALWAYS = [
   'Window layout, palettes, #script and plugins are not imported: this app has no equivalent surface for them.',

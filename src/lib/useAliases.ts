@@ -16,20 +16,38 @@
  * (Q1, Lane Q): the import reads that file once, when the player asks.
  */
 import { useEffect, useState } from 'react'
-import { resolveAliases, type Alias } from './aliases.ts'
+import { resolveAliases, resolveVariables, type Alias } from './aliases.ts'
 import { loadPlayerConfig, subscribePlayerConfig } from './playerConfig.ts'
 
-/** What the hook returns, without being a hook - see `currentHighlights`. */
-export function currentAliases(): { aliases: Alias[]; note: string } {
-  const cfg = loadPlayerConfig()
-  const { entries, refused } = resolveAliases(cfg)
-  const note = refused.length
-    ? `${entries.length} of ${cfg.aliases.length} aliases, ${refused.length} switched off`
-    : `${entries.length} of ${cfg.aliases.length} aliases`
-  return { aliases: entries, note }
+export interface ResolvedAliases {
+  aliases: Alias[]
+  /**
+   * `$name` to its value, handed to `expandAlias` beside the table.
+   *
+   * Returned here rather than looked up inside `expandAlias` so the expander
+   * stays pure, and so one subscription feeds both halves: an alias and its
+   * variables arriving in two renders would let `$shop` resolve against a table
+   * one edit behind the alias reading it.
+   */
+  variables: Map<string, string>
+  note: string
 }
 
-export function useAliases(): { aliases: Alias[]; note: string } {
+/** What the hook returns, without being a hook - see `currentHighlights`. */
+export function currentAliases(): ResolvedAliases {
+  const cfg = loadPlayerConfig()
+  const { entries, refused } = resolveAliases(cfg)
+  const { variables } = resolveVariables(cfg)
+  const aliasNote = refused.length
+    ? `${entries.length} of ${cfg.aliases.length} aliases, ${refused.length} switched off`
+    : `${entries.length} of ${cfg.aliases.length} aliases`
+  // Both denominators, because an expansion that quietly stopped resolving
+  // `$shop` looks exactly like one that never had a variable in it.
+  const note = `${aliasNote}, ${variables.size} of ${cfg.variables.length} variables`
+  return { aliases: entries, variables, note }
+}
+
+export function useAliases(): ResolvedAliases {
   const [, bump] = useState(0)
   useEffect(() => subscribePlayerConfig(() => bump((n) => n + 1)), [])
   return currentAliases()

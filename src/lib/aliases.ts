@@ -30,7 +30,7 @@
  * (Q1, Lane Q): a client that needed Genie installed to have an alias is the
  * gap that lane exists to close.
  */
-import type { PlayerConfig } from './playerConfig.ts'
+import { isGenieScript, type AliasRule, type PlayerConfig } from './playerConfig.ts'
 
 export interface Alias {
   name: string
@@ -90,10 +90,39 @@ export interface ExpandResult {
    * there was nothing left to expand. `chain` still holds what did run.
    */
   capped: boolean
+  /**
+   * `$name` tokens no variable answered, in the order they were met, each
+   * once.
+   *
+   * Left in the text verbatim rather than blanked - a command with a literal
+   * `$shop` in it is visibly wrong, and one silently missing a word looks like
+   * a command the player meant to type. The editor shows this list beside the
+   * alias so the fix is "you have no variable called shop" rather than "this
+   * alias does something odd".
+   */
+  unknownVariables: string[]
 }
 
 /** How many aliases may expand into aliases before this gives up and says so. */
 const DEFAULT_MAX_DEPTH = 8
+
+/**
+ * `$name`, the variable token.
+ *
+ * A leading letter or underscore is what separates it from `$0`…`$9`, which
+ * are positional alias arguments and are never looked up here - the same split
+ * `variables.ts` made before it was deleted (`docs/PLAYER_CONFIG.md` §4.3). A
+ * dot is admitted because Genie's own names carry one (`Time.hour`), so a
+ * config that has them reads back the way it was written.
+ */
+const VARIABLE_TOKEN = /\$([A-Za-z_][A-Za-z0-9_.]*)/g
+
+export interface ExpandOptions {
+  maxDepth?: number
+  /** `$name` → its value. Absent means no variable table, which is what every
+   *  caller had before Q3 and still leaves the tokens verbatim. */
+  variables?: ReadonlyMap<string, string>
+}
 
 /**
  * One expansion step: does `line`'s first word name an alias, and if so what
@@ -127,6 +156,34 @@ function expandOnce(
 }
 
 /**
+ * Variables, substituted once over the finished text.
+ *
+ * Once, and at the end, rather than per expansion step, for two reasons. A
+ * value that itself contains a `$` would be re-substituted by a second pass,
+ * which is a rule nobody wrote down and could not be predicted from the
+ * config. And a `$name` that is *not* inside an alias - `go $shop` typed
+ * straight into a macro's command list, which is how Genie's own configs use
+ * them - would otherwise never resolve, because no alias fired to carry it.
+ *
+ * `$0`…`$9` have already been consumed by `expandOnce` and could not match
+ * `VARIABLE_TOKEN` anyway: they are positional arguments, not variables.
+ */
+function substituteVariables(
+  text: string,
+  variables: ReadonlyMap<string, string> | undefined,
+  unknown: string[]
+): string {
+  return text.replace(VARIABLE_TOKEN, (whole, name: string) => {
+    const value = variables?.get(name)
+    if (value === undefined) {
+      if (!unknown.includes(name)) unknown.push(name)
+      return whole
+    }
+    return value
+  })
+}
+
+/**
  * Expand a typed line against the alias table, following an alias into
  * another alias up to `maxDepth` deep.
  *
@@ -145,28 +202,42 @@ function expandOnce(
 export function expandAlias(
   line: string,
   entries: readonly Alias[],
-  maxDepth = DEFAULT_MAX_DEPTH
+  opts: number | ExpandOptions = DEFAULT_MAX_DEPTH
 ): ExpandResult {
+  // A number or an options object, both accepted on purpose. The third
+  // parameter was a bare `maxDepth` before Q3 and two call sites plus a test
+  // suite pass one; widening it is one function that answers both, where a
+  // second entry point taking options would be the fork the lane exists not
+  // to make.
+  const settings: ExpandOptions = typeof opts === 'number' ? { maxDepth: opts } : opts
+  const maxDepth = settings.maxDepth ?? DEFAULT_MAX_DEPTH
   const byName = new Map(entries.map((a) => [a.name.toLowerCase(), a]))
   const chain: string[] = []
+  const unknownVariables: string[] = []
   let current = line
+
+  const done = (capped: boolean): ExpandResult => ({
+    text: substituteVariables(current, settings.variables, unknownVariables),
+    expanded: chain.length > 0,
+    chain,
+    capped,
+    unknownVariables,
+  })
 
   for (let depth = 0; depth < maxDepth; depth++) {
     const { text, matched } = expandOnce(current, byName)
-    if (!matched) {
-      return { text: current, expanded: chain.length > 0, chain, capped: false }
-    }
+    if (!matched) return done(false)
     if (chain.includes(matched)) {
       // The cycle itself is the useful information, so `current` - the text
       // as of the repeat, not the raw input - is what a player would need to
       // see to find it.
-      return { text: current, expanded: true, chain, capped: true }
+      return done(true)
     }
     chain.push(matched)
     current = text
   }
 
-  return { text: current, expanded: true, chain, capped: true }
+  return done(true)
 }
 
 /**
@@ -189,6 +260,16 @@ export function resolveAliases(cfg: Pick<PlayerConfig, 'aliases'>): {
   const entries: Alias[] = []
   const refused: Array<{ id: string; why: string }> = []
   cfg.aliases.forEach((rule, index) => {
+    // Script before switched-off, because a scripted alias that somehow
+    // arrived enabled - hand-edited storage, an older build, an import bug -
+    // must still not run, and the reason a player needs is the script, not the
+    // switch. `enableRefusal` is the same answer the editor's toggle gives, so
+    // the two cannot disagree about which rules are runnable.
+    const cannot = aliasEnableRefusal(rule)
+    if (cannot) {
+      refused.push({ id: rule.id, why: cannot })
+      return
+    }
     if (!rule.enabled) {
       refused.push({ id: rule.id, why: `"${rule.name}" is switched off` })
       return
@@ -196,4 +277,52 @@ export function resolveAliases(cfg: Pick<PlayerConfig, 'aliases'>): {
     entries.push({ name: rule.name, expansion: rule.expansion, sourceLine: index })
   })
   return { entries, refused }
+}
+
+/**
+ * Why this alias may not be switched on, or null when it may.
+ *
+ * One answer, asked by the resolver above and by the Aliases tab's toggle. 87
+ * of the 356 aliases in the real config measured for Q1 carry Genie script and
+ * import switched off; a player who flips one on would get `#queue {...}` sent
+ * to DragonRealms as literal text, which is not a refusal the game makes
+ * politely. Named rather than silently ignored: the rule stays visible, with
+ * its text, and says what would have to change.
+ */
+export function aliasEnableRefusal(rule: Pick<AliasRule, 'name' | 'expansion'>): string | null {
+  return isGenieScript(rule.expansion)
+    ? `"${rule.name}" contains Genie script (a # directive or a \\x escape). ` +
+        'This app has no script engine, so it cannot be switched on.'
+    : null
+}
+
+/**
+ * The variable table `expandAlias` takes, from the store.
+ *
+ * The one resolver for this domain. Disabled variables are left out and named
+ * for the same reason a disabled alias is: a `$shop` that stopped resolving
+ * because somebody unticked a row should read as switched off, not as a typo.
+ * A later row with the same name wins, and the shadowed one is reported -
+ * silently keeping either would make one of two identical-looking rows dead.
+ */
+export function resolveVariables(cfg: Pick<PlayerConfig, 'variables'>): {
+  variables: Map<string, string>
+  refused: Array<{ id: string; why: string }>
+} {
+  const variables = new Map<string, string>()
+  const refused: Array<{ id: string; why: string }> = []
+  for (const rule of cfg.variables) {
+    if (!rule.enabled) {
+      refused.push({ id: rule.id, why: `$${rule.name} is switched off` })
+      continue
+    }
+    if (variables.has(rule.name)) {
+      refused.push({
+        id: rule.id,
+        why: `$${rule.name} is set more than once; this row is the one that wins`,
+      })
+    }
+    variables.set(rule.name, rule.value)
+  }
+  return { variables, refused }
 }

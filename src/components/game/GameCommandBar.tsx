@@ -36,7 +36,7 @@ export function GameCommandBar({
   setQuery: (v: string) => void
 }) {
   const link = useSyncExternalStore(subscribeGame, gameState, gameState)
-  const { aliases } = useAliases()
+  const { aliases, variables } = useAliases()
 
   const [command, setCommand] = useState('')
 
@@ -92,12 +92,24 @@ export function GameCommandBar({
      * sending something the player can see, but the chain is named so they
      * can find which alias is looping.
      */
-    const { text: outgoing, expanded, chain, capped } = expandAlias(text, aliases)
+    const {
+      text: outgoing,
+      expanded,
+      chain,
+      capped,
+      unknownVariables,
+    } = expandAlias(text, aliases, { variables })
+    // An unresolved `$name` is named rather than left looking like a typo in
+    // the alias. The token goes out verbatim, so a literal `$shop` reaches the
+    // game; this line says which variable would have answered it.
+    const missing = unknownVariables.length
+      ? ` (no variable ${unknownVariables.map((v) => `$${v}`).join(', ')})`
+      : ''
     setExpansion(
       capped
-        ? `${text} → ${outgoing} (chain stopped: ${chain.join(' → ')})`
+        ? `${text} → ${outgoing} (chain stopped: ${chain.join(' → ')})${missing}`
         : expanded
-          ? `${text} → ${outgoing}`
+          ? `${text} → ${outgoing}${missing}`
           : ''
     )
 

@@ -261,6 +261,48 @@ export function normalizeModifiers(
   return MODIFIER_ORDER.filter((m) => mods.includes(m))
 }
 
+/**
+ * A command this app cannot execute: Genie script.
+ *
+ * `#class`, `#queue`, `#setvar` and the `\x` escapes several real F-key macros
+ * use are directives to a script engine this app does not have. Such a rule is
+ * kept with its text intact and `enabled: false`, so the player sees exactly
+ * what Genie had and nothing fires a directive nobody implements.
+ *
+ * Lived in `playerConfigImport.ts` until Q3 and is here now because it is a
+ * property of a stored rule rather than of an import: the alias resolver, the
+ * keybinding resolver and both editors ask it, and `aliases.ts` importing the
+ * importer would have been a cycle. `playerConfigImport.ts` re-exports it, so
+ * there is one implementation and no caller had to move.
+ */
+export function isGenieScript(command: string): boolean {
+  return command
+    .split(';')
+    .some((part) => part.trim().startsWith('#') || /\\x/.test(part))
+}
+
+/**
+ * Genie's own bookkeeping in `variables.cfg`, which is most of a real one.
+ *
+ * `roomid`, `downid` and the whole `Time.*` block are written by Genie while it
+ * plays, not settings a person tuned. Holding them would put a stale room id in
+ * a player's variable table and let an alias resolve `$roomid` to somewhere
+ * they were last May. The import counts and names them rather than dropping
+ * them in silence, and the Variables editor refuses to create one, saying why.
+ */
+export function isBookkeepingVariable(name: string): boolean {
+  return name === 'roomid' || name === 'downid' || name.startsWith('Time.')
+}
+
+/**
+ * What the Variables tab shows as reserved, in the words the refusal uses.
+ *
+ * The names, not a count: a player who imported a real config sees 12 of their
+ * 46 variables missing, and "12 were Genie's own" is only useful beside the
+ * shapes that make it true.
+ */
+export const RESERVED_VARIABLE_NAMES: readonly string[] = ['roomid', 'downid', 'Time.*']
+
 const isString = (v: unknown): v is string => typeof v === 'string'
 
 /**

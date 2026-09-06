@@ -44,11 +44,14 @@ import {
 } from './lib/columns.ts'
 import { windowView, type WindowView } from './lib/windowView.ts'
 import { useAppStore } from './store/useAppStore.ts'
-import { installKeybindings } from './lib/keybindings.ts'
+import { installKeybindings, runMacroCommands } from './lib/keybindings.ts'
 import { requestGameAction } from './lib/gameActions.ts'
 import { requestStartFlow, requestStopAll } from './lib/flowStop.ts'
 import { MACROS } from './data/macros.ts'
-import { requestMacro } from './lib/macroFlight.ts'
+import { claimMacroSend, requestMacro } from './lib/macroFlight.ts'
+import { loadPlayerConfig } from './lib/playerConfig.ts'
+import { currentAliases } from './lib/useAliases.ts'
+import { expandAlias } from './lib/aliases.ts'
 import { writeText } from './lib/storage.ts'
 import { taskPinActiveId, taskPinLanguage } from './lib/quickSwitch.ts'
 import { StorageWarning } from './components/shared/StorageWarning.tsx'
@@ -261,6 +264,20 @@ function AppViews() {
     if (!setupComplete) return
     return installKeybindings({
       sendGame: (command) => requestGameAction(command, `Keyboard command “${command}”`, 'keybind'),
+      // The player's own key macros, from the config panel. Read live so a
+      // binding saved there works on the next press, and sent one command at a
+      // time through the outbound lane with source `macro`, behind the same
+      // in-flight gate the action bars claim.
+      macros: () => loadPlayerConfig().macros,
+      runMacro: ({ commands }) =>
+        runMacroCommands(commands, {
+          expand: (command) => {
+            const { aliases, variables } = currentAliases()
+            return expandAlias(command, aliases, { variables }).text
+          },
+          send: (command) => requestGameAction(command, `Macro “${command}”`, 'macro'),
+          claim: () => claimMacroSend().reason,
+        }),
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()

@@ -41,6 +41,7 @@
   "test:music-first-run",
   "test:music-library",
   "test:aliases",
+  "test:macro-dry-run",
   "test:player-config",
   "test:player-config-import",
   "test:off-classes",
