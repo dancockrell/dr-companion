@@ -332,6 +332,24 @@ worked around: #323 (`npm run tauri:build` cannot run in any worktree prepared
 by `worktree:init`) and #324 (`run-tests` counts a suite's honest NOT CHECKED
 as a pass).
 
+**All five of E2/E10's defects are GONE on the machine, re-measured 6 Sep 2026**
+against CI run 34013788861 and recorded in
+`docs/verification/first-run-2026-09-06.md`. Every one of the five fixes (#384,
+#386, #388, #389 with #396 and #405, #409) said in its own record that it was
+proved by unit test and *not* re-measured on the VM, which is the gap this run
+closes: the window is inside a 1024x768 display with "Check again" reachable, the
+Ruby row explains the Lich-folder fork and the Lich row names the tree the
+third-party installer chose, a fresh install opens on "Nothing is connected yet."
+rather than on Dan the Bold, Settings -> Apps says `Dan Cockrell`, and the bottom
+bar says nothing about music until Play and then `Music not installed` with no
+Retry. The unticked uninstall is clean on the program half and takes all four
+loopback bearer files with it (#354 holding). Three new defects were found on the
+way and filed rather than fixed here: #417 (the clamp measures the client area,
+so the window hangs 15 px into the taskbar), #418 (the empty state does not fit
+the default window and does not scroll, so "Start the demo" is unreachable) and
+#419 (a popped-out panel window renders blank white, which is why #409's compact
+banner is the one thing this run could not check).
+
 **Lane G is finished** (G0, G1, G2–G12; PRs #317, #322, the one that carried
 this line, then #346 and #359). This paragraph has been corrected twice as G11
 moved: it once said G11 was "deliberately not started", then that its second
@@ -813,7 +831,7 @@ whether it is embedded, docked or a separate window is D0.
   note: the unattended install appeared to run for twenty-five minutes and had in fact done nothing — it was parked on `Press any key to boot from CD or DVD` and had fallen through to `No bootable option or device was found`. `VMState="running"` said nothing about that. Caught by taking a screenshot instead of trusting the state field; the fix and three other traps are in the doc.
 
 - [x] **E2  Installer on the clean VM** (≈20)
-  commit: (this PR) verified: 2026-09-05 minutes: 75
+  commit: (this PR) verified: 2026-09-05 minutes: 75  re-measured: 2026-09-06 (all five defects, `docs/verification/first-run-2026-09-06.md`)
   result: seven prompts before the app runs, screenshotted in order in `docs/verification/first-run-2026-09-05.md` — three from Windows refusing an unsigned download (Edge "isn't commonly downloaded", the download held as a `.crdownload`, then Defender SmartScreen "Publisher: Unknown", whose default button is **Delete** and whose keep path is hidden behind "Show more → Keep anyway") and four from NSIS (Welcome; Choose Install Location `%LOCALAPPDATA%\DR Companion`, 210.8 MB; Installing; Completing, with Run and Create desktop shortcut both ticked). **No administrator elevation was requested at any point** — not by this installer, not by Ruby4Lich5's underneath it, not by the uninstaller. The installer shows **no licence page**. The file was fetched with Edge inside the guest rather than pushed in with `copyto`, because a copied file carries no Mark of the Web and would have skipped SmartScreen entirely; it arrived with `ZoneId=3` and its SHA-256 was re-measured in the guest as `1f813b6f…0be09e`, matching the build record exactly.
   note: the `blocked-on` this replaces was a misdiagnosis, and `docs/verification/vm.md` now says so in place of the three routes it used to list. `guestcontrol` was never broken. The earlier attempts ran at `GuestAdditionsRunLevel=2` — nobody had logged in, and the execution service is a run-level-3 facility — and the account password nobody had is in the VM's own `Unattended-*-autounattend.xml`, still on this disk. Waiting for run level 3 and reading the password out of that file was the entire fix.
   touches: none
@@ -822,7 +840,7 @@ whether it is embedded, docked or a separate window is D0.
   verify: the doc lists every prompt in order.
 
 - [x] **E3  Uninstall on the clean VM** (≈10)
-  commit: (this PR) verified: 2026-09-05 minutes: 20
+  commit: (this PR) verified: 2026-09-05 minutes: 20  re-measured: 2026-09-06 (unticked default on the CI build, `docs/verification/first-run-2026-09-06.md`)
   result: both lists are in `docs/verification/first-run-2026-09-05.md`, taken by the same script before and after so they compare line for line. Program files go completely: `%LOCALAPPDATA%\DR Companion` (49 files, 221,078,388 bytes) is absent afterwards, along with the HKCU uninstall entry and both shortcuts. User data survives: the WebView2 profile `%LOCALAPPDATA%\io.github.dancockrell.dr-companion` (302 files, 46,868,004 bytes) holds the settings and is untouched. **`%APPDATA%` never had a DR Companion entry at all**, before or after — everything the app writes is under `%LOCALAPPDATA%`. The uninstaller's own page offers "Delete the application data" **unticked by default**, which is the right default; only that default path was exercised. Two things survive that are not user data and should not: a 65 MB cached `DR Companion Data\downloads\Ruby4Lich5.exe`, and the four live bearer files `presentation-bridge.port/.token` and `script-api.port/.token` — credentials for the local bridges, left on disk after the thing that used them is gone. That last one is the finding worth acting on.
   touches: none
   depends-on: E2
