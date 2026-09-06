@@ -367,6 +367,27 @@ const pkg = JSON.parse(read('package.json'))
         wrong.map((m) => m[0]).join(', '),
       )
     }
+    /*
+     * The count appears a second time in `docs/MERGING.md`, bare rather than
+     * inside the quoted summary line - the sentence that explains what
+     * `EXPECTED_STAGES` is asserted against. The `N of N stages ran` pattern
+     * above cannot see it, and it was stale at `10` against a twelve-stage
+     * gate: found by a review pass, not by this suite, which was green over it.
+     *
+     * Any backticked integer on a line naming `EXPECTED_STAGES` is that count.
+     * The floor matters as much as the comparison: if a rewording leaves no
+     * number beside the constant this goes red naming the absence, because a
+     * check whose input has vanished must not report a pass.
+     */
+    const bare = read('docs/MERGING.md')
+      .split(/\r?\n/)
+      .filter((line) => line.includes('EXPECTED_STAGES'))
+      .flatMap((line) => [...line.matchAll(/`(\d+)`/g)].map((m) => m[1]))
+    ok(
+      `docs/MERGING.md's bare stage count agrees with EXPECTED_STAGES (${expected})`,
+      bare.length > 0 && bare.every((n) => n === expected),
+      bare.length ? bare.join(', ') : '(no backticked number on a line naming EXPECTED_STAGES)',
+    )
     ok('both name the command that prints it', read('docs/MERGING.md').includes('npm run gate') && read('.github/PULL_REQUEST_TEMPLATE.md').includes('npm run gate'))
   }
 

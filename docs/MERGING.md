@@ -48,7 +48,7 @@ The last line must read
 gate ok: 12 of 12 stages ran
 ```
 
-Both halves matter. `10` is asserted against `EXPECTED_STAGES` in
+Both halves matter. `12` is asserted against `EXPECTED_STAGES` in
 `tools/gate.mjs` rather than against the list it came from, so a stage list
 trimmed by an edit fails instead of printing a smaller number calmly. If your
 change adds or removes a stage, change `EXPECTED_STAGES`, this page and
