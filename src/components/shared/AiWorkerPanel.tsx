@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   getAiStatus,
   readProviderUrl,
@@ -7,6 +7,124 @@ import {
   writeProviderUrl,
 } from '../../lib/aiWorkerHost.ts'
 import { failureSentence } from '../../lib/aiModelProvider.ts'
+import { suggestionStore } from '../../lib/aiSuggestions.ts'
+
+/**
+ * The one card a proposed command is offered on.
+ *
+ * Three rules, and each of them is the reason this is a component rather than
+ * a line of text:
+ *
+ * **The command is shown exactly as it will be sent.** Monospace, unwrapped,
+ * no ellipsis, no title-casing, no tidying of the double spaces a model may
+ * have left in. What Confirm hands back is read from the record - not from
+ * this element, and not retyped - so the string the player is looking at and
+ * the string the gate compares are the same object.
+ *
+ * **The expiry is visible and it is real.** The countdown is not decoration:
+ * `store.live()` sweeps expiry every time it is called, and this re-renders
+ * once a second, so a card that has run out stops being offered on screen at
+ * the moment the gate would refuse it. If the timer were removed the card
+ * would linger and Confirm would still refuse, which is safe and confusing;
+ * both halves are here so those cannot disagree.
+ *
+ * **Confirm is not the check.** Every refusal a player can trigger here is
+ * decided in `aiSuggestions.ts` and reported back as a sentence. This
+ * component has no opinion about whether a command may run, which is why
+ * `tools/ai-suggestions-test.mjs` can exercise the whole boundary without
+ * rendering anything at all.
+ */
+function SuggestionCard() {
+  const store = useMemo(() => suggestionStore(), [])
+  const subscribe = useMemo(() => store.subscribe.bind(store), [store])
+  const revision = useMemo(() => store.currentRevision.bind(store), [store])
+  useSyncExternalStore(subscribe, revision, revision)
+
+  // A second hand, so the countdown moves and the sweep inside `live()` runs
+  // on a client where nothing else is happening. An expired card must leave
+  // the screen because it expired, not because something else re-rendered.
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const timer = window.setInterval(() => tick((n) => n + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const [refusal, setRefusal] = useState<string | null>(null)
+  const suggestion = store.live()
+
+  const confirm = useCallback(() => {
+    if (!suggestion) return
+    // The text comes from the record, never from the DOM and never retyped:
+    // if those two could differ, the confirmation would be of something other
+    // than what the player read.
+    const result = store.requestExecution(suggestion.id, {
+      suggestionId: suggestion.id,
+      commandText: suggestion.exactCommand,
+    })
+    setRefusal(result.ok ? null : (result.reason ?? 'it was refused'))
+  }, [store, suggestion])
+
+  const dismiss = useCallback(() => {
+    if (!suggestion) return
+    store.dismiss(suggestion.id, 'dismissed by the player')
+    setRefusal(null)
+  }, [store, suggestion])
+
+  if (!suggestion) return null
+
+  const secondsLeft = Math.max(0, Math.ceil((suggestion.expiresAt - Date.now()) / 1000))
+  const awaiting = suggestion.status === 'awaiting_result'
+
+  return (
+    <div className="space-y-1.5 rounded border border-border bg-surface px-2 py-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs text-ink-faint">Suggested command</span>
+        <span className="text-xs tabular-nums text-ink-faint">
+          {awaiting ? 'sent' : `${secondsLeft}s`}
+        </span>
+      </div>
+
+      {/* Wrapped in its own scroller rather than truncated: a command a player
+          cannot read in full is a command they cannot judge, and the whole
+          point of this card is that they are confirming a literal string. */}
+      <div className="overflow-x-auto">
+        <code className="block whitespace-pre font-mono text-xs text-ink">
+          {suggestion.exactCommand}
+        </code>
+      </div>
+
+      {awaiting ? (
+        <p className="text-xs text-ink-muted leading-snug">
+          Sent. It is resolved by what the game says next, not by the model.
+        </p>
+      ) : (
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            className="rounded border border-border px-2 py-1 text-xs text-ink hover:border-accent hover:text-accent"
+            onClick={confirm}
+          >
+            Confirm
+          </button>
+          <button
+            type="button"
+            className="rounded border border-border px-2 py-1 text-xs text-ink-muted hover:text-ink"
+            onClick={dismiss}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {refusal && <p className="text-xs text-danger leading-snug">Not sent: {refusal}</p>}
+
+      <p className="text-xs text-ink-faint leading-snug">
+        Nothing is sent unless you confirm this exact text, and only while the game state
+        it was based on is still current.
+      </p>
+    </div>
+  )
+}
 
 /**
  * What the local AI worker is doing, and every way it is currently failing.
@@ -68,6 +186,10 @@ export function AiWorkerPanel() {
         <span className="text-xs text-ink-faint">Unreviewed events</span>
         <span className="text-xs tabular-nums text-ink">{status.journalPending}</span>
       </div>
+
+      {/* Above the counters on purpose: it is the only thing on this panel a
+          player is asked to act on, and it expires. */}
+      <SuggestionCard />
 
       {status.pendingAlerts > 0 && (
         <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
@@ -198,10 +320,15 @@ export function AiWorkerPanel() {
         <p className="text-xs text-ink-muted leading-snug">Last attempt: {status.lastFailure}</p>
       )}
 
+      {/* This used to say the worker "cannot send game commands". It still
+          cannot: it writes a proposal down and has no way to send one. What
+          changed is that a proposal can now be confirmed, by you, above - so
+          the sentence says what is actually true rather than a stronger thing
+          that has stopped being true. */}
       <p className="text-xs text-ink-faint leading-snug">
-        The worker reviews changed state and does background research when idle. It cannot
-        send game commands - proposals go through the normal command boundary, and nothing
-        is written to your maps or notes without review.
+        The worker reviews changed state and does background research when idle. It never
+        sends a game command itself: a suggestion is text until you confirm the exact
+        line, and nothing is written to your maps or notes without review.
       </p>
     </div>
   )

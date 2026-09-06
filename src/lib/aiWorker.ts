@@ -50,16 +50,47 @@ import { decideReview } from './aiReviewScheduler.ts'
 /**
  * What a live review is allowed to say.
  *
- * Two fields, both harmless. `notable` is what the model thought worth a
- * person's attention; `question` is the one thing it would like to know. Note
- * what is absent: there is no field for a command, a destination, a target or
- * an action. A model that wants the character to do something has nowhere to
- * put it, which is section 2's "one command path" enforced by the shape of
- * the contract rather than by filtering afterwards.
+ * `notable` is what the model thought worth a person's attention; `question`
+ * is the one thing it would like to know. Both are harmless: they are text a
+ * person reads.
+ *
+ * # The third field, added by G11, and what changed with it
+ *
+ * This comment used to say there was no field for a command, a destination, a
+ * target or an action, and that a model wanting the character to do something
+ * had nowhere to put it. There is one now - `suggestion` - and the sentence is
+ * corrected rather than deleted, because the reason it was written still holds
+ * and now rests somewhere else.
+ *
+ * What has not changed: this module cannot send anything. It has no import
+ * from `gameActions.ts`, `gameCommand.ts` or `gameLink.ts`, and
+ * `tools/ai-worker-test.mjs` still reads this file's source to prove it. A
+ * `suggestion` here becomes a record through `deps.suggestions.create`, which
+ * writes a `pending` row and can send nothing at all. The only thing that
+ * reaches the command boundary is the store's execution gate, and it requires
+ * a human confirmation carrying the literal command text.
+ *
+ * So the shape of the contract is no longer what stops a model reaching the
+ * game; the gate is. That is a weaker structural claim and a stronger tested
+ * one, and it is the whole subject of `tools/ai-suggestions-test.mjs`.
  */
 export interface LiveReview {
   notable: string[]
   question?: string
+  /**
+   * At most one proposed command, or none.
+   *
+   * `command` is what the player is shown and, if they confirm it, what is
+   * sent - byte for byte, with no summary in between. `commandType` is the
+   * class the model declares it to be, and the gate refuses any class its
+   * policy does not admit *and* refuses a command that does not begin with the
+   * verb that class names, so a model cannot widen its own permissions by
+   * mislabelling a command.
+   */
+  suggestion?: {
+    command: string
+    commandType: string
+  }
 }
 
 /**
@@ -73,22 +104,51 @@ export interface LiveReview {
 const LIVE_REVIEW_SCHEMA = `
 
 Reply with one JSON object and nothing else:
-{ "notable": string[], "question"?: string }
+{ "notable": string[], "question"?: string,
+  "suggestion"?: { "command": string, "commandType": string } }
 "notable" holds short phrases worth a person's attention, and may be empty.
-"question" is optional and holds at most one question.`
+"question" is optional and holds at most one question.
+"suggestion" is optional and holds at most one command for the player to
+consider. It is never run automatically: the player is shown the exact text
+and must confirm it. "commandType" must be one of look, assess, appraise,
+analyze, inventory, and "command" must begin with that word.`
 
 /** The validator the schema above describes. Deliberately permissive about
  * extra keys - a model that adds "confidence" has still answered, and
  * discarding a usable review over a field nobody reads would be a worse
- * failure than ignoring it. Strict about the two that are read. */
+ * failure than ignoring it. Strict about the three that are read.
+ *
+ * It checks the *shape* of `suggestion` and nothing about whether the command
+ * may run. That judgment belongs to the gate, which asks it again at the
+ * moment of confirmation with the state version and the clock in hand -
+ * neither of which this validator has, and both of which will have moved by
+ * then. */
 function isLiveReview(value: unknown): value is LiveReview {
   if (typeof value !== 'object' || value === null) return false
-  const v = value as { notable?: unknown; question?: unknown }
+  const v = value as { notable?: unknown; question?: unknown; suggestion?: unknown }
   if (!Array.isArray(v.notable)) return false
   if (!v.notable.every((n) => typeof n === 'string')) return false
   if (v.question !== undefined && typeof v.question !== 'string') return false
+  if (v.suggestion !== undefined) {
+    if (typeof v.suggestion !== 'object' || v.suggestion === null) return false
+    const s = v.suggestion as { command?: unknown; commandType?: unknown }
+    if (typeof s.command !== 'string' || typeof s.commandType !== 'string') return false
+  }
   return true
 }
+
+/**
+ * How long a proposed command stays offerable when the caller names no
+ * lifetime.
+ *
+ * Twenty seconds, which is a guess about how long a DragonRealms room stays
+ * the room it was, and is deliberately short. It is a default rather than a
+ * constant because the honest answer depends on what the character is doing,
+ * and `aiWorkerHost.ts` is where that would eventually be known. Long enough
+ * to read a card and press a button; short enough that walking away from the
+ * keyboard cannot leave one confirmable.
+ */
+export const DEFAULT_SUGGESTION_TTL_MS = 20_000
 
 export interface WorkerDeps {
   journal: EventJournal
@@ -115,6 +175,41 @@ export interface WorkerDeps {
    * module holding a hard reference to one would be the wrong shape.
    */
   claims?: ClaimStore | null
+  /**
+   * Where a proposed command goes, when there is anywhere.
+   *
+   * Structural rather than a `SuggestionStore` import, and it is not for
+   * testability: the store is the only thing in `src/lib/ai*.ts` that can
+   * reach `gameActions.ts`, and a worker holding a real reference to it would
+   * put the command boundary one property access away from a module whose own
+   * tests are built on not being able to reach it. What this interface admits
+   * is `create`, which writes a pending record and sends nothing. There is no
+   * way to name the store's execution gate through it, and the test below
+   * greps this file for that method's name to keep it that way.
+   *
+   * Optional, for the same reason `claims` is: a host that has wired no store
+   * produces no suggestions rather than crashing.
+   */
+  suggestions?: {
+    create(params: {
+      exactCommand: string
+      commandType: string
+      basedOnStateVersion: number
+      expiresAt: number
+      evidenceRefs: string[]
+    }): { ok: boolean; reason?: string; suggestion?: { id: string } }
+  } | null
+  /**
+   * The authoritative state version a suggestion is pinned to, and how long a
+   * proposal stays offerable.
+   *
+   * Both are the caller's, not this module's: the version is a fact about the
+   * app's store and the lifetime is a product decision, and a worker inventing
+   * either would be a worker deciding how stale a command may be before it
+   * reaches a live character.
+   */
+  stateVersion?: number
+  suggestionTtlMs?: number
   /** Resolves evidence refs for the tether validator. */
   evidence?: {
     resolve(refs: readonly string[]): {
@@ -212,6 +307,14 @@ export type WorkerOutcome =
        * schema. `null` covers both "no model answered" and "it answered with
        * prose", which are different failures and are told apart by `result`. */
       review: LiveReview | null
+      /** The record a proposed command became, or null. Never a command: the
+       * text lives in the store, the id is a handle, and only a confirmation
+       * carrying the literal text can move it. */
+      suggestionId: string | null
+      /** Why a proposal did not become a record. Kept separate from
+       * `suggestionId: null` so "the model proposed nothing" and "the proposal
+       * was refused" stay different facts. */
+      suggestionRefused: string | null
     }
   /** A background job was preempted by an alert. */
   | { did: 'preempted'; reason: string; jobId: string; cursorAfter: number }
@@ -707,6 +810,31 @@ export async function runWorkerOnce(
     // failed review has not dealt with the condition that raised it.
     if (result.ok && decision.alertKey) alerts.acknowledge(decision.alertKey)
 
+    // A proposed command becomes a record, and nothing more. `create` refuses
+    // an unusable command, a type that disagrees with it, a proposal with no
+    // provenance, and a second one while another is pending - and it cannot
+    // send anything whether it accepts or refuses. `suggestionRefused` is
+    // carried out so a host can say why nothing appeared, rather than leaving
+    // "the model proposed nothing" and "the proposal was rejected" looking
+    // identical.
+    let suggestionId: string | null = null
+    let suggestionRefused: string | null = null
+    if (review?.suggestion && deps.suggestions) {
+      const proposed = deps.suggestions.create({
+        exactCommand: review.suggestion.command,
+        commandType: review.suggestion.commandType,
+        // `?? 0` and not `|| 0`: version 0 is a real value - it is what a
+        // client that has heard nothing from the game reports, and a
+        // suggestion pinned to it is refused at confirmation, which is the
+        // right answer rather than an accident.
+        basedOnStateVersion: deps.stateVersion ?? 0,
+        expiresAt: deps.now + (deps.suggestionTtlMs ?? DEFAULT_SUGGESTION_TTL_MS),
+        evidenceRefs: read.events.map((e) => `event:${e.seq}`),
+      })
+      if (proposed.ok) suggestionId = proposed.suggestion?.id ?? null
+      else suggestionRefused = proposed.reason ?? 'the suggestion store refused it'
+    }
+
     return {
       did: 'review',
       reason: decision.reason,
@@ -715,6 +843,8 @@ export async function runWorkerOnce(
       cursorAfter: journal.acknowledged(),
       alertKey: decision.alertKey,
       review,
+      suggestionId,
+      suggestionRefused,
     }
   }
 
