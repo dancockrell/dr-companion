@@ -53,6 +53,7 @@ import { isDismissed, dismissNudge, NUDGE_VISIT_THRESHOLD } from '../../lib/pinN
 import { uniqueTaskName, pinTaskSource } from '../../lib/pinTaskGenerator.ts'
 import { listScripts, writeScript } from '../../lib/scriptFiles.ts'
 import { closePanelWindow, openPanelWindow, usePanelWindows } from '../../lib/panelWindows.ts'
+import { isOwnPanelWindow } from '../../lib/windowView.ts'
 
 /**
  * @param plane Fill the height given rather than a fixed box. Set when the map
@@ -105,7 +106,23 @@ export function MapPanel({ plane = false }: { plane?: boolean }) {
   const [tall, setTall] = useState(false)
   const dock = useMapDock()
   const windows = usePanelWindows()
-  const poppedOut = windows.open.includes('map')
+  /*
+   * "The map is in a window that is not this one."
+   *
+   * `usePanelWindows()` answers a different question - does the map have a
+   * window of its own - and it answers it to every webview of the process,
+   * the popped-out window included. So this used to be true *inside* the map
+   * window, and that window rendered the "Bring it back" placeholder whose
+   * whole job is to say the map is somewhere else. Measured on the packaged
+   * app: `?view=panel&id=map` came up reading `MAP - Dan the Bold / Bring it
+   * back / Open in its own window, where it is big enough to watch`, with no
+   * map in it. Nobody had seen otherwise, because until #431 that window
+   * rendered blank white and there was nothing to read.
+   *
+   * `isOwnPanelWindow` is the missing half: the registry says whether such a
+   * window exists, the document says whether it is this one.
+   */
+  const poppedOut = windows.open.includes('map') && !isOwnPanelWindow('map')
 
   // Native lifecycle events reconcile this shared registry after manual close,
   // while command failures retain the last known state and expose Retry.

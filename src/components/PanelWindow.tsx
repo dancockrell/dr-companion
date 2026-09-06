@@ -26,7 +26,25 @@ export function PanelWindow({ id }: { id: PanelId }) {
   }, [connectBridge])
 
   const { layout, cycleDeck } = useLayout(uiMode)
-  const render = PANEL_CONTENT[id]
+  /*
+   * `Object.hasOwn`, not a plain lookup.
+   *
+   * `id` comes from the query string, so it is whatever the URL says, and a
+   * plain `PANEL_CONTENT[id]` reaches `Object.prototype`. Measured against
+   * the dev server, with `?view=panel&id=stats` as the control:
+   *
+   *   stats        the stats panel
+   *   toString     "[object Undefined]" rendered as the window
+   *   constructor  "constructor panel window crashed - Objects are not valid as..."
+   *   valueOf      "valueOf panel window crashed - Cannot convert undefined or..."
+   *   nosuchpanel  "No panel called nosuchpanel."  <- the honest answer
+   *
+   * Only the last one is what any of the four should have done. The Rust
+   * side already refuses these - `valid_panel_id` in `src-tauri/src/lib.rs`
+   * gates `open_panel_window` - but the route is reachable by typing a URL
+   * into the window, so the check has to be on this side of it too.
+   */
+  const render = Object.hasOwn(PANEL_CONTENT, id) ? PANEL_CONTENT[id] : undefined
 
   if (!render) {
     return (

@@ -42,7 +42,7 @@ import {
   CONSOLE_H,
   TOPBAR_H,
 } from './lib/columns.ts'
-import type { PanelId } from './lib/layout'
+import { windowView, type WindowView } from './lib/windowView.ts'
 import { useAppStore } from './store/useAppStore.ts'
 import { installKeybindings } from './lib/keybindings.ts'
 import { requestGameAction } from './lib/gameActions.ts'
@@ -81,21 +81,19 @@ const SetupWizard = lazy(() => import('./components/first-run/SetupWizard.tsx').
 const MAP_WINDOW_ENABLED = false
 
 /**
- * Which window this is.
+ * Which window this is, with the map flag applied.
  *
- * A query parameter rather than a route path, because the bundled app is
- * served from a file, where a path would 404 while working fine under the
- * dev server.
+ * The parsing itself is `windowView` in `src/lib/windowView.ts`. It moved
+ * there because a *panel* also has to ask which document it is in - see that
+ * module's header for the map-panel case that found it. What stays here is
+ * the flag: `MAP_WINDOW_ENABLED` gates this branch and nothing else, so with
+ * it off a `?view=map` document falls through to the app view exactly as
+ * before, rather than the shared parser pretending the route does not exist.
  */
-function view(): { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app' } {
-  if (typeof window === 'undefined') return { kind: 'app' }
-  const q = new URLSearchParams(window.location.search)
-  if (MAP_WINDOW_ENABLED && q.get('view') === 'map') return { kind: 'map' }
-  if (q.get('view') === 'panel') {
-    const id = q.get('id')
-    if (id) return { kind: 'panel', id: id as PanelId }
-  }
-  return { kind: 'app' }
+function view(): WindowView {
+  const v = windowView()
+  if (v.kind === 'map' && !MAP_WINDOW_ENABLED) return { kind: 'app' }
+  return v
 }
 
 /*
