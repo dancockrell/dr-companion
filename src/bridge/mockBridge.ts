@@ -1372,7 +1372,13 @@ export class MockBridge {
         this.emit({ type: 'log', line: 'All automation stopped.' })
         break
       case 'pause':
-        this.character = { ...this.character, activity: 'Paused' }
+        // `pauseLatched` as well as the activity string, so the mock can reach
+        // the "paused, bridge confirmed" branch of `pauseStatus.ts`. A state
+        // the fixture cannot produce is a state nobody sees until a live
+        // bridge is the first place it happens. The other branch - paused with
+        // no confirmation - is what a disconnected mock already produces, and
+        // what every bridge older than 0.13.0 produces for real.
+        this.character = { ...this.character, activity: 'Paused', pauseLatched: true }
         // Paused, and said so per script. The status was always in this payload
         // and the store dropped it, so the mock could not reproduce the one
         // state where "running: combat-loop" is a lie.
@@ -1384,7 +1390,7 @@ export class MockBridge {
         this.emit({ type: 'log', line: 'Automation paused.' })
         break
       case 'resume':
-        this.character = { ...this.character, activity: 'Ready' }
+        this.character = { ...this.character, activity: 'Ready', pauseLatched: false }
         this.emit({
           type: 'scripts',
           payload: this.scripts.map((name) => ({ name, status: 'running' })),

@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.12.0'
+  BRIDGE_VERSION = '0.13.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -668,6 +668,15 @@ module Companion
         # the correct read for "this bridge doesn't have the concept yet",
         # not a state that needs distinguishing from "known and not latched".
         'stopLatched' => safe(false) { Intents.stop_requested? },
+        # The bridge's own answer to "is automation held here?", which is a
+        # different question from the app's own Pause flag and must be able to
+        # disagree with it. The app owns the decision (the Rust lane); this
+        # field is the bridge saying whether it heard it, so the UI can show
+        # "paused, bridge confirmed" and "paused, bridge did not confirm"
+        # rather than one word that covers both. Absent-safe in exactly the
+        # way stopLatched is - an older bridge simply does not send it, and
+        # that is the third state (`unknown`), not a false.
+        'pauseLatched' => safe(false) { Intents.pause_requested? },
         'activity'    => activity,
         'connected'   => true,
         # Liveness. A live socket does not mean a live game: if this clock
@@ -1738,6 +1747,83 @@ module Companion
       @stop_requested = false
     end
 
+    # The Pause latch, beside the Stop latch above and for the same reason
+    # that one exists - with one difference worth stating, because it is the
+    # whole of issue #462.
+    #
+    # `pause_all` below iterates `Script.running` **at the moment it is
+    # called**. That suspends everything already running, and it can say
+    # nothing at all about a script started afterwards. `map_walk` starts
+    # `go2` as its own Lich script, so the sequence "press Pause, then click a
+    # distant tile" put an autonomous traveller on the road *after* the
+    # snapshot was taken, and the character walked across a zone while the app
+    # and the bridge both believed automation was held. The lane on the Rust
+    # side could not see it either: `map_walk` is a bridge intent and never
+    # enters `command_gate`. A snapshot cannot hold what does not exist yet;
+    # only a latch can.
+    #
+    # Cleared by `resume_all` and by nothing else, exactly as `@stop_requested`
+    # is, and for the reason that flag's own note gives: the human decision to
+    # continue is Resume, not the next intent that happens to arrive.
+    #
+    # # Why pausing an in-flight go2 really stops the character
+    #
+    # `pause_all` calls `Script.pause(name)`, which sets that script's
+    # `@paused` (Lich `lib/common/script.rb:2722`). The flag is enforced inside
+    # `Script.current` - `sleep 0.2 while script.paused? and not
+    # script.ignore_pause` (`lib/common/script.rb:1026`) - and every Lich API a
+    # walker uses to send a movement command resolves the current script first,
+    # so a paused go2 blocks between rooms instead of finishing its route.
+    # go2 relies on exactly this itself: it calls `pause_script` when it wants
+    # to hold before a destination and tells the player "To go here, unpause
+    # the script" (`go2.lic:2236-2237`, `:2299-2300`), so suspend-and-continue
+    # is the mechanism go2 was written for rather than one imposed on it from
+    # outside. Resume therefore continues the route rather than cancelling it,
+    # which is also what a player means: a route paused half way through town
+    # is a route they intend to finish. Stop is the control that cancels it -
+    # `stop_all` kills by name whether or not the script is paused
+    # (`Script.kill`, `lib/common/script.rb:1358`).
+    @pause_requested = false
+
+    def request_pause!
+      @pause_requested = true
+    end
+
+    def pause_requested?
+      @pause_requested
+    end
+
+    def clear_pause!
+      @pause_requested = false
+    end
+
+    # Every intent that starts something autonomous, with the sentence it
+    # refuses with while Pause is latched.
+    #
+    # A hash rather than the same check written out three times, because the
+    # set is the thing worth being able to enumerate:
+    # `tools/pause-reaches-travel-test.mjs` derives the population of movers
+    # from this file's own HANDLERS table and fails when a handler that starts
+    # a Lich script, or sends commands the player supplied, is not in this
+    # hash. A new mover added without a pause check goes red rather than
+    # quietly shipping the same gap again.
+    #
+    # `install_mapdb` is deliberately absent and declared exempt there: it
+    # starts a download, which moves nothing and sends no game command.
+    PAUSE_HELD = {
+      'map_walk'     => 'Paused - press Resume before travelling.',
+      'run_macro'    => 'Paused - press Resume before running a macro.',
+      'start_script' => 'Paused - press Resume before starting a script.'
+    }.freeze
+
+    # nil when nothing is held, so a caller reads as `if (held = ...)` and each
+    # refusal carries its own sentence rather than one vague shared one.
+    def pause_refusal(intent)
+      return nil unless pause_requested?
+
+      [false, PAUSE_HELD.fetch(intent, 'Paused - press Resume.')]
+    end
+
     # serve() now spawns a thread per incoming message (see below), so two
     # intents can genuinely be mid-flight at once. Everything that sends a
     # game command queues behind CMD_LOCK instead of interleaving with
@@ -1932,6 +2018,14 @@ module Companion
         return [false, 'Stop is still latched - press Resume before travelling.']
       end
 
+      # And the same for Pause, which had no latch at all until #462. Stop and
+      # Pause are the two safety controls in the same bar; a travel click that
+      # obeys one and not the other is the harder failure to explain, because
+      # the player did press something and it did report success.
+      if (held = pause_refusal('map_walk'))
+        return held
+      end
+
       return no_map unless MapInfo.available?
 
       dest = (args.is_a?(Hash) ? args['to'] : args).to_i
@@ -2088,6 +2182,12 @@ module Companion
       # Resume is the decision; this is not.
       if stop_requested?
         return [false, 'Stop is still latched - press Resume before starting a script.']
+      end
+
+      # Pause, likewise. A script started while automation is held is the same
+      # hole map_walk had: `pause_all`'s snapshot was taken before it existed.
+      if (held = pause_refusal('start_script'))
+        return held
       end
 
       name = args.is_a?(Hash) ? args['name'].to_s : args.to_s
@@ -2595,6 +2695,11 @@ module Companion
     end
 
     def pause_all(server)
+      # Latched first, before the snapshot below and before anything can be
+      # started in the meantime. The snapshot holds what is running; the latch
+      # is what holds what has not started yet - see @pause_requested.
+      request_pause!
+
       paused = []
       me = State.safe(nil) { Script.current.name }
       State.safe([]) { Script.running }.each do |s|
@@ -2613,6 +2718,10 @@ module Companion
       # above: resuming is the human decision that means "continue", not the
       # next run_macro/stow_all that happens to arrive.
       clear_stop!
+      # And the one place a latched Pause clears. Unpausing the scripts below
+      # continues an in-flight route; clearing the latch is what lets a new
+      # travel click, macro or script start be accepted again.
+      clear_pause!
       reset_macro_flight!
       resumed = []
       me = State.safe(nil) { Script.current.name }
@@ -2679,6 +2788,14 @@ module Companion
       if stop_requested?
         server.log('Macro refused: Stop is latched. Press Resume first.', 'warn')
         return [false, 'stopped — press Resume']
+      end
+
+      # Pause holds a macro for the same reason, and refuses it outright for
+      # the reason the paragraph above gives: "held" and "stopped after 0 of N"
+      # are different events and ok:true made them read identically.
+      if (held = pause_refusal('run_macro'))
+        server.log('Macro refused: automation is paused. Press Resume first.', 'warn')
+        return held
       end
 
       ran = 0
@@ -2880,6 +2997,12 @@ module Companion
                     # send it at all; present-and-not-listed is the honest
                     # "not implemented", never inferred from absence.
                     implementedIntents: Intents.implemented_intents)
+      # The pause latch is deliberately NOT on this frame, though the first
+      # draft of #462 put it here. The line below sends a full status on the
+      # same socket immediately, and that status carries `pauseLatched`, so a
+      # copy here would be a second answer to one question arriving one frame
+      # earlier - with nothing reading it, which is the "field nobody reads"
+      # defect this project has paid for before. One source: status.
       send_to(sock, type: 'status', payload: State.status)
       send_to(sock, type: 'inventory', payload: State.inventory)
       send_to(sock, type: 'scripts', payload: State.other_scripts)

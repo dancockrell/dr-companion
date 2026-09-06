@@ -41,6 +41,8 @@ import type { PresentationIntentEvent } from './presentationTypes.ts'
 import { requestGameAction } from './gameActions.ts'
 import { bridge } from '../bridge/index.ts'
 import { listenTauri } from './tauri.ts'
+import { isAutomationPaused } from './flowStop.ts'
+import { PAUSED_TRAVEL_REFUSAL } from './pauseStatus.ts'
 
 /**
  * Wires the event to the command pipeline. Returns an unsubscribe function.
@@ -51,7 +53,15 @@ import { listenTauri } from './tauri.ts'
  * `usePresentationBridgePublisher` takes an `enabled` flag instead of being
  * called conditionally.
  */
-export function subscribePresentationIntents(): () => void {
+export function subscribePresentationIntents(
+  /**
+   * Where a refusal is reported. The app passes the store's `addLog`, so a
+   * player who clicks a tile while paused reads the reason in the log instead
+   * of watching a button do nothing. Defaults to the console so a caller
+   * without a store - and every test - still gets the sentence somewhere.
+   */
+  report: (line: string) => void = (line) => console.info(line)
+): () => void {
   return listenTauri<PresentationIntentEvent>('presentation:intent', (event) => {
     const intent = event ?? {}
 
@@ -62,6 +72,17 @@ export function subscribePresentationIntents(): () => void {
     // than a second surface of its own.
     const travelTo = travelTargetForIntent(intent)
     if (travelTo !== null) {
+      // Refused here, before the intent leaves this process, when the player
+      // has paused automation. The bridge refuses it too (#462 put a Pause
+      // latch beside its Stop latch, and that is the check that matters when
+      // an older client or another window skips this one) - this half exists
+      // so the app can say *why* without a round trip, in the bridge's own
+      // words. A viewer tile click is a button, and a button that silently
+      // does nothing is the failure #462 is about wearing the other face.
+      if (isAutomationPaused()) {
+        report(PAUSED_TRAVEL_REFUSAL)
+        return
+      }
       bridge.requestIntent('map_walk', { to: travelTo })
       return
     }

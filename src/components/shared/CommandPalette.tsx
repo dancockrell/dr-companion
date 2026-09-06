@@ -136,7 +136,10 @@ function buildCommands(deps: {
       hint: 'Hold automation where it is',
       group: 'Safety',
       run: () => {
-        deps.requestIntent('pause')
+        // The bridge intent is not sent here. `requestPauseAll` fires the
+        // signal `bridgePauseRelay.ts` subscribes to, so Pause has one sender
+        // and a caller cannot reach the Rust lane while forgetting the half
+        // that holds travel. See #462.
         requestPauseAll()
       },
     },
@@ -146,7 +149,6 @@ function buildCommands(deps: {
       hint: 'Carry on from where it paused',
       group: 'Safety',
       run: () => {
-        deps.requestIntent('resume')
         requestResumeAll()
       },
     },

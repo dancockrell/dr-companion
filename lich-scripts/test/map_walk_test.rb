@@ -239,5 +239,33 @@ fails += 1 unless check('go2 started', FakeScriptRegistry.start_calls == [['go2'
                         FakeScriptRegistry.start_calls.inspect)
 
 puts ''
+puts '-- and a latched Pause refuses one too (#462) --'
+# Stop and Pause are the two safety controls in the same footer, and until
+# #462 this intent answered only one of them. `pause_all` snapshots
+# `Script.running`, so a go2 started after Pause was never in that list and
+# the character walked a whole zone while the app showed automation as held.
+# pause_test.rb owns the wider behaviour (a route already under way, Resume,
+# Stop while paused); this case lives here because map_walk is the intent that
+# was wrong, and its own test is where the next edit to it will look.
+reset!(1)
+StubMap.routes[[1, 4]] = [3, 4]
+FakeScriptRegistry.installed['go2'] = true
+I.request_pause!
+r = I.map_walk(4, FakeServer.new)
+fails += 1 unless check('refused while Pause is latched', r[0] == false, r[1])
+fails += 1 unless check('go2 was never started', FakeScriptRegistry.start_calls.empty?,
+                        FakeScriptRegistry.start_calls.inspect)
+fails += 1 unless check('the refusal names Resume', r[1].to_s.downcase.include?('resume'), r[1])
+
+reset!(1)
+StubMap.routes[[1, 4]] = [3, 4]
+FakeScriptRegistry.installed['go2'] = true
+I.clear_pause!
+r = I.map_walk(4, FakeServer.new)
+fails += 1 unless check('walks after Resume clears the pause latch', r[0] == true, r[1])
+fails += 1 unless check('go2 started', FakeScriptRegistry.start_calls == [['go2', ['4']]],
+                        FakeScriptRegistry.start_calls.inspect)
+
+puts ''
 puts(fails.zero? ? 'all passed' : "#{fails} FAILED")
 exit(fails.zero? ? 0 : 1)

@@ -43,7 +43,15 @@ import {
   type CommandLaneStatus,
 } from '../../lib/commandLane.ts'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
-import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop.ts'
+import {
+  requestStopAll,
+  requestPauseAll,
+  requestResumeAll,
+  onPauseAll,
+  onResumeAll,
+  isAutomationPaused,
+} from '../../lib/flowStop.ts'
+import { pauseStatus } from '../../lib/pauseStatus.ts'
 import { MusicTransport } from '../game/MusicTransport.tsx'
 import { isLowHealth } from '../../lib/vitals.ts'
 import { requestOpenSoundPanel } from '../../lib/soundPanelOpen.ts'
@@ -117,6 +125,32 @@ export function SafetyFooter() {
    */
   const [lane, setLane] = useState<CommandLaneStatus>(() => commandLaneStatus())
   useEffect(() => onCommandLane(setLane), [])
+
+  /**
+   * Whether Pause is on, and whether the bridge agrees.
+   *
+   * Two halves that can disagree, which is issue #462: the Rust lane holds
+   * every command it can see, and it cannot see travel - `map_walk` starts
+   * `go2` inside Lich and never enters the lane. So this reads three states,
+   * never two, and `pauseStatus.ts` owns the classification.
+   *
+   * Subscribed rather than read once: `requestPauseAll` is also reachable from
+   * the Command Palette, and this bar has to show a pause it did not press.
+   */
+  const [appPaused, setAppPaused] = useState(() => isAutomationPaused())
+  useEffect(() => {
+    const offPause = onPauseAll(() => setAppPaused(true))
+    const offResume = onResumeAll(() => setAppPaused(false))
+    return () => {
+      offPause()
+      offResume()
+    }
+  }, [])
+  const pause = pauseStatus({
+    appPaused,
+    bridgeConnected,
+    bridgePauseLatched: character?.pauseLatched,
+  })
 
   const lowHealth = isLowHealth(character)
   const inCombat = character?.situation.includes('in_combat') ?? false
@@ -202,9 +236,12 @@ export function SafetyFooter() {
         )}
         title="Hold automation where it is"
         onClick={() => {
-          requestIntent('pause')
-          // Same gap as Stop all had: the bridge pauses its own scripts, but
-          // a client-side Task Flow's timer never heard "pause" at all.
+          // One call, three effects: the local Task Flow timer (whose own
+          // schedule never heard "pause" until this signal existed), the Rust
+          // command lane, and - through `bridgePauseRelay.ts` - the bridge,
+          // which owns the travel and script starts the lane cannot see. The
+          // The bridge intent that used to be sent from here by hand moved
+          // into that relay, so Pause has exactly one sender. See #462.
           requestPauseAll()
         }}
       >
@@ -219,7 +256,6 @@ export function SafetyFooter() {
         )}
         title="Carry on from where it paused"
         onClick={() => {
-          requestIntent('resume')
           requestResumeAll()
         }}
       >
@@ -284,6 +320,25 @@ export function SafetyFooter() {
             title="Nothing reaches Lich while the bridge is down. Stop scripts in Lich itself."
           >
             Bridge down
+          </span>
+        )}
+
+        {/* Pause, in three states rather than two. Shown only while paused:
+            "Running" as a permanent badge would be furniture, and the one
+            reading worth a player's attention is the unconfirmed one, where
+            this app is holding what it can hold and something that can move
+            the character has not said it heard. */}
+        {pause.state !== 'running' && (
+          <span
+            className={cn(
+              'shrink-0 rounded border px-1.5 py-0.5 font-semibold',
+              pause.state === 'paused-confirmed'
+                ? 'border-border bg-surface-overlay text-ink-muted'
+                : 'border-warn/40 bg-warn/15 text-warn'
+            )}
+            title={pause.detail}
+          >
+            {pause.label}
           </span>
         )}
 

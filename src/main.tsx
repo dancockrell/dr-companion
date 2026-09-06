@@ -6,6 +6,7 @@ import { loadArtManifest } from './lib/creatureArt.ts'
 import { loadPlayerArtManifest } from './lib/playerArt.ts'
 import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults.ts'
 import { loadPortraitManifest } from './lib/portraits.ts'
+import { installBridgePauseRelay } from './lib/bridgePauseRelay.ts'
 import App from './App.tsx'
 
 // Before the first render, so a scaled interface does not visibly reflow.
@@ -22,6 +23,13 @@ void loadNpcDefaultManifest()
 // comment for why it is always asked second, never first.
 void loadBulkNpcManifest()
 void loadPortraitManifest()
+
+// Pause has a second half the Rust lane cannot reach - travel and script
+// starts happen inside Lich, never in `command_gate` - so the bridge has to
+// hear it too. Subscribed once per window here rather than at each button, so
+// a new caller of `requestPauseAll` cannot forget it. See bridgePauseRelay.ts
+// and issue #462.
+installBridgePauseRelay()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

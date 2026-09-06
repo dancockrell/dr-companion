@@ -97,7 +97,7 @@ one of our releases would be a second, worse, staler answer.
 | Intent | Meaning |
 |--------|---------|
 | `stop_all` | Emergency / full stop of Companion-driven scripts |
-| `pause` / `resume` | Pause automation |
+| `pause` / `resume` | Pause automation — **latching**, see below |
 | `go_healer` | **Capability-aware** heal path (not “closest only”) |
 | `town_run` | Heal → sell/deposit → basic chores |
 | `start_training` | Conservative attended training routine |
@@ -105,6 +105,52 @@ one of our releases would be a second, worse, staler answer.
 | `buffs` | Buff routine |
 | `escape` | Emergency exit to safety |
 | `stow_all` | Stow loose items per rules |
+
+### Pause is latched, not only a snapshot (bridge 0.13.0)
+
+`pause` used to mean one thing: pause every script in `Script.running` **at the
+moment the intent arrives**. That is the right thing to do to a route already
+under way, and it says nothing at all about one started afterwards. `map_walk`
+starts Lich's `go2` as its own script, so pressing Pause and then clicking a
+distant tile put an autonomous traveller on the road after the snapshot was
+taken — and travel never enters the client's own command lane either, because
+it is a bridge intent rather than a game command. Issue #462.
+
+So `pause` now also **latches** (`Intents.@pause_requested`), exactly as
+`stop_all` does, and `resume` is the only thing that clears it. While it is up:
+
+| Intent | While paused |
+|---|---|
+| `map_walk` | refused: *Paused - press Resume before travelling.* |
+| `run_macro` | refused: *Paused - press Resume before running a macro.* |
+| `start_script` | refused: *Paused - press Resume before starting a script.* |
+| anything read-only | unaffected |
+| `install_mapdb` | unaffected — it starts a download, not a walker |
+
+A route already walking is **suspended, not cancelled**: `Script.pause` sets the
+script's `@paused`, Lich blocks the script inside `Script.current`
+(`lib/common/script.rb:1026`), and `resume` unpauses it so the character
+finishes the route it was on. Cancelling is what `stop_all` is for, and it
+reaches a paused script too (`Script.kill` matches by name regardless).
+
+**`status.pauseLatched`** reports the latch back — on `status` only, and not on
+`hello`, because a client is sent a full `status` on the same socket immediately
+after `hello`, so a copy on the greeting would be one question with two answers.
+The client reads the field and its own pause flag as three states, not two:
+
+- **field absent** (a bridge older than 0.13.0) → the app is paused and nothing
+  has confirmed the bridge is holding travel. Shown as *paused, bridge did not
+  confirm*. It must **not** render as confirmed: that bridge has no latch, so a
+  tile click really can still start a walk.
+- **`false`** → same reading. The bridge is there and is not holding.
+- **`true`** → *paused, bridge confirmed*.
+
+Same shape as `auth`/`implementedIntents` on the `hello` frame, and for the same
+reason. `tools/pause-reaches-travel-test.mjs` derives the set of intents that
+must be held from the bridge's own `HANDLERS` table, so a new intent that starts
+a script or sends player-supplied commands fails the build unless it is in the
+refusal set; `tools/pause-reaches-travel-break-check.mjs` breaks the latch three
+ways and requires named checks to go red.
 
 ---
 
