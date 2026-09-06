@@ -20,13 +20,20 @@ fn main() {
 
         println!("-- happy path --");
         let mut last = 0u64;
-        match dr_companion_lib::setup::download_verified(url, good, &dest_s, |r, t| {
-            if r - last > 400_000 {
-                last = r;
-                println!("   {r}/{t}");
-            }
-        })
+        match dr_companion_lib::setup::download_verified(
+            url,
+            good,
+            &dest_s,
+            &dr_companion_lib::setup::NEVER_CANCELLED,
+            |r, t| {
+                if r - last > 400_000 {
+                    last = r;
+                    println!("   {r}/{t}");
+                }
+            },
+        )
         .await
+        .and_then(dr_companion_lib::setup::DownloadOutcome::finished)
         {
             Ok(res) => println!(
                 "OK  {} bytes, sha256 {}, verified={}",
@@ -41,8 +48,15 @@ fn main() {
         println!("-- bad checksum is rejected --");
         let bad_dest = std::env::temp_dir().join("drc-test-bad.zip");
         let bad_s = bad_dest.to_string_lossy().to_string();
-        match dr_companion_lib::setup::download_verified(url, &"0".repeat(64), &bad_s, |_, _| {})
-            .await
+        match dr_companion_lib::setup::download_verified(
+            url,
+            &"0".repeat(64),
+            &bad_s,
+            &dr_companion_lib::setup::NEVER_CANCELLED,
+            |_, _| {},
+        )
+        .await
+        .and_then(dr_companion_lib::setup::DownloadOutcome::finished)
         {
             Ok(_) => {
                 println!("FAIL: accepted a bad checksum");
@@ -60,9 +74,11 @@ fn main() {
             "https://example.com/evil.exe",
             "",
             &bad_s,
+            &dr_companion_lib::setup::NEVER_CANCELLED,
             |_, _| {},
         )
         .await
+        .and_then(dr_companion_lib::setup::DownloadOutcome::finished)
         {
             Ok(_) => {
                 println!("FAIL: fetched from an unexpected host");

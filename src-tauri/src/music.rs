@@ -29,7 +29,8 @@
 
 use crate::setup::app_data_dir;
 use crate::setup::downloads::{
-    allowed_by, download_verified_from, emit_setup_progress, ALLOWED_DOWNLOAD_PREFIXES,
+    allowed_by, download_verified_from, emit_setup_progress, DownloadOutcome,
+    ALLOWED_DOWNLOAD_PREFIXES,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -39,6 +40,11 @@ use tauri::AppHandle;
 /// Set by `cancel_music_install`, cleared when an install starts. A whole
 /// library is a long download and a player who changes their mind should not
 /// have to kill the app.
+///
+/// This one flag is now read in two places rather than one: between tracks
+/// here, and after every chunk inside `download_verified_from`, which takes
+/// it as a parameter. Not a second flag - the same one, passed down - so
+/// there is nothing for a Cancel to hit one of and miss the other.
 static CANCELLED: AtomicBool = AtomicBool::new(false);
 
 /// One manifest entry, as the frontend sends it. `bytes` and `sha256` come
@@ -348,6 +354,7 @@ pub async fn install_music_library(
         &tracks,
         free,
         &ALLOWED_DOWNLOAD_PREFIXES,
+        &CANCELLED,
         move |received, total, phase| {
             emit_setup_progress(&progress_app, "music", received, total, phase);
         },
@@ -355,8 +362,8 @@ pub async fn install_music_library(
     .await
 }
 
-/// The body of `install_music_library`, with the disk, the allowlist and the
-/// free-space answer as parameters.
+/// The body of `install_music_library`, with the disk, the allowlist, the
+/// free-space answer and the cancel flag as parameters.
 ///
 /// Same reasoning as `download_verified_from`'s allowlist seam: the refusal
 /// and the resume are the two things #402 is about, and neither can be reached
@@ -364,17 +371,24 @@ pub async fn install_music_library(
 /// through `install_music_library`, which supplies the real music directory,
 /// the real allowlist and a real `GetDiskFreeSpaceExW`; nothing here reads an
 /// environment variable, so the seam cannot be opened at run time.
+///
+/// `cancel` is the same flag `cancel_music_install` sets: shipping goes
+/// through `install_music_library`, which passes `&CANCELLED`. It is a
+/// parameter rather than a read of the static so a test can cancel one
+/// install without reaching into a process-wide flag two other tests in the
+/// same binary are also using.
 pub(crate) async fn install_into(
     dir: &Path,
     tracks: &[MusicTrack],
     free: Option<u64>,
     allowed: &[&str],
+    cancel: &AtomicBool,
     mut on_progress: impl FnMut(u64, u64, &str),
 ) -> Result<MusicInstallResult, String> {
     if tracks.is_empty() {
         return Err("nothing to install: the track list was empty".into());
     }
-    CANCELLED.store(false, Ordering::SeqCst);
+    cancel.store(false, Ordering::SeqCst);
 
     // Every check first, so a bad entry stops the run before any bytes move
     // rather than 140 tracks in.
@@ -404,7 +418,7 @@ pub(crate) async fn install_into(
             installed += 1;
             continue;
         }
-        if CANCELLED.load(Ordering::SeqCst) {
+        if cancel.load(Ordering::SeqCst) {
             on_progress(done_bytes, total_bytes, "cancelled");
             return Ok(MusicInstallResult {
                 installed,
@@ -414,17 +428,31 @@ pub(crate) async fn install_into(
             });
         }
         let base = done_bytes;
-        download_verified_from(
+        let outcome = download_verified_from(
             &track.download,
             &track.sha256,
             &path.to_string_lossy(),
             allowed,
+            cancel,
             |received, _| {
                 on_progress(base + received, total_bytes, "downloading");
             },
         )
         .await
         .map_err(|error| format!("{}: {error}", track.file))?;
+        if let DownloadOutcome::Cancelled { bytes } = outcome {
+            // Stopped part-way through this file. What it wrote is a
+            // resumable prefix, so the group reports partial with a Resume
+            // rather than failed - and the count is what is really on disk,
+            // not the whole track's weight.
+            on_progress(base + bytes, total_bytes, "cancelled");
+            return Ok(MusicInstallResult {
+                installed,
+                total: tracks.len(),
+                bytes: base + bytes,
+                cancelled: true,
+            });
+        }
         done_bytes = base + track.bytes;
         installed += 1;
     }
@@ -434,10 +462,12 @@ pub(crate) async fn install_into(
     // Cancel pressed during the *last* track was never seen: the loop checks
     // before each download and there is no iteration after the final one, so
     // the person pressed Cancel and the app said it had completed normally.
-    // Cancel still only takes effect between files - stopping mid-file needs
-    // `download_verified` to take a cancellation token, which is #402's own
-    // item and is not this change.
-    let cancelled = CANCELLED.load(Ordering::SeqCst);
+    // Cancel now also takes effect *inside* a file - `download_verified_from`
+    // takes this same flag and checks it per chunk - so the loop above can
+    // return part-way through a track. This last read still matters for the
+    // case that has no iteration left to catch it: a Cancel pressed after the
+    // final chunk was written and before the rename finished.
+    let cancelled = cancel.load(Ordering::SeqCst);
     on_progress(
         done_bytes,
         total_bytes,
@@ -455,7 +485,7 @@ pub(crate) async fn install_into(
 mod tests {
     use super::*;
     use crate::setup::download_verified;
-    use crate::setup::downloads::download_verified_from;
+    use crate::setup::downloads::{download_verified_from, NEVER_CANCELLED};
     use sha2::{Digest, Sha256};
     use std::io::{Read, Write};
     use std::net::TcpListener;
@@ -720,6 +750,7 @@ mod tests {
             &wrong,
             &dest.to_string_lossy(),
             &["http://127.0.0.1:"],
+            &NEVER_CANCELLED,
             |_, _| {},
         )
         .await
@@ -741,18 +772,27 @@ mod tests {
             &right,
             &dest.to_string_lossy(),
             &["http://127.0.0.1:"],
+            &NEVER_CANCELLED,
             |_, _| {},
         )
         .await
-        .expect("a matching body installs");
+        .expect("a matching body installs")
+        .finished()
+        .expect("a matching body was not cancelled");
         assert_eq!(ok.bytes, body.len() as u64);
         assert!(dest.exists());
 
         // And the seam is not a hole: the shipping allowlist refuses the very
         // URL the test just used.
-        let refused = download_verified(&url, &right, &dest.to_string_lossy(), |_, _| {})
-            .await
-            .expect_err("loopback must not be reachable through the real allowlist");
+        let refused = download_verified(
+            &url,
+            &right,
+            &dest.to_string_lossy(),
+            &NEVER_CANCELLED,
+            |_, _| {},
+        )
+        .await
+        .expect_err("loopback must not be reachable through the real allowlist");
         assert!(refused.contains("unexpected host"), "{refused}");
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -775,6 +815,16 @@ mod tests {
         NoRange,
         /// Announces `announce` bytes and sends `send` of them, then hangs up.
         Truncated { announce: usize, send: usize },
+        /// Honours `Range` like `Ranged`, but hands the body over in
+        /// `chunk`-sized pieces with a pause between them.
+        ///
+        /// A cancel that is meant to land *inside* a file needs a file that
+        /// arrives in more than one piece: against a server that writes 20 kB
+        /// in one go the client sees a single chunk and there is no mid-file
+        /// to stop in, so a test would pass whether or not the flag were ever
+        /// read. This is the only mode that can be stopped part-way, which is
+        /// exactly what makes it the one worth cancelling.
+        Slow { chunk: usize },
     }
 
     /// The first byte a request asked to continue from, if it asked at all.
@@ -790,17 +840,57 @@ mod tests {
         None
     }
 
-    /// Serve `body` `connections` times, and hand back the URL and the log of
-    /// request heads the server actually received.
+    /// Hand `bytes` to the socket in `chunk`-sized pieces, pausing between
+    /// them, and count what got through.
+    ///
+    /// The count stops the moment a write fails, which is how a client that
+    /// walked away is visible from the server's side: with 1 MB still to send
+    /// and a socket buffer far smaller, a client that hung up cannot leave
+    /// this at the full length. That is the denominator for "the request
+    /// stopped" - without it, a cancelled download and a completed one that
+    /// merely wrote a short `.part` would look the same from here.
+    fn send_body(
+        stream: &mut std::net::TcpStream,
+        bytes: &[u8],
+        chunk: usize,
+        pause: std::time::Duration,
+        served: &Arc<std::sync::atomic::AtomicU64>,
+    ) {
+        for piece in bytes.chunks(chunk.max(1)) {
+            if stream.write_all(piece).is_err() {
+                return;
+            }
+            served.fetch_add(piece.len() as u64, Ordering::SeqCst);
+            if !pause.is_zero() {
+                if stream.flush().is_err() {
+                    return;
+                }
+                std::thread::sleep(pause);
+            }
+        }
+    }
+
+    /// Serve `body` `connections` times, and hand back the URL, the log of
+    /// request heads the server actually received, and how many body bytes it
+    /// got through.
     fn serve_mode(
         mode: Mode,
         body: Vec<u8>,
         connections: usize,
-    ) -> (String, Arc<Mutex<Vec<String>>>) {
+    ) -> (
+        String,
+        Arc<Mutex<Vec<String>>>,
+        Arc<std::sync::atomic::AtomicU64>,
+    ) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let port = listener.local_addr().unwrap().port();
         let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let sink = log.clone();
+        let served: Arc<std::sync::atomic::AtomicU64> =
+            Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let counter = served.clone();
+        let whole = body.len().max(1);
+        let none = std::time::Duration::ZERO;
         std::thread::spawn(move || {
             for _ in 0..connections {
                 let Ok((mut stream, _)) = listener.accept() else {
@@ -819,7 +909,13 @@ mod tests {
                                 .as_bytes(),
                         );
                         let end = (start + send).min(body.len());
-                        let _ = stream.write_all(&body[start.min(body.len())..end]);
+                        send_body(
+                            &mut stream,
+                            &body[start.min(body.len())..end],
+                            whole,
+                            none,
+                            &counter,
+                        );
                     }
                     Mode::NoRange => {
                         let _ = stream.write_all(
@@ -829,13 +925,20 @@ mod tests {
                             )
                             .as_bytes(),
                         );
-                        let _ = stream.write_all(&body);
+                        send_body(&mut stream, &body, whole, none, &counter);
                     }
-                    Mode::Ranged => match asked {
-                        Some(start) if (start as usize) < body.len() => {
-                            let start = start as usize;
-                            let rest = &body[start..];
-                            let _ = stream.write_all(
+                    // `Slow` *is* `Ranged` with a pace, rather than a second
+                    // copy of the range handling that could drift from it.
+                    Mode::Ranged | Mode::Slow { .. } => {
+                        let (chunk, pause) = match mode {
+                            Mode::Slow { chunk } => (chunk, std::time::Duration::from_millis(2)),
+                            _ => (whole, none),
+                        };
+                        match asked {
+                            Some(start) if (start as usize) < body.len() => {
+                                let start = start as usize;
+                                let rest = &body[start..];
+                                let _ = stream.write_all(
                                 format!(
                                     "HTTP/1.1 206 Partial Content\r\nContent-Length: {}\r\nAccept-Ranges: bytes\r\nContent-Range: bytes {}-{}/{}\r\n\r\n",
                                     rest.len(),
@@ -845,29 +948,30 @@ mod tests {
                                 )
                                 .as_bytes(),
                             );
-                            let _ = stream.write_all(rest);
-                        }
-                        Some(_) => {
-                            let _ = stream.write_all(
+                                send_body(&mut stream, rest, chunk, pause, &counter);
+                            }
+                            Some(_) => {
+                                let _ = stream.write_all(
                                 b"HTTP/1.1 416 Range Not Satisfiable\r\nContent-Length: 0\r\n\r\n",
                             );
-                        }
-                        None => {
-                            let _ = stream.write_all(
+                            }
+                            None => {
+                                let _ = stream.write_all(
                                 format!(
                                     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nAccept-Ranges: bytes\r\n\r\n",
                                     body.len()
                                 )
                                 .as_bytes(),
                             );
-                            let _ = stream.write_all(&body);
+                                send_body(&mut stream, &body, chunk, pause, &counter);
+                            }
                         }
-                    },
+                    }
                 }
                 let _ = stream.flush();
             }
         });
-        (format!("http://127.0.0.1:{port}/track.ogg"), log)
+        (format!("http://127.0.0.1:{port}/track.ogg"), log, served)
     }
 
     const LOOPBACK: [&str; 1] = ["http://127.0.0.1:"];
@@ -889,7 +993,7 @@ mod tests {
         let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), 20_000);
         let dest = track_path(&dir, &t.file).unwrap();
 
-        let (url, log) = serve_mode(
+        let (url, log, _served) = serve_mode(
             Mode::Truncated {
                 announce: body.len(),
                 send: 4_096,
@@ -902,6 +1006,7 @@ mod tests {
             &t.sha256,
             &dest.to_string_lossy(),
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |_, _| {},
         )
         .await
@@ -953,13 +1058,14 @@ mod tests {
         std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
         std::fs::write(&part, &body[..4_096]).unwrap();
 
-        let (url, log) = serve_mode(Mode::Ranged, body.clone(), 1);
+        let (url, log, _served) = serve_mode(Mode::Ranged, body.clone(), 1);
         let mut first_progress = None;
         let result = download_verified_from(
             &url,
             &t.sha256,
             &dest.to_string_lossy(),
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |received, total| {
                 if first_progress.is_none() {
                     first_progress = Some((received, total));
@@ -967,7 +1073,9 @@ mod tests {
             },
         )
         .await
-        .expect("a resumed download verifies");
+        .expect("a resumed download verifies")
+        .finished()
+        .expect("a resumed download was not cancelled");
 
         // The server saw the continuation, and saw it at the right byte. This
         // is the assertion that separates a resume from a restart that
@@ -1004,16 +1112,19 @@ mod tests {
         // is the only way to tell a restart from an append.
         std::fs::write(&part, vec![0xEEu8; 4_096]).unwrap();
 
-        let (url, log) = serve_mode(Mode::NoRange, body.clone(), 1);
+        let (url, log, _served) = serve_mode(Mode::NoRange, body.clone(), 1);
         let result = download_verified_from(
             &url,
             &t.sha256,
             &dest.to_string_lossy(),
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |_, _| {},
         )
         .await
-        .expect("a restart verifies");
+        .expect("a restart verifies")
+        .finished()
+        .expect("a restart was not cancelled");
 
         // It did ask - the seam is not simply never sending a Range header -
         // and the server declined, and the file is still right.
@@ -1039,12 +1150,13 @@ mod tests {
         // take: leaving it would be a wrong file sitting under the right name.
         std::fs::write(&dest, b"stale").unwrap();
 
-        let (url, log) = serve_mode(Mode::Ranged, corrupted, 1);
+        let (url, log, _served) = serve_mode(Mode::Ranged, corrupted, 1);
         let error = download_verified_from(
             &url,
             &t.sha256,
             &dest.to_string_lossy(),
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |_, _| {},
         )
         .await
@@ -1089,7 +1201,7 @@ mod tests {
     async fn an_install_with_too_little_room_refuses_before_a_single_request() {
         let dir = scratch("space");
         let body = body_of(20_000);
-        let (url, log) = serve_mode(Mode::Ranged, body.clone(), 2);
+        let (url, log, _served) = serve_mode(Mode::Ranged, body.clone(), 2);
         let t = track(
             "radio/a.ogg",
             &url,
@@ -1104,6 +1216,7 @@ mod tests {
             std::slice::from_ref(&t),
             Some(FREE_SPACE_MARGIN),
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |_, _, _| {},
         )
         .await
@@ -1129,6 +1242,7 @@ mod tests {
             std::slice::from_ref(&t),
             Some(FREE_SPACE_MARGIN + 10 * 1024 * 1024),
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |_, _, _| {},
         )
         .await
@@ -1147,6 +1261,7 @@ mod tests {
             std::slice::from_ref(&t),
             None,
             &LOOPBACK,
+            &NEVER_CANCELLED,
             |_, _, _| {},
         )
         .await
@@ -1156,6 +1271,289 @@ mod tests {
             log.lock().unwrap().len(),
             1,
             "a present track was refetched"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ------------------------------------------------- #402, the last item
+    //
+    // Cancel inside a file. The flag is raised from the progress callback
+    // rather than from a timer, so these are decided by bytes and not by how
+    // busy the machine is: the cancel lands at a known point every run.
+
+    /// A body far larger than any socket buffer, so a client that hangs up
+    /// leaves the server unable to finish writing it. That is what makes
+    /// "the request stopped" checkable from the server's side.
+    const BIG: usize = 1_000_000;
+    /// Where the cancel is raised: four 16 kB pieces in, so what is asserted
+    /// is a stop *part-way* and not a stop before the first byte.
+    const CANCEL_AFTER: u64 = 65_536;
+
+    #[tokio::test]
+    async fn a_cancel_mid_file_stops_the_request_and_leaves_a_prefix_that_resumes() {
+        let dir = scratch("cancel-midfile");
+        let body = body_of(BIG);
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), BIG as u64);
+        let dest = track_path(&dir, &t.file).unwrap();
+        let part = dest.with_extension("part");
+
+        let (url, log, served) = serve_mode(Mode::Slow { chunk: 16_384 }, body.clone(), 1);
+        let flag = AtomicBool::new(false);
+        let outcome = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            &flag,
+            |received, _| {
+                if received >= CANCEL_AFTER {
+                    flag.store(true, Ordering::SeqCst);
+                }
+            },
+        )
+        .await
+        .expect("a cancel is not a failure and must not arrive as one");
+
+        let DownloadOutcome::Cancelled { bytes } = outcome else {
+            panic!("a cancelled download reported {outcome:?}");
+        };
+        assert!(
+            bytes >= CANCEL_AFTER,
+            "it stopped before the cancel: {bytes}"
+        );
+        assert!(
+            (bytes as usize) < BIG,
+            "it ran to the end anyway: {bytes} of {BIG}"
+        );
+        // What was reported is what is on disk, to the byte.
+        assert_eq!(
+            std::fs::metadata(&part)
+                .expect("the cancelled prefix was thrown away")
+                .len(),
+            bytes
+        );
+        assert!(
+            !dest.exists(),
+            "a cancelled download was renamed into place"
+        );
+        // The request really stopped rather than being read to the end and
+        // thrown away: nobody was reading, so the server could not get a body
+        // this size through.
+        let sent = served.load(Ordering::SeqCst);
+        assert!(
+            sent < BIG as u64,
+            "the server served the whole body: {sent} of {BIG}"
+        );
+        assert_eq!(log.lock().unwrap().len(), 1, "it asked more than once");
+
+        // The panel's two lists say partial: not installed, and not absent.
+        let status = status_of(&dir, std::slice::from_ref(&t));
+        assert!(
+            status.installed_files.is_empty(),
+            "a cancelled track read as installed"
+        );
+        assert_eq!(status.partial_files, vec![t.file.clone()]);
+
+        // And Resume continues from exactly what the cancel left, rather than
+        // starting the 1 MB again.
+        let (resume_url, resume_log, _) = serve_mode(Mode::Ranged, body.clone(), 1);
+        let result = download_verified_from(
+            &resume_url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            &NEVER_CANCELLED,
+            |_, _| {},
+        )
+        .await
+        .expect("the resume verifies")
+        .finished()
+        .expect("the resume was not cancelled");
+        assert_eq!(
+            ranges_asked(&resume_log),
+            vec![Some(bytes)],
+            "it did not continue from what the cancel left"
+        );
+        assert_eq!(result.bytes, BIG as u64);
+        assert!(result.sha256.eq_ignore_ascii_case(&t.sha256));
+        assert_eq!(
+            std::fs::read(&dest).unwrap(),
+            body,
+            "the file is not the body"
+        );
+        assert!(!part.exists(), "the .part outlived a successful resume");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn the_same_slow_server_runs_to_completion_when_nothing_cancels() {
+        // The positive control for the test above. Without it, a `.part`
+        // shorter than the file and a server that did not finish would also
+        // be what a broken rig - a stalled server, a dropped connection -
+        // produces, and the cancel would be proving nothing.
+        let dir = scratch("cancel-control");
+        let body = body_of(BIG);
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), BIG as u64);
+        let dest = track_path(&dir, &t.file).unwrap();
+
+        let (url, _log, served) = serve_mode(Mode::Slow { chunk: 16_384 }, body.clone(), 1);
+        let result = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            &NEVER_CANCELLED,
+            |_, _| {},
+        )
+        .await
+        .expect("the same server, uncancelled, installs")
+        .finished()
+        .expect("nothing cancelled this one");
+        assert_eq!(result.bytes, BIG as u64);
+        assert_eq!(served.load(Ordering::SeqCst), BIG as u64);
+        assert_eq!(std::fs::read(&dest).unwrap(), body);
+        assert!(!dest.with_extension("part").exists());
+        assert_eq!(
+            status_of(&dir, std::slice::from_ref(&t)).installed_files,
+            vec![t.file.clone()]
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn a_cancel_before_the_first_request_downloads_nothing() {
+        let dir = scratch("cancel-before");
+        let body = body_of(20_000);
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), 20_000);
+        let dest = track_path(&dir, &t.file).unwrap();
+
+        // Two connections, so the control below is answered by the same
+        // server that the cancelled call was free to reach and did not.
+        let (url, log, served) = serve_mode(Mode::Ranged, body.clone(), 2);
+        let flag = AtomicBool::new(true);
+        let outcome = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            &flag,
+            |_, _| {},
+        )
+        .await
+        .expect("a cancel is not a failure");
+        assert!(
+            matches!(outcome, DownloadOutcome::Cancelled { bytes: 0 }),
+            "{outcome:?}"
+        );
+        assert_eq!(
+            log.lock().unwrap().len(),
+            0,
+            "a cancel before the first request still asked"
+        );
+        assert_eq!(served.load(Ordering::SeqCst), 0);
+        assert!(!dest.exists());
+        assert!(!dest.with_extension("part").exists());
+
+        // Positive control on the same call and the same server: with the
+        // flag clear it asks, and installs. Without this the zero above is
+        // also what an unreachable server would produce.
+        let result = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            &NEVER_CANCELLED,
+            |_, _| {},
+        )
+        .await
+        .expect("an uncancelled download installs")
+        .finished()
+        .expect("nothing cancelled this one");
+        assert_eq!(result.bytes, 20_000);
+        assert_eq!(log.lock().unwrap().len(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn an_install_cancelled_mid_file_reports_partial_and_the_next_one_resumes() {
+        let dir = scratch("cancel-install");
+        let body = body_of(BIG);
+        let (url, _log, _served) = serve_mode(Mode::Slow { chunk: 16_384 }, body.clone(), 1);
+        let t = track("radio/a.ogg", &url, &hex(Sha256::digest(&body)), BIG as u64);
+        let dest = track_path(&dir, &t.file).unwrap();
+
+        let flag = AtomicBool::new(false);
+        let mut phases: Vec<String> = Vec::new();
+        let result = install_into(
+            &dir,
+            std::slice::from_ref(&t),
+            None,
+            &LOOPBACK,
+            &flag,
+            |received, _, phase| {
+                phases.push(phase.to_string());
+                if phase == "downloading" && received >= CANCEL_AFTER {
+                    flag.store(true, Ordering::SeqCst);
+                }
+            },
+        )
+        .await
+        .expect("a cancelled install is not a failure");
+
+        assert!(result.cancelled, "the install did not report the cancel");
+        assert_eq!(
+            result.installed, 0,
+            "a track stopped part-way was counted as installed"
+        );
+        assert_eq!(result.total, 1);
+        assert!(
+            result.bytes >= CANCEL_AFTER && (result.bytes as usize) < BIG,
+            "reported {} bytes",
+            result.bytes
+        );
+        assert_eq!(
+            phases.last().map(String::as_str),
+            Some("cancelled"),
+            "the last thing the panel heard was {:?}",
+            phases.last()
+        );
+        assert_eq!(
+            std::fs::metadata(dest.with_extension("part"))
+                .expect("the cancelled install kept nothing to resume from")
+                .len(),
+            result.bytes
+        );
+        let status = status_of(&dir, std::slice::from_ref(&t));
+        assert!(status.installed_files.is_empty());
+        assert_eq!(status.partial_files, vec![t.file.clone()]);
+
+        // Install again, against a server that honours the range. The flag is
+        // still set from before, which the run must clear rather than trip
+        // over: a cancel does not disable the next install.
+        assert!(flag.load(Ordering::SeqCst));
+        let (resume_url, resume_log, _) = serve_mode(Mode::Ranged, body.clone(), 1);
+        let resumed = track("radio/a.ogg", &resume_url, &t.sha256, BIG as u64);
+        let again = install_into(
+            &dir,
+            std::slice::from_ref(&resumed),
+            None,
+            &LOOPBACK,
+            &flag,
+            |_, _, _| {},
+        )
+        .await
+        .expect("the resumed install runs");
+        assert!(!again.cancelled, "a stale cancel blocked the next install");
+        assert_eq!(again.installed, 1);
+        assert_eq!(
+            ranges_asked(&resume_log),
+            vec![Some(result.bytes)],
+            "the install restarted instead of resuming"
+        );
+        assert_eq!(std::fs::read(&dest).unwrap(), body);
+        assert_eq!(
+            status_of(&dir, std::slice::from_ref(&resumed)).installed_files,
+            vec![resumed.file.clone()]
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

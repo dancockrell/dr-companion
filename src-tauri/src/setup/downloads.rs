@@ -35,12 +35,72 @@
 //!   matches the final name at its pinned size) cannot mistake it for an
 //!   installed track.
 
+//!
+//! # Cancel takes effect inside a file, not between files
+//!
+//! #402's remaining item. The music installer read its flag once per track, so
+//! Cancel pressed during a 90 MB download did nothing until that file
+//! finished - up to a couple of minutes of a person watching a button they
+//! have already pressed. The read loop below now takes a flag and checks it
+//! after every chunk it writes, so the stop is one chunk away rather than one
+//! file away.
+//!
+//! It costs nothing on top of the resume above, and that is why it is cheap
+//! now and was not before: a cancel stops the loop exactly where any other
+//! failure stops it, and `settle_partial` then applies the same rule to what
+//! is on disk - kept when it is a resumable prefix, removed otherwise. So
+//! Cancel leaves the group *partial with a Resume*, not failed and not a
+//! restart from zero. A cancel is not an error and does not read as one: the
+//! outcome is a third answer, `DownloadOutcome::Cancelled`, so no caller has
+//! to recognise a sentence to tell "stopped" from "broke".
+
 use super::hex;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter};
+
+/// The flag a caller with no Cancel control passes.
+///
+/// Nothing ever sets it. The setup wizard has no cancel button - `git grep -n
+/// cancel src-tauri/src/setup src/components/first-run src/lib/setup.ts`
+/// finds none - and inventing one here would be adding a feature under cover
+/// of a shared function. So the wizard's downloads take this and behave
+/// exactly as they did, while the music installer passes the flag its Cancel
+/// button already sets. One mechanism, one flag per caller, no second path.
+pub static NEVER_CANCELLED: AtomicBool = AtomicBool::new(false);
+
+/// How a download ended, when it did not fail.
+///
+/// `Cancelled` is deliberately not an `Err`. A person pressing Cancel has not
+/// hit a problem, and a caller that treated the return as "worked or broke"
+/// would have to recognise a sentence to tell the two apart - the
+/// string-matching this codebase avoids everywhere else. The byte count is
+/// what is on disk when it stopped, which is what the next attempt continues
+/// from.
+#[derive(Clone, Debug)]
+pub enum DownloadOutcome {
+    Done(DownloadResult),
+    Cancelled { bytes: u64 },
+}
+
+impl DownloadOutcome {
+    /// The finished download, or an error saying how far it got.
+    ///
+    /// For the callers that pass `NEVER_CANCELLED` and so have no Cancel to
+    /// handle. One place turns a cancel into a sentence, rather than each
+    /// caller inventing its own wording for a case it cannot reach.
+    pub fn finished(self) -> Result<DownloadResult, String> {
+        match self {
+            DownloadOutcome::Done(result) => Ok(result),
+            DownloadOutcome::Cancelled { bytes } => {
+                Err(format!("download cancelled after {bytes} bytes"))
+            }
+        }
+    }
+}
 
 #[derive(Serialize, Clone)]
 pub struct Progress {
@@ -105,17 +165,22 @@ pub(crate) fn allowed_by(url: &str, allowed: &[&str]) -> bool {
 }
 
 /// Fetch one release asset and verify it before moving it into place.
+///
+/// `cancel` is read after every chunk written. A caller with no Cancel
+/// control passes `&NEVER_CANCELLED`.
 pub async fn download_verified(
     url: &str,
     expected_sha256: &str,
     dest: &str,
+    cancel: &AtomicBool,
     on_progress: impl FnMut(u64, u64),
-) -> Result<DownloadResult, String> {
+) -> Result<DownloadOutcome, String> {
     download_verified_from(
         url,
         expected_sha256,
         dest,
         &ALLOWED_DOWNLOAD_PREFIXES,
+        cancel,
         on_progress,
     )
     .await
@@ -135,8 +200,9 @@ pub(crate) async fn download_verified_from(
     expected_sha256: &str,
     dest: &str,
     allowed: &[&str],
+    cancel: &AtomicBool,
     mut on_progress: impl FnMut(u64, u64),
-) -> Result<DownloadResult, String> {
+) -> Result<DownloadOutcome, String> {
     if !allowed_by(url, allowed) {
         return Err(format!(
             "refusing to download from an unexpected host: {url}"
@@ -160,6 +226,15 @@ pub(crate) async fn download_verified_from(
         .filter(|m| m.is_file())
         .map(|m| m.len())
         .unwrap_or(0);
+
+    if cancel.load(Ordering::SeqCst) {
+        // Before the first request, so a cancel that arrives while the
+        // previous file was being renamed costs no bytes and no connection at
+        // all. Whatever is on disk is the previous attempt's resume point and
+        // is left exactly as it was - nothing was written this time, so there
+        // is nothing for `settle_partial` to judge.
+        return Ok(DownloadOutcome::Cancelled { bytes: have });
+    }
 
     let mut response = request(&client, url, have).await?;
     if have > 0 && response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
@@ -233,6 +308,16 @@ pub(crate) async fn download_verified_from(
         }
         received += bytes.len() as u64;
         on_progress(received, announced);
+        if cancel.load(Ordering::SeqCst) {
+            // After the write, so what is reported is what is on disk. The
+            // response is dropped without being drained, which closes the
+            // connection rather than politely reading the rest of a file
+            // nobody wants.
+            let _ = file.flush();
+            drop(file);
+            settle_partial(&temporary, received, announced);
+            return Ok(DownloadOutcome::Cancelled { bytes: received });
+        }
     }
     if let Err(error) = file.flush() {
         drop(file);
@@ -264,12 +349,12 @@ pub(crate) async fn download_verified_from(
     }
     std::fs::rename(&temporary, &destination).map_err(|error| error.to_string())?;
 
-    Ok(DownloadResult {
+    Ok(DownloadOutcome::Done(DownloadResult {
         path: destination.to_string_lossy().into_owned(),
         bytes: received,
         sha256: actual_sha,
         verified: true,
-    })
+    }))
 }
 
 /// One GET, asking to continue from `have` when there is anything to continue.
@@ -346,16 +431,26 @@ pub async fn download_component(
 ) -> Result<DownloadResult, String> {
     let progress_id = id.clone();
     let progress_app = app.clone();
-    let result = download_verified(&url, &expected_sha256, &dest, move |received, total| {
-        emit_setup_progress(
-            &progress_app,
-            progress_id.clone(),
-            received,
-            total,
-            "downloading",
-        );
-    })
-    .await?;
+    // `NEVER_CANCELLED`: the setup wizard has no Cancel control, so this
+    // download behaves exactly as it did. `finished()` is where a cancel
+    // becomes an error for a caller that cannot cause one.
+    let result = download_verified(
+        &url,
+        &expected_sha256,
+        &dest,
+        &NEVER_CANCELLED,
+        move |received, total| {
+            emit_setup_progress(
+                &progress_app,
+                progress_id.clone(),
+                received,
+                total,
+                "downloading",
+            );
+        },
+    )
+    .await?
+    .finished()?;
     emit_setup_progress(&app, id, result.bytes, result.bytes, "verified");
     Ok(result)
 }

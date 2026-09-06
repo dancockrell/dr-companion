@@ -80,14 +80,23 @@ async fn download_from_plan(component_id: &str, option_id: &str) {
     println!();
 
     let mut last = 0u64;
-    match download_verified(&o.url, &o.sha256, &o.dest, |got, total| {
-        if got - last > 8_000_000 || got == total {
-            last = got;
-            let pct = (got * 100).checked_div(total).unwrap_or(0);
-            println!("  {pct:>3}%  {got}/{total}");
-        }
-    })
+    // This tool has no Cancel, so it passes the flag nothing ever sets and
+    // `finished()` turns the case it cannot reach into an error.
+    match download_verified(
+        &o.url,
+        &o.sha256,
+        &o.dest,
+        &NEVER_CANCELLED,
+        |got, total| {
+            if got - last > 8_000_000 || got == total {
+                last = got;
+                let pct = (got * 100).checked_div(total).unwrap_or(0);
+                println!("  {pct:>3}%  {got}/{total}");
+            }
+        },
+    )
     .await
+    .and_then(DownloadOutcome::finished)
     {
         Ok(r) => {
             println!();
