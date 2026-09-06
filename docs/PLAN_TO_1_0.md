@@ -2123,6 +2123,7 @@ the code increments. N8 was optional and human-gated and blocked nothing; the ga
   sabotage: four, each restored from an `md5sum`-verified copy — see the PR body for the checks each one reddened.
   pitfalls: 1, 3, 12, 15, 16. No real Lich and no real account: every case here runs against a loopback listener or a scripted mock.
   done-when: the four issues are closed by the PR, and each fix has a sabotage that reddens a named check rather than "something went red".
+  follow-up: review pass 8 (#488) found four things about what N9 shipped, and both halves are merged. #497 stopped an unrecognised refusal token deleting the stored password (`AccountRefused` is a third state; only Lich's `PASSWORD` forgets) and put the #464 release knobs in the gate as `rust-release-knobs`, `EXPECTED_STAGES` 10 to 11. #498 gave the spawned `Child` an owner (`lich::LichProcess`) and the app-exit lifetime a written answer and a test: nothing on the exit path ends a Lich, and closing asks (`lich_release` / `lich_stop`) only when this app started one that is still running — `docs/LICH_NATIVE_LOGIN.md` §9. The already-running refusal became `lich_already_running` with an Attach offer instead of `lich_did_not_start`'s diagnostic, and `tools/login-error-fixture-test.mjs` catches fixture drift on the TypeScript side, where cargo alone used to and named the wrong file.
 
 ---
 
