@@ -37,7 +37,7 @@ func _run() -> void:
 		suffix += "-flat"
 	if "--no-textures" in requested:
 		suffix += "-no-textures"
-	for entry in [["1-193", "armory-workroom"], ["1-32", "trollferry-quay"], ["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-192", "armory-interior"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
+	for entry in [["1-194", "bellows-room"], ["1-193", "armory-workroom"], ["1-32", "trollferry-quay"], ["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-192", "armory-interior"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
 		if not requested.is_empty() and not entry[0] in requested:
 			continue
 		captured.append(entry[0])

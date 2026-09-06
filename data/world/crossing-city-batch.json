@@ -6,7 +6,7 @@
     "directedExits": 2389,
     "descriptions": 840,
     "missingDescriptions": 220,
-    "partialRecipes": 23,
+    "partialRecipes": 24,
     "complete": 0,
     "compassMismatches": 493,
     "sourceCompassMismatches": 2
@@ -23440,10 +23440,32 @@
           "status": "requires-design-review"
         }
       ],
-      "currentModels": [],
+      "currentModels": [
+        "painted-river-port.cobble-plaza",
+        "painted-river-port.forge-bellows",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.timber-doorway-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plank-approach"
+      ],
       "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "recipeStatus": "partial-authored",
+      "remainingRecipeWork": [
+        "bespoke wall and ceiling finishes",
+        "reviewed connection to workroom",
+        "nearby forge location and air conduit",
+        "bellows leather and pivot hardware refinement",
+        "live workers and sound integration owned separately"
+      ],
       "connections": [
         {
           "command": "out",

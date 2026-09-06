@@ -194,6 +194,17 @@ func _run() -> void:
 	content.set_interior_inspection(workshop, false)
 	check(workshop.get_child(workshop.get_child_count() - 1).visible, "Workroom ceiling restores outside inspection")
 	workshop.free()
+	var bellows_room: Node3D = content.build_room_composition(cells["1-194"])
+	var bellows: Node3D = bellows_room.get_child(1)
+	check(bellows.get_meta("asset_id") == "painted-river-port.forge-bellows", "Bellows room uses its named mechanism")
+	check(bellows.scale.is_equal_approx(Vector3.ONE), "Bellows retains measured native proportions")
+	var bellows_exits: Dictionary = bellows_room.get_meta("exit_anchors", {})
+	check(bellows_exits.size() == 1 and bellows_exits.has("out"), "Bellows room has exactly its existing exit")
+	var bellows_box := _bounds(bellows, bellows_room)
+	check(bellows_box.end.z < 3.0 and bellows_box.end.y < 3.05 + registry.block_top_y(cells["1-194"]), "Bellows leaves operator and ceiling clearance")
+	for socket in ["air_outlet", "lever_pivot", "operator_handle"]:
+		check(not bellows.find_children(socket, "Node3D", true, false).is_empty(), "Bellows keeps measured " + socket)
+	bellows_room.free()
 	print("%d checked, %d failed" % [checked, failed])
 	quit(1 if failed else 0)
 

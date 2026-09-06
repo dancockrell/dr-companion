@@ -49,7 +49,7 @@
   ],
   "nativeCatalog": {
     "repository": "https://github.com/dancockrell/shared-game-environment-library",
-    "revision": "84847094c1c714db86bbc8a789a13c5cb647e22e",
+    "revision": "4cffea70413fd512f3d22399179ae5ed9612095a",
     "source": "docs/river-port-build/catalog/catalog-native.scn",
     "runtimePath": "res://assets/crossing/town-green.scn",
     "provenancePath": "res://assets/crossing/provenance.json",
@@ -88,12 +88,251 @@
       "painted-river-port.clinker-rowboat",
       "painted-river-port.pier-section",
       "painted-river-port.quay-wall",
-      "painted-river-port.anvil"
+      "painted-river-port.anvil",
+      "painted-river-port.forge-bellows"
     ],
     "reviewState": "Crossing authoring pack; per-room omissions remain explicit",
     "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
   },
   "roomCompositions": [
+    {
+      "cellId": "1-194",
+      "descriptionHash": "13ff9ca11a2326aa",
+      "status": "partial-authored",
+      "evidence": "The description centers on an enormous manually operated bellows. Workers, a nearby roaring forge and a cadence drum are live-state or surrounding-context concerns, not automatically spawned actors.",
+      "placementPolicy": "Compact inferred 9m room; preserved out command; static bellows at native dimensions with operator clearance.",
+      "missing": [
+        "bespoke wall and ceiling finishes",
+        "reviewed connection to workroom",
+        "nearby forge location and air conduit",
+        "bellows leather and pivot hardware refinement",
+        "live workers and sound integration owned separately"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-plaza",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            0.5454545454545454,
+            0.5454545454545454
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.forge-bellows",
+          "center": [
+            0,
+            -0.028409090909090908
+          ],
+          "envelope": [
+            0.35,
+            0.35
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            -0.17045454545454544,
+            -0.2556818181818182
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 0,
+          "role": "interior-shell",
+          "inspectionCover": false
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            0,
+            -0.2556818181818182
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 0,
+          "role": "interior-shell",
+          "inspectionCover": false
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            0.17045454545454544,
+            -0.2556818181818182
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 0,
+          "role": "interior-shell",
+          "inspectionCover": false
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            -0.17045454545454544,
+            0.2556818181818182
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 180,
+          "role": "interior-shell",
+          "inspectionCover": true
+        },
+        {
+          "assetId": "painted-river-port.timber-doorway-section",
+          "center": [
+            0,
+            0.2556818181818182
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 180,
+          "role": "interior-shell",
+          "inspectionCover": true,
+          "exitMove": "out"
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            0.17045454545454544,
+            0.2556818181818182
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 180,
+          "role": "interior-shell",
+          "inspectionCover": true
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            -0.2556818181818182,
+            -0.17045454545454544
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 270,
+          "role": "interior-shell",
+          "inspectionCover": false
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            -0.2556818181818182,
+            0
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 270,
+          "role": "interior-shell",
+          "inspectionCover": false
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            -0.2556818181818182,
+            0.17045454545454544
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 270,
+          "role": "interior-shell",
+          "inspectionCover": false
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            0.2556818181818182,
+            -0.17045454545454544
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "role": "interior-shell",
+          "inspectionCover": true
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            0.2556818181818182,
+            0
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "role": "interior-shell",
+          "inspectionCover": true
+        },
+        {
+          "assetId": "painted-river-port.plaster-wall-section",
+          "center": [
+            0.2556818181818182,
+            0.17045454545454544
+          ],
+          "envelope": [
+            0.19,
+            0.19
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "role": "interior-shell",
+          "inspectionCover": true
+        },
+        {
+          "assetId": "painted-river-port.plank-approach",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            0.5454545454545454,
+            0.5454545454545454
+          ],
+          "lift": 3.05,
+          "yawDegrees": 0,
+          "role": "interior-ceiling",
+          "inspectionCover": true
+        }
+      ]
+    },
     {
       "cellId": "1-193",
       "descriptionHash": "14f984dcdf840555",

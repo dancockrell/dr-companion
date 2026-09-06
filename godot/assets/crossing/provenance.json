@@ -2069,6 +2069,66 @@
 			"statusHook": "consumer-owned",
 			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
 			"triangles": 7544.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.forge-bellows",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.39999997615814,
+					0.0,
+					-2.23000001907349
+				],
+				"size": [
+					2.79999995231628,
+					2.75009274482727,
+					4.46000003814697
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "forge-bellows.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"oak",
+				"oak_light",
+				"bellows_leather",
+				"bellows_seam",
+				"iron",
+				"sand"
+			],
+			"meshInstances": 35.0,
+			"nativeNode": "painted_forge_bellows",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "a91c67f40586eef117001bb66018378e4cbdd9a7833ec20f85147d9634f965a5",
+			"sockets": {
+				"air_outlet": [
+					0.00000019320434319,
+					1.15009260177612,
+					2.23000001907349
+				],
+				"lever_pivot": [
+					-0.00000005245366807,
+					2.69009280204773,
+					-0.580000042915344
+				],
+				"operator_handle": [
+					-0.0000001879589746,
+					1.06009256839752,
+					-2.13000011444092
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 1848.0
 		}
 	],
 	"creditsConsumed": 0,
@@ -2118,8 +2178,8 @@
 		}
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
-	"revision": "84847094c1c714db86bbc8a789a13c5cb647e22e",
-	"runtimeSha256": "73ee85d6dbfbeffd43daccc09cae580fcbb6b44ec6ed79e4bc5a4b1ad0d9dfe7",
-	"sourceSha256": "ecbf5468d80915f17e02d2f6f20bd50105fe03841c2d256ff1b846164299e342",
+	"revision": "4cffea70413fd512f3d22399179ae5ed9612095a",
+	"runtimeSha256": "a8bba59e9d9a225462f6475b92e7e3f25f075e1318863765a06fef400d0dfe9a",
+	"sourceSha256": "228fc37972c2b334524b07f24b6e89e67be7659b6e859255a02c568862e3ed19",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }

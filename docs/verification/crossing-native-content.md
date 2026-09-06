@@ -2,6 +2,18 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Bellows-room mechanism
+
+Room 1-194 now selects the shared forge-bellows model at native dimensions
+(approximately 2.8 by 4.46m footprint and 2.75m tall). Its air outlet, lever
+pivot and operator handle remain named sockets. The compact inferred shell
+leaves clearance for the handle and retains the single out command. The
+description's nearby forge does not establish an in-room fire position, so
+no fire, drummer or workers are statically invented. No animation is added.
+The leather folds, nozzle and pivot details remain candidate-quality; room
+finish and physical connection to the workroom are still unfinished.
+This brings the batch to 24 partial recipes, not completed rooms.
+
 ### Tembeg workroom assembly
 
 Room 1-193 now uses its own description hash to admit a compact enclosed
