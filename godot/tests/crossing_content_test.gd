@@ -12,6 +12,14 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	# Keep the reviewed lighting setup active; this is a configuration guard,
+	# not a substitute for rendered shadow/contact inspection.
+	var scene: Node3D = load("res://scenes/WorldRoot.tscn").instantiate()
+	var sun: DirectionalLight3D = scene.get_node("Sun")
+	check(sun.shadow_enabled, "Detailed scenery retains cast shadows")
+	check(sun.shadow_bias >= 0.1 and sun.shadow_normal_bias >= 1.0, "Shadow bias avoids rejected low-bias striping setup")
+	check(ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/size") >= 4096, "Detailed scene uses reviewed directional shadow resolution")
+	scene.free()
 	var registry = root.get_node("ContentRegistry")
 	var content = root.get_node("SharedAssetContent")
 	var fixture: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/crossing/world.json"))

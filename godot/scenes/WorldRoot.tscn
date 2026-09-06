@@ -34,8 +34,8 @@ rotation = Vector3(-0.837758, -0.663225, 0)
 light_color = Color(1, 0.94, 0.84, 1)
 light_energy = 1.25
 shadow_enabled = true
-shadow_bias = 0.03
-shadow_normal_bias = 0.15
+shadow_bias = 0.1
+shadow_normal_bias = 1.0
 
 [node name="CellRoot" type="Node3D" parent="."]
 

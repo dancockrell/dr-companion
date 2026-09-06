@@ -1,5 +1,33 @@
 # Crossing native Town Green checkpoint — 6 September 2026
 
+## Shadow-striping correction
+
+The broad diagonal bands recorded in the preceding captures were primarily
+shadow self-interference, not authored mud detail or an extra room base layered
+over the composition. The room factory replaces the fallback geometry; source
+dirt does contain two wheel tracks, which remain visible after correction.
+Changing lighting alone removed the broad bands in actual viewer captures.
+
+The previous 0.03 depth / 0.15 normal bias came from a differently configured
+catalog review stage. A first trial used 0.1 / 2.0; the retained setup uses
+0.1 / 1.0 with an explicit 4096 directional shadow atlas. Cast shadows and
+ambient occlusion remain enabled; no meshes or texture detail were removed.
+Godot documents the self-shadowing versus shadow-offset tradeoff in
+[Light3D shadow bias](https://docs.godotengine.org/en/stable/classes/class_light3d.html#class-light3d-property-shadow-bias).
+
+All seven room captures plus the overview were regenerated in Forward+ on
+Godot 4.7.2 / RTX 4070. Bazaar and bower were visually inspected: broad banding
+is removed and canopy shade remains, but fine shadow stippling still needs
+tuning. This is not a pixel-perfect or lower-GPU performance acceptance.
+Increasing atlas resolution adds GPU memory cost. The existing optional legacy
+submodule fallback warning remains unrelated and unresolved.
+
+403 checks across 18 Godot scripts pass. Three checks guard the retained shadow
+configuration, not pixel quality; visual inspection remains necessary. No new
+models, muddy terrain asset, service credits, or topology changes in this pass.
+Earlier sections' striped-ground observations describe their historical capture
+state; current image paths now show the corrected lighting.
+
 ## Bazaar furnishing continuation
 
 Mongers' Bazaar now has two canvas shelters with tables beneath them and two

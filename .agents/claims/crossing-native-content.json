@@ -7,6 +7,7 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T03:00:00Z",
   "paths": [
+    "godot/project.godot",
     "docs/verification/crossing-native-supply-stand.png",
     "godot/assets/crossing/",
     "godot/assets/shared_asset_selections.json",
@@ -43,8 +44,9 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": "Bazaar furnishing checkpoint: this commit; full Crossing slice remains unfinished",
+    "commit": "Shadow-striping correction: this commit; full Crossing slice remains unfinished",
     "checks": [
+      "Shadow continuation: 403 Godot checks passed; seven viewer room captures regenerated; bazaar and bower inspected; fine stippling and muddy surface still unfinished",
       "Bazaar continuation: 400 Godot checks passed, including measured aisle clearance and table containment; actual viewer capture inspected",
       "Support-socket continuation: 389 Godot checks and 27 geometry drift checks passed; native Supply Stand capture inspected; pushed 00577603",
       "Godot full suite: 381 checks across 18 scripts passed after removal of inaccurate bench",
