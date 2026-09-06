@@ -450,6 +450,35 @@ console.log('\n-- 6. the empty state says what to do next --')
     'control: that phrase is findable when present',
     'x Open the demo dashboard y'.includes('Open the demo dashboard')
   )
+
+  /*
+   * Issue #418. On the clean VM both of those buttons rendered perfectly and
+   * neither could be reached: the panel is taller than the app's own default
+   * window (1180x820, `REQUESTED` in lib.rs) and the container clipped it at
+   * both ends instead of scrolling.
+   *
+   * The measured half of this lives in `tools/first-screen-shots.mjs`
+   * section e, which drives a real browser at four window sizes and asks
+   * whether a click would land. These two are the source half, and they are
+   * the properties a future edit is most likely to undo without noticing: a
+   * container that scrolls, and a flex column that does not centre content it
+   * cannot fit - `justify-center` pushes the overflow off the top as well,
+   * where no scrollbar can reach it.
+   */
+  const container = (waiting.match(/<div className="([^"]*\bh-full\b[^"]*)"/) ?? [])[1] ?? ''
+  ok(
+    'the empty state container declares vertical overflow auto',
+    /\boverflow-y-auto\b/.test(container),
+    container || 'no h-full container found'
+  )
+  ok(
+    'and does not centre content it may be too small to hold',
+    !/\bjustify-center\b/.test(container),
+    container
+  )
+  // Without this an empty match reads as a pass on both of the above: a
+  // regex that stopped matching cannot fail, it just finds nothing.
+  ok('control: the container was actually found to test', container.length > 0, container)
 }
 
 console.log('\n-- 7. one selector, not two --')

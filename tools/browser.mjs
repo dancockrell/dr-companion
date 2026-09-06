@@ -427,6 +427,29 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null, req
       return true
     },
 
+    /**
+     * Change the viewport the page is laid out in, mid-session.
+     *
+     * `--window-size` at launch fixes one size for the life of the browser,
+     * which is no use to a check whose whole subject is what happens at
+     * several window sizes. `Emulation.setDeviceMetricsOverride` is what the
+     * device toolbar drives; the page gets a resize and re-lays out.
+     *
+     * It returns what the page then reports for `innerWidth`/`innerHeight`
+     * rather than the numbers that went in, because those are not always the
+     * same thing and a probe that echoes its own input cannot fail. Callers
+     * assert on what comes back.
+     */
+    async resize(width, height) {
+      await call('Emulation.setDeviceMetricsOverride', {
+        width,
+        height,
+        deviceScaleFactor: 1,
+        mobile: false,
+      })
+      return api.run('return { w: window.innerWidth, h: window.innerHeight };')
+    },
+
     async screenshot(path) {
       const { data } = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
       writeFileSync(path, Buffer.from(data, 'base64'))
