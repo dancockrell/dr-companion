@@ -68,16 +68,16 @@ bundler, the type system and the CSS toolchain all contribute to what ships.
 
 ## Rust crates
 
-320 crates reach the shipped Windows binary, resolved for
+326 crates reach the shipped Windows binary, resolved for
 `x86_64-pc-windows-msvc`. `src-tauri/Cargo.lock` lists more than this: it carries
 every platform's crates, including the GTK and Android ones this app has never
 built, and naming those here would claim to ship software it does not.
 
 | Licence | Crates |
 |---|---:|
-| MIT OR Apache-2.0 | 156 |
-| MIT | 61 |
-| Apache-2.0 OR MIT | 30 |
+| MIT OR Apache-2.0 | 159 |
+| MIT | 62 |
+| Apache-2.0 OR MIT | 32 |
 | Unicode-3.0 | 18 |
 | MIT/Apache-2.0 | 12 |
 | Unlicense OR MIT | 8 |
@@ -139,6 +139,7 @@ built, and naming those here would claim to ship software it does not.
 | `cfg-if` | 1.0.4 | MIT OR Apache-2.0 |
 | `chacha20` | 0.10.1 | MIT OR Apache-2.0 |
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 |
+| `cmov` | 0.5.4 | Apache-2.0 OR MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.2 | MIT OR Apache-2.0 |
 | `cpufeatures` | 0.2.17 | MIT OR Apache-2.0 |
@@ -152,6 +153,7 @@ built, and naming those here would claim to ship software it does not.
 | `cssparser-macros` | 0.6.1 | MPL-2.0 |
 | `ctor` | 0.8.0 | Apache-2.0 OR MIT |
 | `ctor-proc-macro` | 0.0.7 | Apache-2.0 OR MIT |
+| `ctutils` | 0.4.2 | Apache-2.0 OR MIT |
 | `darling` | 0.23.0 | MIT |
 | `darling_core` | 0.23.0 | MIT |
 | `darling_macro` | 0.23.0 | MIT |
@@ -235,6 +237,8 @@ built, and naming those here would claim to ship software it does not.
 | `json-patch` | 3.0.1 | MIT/Apache-2.0 |
 | `jsonptr` | 0.6.3 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.7.0 | MIT OR Apache-2.0 |
+| `keyring` | 4.2.0 | MIT OR Apache-2.0 |
+| `keyring-core` | 1.0.0 | MIT OR Apache-2.0 |
 | `libc` | 0.2.189 | MIT OR Apache-2.0 |
 | `litemap` | 0.8.3 | Unicode-3.0 |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 |
@@ -364,6 +368,7 @@ built, and naming those here would claim to ship software it does not.
 | `tower-layer` | 0.3.3 | MIT |
 | `tower-service` | 0.3.3 | MIT |
 | `tracing` | 0.1.44 | MIT |
+| `tracing-attributes` | 0.1.31 | MIT |
 | `tracing-core` | 0.1.36 | MIT |
 | `tray-icon` | 0.24.2 | MIT OR Apache-2.0 |
 | `try-lock` | 0.2.5 | MIT |
@@ -403,6 +408,7 @@ built, and naming those here would claim to ship software it does not.
 | `windows-interface` | 0.59.3 | MIT OR Apache-2.0 |
 | `windows-link` | 0.1.3 | MIT OR Apache-2.0 |
 | `windows-link` | 0.2.1 | MIT OR Apache-2.0 |
+| `windows-native-keyring-store` | 1.1.0 | MIT OR Apache-2.0 |
 | `windows-numerics` | 0.2.0 | MIT OR Apache-2.0 |
 | `windows-result` | 0.3.4 | MIT OR Apache-2.0 |
 | `windows-strings` | 0.4.2 | MIT OR Apache-2.0 |

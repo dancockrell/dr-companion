@@ -434,6 +434,84 @@ const pkg = JSON.parse(read('package.json'))
     fixtureFields.length === 2 && fixtureFields.includes('accountName') && fixtureFlagged.join(',') === 'password',
     `fixture fields [${fixtureFields.join(', ')}], flagged [${fixtureFlagged.join(', ')}]`,
   )
+
+  // 4. The other half of the same sentence, added with N8.
+  //
+  //    "Not stored unless you later ask for it" was, until N8, a promise about
+  //    a feature that did not exist - which is a true sentence and an
+  //    unfalsifiable one, because nothing could ask. Now that something can,
+  //    the claim has two halves and both are checkable: that the store exists
+  //    and is Credential Manager, and that no *other* store grew alongside it.
+  const storeRs = read('src-tauri/src/credential_store.rs')
+  const libRs = read('src-tauri/src/lib.rs')
+  const COMMANDS = ['credential_store', 'credential_has', 'credential_forget']
+  ok(
+    'the three credential commands are registered',
+    COMMANDS.every((c) => libRs.includes(`credential_store::${c}`)),
+    COMMANDS.join(', '),
+  )
+  // The direction that finds things: a *fourth* command here would be a way
+  // out for the password that nobody described. There is no `credential_read`
+  // and there must not be, because a command's result has to be Serialize and
+  // `Secret` deliberately is not.
+  const declared = [...storeRs.matchAll(/#\[tauri::command\]\s*\npub fn ([a-z_]+)/g)].map((m) => m[1]).sort()
+  ok(
+    'the credential module exposes exactly those three and no reader',
+    declared.join(',') === [...COMMANDS].sort().join(','),
+    declared.join(', ') || 'none - the extractor is broken, not the file',
+  )
+  // "And nothing else" is a claim about code, not about prose - the module's
+  // own doc comment says the words "settings file" precisely to rule one out,
+  // so a substring check on the whole file would fail on the sentence that
+  // makes the promise. Strip comments first, then look for a write.
+  const storeCode = storeRs
+    .split('#[cfg(test)]')[0]
+    .split('\n')
+    .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+    .join('\n')
+  const otherStores = ['fs::write', 'File::create', 'serde_json', 'OpenOptions'].filter((w) =>
+    storeCode.includes(w),
+  )
+  ok(
+    'the store is Windows Credential Manager and nothing else',
+    /Windows Credential Manager/.test(storeRs) && otherStores.length === 0,
+    otherStores.join(', ') || 'no file write in the credential module',
+  )
+  ok(
+    'that write matcher is not matching nothing',
+    ['fs::write', 'File::create'].some((w) => `std::${w}(path)`.includes(w)),
+  )
+  // And the documents say so, in both directions: the box is off by default,
+  // and there is a way to undo it. A privacy note that described only the
+  // storing half would be the more comfortable one to write.
+  const privacy = read('docs/PRIVACY.md').replace(/\s+/g, ' ')
+  ok('PRIVACY.md says the remember box is off until it is ticked', /box is off every time/.test(privacy))
+  ok('PRIVACY.md says how to un-ask', /Forget control/.test(privacy))
+  ok(
+    'PRIVACY.md tells the reader who else on the machine could read it',
+    privacy.includes('Anyone signed in to this Windows account can use it.'),
+  )
+  // No second store, checked against the key inventory rather than the prefs
+  // interface: `persistence.ts` is one writer, and a credential could equally
+  // arrive as a bare localStorage key.
+  const keyNames = []
+  const walkSrc = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name)
+      if (entry.isDirectory()) walkSrc(p)
+      else if (/\.tsx?$/.test(entry.name)) {
+        for (const m of read(p).matchAll(/\b([A-Z][A-Z0-9_]*KEY) = '([^']+)'/g)) keyNames.push(m[2])
+      }
+    }
+  }
+  walkSrc('src')
+  ok('the storage-key scan found keys', keyNames.length >= 15, `${keyNames.length} key(s)`)
+  const secretKeys = keyNames.filter((k) => SECRETISH.test(k))
+  ok('no storage key is a credential', secretKeys.length === 0, secretKeys.join(', ') || `${keyNames.length} checked`)
+  ok(
+    'that key matcher would catch one',
+    SECRETISH.test('drc.accountPassword') && !SECRETISH.test('drc.accountName'),
+  )
 }
 
 console.log(`\n${checked} checked, ${failed} failed` + (skipped.length ? `, ${skipped.length} not checked` : ''))

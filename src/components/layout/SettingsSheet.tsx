@@ -24,6 +24,7 @@ import { loadPrefs } from '../../lib/persistence.ts'
 import { useModalDialog } from '../../lib/useModalDialog.ts'
 import { LICH_LICENSE } from '../../data/lichLicense.ts'
 import { DiagnosticsPanel } from '../shared/DiagnosticsPanel.tsx'
+import { ForgetStoredPassword } from '../shared/RememberPassword.tsx'
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -594,6 +595,12 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               </a>
               .
             </p>
+            {/* N8. "Unless you later ask for it" is a promise with two halves,
+                and this is the second one: a player who asked must be able to
+                un-ask. The control is here rather than only beside the sign-in
+                box because the person who wants it is not signing in — they
+                are looking for where their password went. */}
+            <ForgetStoredPassword />
             <p className="text-xs text-ink-faint leading-snug">
               DR Companion is MIT. It installs and talks to{' '}
               <a

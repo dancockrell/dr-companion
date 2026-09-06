@@ -94,9 +94,16 @@ try {
     !/lichconnect|licharguments|#config/i.test(formText),
     'no retired walkthrough on screen'
   )
+  // N8 built the box; this used to assert its absence. What is on screen now
+  // must be the offer *and* the warning, because a box that says only
+  // "remember password" hides the half a player needs to decide.
   check(
-    'form: no "remember my password" while N8 is unbuilt',
-    !/remember/i.test(formText)
+    'form: the remember-password box is offered',
+    /Remember password on this computer/i.test(formText)
+  )
+  check(
+    'form: and it says who else on this machine could use it',
+    /Anyone signed in to this Windows account can use it/i.test(formText)
   )
 
   // Nothing may sit outside the window at 1024x768, which is the defect #418

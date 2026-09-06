@@ -1,6 +1,7 @@
 pub mod bridge_token;
 pub mod command_gate;
 pub mod config_import;
+pub mod credential_store;
 pub mod credentials;
 pub mod custom_portraits;
 pub mod eaccess;
@@ -177,6 +178,9 @@ pub fn run() {
             custom_portraits::save_custom_portrait,
             custom_portraits::read_custom_portrait,
             custom_portraits::remove_custom_portrait,
+            credential_store::credential_store,
+            credential_store::credential_has,
+            credential_store::credential_forget,
             elanthipedia::fetch_elanthipedia,
             sounds::read_sound,
             sounds::list_sounds,

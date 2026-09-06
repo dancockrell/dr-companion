@@ -338,14 +338,42 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   // absent. A second copy of that check here would be a fork of it, and would
   // have disagreed the day N2 kept a still-true 'never sees it' on the branch
   // where Lich's own window really does hold the password.
-  // The control itself, not the words: the header comment explains at length
-  // why there is no checkbox, so grepping for the phrase would fail on the
-  // explanation. A checkbox or a stored-password identifier is what must not
-  // be there while N8 is unbuilt - a disabled one would read as finished work.
+  // The control itself, not the words. This check was the other way round for
+  // one day: N5 shipped while N8 was `[!]`, and it asserted that no checkbox
+  // existed, because a disabled one would have read as finished work. N8
+  // landed the next day, so the property it was really about - *the player is
+  // never storing a password they did not ask to store* - is now checked by
+  // asserting the box is there and starts off, which the absent version could
+  // not distinguish from a form that quietly stored one.
   ok(
-    'no "remember my password" control exists while N8 is unbuilt',
-    !/type="checkbox"/.test(signIn) && !/rememberPassword|storePassword|savePassword/.test(signIn)
+    'the "remember my password" box is mounted from the shared component',
+    /<RememberPasswordCheckbox/.test(signIn) && /from '\.\/RememberPassword\.tsx'/.test(signIn)
   )
+  ok(
+    'it starts from the shared default rather than a literal',
+    /useState\(REMEMBER_PASSWORD_DEFAULT\)/.test(signIn) &&
+      !/useState\(true\)/.test(signIn) &&
+      !/defaultChecked/.test(signIn)
+  )
+  // The direction that finds things: storing before the account server has
+  // accepted the password would remember typing mistakes, so the store call
+  // must sit after `listCharacters` resolves and inside the success path.
+  {
+    // Inside the function body, not the whole file: `rememberIfAsked` is also
+    // an import at the top, and the first version of this check compared that
+    // import's offset and reported a real ordering as wrong.
+    const body = signIn.slice(signIn.indexOf('const signIn = async'))
+    const proved = body.indexOf('const result = await listCharacters')
+    const store = body.indexOf('rememberIfAsked')
+    // Positive control first, so `store > proved` cannot pass on two -1s.
+    ok('the call and the proof were both found in signIn()', store > 0 && proved > 0,
+      `listCharacters at ${proved}, rememberIfAsked at ${store}`)
+    ok(
+      'the password is stored only after the sign-in succeeded',
+      proved !== -1 && store > proved,
+      `listCharacters at ${proved}, rememberIfAsked at ${store}`
+    )
+  }
   for (const f of [
     'src/components/shared/WaitingForCharacter.tsx',
     'src/components/shared/LichLauncher.tsx',
