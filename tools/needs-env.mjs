@@ -16,6 +16,11 @@
 // registered script — and requires every one of them to be accounted for here.
 // An unlisted orphan fails; so does a listed one that has since been wired in.
 // The list cannot quietly go stale in either direction.
+//
+// "Every `test:` script" was too narrow, and #406 is where that showed: a
+// script is a suite because of what it runs, not because of what it is called.
+// The sweep below therefore also picks up any script that executes a
+// `tools/*-test.*` file under any name at all.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -84,9 +89,29 @@ const walk = (name) => {
 }
 registered.forEach(walk)
 
-const orphans = Object.keys(scripts).filter(
-  (k) => k.startsWith('test:') && !reachable.has(k) && !NOT_A_SUITE.has(k),
-)
+// A suite hides from this sweep simply by not being called `test:something`,
+// and one did. `check-bridge-version` runs tools/bridge-version-drift-test.mjs;
+// it sat in `npm run build` and nowhere else, so `node tools/run-tests.mjs` -
+// the command everybody runs and quotes - never invoked it, and this file
+// could not say so because it only ever looked at names beginning `test:`.
+// The name is not the evidence. What the script executes is.
+const RUNS_A_TEST_TOOL = /tools\/[A-Za-z0-9._-]+-test\.(?:mjs|ts|js)/g
+const toolsRunBy = (name) => new Set(scripts[name].match(RUNS_A_TEST_TOOL) || [])
+const isSuite = (k) => !NOT_A_SUITE.has(k) && (k.startsWith('test:') || toolsRunBy(k).size > 0)
+
+// Every test tool a reachable script runs. A composing script (`build`) is
+// not itself something to register: if every test tool it invokes is already
+// invoked by something the full suite reaches, those checks do run, and
+// demanding a second registration would be demanding a second copy.
+const reachedTools = new Set()
+for (const name of reachable) for (const t of toolsRunBy(name)) reachedTools.add(t)
+
+const orphans = Object.keys(scripts).filter((k) => {
+  if (!isSuite(k) || reachable.has(k)) return false
+  const tools = toolsRunBy(k)
+  if (tools.size > 0 && [...tools].every((t) => reachedTools.has(t))) return false
+  return true
+})
 
 let failed = 0
 const fail = (line) => {
