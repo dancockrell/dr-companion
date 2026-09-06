@@ -2,6 +2,7 @@
 // descriptions and retain evidence beside every asset requirement and exit.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { planProductionBatches } from './room-production-batches.mjs'
 
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', '1'], { stdio: 'inherit' })
 const world = JSON.parse(readFileSync('godot/assets/crossing/world.json', 'utf8'))
@@ -73,7 +74,8 @@ const counts = {
   compassMismatches: rooms.reduce((n,r)=>n+r.connections.filter(e=>e.compassBearingMatches === false).length,0),
   sourceCompassMismatches: rooms.reduce((n,r)=>n+r.connections.filter(e=>e.sourceCompassBearingMatches === false).length,0),
 }
-const batch = { schemaVersion: 1, scope: 'All Crossing rooms in authoritative zone 1; one production batch', counts,
+const productionPlan = planProductionBatches(rooms)
+const batch = { schemaVersion: 1, scope: 'All Crossing rooms in authoritative zone 1; one production batch', counts, productionPlan,
   acceptance: ['every room has reviewed source evidence', 'no unbuilt or placeholder room', 'all legal exits have deliberate endpoints', 'interiors and vertical relationships reviewed', 'assets have provenance and measured bounds', 'all room captures reviewed at gameplay framing', 'tests and dense-scene performance accepted'],
   families, rooms }
 writeFileSync('data/world/crossing-city-batch.json', JSON.stringify(batch,null,2)+'\n')
@@ -82,6 +84,12 @@ writeFileSync('docs/CROSSING_CITY_BATCH.md', [
   'Current completion authority: the entire zone, not Town Green or another neighborhood. Small commits are checkpoints inside this one batch. This report is generated; update the sources and recipes, not the report.', '',
   'Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the release acceptance gate (expected to fail while unfinished).', '',
   '## Current inventory', '', ...Object.entries(counts).map(([k,v])=>'- '+k+': '+v), '',
+  '## Batch production, not per-room authoring', '',
+  'The productionPlan in the JSON groups evidence-bearing rooms by spatial classification and primary structural kit. Exact exit commands, socket count and furnishing families remain per-room parameters, not new template identities. It ranks shared kit work by unbuilt-room coverage and selects stable representative scenes plus explicit exceptions. These are planning cohorts, NOT generated or approved scenes. Missing evidence remains unresolved. Existing room-specific recipes remain authoritative overrides.', '',
+  ...Object.entries(productionPlan.counts).map(([k,v])=>'- '+k+': '+v), '',
+  'Target workflow: extract evidence once; compile constrained scene recipes in batches; cache by evidence, graph, kit and compiler revisions; rebuild only affected rooms; validate all rooms; review changed template representatives and every flagged exception. Full per-room visual review remains a release gate until a measured sampling policy is accepted. Do not equate a faster report with faster scene production.', '',
+  '### Highest-coverage kit work', '',
+  ...productionPlan.kitPriority.map(k=>'- '+k.family+': '+k.unbuiltRoomIds.length+' unbuilt rooms ('+k.roomIds.length+' described rooms total)'), '',
   '## Coordinated asset families', '', ...families.map(f=>'- '+f.id+': '+f.roomIds.length+' rooms'), '',
   'Families are evidence-backed work queues, not permission to fill every matching room with a generic model. The JSON retains the full bound description, excerpt, commands, geometry diagnostics and current recipe for every room. Shared-place descriptions and heuristic classifications need review.', '',
   '## Required architecture', '',

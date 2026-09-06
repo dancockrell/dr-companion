@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { planProductionBatches } from './room-production-batches.mjs'
+const room=(id,extra={})=>({id,description:'A paved street.',evidenceScope:'representative-room',spatialClassification:'exterior',assetRequirements:[{family:'street'}],connections:[{command:'north',tetherKind:'compass',targetLoaded:true,compassBearingMatches:true}],recipeStatus:'unbuilt',...extra})
+const input=[room('a'),room('b'),room('c',{description:''}),room('d',{connections:[{command:'south',tetherKind:'compass',targetLoaded:true,compassBearingMatches:false}]})]
+const original=JSON.stringify(input)
+const plan=planProductionBatches(input)
+assert.equal(plan.counts.inputRooms,4)
+assert.equal(plan.counts.scheduledRooms,3)
+assert.equal(plan.counts.cohorts,1)
+assert.equal(plan.kitPriority[0].unbuiltRoomIds.length,3)
+assert.deepEqual(plan.batches[0].roomIds,['a','b','d'])
+assert.equal(input[3].connections[0].command,'south')
+assert(plan.exceptions.find(e=>e.roomId==='c').reasons.includes('missing-description'))
+assert(plan.exceptions.find(e=>e.roomId==='d').reasons.includes('layout-conflict'))
+assert.equal(JSON.stringify(input),original)
+assert.deepEqual(planProductionBatches([...input].reverse()),plan)
+assert.throws(()=>planProductionBatches([room('a'),room('a')]),/Duplicate room/)
+assert.equal(planProductionBatches([]).counts.cohorts,0)
+const actual=JSON.parse(readFileSync('data/world/crossing-city-batch.json','utf8'))
+const actualPlan=planProductionBatches(actual.rooms)
+assert.deepEqual(actual.productionPlan,actualPlan)
+assert.equal(new Set(actualPlan.batches.flatMap(b=>b.roomIds)).size,actualPlan.counts.scheduledRooms)
+assert(actualPlan.batches.every(b=>b.status==='planned-not-generated'))
+console.log('Production batching checks passed; '+JSON.stringify(actualPlan.counts))

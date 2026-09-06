@@ -7,6 +7,8 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "tools/room-production-batches.mjs",
+    "tools/room-production-batches-test.mjs",
     "tools/node-tethered-world-projection-test.mjs",
     "docs/verification/crossing-native-bellows-room.png",
     "docs/verification/crossing-native-armory-workroom.png",
