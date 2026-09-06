@@ -44,6 +44,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { findRuby, rubyCandidates } from './find-ruby.mjs'
+import { watchTree } from './break-check-tree.mjs'
 
 const RUNNER = 'ruby/runner.rb'
 const SUITE = 'tools/ai-script-repair-test.mjs'
@@ -85,6 +86,11 @@ function hashesMatch() {
   )
 }
 
+// The "before" reading, taken before anything is damaged. It asserts that this
+// run changed nothing, not that the checkout was tidy - these harnesses are run
+// while somebody is editing. See tools/break-check-tree.mjs.
+const treeBack = watchTree([RUNNER, SUITE])
+
 // Both files are tracked and one of them is the runner a reviewer's candidate
 // is contained by. Leaving either damaged is the only outcome worse than
 // having no negative test at all.
@@ -93,7 +99,12 @@ process.on('exit', () => {
     console.log('FAIL a file was left damaged — restoring')
     restoreAll()
     process.exitCode = 1
+    return
   }
+  // The hashes prove these two files came back; only git can see anything else
+  // this run left behind - a fixture written and not removed, a restore with
+  // the wrong line endings. See tools/break-check-tree.mjs.
+  if (treeBack(0) !== 0) process.exitCode = 1
 })
 
 /** Run the suite and return every `FAIL <name>` it printed. */

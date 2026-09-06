@@ -279,6 +279,19 @@ const STAGES = [
     args: [resolve(root, 'tools', 'rust-release-knobs.mjs')],
   },
   {
+    // The Ruby containment's five sabotages (#486). Damages ruby/runner.rb and
+    // tools/ai-script-repair-test.mjs, runs the whole suite between edits, and
+    // asserts the exact set of checks each one reddens. It is here rather than
+    // in tools/test-suites.json for this list's stated reason: it writes to
+    // tracked source, and run-tests.mjs is run constantly while other sessions
+    // build this tree. Without an interpreter it prints one NOT CHECKED and
+    // exits 0, because every sabotage here reddens a Ruby check.
+    name: 'break-ai-script-repair',
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'ai-script-repair-break-check.mjs')],
+  },
+  {
     name: 'godot',
     precheck: godotStage,
     // This node and this path, spawned directly. `shell: true` would hand a
@@ -319,7 +332,7 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 11
+const EXPECTED_STAGES = 12
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */

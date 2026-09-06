@@ -64,6 +64,19 @@ const NEEDS_ENVIRONMENT = [
       'a tree no other session is building: it damages command_gate.rs on purpose and restores it',
   },
   {
+    script: 'test:ai-script-repair-break',
+    // The same reason as the entry above, and the gate runs it as a stage
+    // (`break-ai-script-repair`) for the same reason it runs the other two:
+    // it damages ruby/runner.rb and tools/ai-script-repair-test.mjs on purpose
+    // five times and runs the whole suite between each. Inside
+    // `node tools/run-tests.mjs` - which every session runs, constantly - that
+    // would mean another lane's `test:ai-script-repair` measuring this
+    // harness's sabotage rather than its own tree. The npm script is kept so a
+    // person can run it by hand; the gate spawns the file directly.
+    requires:
+      'a tree no other session is building: it damages ruby/runner.rb and the suite that judges it, and restores both',
+  },
+  {
     script: 'test:protocol-harness',
     requires:
       'Ruby, and a second shell: the harness serves the real protocol on 7419 and tools/ws-client.mjs connects to it',
