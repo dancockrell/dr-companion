@@ -570,7 +570,16 @@ function selfTest() {
   // directions are asserted here - a heading with no increments must fail, and
   // a heading with increments must not - because a check that always fires
   // carries exactly as little information as one that never does.
-  const laneText = ['### Lane A', '- [ ] **A1  a thing** (≈5)', '  touches: none', '', '### Lane Z', '- [ ] **Z1  invisible** (≈5)', '  touches: none'].join('\n')
+  // Lane Z's increment is written `**ZZ1`, not `**Z1`, and that is deliberate.
+  // The fixture has to contain an id the parser genuinely cannot match, and
+  // when this was written it got one for free: `ID` stopped at `A-N`, so a Z
+  // was unmatchable by accident. `ID` covers `A-Z` now — every lane letter
+  // parses, which is the point — and a `**Z1` fixture would have quietly
+  // stopped demonstrating the defect while still passing, since the check it
+  // exercises would simply have nothing to report. `ZZ1` is outside the
+  // pattern by construction rather than by where the alphabet happened to be
+  // truncated that week.
+  const laneText = ['### Lane A', '- [ ] **A1  a thing** (≈5)', '  touches: none', '', '### Lane Z', '- [ ] **ZZ1  invisible** (≈5)', '  touches: none'].join('\n')
   const laneIncrements = parsePlan(laneText)
   const laneResult = checkLaneHeadings(laneText, laneIncrements)
   const laneExpect = [
