@@ -64,6 +64,11 @@
 import { invokeTauri, isTauri } from './tauri.ts'
 import { loadPrefs, savePrefs } from './persistence.ts'
 import { fakeListCharacters, fakeLaunch, dryRunRequested } from './lichLoginFake.ts'
+// Generated from `login_error.rs`'s `REFUSAL_SENTENCES` by `cargo test`, and
+// read here rather than retyped: the sentences below are this module's, the
+// per-token ones are Rust's, and one hand-kept copy of a table is one table
+// that drifts (#507).
+import { REFUSAL_SENTENCES } from './loginErrorFixtures.ts'
 
 /**
  * The games this picker offers, and the codes Lich's own table gives them
@@ -231,6 +236,11 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
   bad_password: 'That account name or password was not accepted. Check both and try again.',
   account_locked:
     'Play.net has locked this account. Sign in on the Play.net website to unlock it, then come back.',
+  // The fallback, and from #507 it is only the fallback. A token this app has
+  // a meaning for gets that meaning, from the generated `REFUSAL_SENTENCES`
+  // table; this wording is for the case it is actually true of, which is a
+  // token that fell off the end of Lich's own list. `refusalSentence` appends
+  // the raw token to it, so a bug report carries the word the server sent.
   account_refused:
     'Play.net refused this sign-in and gave a reason this app does not recognise. Your saved password has been kept. Check the account on the Play.net website, then try again.',
   character_not_found:
@@ -253,6 +263,30 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
 }
 
 /**
+ * The sentence for one `A`-reply refusal token (#507).
+ *
+ * Four of Lich's tokens mean four different things - `authenticator.rb:20-22`
+ * glosses them, `eaccess.rs` writes the glosses down, and `from_refusal_code`
+ * matched on them to reach `account_refused` in the first place. Telling all
+ * four players "a reason this app does not recognise" was false, and sending
+ * all four to the Play.net account page was one remedy for four causes: it is
+ * the wrong lever for `INVALID`, which is about the request rather than the
+ * account, and for `NORECORD`, which means the **account name** on the screen
+ * in front of them is wrong.
+ *
+ * The table is generated from Rust, so this function only chooses; it does not
+ * hold any wording of its own. A token with no row keeps the generic sentence,
+ * plus the token itself, because a player reporting a bug should not have to
+ * transcribe the detail line for the one word that matters.
+ */
+function refusalSentence(token: string): string {
+  const row = REFUSAL_SENTENCES.find((r) => r.token === token.trim().toUpperCase())
+  if (row) return row.sentence
+  const generic = LOGIN_ERROR_SENTENCES.account_refused
+  return token.trim() ? `${generic} Play.net said: ${token.trim()}.` : generic
+}
+
+/**
  * The kind and the sentence for a raw failure from either command.
  *
  * Kept separate from the invoking code so it can be run over every kind in a
@@ -270,7 +304,7 @@ export function classifyLoginError(raw: unknown): {
   // a prefix of prose.
   const structured =
     typeof raw === 'object' && raw !== null && typeof (raw as { code?: unknown }).code === 'string'
-      ? (raw as { code: string; message?: unknown })
+      ? (raw as { code: string; message?: unknown; token?: unknown })
       : null
 
   const text = structured
@@ -310,6 +344,15 @@ export function classifyLoginError(raw: unknown): {
         : LOGIN_ERROR_SENTENCES.unknown,
       detail,
     }
+  }
+  // #507. The one kind whose sentence depends on more than the kind: the
+  // refusal token is a *field* on the failure, never read back out of the
+  // message, because parsing prose for a code is the defect #457 was.
+  // A string-form failure carries no token and keeps the generic sentence,
+  // which is honest - nothing knows what the server said.
+  if (kind === 'account_refused') {
+    const token = typeof structured?.token === 'string' ? structured.token : ''
+    return { kind, sentence: refusalSentence(token), detail }
   }
   return { kind, sentence: LOGIN_ERROR_SENTENCES[kind], detail }
 }

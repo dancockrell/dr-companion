@@ -201,22 +201,34 @@ ok(
 )
 
 // The entry format, likewise read from the writer rather than assumed.
-const entryTemplate = /out\.push_str\(&format!\("(.*?)\\n"\)\);/.exec(rust)?.[1] ?? ''
+//
+// The `\s*` either side of the literal are load-bearing: `cargo fmt` wraps this
+// `push_str` across three lines once the template is long enough, and the
+// single-line form of this regexp then matched nothing - which reddened two
+// checks with a message about the *fixture* for a defect in this parser. The
+// first `push_str(&format!(...))` in the file is the entry writer; the refusal
+// table's is further down and non-greedy matching leaves it alone.
+const entryTemplate = /out\.push_str\(&format!\(\s*"(.*?)\\n"\s*\)\);/.exec(rust)?.[1] ?? ''
 ok(
   'the entry template was found in the Rust writer',
   entryTemplate.includes('{code}') && entryTemplate.includes('{message}'),
   entryTemplate,
 )
 // `{{`/`}}` are escaped braces in a Rust format string; `{code}`/`{message}` are
-// serde_json strings, so each is a JSON string literal.
+// serde_json strings, so each is a JSON string literal. `{token}` (#507) is a
+// whole pre-rendered `, token: "..."` fragment or the empty string, because
+// `LoginFailure.token` is `skip_serializing_if = "Option::is_none"` and a line
+// reading `token: null` would describe a wire shape nothing sends.
+const JSON_STRING = '"(?:[^"\\\\]|\\\\.)*"'
 const entryRe = new RegExp(
   '^' +
     entryTemplate
       .replace(/[.*+?^$()|[\]\\]/g, '\\$&')
       .replace(/\{\{/g, '\\{')
       .replace(/\}\}/g, '\\}')
-      .replace(/\{code\}/g, '("(?:[^"\\\\]|\\\\.)*")')
-      .replace(/\{message\}/g, '("(?:[^"\\\\]|\\\\.)*")') +
+      .replace(/\{code\}/g, `(${JSON_STRING})`)
+      .replace(/\{message\}/g, `(${JSON_STRING})`)
+      .replace(/\{token\}/g, `(?:, token: ${JSON_STRING})?`) +
     '$',
 )
 const bodyLines = fixtureText
@@ -328,6 +340,88 @@ ok(
   templates.some((t) =>
     templateMatches(t, 'the account cannot sign in right now (SOME-OTHER-TOKEN)'),
   ),
+)
+
+// ---------------------------------------------------------------------------
+// 4b. The refusal table is Rust's, not a second copy (#507).
+//
+// The per-token sentences live in `login_error.rs`'s `REFUSAL_SENTENCES` and
+// are generated into the fixture module beside the failure samples, for the
+// reason the samples are: a hand-kept TypeScript copy of a table drifts, and
+// the drift is silent because a wrong sentence still renders perfectly.
+// ---------------------------------------------------------------------------
+
+const { REFUSAL_SENTENCES } = await import('../src/lib/loginErrorFixtures.ts')
+
+const rustTableBody =
+  /pub const REFUSAL_SENTENCES: \[RefusalRow; (\d+)\] = \[([\s\S]*?)\n\];/.exec(rust) ?? null
+const rustTableLen = rustTableBody ? Number(rustTableBody[1]) : -1
+const rustTokens = rustTableBody
+  ? [...rustTableBody[2].matchAll(/token: "([^"]*)"/g)].map((m) => m[1])
+  : []
+
+// The denominator first, as everywhere else here: every comparison below is
+// vacuously true against an empty parse.
+ok('the refusal-table parser found rows', rustTokens.length >= 4, `${rustTokens.length}`)
+ok(
+  'the declared row count is the number of rows',
+  rustTableLen === rustTokens.length,
+  `declared ${rustTableLen}, found ${rustTokens.length}`,
+)
+ok(
+  'the generated table holds the tokens Rust declares, in that order',
+  JSON.stringify(REFUSAL_SENTENCES.map((r) => r.token)) === JSON.stringify(rustTokens),
+  REFUSAL_SENTENCES.map((r) => r.token).join(', ') || 'empty',
+)
+
+// Provenance, the same property section 4 holds the messages to: a sentence
+// edited in the generated file matches no literal in the Rust source. These
+// have no `{}` holes, so it is an exact comparison after the line-continuation
+// joining `stringLiterals` does.
+const loginErrorLiterals = stringLiterals(rust)
+const invented = REFUSAL_SENTENCES.filter((r) => !loginErrorLiterals.includes(r.sentence))
+ok(
+  'every generated sentence is a literal that exists in login_error.rs',
+  invented.length === 0,
+  invented.map((r) => r.token).join(', ') ||
+    `${REFUSAL_SENTENCES.length} of ${REFUSAL_SENTENCES.length}`,
+)
+ok(
+  'control: an invented sentence is in no Rust literal',
+  !loginErrorLiterals.includes('DRIFTED-SABOTAGE: Play.net said something nobody wrote down.'),
+)
+
+// The property the issue is about, on the artefact the webview reads: one
+// sentence per cause. A table whose rows were copied from one another passes
+// every check above.
+const bySentence = new Map()
+for (const row of REFUSAL_SENTENCES) {
+  bySentence.set(row.sentence, [...(bySentence.get(row.sentence) ?? []), row.token])
+}
+const sharing = [...bySentence.values()].filter((tokens) => tokens.length > 1)
+ok(
+  'no two refusal tokens share a sentence',
+  sharing.length === 0 && bySentence.size === REFUSAL_SENTENCES.length,
+  sharing.map((t) => t.join(' and ')).join('; ') ||
+    `${bySentence.size} sentences for ${REFUSAL_SENTENCES.length} tokens`,
+)
+ok(
+  'and none of them is the unrecognised-token wording',
+  REFUSAL_SENTENCES.every((r) => !/does not recognise/.test(r.sentence)),
+  'that sentence is for the fallback arm, which is what it is true of',
+)
+
+// And the webview reads the generated table rather than holding its own.
+const lichLoginText = read('src/lib/lichLogin.ts')
+ok(
+  'the classifier imports the generated refusal table',
+  /import \{ REFUSAL_SENTENCES \} from '\.\/loginErrorFixtures\.ts'/.test(lichLoginText),
+)
+const retyped = REFUSAL_SENTENCES.filter((r) => lichLoginText.includes(r.sentence))
+ok(
+  'and does not retype any row of it',
+  retyped.length === 0,
+  retyped.map((r) => r.token).join(', ') || `0 of ${REFUSAL_SENTENCES.length} sentences retyped`,
 )
 
 // ---------------------------------------------------------------------------

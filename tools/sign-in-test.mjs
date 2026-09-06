@@ -33,7 +33,12 @@
  *      this file states independently - dropping an arm goes red naming it;
  *   5. an unrecognised failure does not silently become one of the known ones;
  *   6. the character picker offers exactly what the command returned, not a
- *      list this app made up.
+ *      list this app made up;
+ *   7. every `A`-reply refusal token reaches the sentence written for its own
+ *      cause, and only a token nobody has written down is told the app cannot
+ *      read the reason (#507). Four of Lich's tokens have meanings this app
+ *      keeps in its own source and all four used to get one sentence and one
+ *      remedy.
  *
  * # The denominator, and the hole that was in it
  *
@@ -73,6 +78,13 @@ let eaccessChecked = false
  * is checked in - but counted rather than assumed, because a loop over an
  * empty import is exactly what a broken check looks like. */
 let fixturesChecked = 0
+/** Whether the #507 refusal-token drive ran. Same accounting as the block
+ * above: its assertions are skipped with it when `eaccess.rs` is absent, and a
+ * skip must not read as assertions that never executed. */
+let refusalDriveChecked = false
+/** How many `A`-reply tokens were driven through the classifier. Printed, so a
+ * drive over an empty token list is visible rather than silently green. */
+let refusalTokensDriven = 0
 const ok = (name, cond, detail = '') => {
   if (cond) pass += 1
   else fail += 1
@@ -205,7 +217,9 @@ const { listCharacters, launchCharacter, rememberSignIn, classifyLoginError, LOG
   await import('../src/lib/lichLogin.ts')
 const { loadPrefs, PREFS_STORAGE_KEY } = await import('../src/lib/persistence.ts')
 // Generated from the Rust types by `cargo test`. Read, never written here.
-const { LOGIN_ERROR_FIXTURES } = await import('../src/lib/loginErrorFixtures.ts')
+const { LOGIN_ERROR_FIXTURES, REFUSAL_SENTENCES } = await import(
+  '../src/lib/loginErrorFixtures.ts'
+)
 
 // Obviously fake, and it has to be: nothing resembling a real credential goes
 // in a file in this repository.
@@ -429,6 +443,113 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
 }
 
 // --------------------------------------------------------------------------
+// #507: one sentence per refusal cause, driven over every token.
+//
+// The player-facing half of the property `lich.rs`'s
+// `every_refusal_token_reaches_the_sentence_written_for_its_cause` drives
+// through the composed path. The token list is read out of `eaccess.rs`'s
+// `REFUSAL_TOKENS` - the same array that test drives - rather than typed here,
+// so the two ends cannot end up covering different populations.
+//
+// Before #507 this loop would have printed one sentence fifteen times, saying
+// Play.net "gave a reason this app does not recognise" for four tokens whose
+// meanings are written down in `eaccess.rs` itself.
+// --------------------------------------------------------------------------
+{
+  const rel = process.env.DRC_EACCESS_SOURCE ?? 'src-tauri/src/eaccess.rs'
+  if (!existsSync(join(root, rel))) {
+    notChecked(
+      'every refusal token reaches the sentence written for its cause',
+      `${rel} does not exist, so the token population cannot be read; the table itself is checked by tools/login-error-fixture-test.mjs`
+    )
+  } else {
+    const body =
+      /const REFUSAL_TOKENS: \[&str; (\d+)\] = \[([\s\S]*?)\n {4}\];/.exec(read(rel)) ?? null
+    const declared = body ? Number(body[1]) : -1
+    const tokens = body ? [...body[2].matchAll(/"([^"]*)"/g)].map((m) => m[1]) : []
+    // The denominator, and it is the whole value of the loop below: a regex
+    // that stopped matching would report a perfectly consistent set of
+    // sentences for no tokens at all.
+    ok(
+      'the refusal-token parser found the declared number of tokens',
+      tokens.length >= 20 && tokens.length === declared,
+      `${tokens.length} found, ${declared} declared`
+    )
+
+    // Every token driven as the refusal it would be. Re-implementing
+    // `from_refusal_code` here to work out which ones reach `account_refused`
+    // would be a second copy of the classifier; `lich.rs` drives the real one
+    // through the real path and this drives the real table through the real
+    // classifier, which is the half a player sees.
+    const message =
+      'the login service refused the account for a reason this version does not recognise'
+    const sentences = new Map()
+    for (const token of tokens) {
+      sentences.set(token, classifyLoginError({ code: 'account_refused', message, token }).sentence)
+      refusalTokensDriven += 1
+    }
+
+    const named = REFUSAL_SENTENCES.map((r) => r.token)
+    const wrong = named.filter(
+      (t) => sentences.get(t) !== REFUSAL_SENTENCES.find((r) => r.token === t).sentence
+    )
+    ok(
+      `each of the ${named.length} named tokens gets the sentence written for it`,
+      wrong.length === 0 && named.every((t) => sentences.has(t)),
+      wrong.join(', ') || named.join(', ')
+    )
+    // Distinctness is the whole of the issue: four causes sharing one remedy
+    // is what this replaced, and a table whose rows were copied from one
+    // another would pass every other check here.
+    const shared = new Map()
+    for (const t of named) {
+      shared.set(sentences.get(t), [...(shared.get(sentences.get(t)) ?? []), t])
+    }
+    const sharing = [...shared.values()].filter((t) => t.length > 1)
+    ok(
+      'and no two of them get the same sentence',
+      sharing.length === 0 && shared.size === named.length,
+      // Named, not counted: "4 sentences for 5 tokens" does not say which
+      // cause lost its remedy, and that is the thing to go and look at.
+      sharing.map((t) => t.join(' and ')).join('; ') ||
+        `${shared.size} sentences for ${named.length} tokens`
+    )
+    ok(
+      'a named token no longer claims the app cannot read the reason',
+      named.every((t) => !/does not recognise/.test(sentences.get(t))),
+      named.filter((t) => /does not recognise/.test(sentences.get(t))).join(', ') || 'none do'
+    )
+
+    // The other outcome, so neither list is what an inert drive would give:
+    // a token nobody has written down keeps the generic wording - which is
+    // what that wording is actually true of - and shows the raw token, so a
+    // bug report carries the word the server sent.
+    const unnamed = tokens.filter((t) => t && !named.includes(t))
+    ok('there are unnamed tokens to check the fallback with', unnamed.length >= 5, `${unnamed.length}`)
+    const swallowed = unnamed.filter((t) => !sentences.get(t).includes(t))
+    ok(
+      'an unrecognised token is shown to the player, not swallowed',
+      swallowed.length === 0,
+      swallowed.join(', ') || `${unnamed.length} of ${unnamed.length}`
+    )
+    ok(
+      'and the fallback still says the reason was not recognised',
+      unnamed.every((t) => /does not recognise/.test(sentences.get(t)))
+    )
+    // A refusal with no token - a string-form failure, or the empty last field
+    // a truncated reply leaves behind - gets the generic sentence with nothing
+    // appended, rather than a dangling "Play.net said: ".
+    const bare = classifyLoginError({ code: 'account_refused', message })
+    ok(
+      'a refusal carrying no token gets the generic sentence unchanged',
+      bare.sentence === LOGIN_ERROR_SENTENCES.account_refused,
+      bare.sentence
+    )
+    refusalDriveChecked = true
+  }
+}
+
+// --------------------------------------------------------------------------
 // 6. The picker shows what came back, and nothing this app invented.
 // --------------------------------------------------------------------------
 {
@@ -579,13 +700,23 @@ const ran = pass + fail
 // truncated run.
 const LOOP_SITES = 3
 const eaccessBlockStatic = eaccessChecked ? 0 : 6
+// #507's refusal-token drive is skipped with `eaccess.rs` for the same reason
+// and needs the same subtraction. Its own loop fills a map rather than
+// asserting, so all eight of its `ok(`s are static.
+const refusalBlockStatic = refusalDriveChecked ? 0 : 8
 const expected =
-  declaredStatic - LOOP_SITES - eaccessBlockStatic + REQUIRED_KINDS.length * 2 + fixturesChecked
+  declaredStatic -
+  LOOP_SITES -
+  eaccessBlockStatic -
+  refusalBlockStatic +
+  REQUIRED_KINDS.length * 2 +
+  fixturesChecked
 if (ran < expected) {
   console.log(`FAIL only ${ran} of an expected ${expected} assertions ran - the rest never executed`)
   process.exit(1)
 }
 console.log(`   ${ran} assertions ran (expected at least ${expected})`)
+console.log(`   ${refusalTokensDriven} A-reply refusal tokens driven through the classifier`)
 if (skipped.length) {
   console.log('\nnot checked (a skip is not a pass):')
   for (const s of skipped) console.log(`  ${s}`)

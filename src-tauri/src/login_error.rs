@@ -152,6 +152,119 @@ impl LoginCode {
     }
 }
 
+/// One `A`-reply refusal token, what Lich glosses it as, and what the player
+/// is told.
+///
+/// See [`REFUSAL_SENTENCES`] for why the sentence lives beside the gloss.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RefusalRow {
+    /// The token as the account server sends it, upper case.
+    pub token: &'static str,
+    /// Lich's own words for it (`authenticator.rb:20-22`). Not shown to
+    /// anybody; it is the citation the sentence was written from, kept beside
+    /// the sentence so a reader can check one against the other.
+    pub gloss: &'static str,
+    /// What the player reads. Second person, one cause, one remedy.
+    pub sentence: &'static str,
+}
+
+/// Lich's whole written-down `A`-reply vocabulary but `PASSWORD`, with a
+/// sentence each.
+///
+/// # Why this table exists, and why it is here
+///
+/// Issue #507. All of these classify to [`LoginCode::AccountRefused`], and the
+/// webview had one sentence for the lot of them: *"Play.net refused this
+/// sign-in and gave a reason this app does not recognise… Check the account on
+/// the Play.net website."* Two things wrong with that, and the second is the
+/// expensive one:
+///
+/// 1. **It is false.** `eaccess.rs` writes these meanings down in its own
+///    source and `from_refusal_code` matched on them to get here. "A reason
+///    this app does not recognise" is the right wording for a token that fell
+///    off the end of the list, and the wrong wording for one that did not.
+/// 2. **One remedy for four causes.** `NORECORD` means the *account name* is
+///    wrong, which is a field on the screen in front of the player, and they
+///    were sent to a website instead. `INVALID` is about the request rather
+///    than the account, so the account page is the wrong lever for it too.
+///
+/// It is in Rust, and generated into `src/lib/loginErrorFixtures.ts` alongside
+/// the failure samples, for the same reason [`LoginCode::ALL`] is: a second
+/// hand-maintained copy in TypeScript is a copy that drifts, and that drift is
+/// silent because a wrong sentence still renders. The webview reads the
+/// generated table; nothing on that side retypes a row.
+///
+/// `PASSWORD` is deliberately absent: it is the one token that is not an
+/// `AccountRefused` at all ([`LoginCode::BadCredentials`], and the only one
+/// that costs the player a stored password — #488). The lock words are absent
+/// for the same reason, one variant further along.
+///
+/// A token in none of those lists still gets the unrecognised-token sentence,
+/// which is what that wording is actually true of — plus the token itself, so
+/// a bug report carries it.
+pub const REFUSAL_SENTENCES: [RefusalRow; 5] = [
+    RefusalRow {
+        token: "REJECT",
+        gloss: "bad credentials",
+        // The pair, not the password: Lich glosses it as both fields together,
+        // which is exactly why #488 keeps the stored password for it. That
+        // distinction is used to make a decision and was then thrown away
+        // before the player saw it.
+        sentence: "Play.net refused the account name and password together. Check both. \
+                   Your saved password has been kept.",
+    },
+    RefusalRow {
+        token: "NORECORD",
+        gloss: "account not found",
+        // The one a player can fix in the second it takes to read this. The
+        // account name is not the character name, and typing the character
+        // name is the commonest way to reach this token.
+        sentence: "No account with that name. Check the account name (not the character name).",
+    },
+    RefusalRow {
+        token: "INVALID",
+        gloss: "invalid request",
+        // About the request, not the account, so the account page cannot help.
+        // Lich's gloss is all anybody knows: it can mean a malformed frame, a
+        // field the server stopped accepting, or a step that moved.
+        sentence: "Play.net called the request invalid. Try again; if it repeats, \
+                   the login service may have changed.",
+    },
+    RefusalRow {
+        token: "CHARACTER_NOT_FOUND",
+        gloss: "character not in account",
+        // Deliberately not the same string as the webview's
+        // `character_not_found` sentence, which belongs to
+        // `EAccessError::NoSuchCharacter` — a character picked off a list this
+        // app had already fetched. This token arrives at the *account* step,
+        // before any list exists, so "the list you were shown is stale" is not
+        // what happened. Two states, two owners, two sentences;
+        // `tools/login-error-fixture-test.mjs` fails if a row here is a copy of
+        // a sentence over there.
+        sentence: "Play.net says that character is not on this account. \
+                   Start the sign-in again to get a fresh character list.",
+    },
+    RefusalRow {
+        token: "GENERATOR_NOT_AVAILABLE",
+        gloss: "not entitled to the generator",
+        // This app never enters the character generator (`eaccess.rs` refuses
+        // the `NEW_TO_GAME` tier), so a server saying this at `A` is answering
+        // a question nothing here asked. That is a bug report, not a remedy.
+        sentence: "Play.net answered as though this app had asked to make a new character. \
+                   It never does, so this is worth reporting as a bug.",
+    },
+];
+
+/// The row for an `A`-reply token, or `None` for one nobody has written down.
+///
+/// Case-insensitive on the token, because `from_refusal_code` is: a server
+/// sending `reject` reaches the same variant, so it must reach the same
+/// sentence.
+pub fn refusal_sentence(token: &str) -> Option<&'static RefusalRow> {
+    let upper = token.to_ascii_uppercase();
+    REFUSAL_SENTENCES.iter().find(|row| row.token == upper)
+}
+
 /// What a failing sign-in command returns.
 ///
 /// **No field of this may ever carry a password.** `message` is a `Display` of
@@ -166,6 +279,19 @@ pub struct LoginFailure {
     /// Whatever detail is safe to print. Shown under the player's sentence,
     /// not instead of it.
     pub message: String,
+    /// The raw `A`-reply refusal token, when there was one.
+    ///
+    /// Issue #507. The token is already in `message`, inside a sentence, and
+    /// the webview must never have to read it back out of prose — that is the
+    /// parser #457 was about, one field along. So it crosses the boundary as a
+    /// field, and the webview looks it up in the generated
+    /// [`REFUSAL_SENTENCES`] table to choose which sentence to show.
+    ///
+    /// `None` for everything that is not an `A`-reply refusal, and omitted
+    /// from the JSON entirely when it is `None`, so no failure that never had
+    /// a token grows a null one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 impl LoginFailure {
@@ -173,7 +299,18 @@ impl LoginFailure {
         Self {
             code: code.as_str(),
             message: message.into(),
+            token: None,
         }
+    }
+
+    /// The same failure, carrying the refusal token the server sent.
+    ///
+    /// Takes an `Option` rather than a `&str` so the one call site
+    /// (`impl From<EAccessError>`) can hand over whatever the variant had,
+    /// including nothing, without a branch of its own.
+    pub fn with_token(mut self, token: Option<&str>) -> Self {
+        self.token = token.map(str::to_string);
+        self
     }
 
     /// The launcher half: Lich could not be started, exited, or never listened.
@@ -242,6 +379,134 @@ mod tests {
         // this number wrong, and the fixture built from `ALL` would then be
         // silently short a code.
         assert_eq!(seen.len(), LoginCode::ALL.len());
+    }
+
+    /// #507: one sentence per cause, and they are really different sentences.
+    ///
+    /// The property the defect violated. "Four causes have four remedies" is
+    /// only true if the four rows say four different things, and a table whose
+    /// rows were copy-pasted from one another would satisfy every other check
+    /// here — it would have the right number of rows, all upper case, all
+    /// ending in a full stop, all classifying to `AccountRefused`.
+    #[test]
+    fn every_refusal_row_says_something_the_others_do_not() {
+        let mut tokens = std::collections::BTreeSet::new();
+        let mut sentences = std::collections::BTreeSet::new();
+        for row in REFUSAL_SENTENCES {
+            assert!(
+                tokens.insert(row.token),
+                "{} appears twice in REFUSAL_SENTENCES",
+                row.token
+            );
+            assert!(
+                sentences.insert(row.sentence),
+                "{} repeats another row's sentence, so two causes share a remedy",
+                row.token
+            );
+            assert_eq!(
+                row.token,
+                row.token.to_ascii_uppercase(),
+                "{} is not upper case, so `refusal_sentence` could never match it",
+                row.token
+            );
+            assert!(!row.gloss.trim().is_empty(), "{} has no gloss", row.token);
+            let s = row.sentence;
+            assert!(
+                s.len() > 20,
+                "{}'s sentence is too short to act on",
+                row.token
+            );
+            assert!(
+                s.ends_with('.'),
+                "{}'s sentence is not a sentence",
+                row.token
+            );
+            // The same bar `tools/sign-in-test.mjs` holds every other player
+            // sentence to: nothing here means anything to somebody who wants
+            // to play a game.
+            for word in ["EAccess", "argv", "errno", "0x", "Err("] {
+                assert!(
+                    !s.contains(word),
+                    "{}'s sentence shows the player {word}",
+                    row.token
+                );
+            }
+        }
+        // The denominator: an empty table would satisfy every assertion above.
+        assert_eq!(tokens.len(), REFUSAL_SENTENCES.len());
+        assert_eq!(sentences.len(), REFUSAL_SENTENCES.len());
+        assert!(REFUSAL_SENTENCES.len() >= 4);
+    }
+
+    /// #507: every row is a token that really reaches `AccountRefused`.
+    ///
+    /// The direction that finds things. A row for `PASSWORD` or for a lock word
+    /// would be a sentence nobody could ever see, because those tokens are a
+    /// different variant with a different sentence and — for `PASSWORD` — a
+    /// deleted credential. Asked of `from_refusal_code` rather than of a list
+    /// written here, so the table and the classifier cannot drift apart.
+    #[test]
+    fn the_table_only_holds_tokens_that_reach_account_refused() {
+        use crate::eaccess::EAccessError;
+        for row in REFUSAL_SENTENCES {
+            assert_eq!(
+                EAccessError::from_refusal_code(row.token).code().as_str(),
+                "account_refused",
+                "{} does not classify as account_refused, so its sentence is unreachable",
+                row.token
+            );
+        }
+        // The controls: the two tokens that must NOT be in the table, and the
+        // one that is the whole reason the fallback wording still exists.
+        assert!(refusal_sentence("PASSWORD").is_none());
+        assert!(refusal_sentence("LOCKED").is_none());
+        assert!(
+            refusal_sentence("NEW").is_none(),
+            "NEW is the unrecognised-token exemplar; a row for it would empty the fallback"
+        );
+        // And a positive control, so `is_none()` above is not simply what this
+        // function always says.
+        assert_eq!(
+            refusal_sentence("NORECORD").map(|r| r.gloss),
+            Some("account not found")
+        );
+        // Case-insensitive, because `from_refusal_code` is.
+        assert_eq!(
+            refusal_sentence("norecord").map(|r| r.sentence),
+            refusal_sentence("NORECORD").map(|r| r.sentence)
+        );
+        assert!(refusal_sentence("").is_none());
+    }
+
+    /// #507: the token crosses the boundary as a field, not as prose.
+    #[test]
+    fn a_refusal_carries_its_token_and_nothing_else_does() {
+        use crate::eaccess::EAccessError;
+        let refused = LoginFailure::from(EAccessError::from_refusal_code("NORECORD"));
+        assert_eq!(refused.code, "account_refused");
+        assert_eq!(refused.token.as_deref(), Some("NORECORD"));
+        // The other two refusal variants carry it too - they are the same
+        // `A`-reply field - so a webview that wanted to name the token in a
+        // bug report can, whichever variant it landed on.
+        assert_eq!(
+            LoginFailure::from(EAccessError::from_refusal_code("PASSWORD"))
+                .token
+                .as_deref(),
+            Some("PASSWORD")
+        );
+        // Nothing that is not an `A`-reply refusal grows one.
+        assert_eq!(
+            LoginFailure::from(EAccessError::ObscuredByteOutOfRange { index: 7 }).token,
+            None
+        );
+        assert_eq!(LoginFailure::internal("a thread panicked").token, None);
+        // And the JSON has no `token` key at all in that case, rather than a
+        // null one the webview would have to treat as absent.
+        let json = serde_json::to_string(&LoginFailure::internal("a thread panicked"))
+            .expect("a failure serialises");
+        assert!(!json.contains("token"), "{json}");
+        let json = serde_json::to_string(&refused).expect("a refusal serialises");
+        assert!(json.contains(r#""token":"NORECORD""#), "{json}");
     }
 
     /// One real failure per code, in `LoginCode::ALL`'s order.
@@ -332,6 +597,8 @@ mod tests {
 export interface LoginErrorFixture {
   code: string
   message: string
+  /** The raw `A`-reply refusal token, on the failures that have one (#507). */
+  token?: string
 }
 
 export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
@@ -340,7 +607,54 @@ export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
         for failure in failures {
             let code = serde_json::to_string(failure.code).expect("a code serialises");
             let message = serde_json::to_string(&failure.message).expect("a message serialises");
-            out.push_str(&format!("  {{ code: {code}, message: {message} }},\n"));
+            // Absent rather than null when there is no token, so the rendered
+            // line is the shape `LoginFailure`'s own serde output has: the
+            // field is `skip_serializing_if = "Option::is_none"`, and a fixture
+            // that showed `token: null` would be describing a wire shape
+            // nothing sends.
+            let token = match &failure.token {
+                Some(t) => format!(
+                    ", token: {}",
+                    serde_json::to_string(t).expect("a token serialises")
+                ),
+                None => String::new(),
+            };
+            out.push_str(&format!(
+                "  {{ code: {code}, message: {message}{token} }},\n"
+            ));
+        }
+        out.push_str("]\n");
+        out.push_str(
+            r#"
+/**
+ * One `A`-reply refusal token, and the sentence the player is shown for it.
+ *
+ * Generated from `login_error.rs`'s `REFUSAL_SENTENCES`, which is where the
+ * wording lives and where it is argued for. Issue #507: every token below used
+ * to reach one sentence saying Play.net "gave a reason this app does not
+ * recognise" and offering one remedy, for causes with different remedies and
+ * meanings this app had written down in its own source.
+ *
+ * `gloss` is Lich's own words for the token (`authenticator.rb:20-22`). It is
+ * not shown to anybody; it is here so a reader can check the sentence against
+ * the thing it claims to be about.
+ */
+export interface RefusalSentence {
+  token: string
+  gloss: string
+  sentence: string
+}
+
+export const REFUSAL_SENTENCES: RefusalSentence[] = [
+"#,
+        );
+        for row in REFUSAL_SENTENCES {
+            let token = serde_json::to_string(row.token).expect("a token serialises");
+            let gloss = serde_json::to_string(row.gloss).expect("a gloss serialises");
+            let sentence = serde_json::to_string(row.sentence).expect("a sentence serialises");
+            out.push_str(&format!(
+                "  {{ token: {token}, gloss: {gloss}, sentence: {sentence} }},\n"
+            ));
         }
         out.push_str("]\n");
         out
