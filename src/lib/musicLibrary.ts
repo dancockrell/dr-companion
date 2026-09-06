@@ -245,6 +245,20 @@ export interface MusicGroupStatus {
    * holding a gigabyte of half-files is the same lie from the panel's side.
    */
   partial: number
+  /**
+   * How many of this group's files are on disk in any form: finished tracks
+   * plus interrupted downloads. What Remove would delete, in other words, and
+   * the one number that gate is allowed to read.
+   *
+   * #423: Remove was gated on `installed > 0`, so a group whose every track
+   * was cancelled part-way - `installed === 0`, `partial === 42` - offered
+   * Resume and no Remove, and up to 1.65 GB of `.part` files could not be
+   * deleted from anywhere in the app. `remove_tracks` deletes the `.part`
+   * beside each track and always has; nothing ever called it in that state.
+   * Derived here rather than added up at the button, so the panel and any
+   * future caller cannot come to two answers about what is removable.
+   */
+  removable: number
   total: number
   bytesInstalled: number
   bytesTotal: number
@@ -293,6 +307,45 @@ export function resetInstalledMusicBase() {
   presentFiles = null
   partialFiles = new Set()
   libraryStatus = null
+  setInstallRun(null)
+}
+
+/**
+ * The one install that is running, as everything that draws a button reads it.
+ *
+ * #422: each `MusicInstallButton` used to keep its own `phase` in local state,
+ * so the transport's two buttons and every row in the Sound panel stayed
+ * clickable while another install ran - and pressing Cancel and then any other
+ * Install discarded the cancel. Rust now refuses the second call outright; this
+ * is the same fact on this side, in one place, so the buttons say so before
+ * anybody presses one rather than after.
+ *
+ * `groupId` is null for the whole library, which is a real value and not
+ * "unknown" - the run itself is null when nothing is installing.
+ */
+export interface MusicInstallRun {
+  groupId: string | null
+  groupName: string
+  received: number
+  total: number
+}
+
+let installRun: MusicInstallRun | null = null
+const installListeners = new Set<(run: MusicInstallRun | null) => void>()
+
+export function musicInstallRun(): MusicInstallRun | null {
+  return installRun
+}
+
+/** Subscribe to the running install. Returns an unsubscribe function. */
+export function onMusicInstallChange(fn: (run: MusicInstallRun | null) => void): () => void {
+  installListeners.add(fn)
+  return () => installListeners.delete(fn)
+}
+
+function setInstallRun(run: MusicInstallRun | null) {
+  installRun = run
+  for (const l of installListeners) l(installRun)
 }
 
 /** Only for tests: stand in for what Rust would have reported on disk. */
@@ -345,6 +398,7 @@ function deriveStatus(
       installed,
       missing: g.tracks.length - installed,
       partial,
+      removable: installed + partial,
       total: g.tracks.length,
       bytesInstalled,
       bytesTotal: g.bytes,
@@ -475,12 +529,6 @@ async function assetBase(dir: string): Promise<string | null> {
   }
 }
 
-export interface MusicInstallProgress {
-  received: number
-  total: number
-  phase: string
-}
-
 /**
  * Download one group, or the whole library when `group` is null.
  *
@@ -493,25 +541,42 @@ export interface MusicInstallProgress {
  * could disagree about which files are still needed.
  */
 export async function installMusicLibrary(
-  group: MusicGroup | null,
-  onProgress?: (p: MusicInstallProgress) => void
+  group: MusicGroup | null
 ): Promise<MusicLibraryStatus | null> {
   if (!isTauri()) {
     throw new Error('Installing the music library needs the desktop app.')
   }
-  const stop = onProgress
-    ? listenTauri<{ id: string; received: number; total: number; phase: string }>(
-        'setup://progress',
-        (p) => {
-          if (p.id !== 'music') return
-          onProgress({ received: p.received, total: p.total, phase: p.phase })
-        }
-      )
-    : null
+  const groupName = group ? group.name : 'the whole library'
+  setInstallRun({
+    groupId: group ? group.id : null,
+    groupName,
+    received: 0,
+    total: group ? group.bytes : MUSIC_LIBRARY_BYTES,
+  })
+  const stop = listenTauri<{ id: string; received: number; total: number; phase: string }>(
+    'setup://progress',
+    (p) => {
+      if (p.id !== 'music' || !installRun) return
+      setInstallRun({ ...installRun, received: p.received })
+    }
+  )
+  let result: { busy?: boolean; busy_group?: string | null } | undefined
   try {
-    await invokeTauri('install_music_library', { tracks: group ? group.tracks : MUSIC_TRACKS })
+    result = (await invokeTauri('install_music_library', {
+      tracks: group ? group.tracks : MUSIC_TRACKS,
+      group: groupName,
+    })) as { busy?: boolean; busy_group?: string | null } | undefined
   } finally {
-    stop?.()
+    stop()
+    setInstallRun(null)
+  }
+  if (result?.busy) {
+    // Rust owns "is an install running", and this is what it answered. The
+    // buttons are disabled while one runs, so reaching here means two calls
+    // raced; saying which install has the slot is more use than saying no.
+    throw new Error(
+      `${result.busy_group ?? 'Another install'} is installing already. Wait for it, or cancel it first.`
+    )
   }
   return await refreshMusicLibrary()
 }

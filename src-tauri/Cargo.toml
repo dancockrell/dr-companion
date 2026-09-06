@@ -61,4 +61,8 @@ codegen-units = 1
 lto = true
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread"] }
+# "time" for the sleeps the music install tests pace themselves with. It
+# arrives transitively through Tauri's own tokio today, which is not a thing
+# to rely on: a test that stops compiling because some dependency dropped a
+# feature is a bad afternoon.
+tokio = { version = "1", features = ["rt-multi-thread", "time"] }
