@@ -1,0 +1,39 @@
+# A candidate that writes outside the sandbox with `Kernel#open`, and then
+# tries the oldest subprocess trick in Ruby.
+#
+# `open('|cmd')` runs a command. It is a path-shaped string that is not a path,
+# and it would pass a path check without difficulty: expanded against the
+# sandbox it names a file inside it that simply does not exist. So the guard
+# refuses a leading pipe by name rather than by resolving it.
+#
+# The first half is #460's finding 5b under a different receiver: `Kernel.open`
+# was outside a guard prepended to `Object`, and wrote the file.
+#
+# Every attempt below rescues `Exception` and not `StandardError`, and that is
+# the opposite of `escape_file.lic`'s deliberate bare rescue. `Contain::Violation`
+# descends from `Exception`, so a `rescue StandardError` here would let the
+# first refusal unwind the whole script and the later attempts would never run -
+# and a class that never executed reads exactly like a class that was refused.
+# The suite asserts a violation for each attempt, so each has to reach.
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_kernel_open.txt')
+PIPE_TARGET = File.join(OUTSIDE, 'ESCAPED_open_pipe.txt')
+PIPE = File::ALT_SEPARATOR ? "|cmd /c echo piped > #{PIPE_TARGET.tr('/', '\\')}" : "|/bin/sh -c 'echo piped > #{PIPE_TARGET}'"
+
+echo 'escape_kernel_open: starting'
+
+begin
+  Kernel.open(TARGET, 'w') { |f| f.write("opened\n") }
+  echo 'escape_kernel_open: WROTE IT'
+rescue Exception => e
+  echo "escape_kernel_open: open swallowed #{e.class}"
+end
+
+begin
+  open(PIPE) { |io| io.read }
+  echo 'escape_kernel_open: PIPED IT'
+rescue Exception => e
+  echo "escape_kernel_open: pipe swallowed #{e.class}"
+end
+
+echo 'escape_kernel_open: still running'

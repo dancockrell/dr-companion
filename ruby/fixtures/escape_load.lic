@@ -1,0 +1,43 @@
+# A candidate that loads its way out through `Kernel`'s own copy of `load`.
+#
+# `escape_require.lic` next door tries the bare, private form. This one tries
+# the *module-function* form, and it is a separate fixture because before #460
+# the two had different answers: `load '<outside>/payload.rb'` was refused and
+# `Kernel.load '<outside>/payload.rb'` **executed the payload**. The guard was
+# a module prepended to `Object`, which sits in front of bare calls on `main`
+# and nowhere near `Kernel`'s singleton copy.
+#
+# It also asks for `Kernel.require 'socket'`, which used to raise a bare
+# `LoadError` - true, since `$LOAD_PATH` is empty, and silent, since a
+# `LoadError` is not a violation and nothing in the report said the candidate
+# had tried.
+#
+# Every attempt below rescues `Exception` and not `StandardError`, and that is
+# the opposite of `escape_file.lic`'s deliberate bare rescue. `Contain::Violation`
+# descends from `Exception`, so a `rescue StandardError` here would let the
+# first refusal unwind the whole script and the later attempts would never run -
+# and a class that never executed reads exactly like a class that was refused.
+# The suite asserts a violation for each attempt, so each has to reach.
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+PAYLOAD = File.join(OUTSIDE, 'payload.rb')
+
+# The instrument for this one is the harness's, not the fixture's: it writes
+# `payload.rb` and checks it is still there afterwards, because a refusal that
+# happened only because the file was missing proves nothing about the guard.
+echo 'escape_load: starting'
+
+begin
+  Kernel.load PAYLOAD
+  echo 'escape_load: LOADED IT'
+rescue Exception => e
+  echo "escape_load: load swallowed #{e.class}"
+end
+
+begin
+  Kernel.require 'socket'
+  echo 'escape_load: REQUIRED IT'
+rescue Exception => e
+  echo "escape_load: require swallowed #{e.class}"
+end
+
+echo 'escape_load: still running'

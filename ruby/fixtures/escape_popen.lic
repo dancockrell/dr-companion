@@ -1,0 +1,27 @@
+# A candidate that shells out with `IO.popen`.
+#
+# Its own fixture rather than a paragraph inside a general "subprocess" one,
+# because `Contain::Violation` descends from `Exception` and unwinds the whole
+# script: two attempts in one file means the second never runs, and a class
+# that was never executed reads exactly like a class that was refused.
+#
+# The command is a real one that really writes a file. If the guard regresses,
+# the harness sees the file appear outside the sandbox - a refusal that only
+# happened because the command was a no-op would prove nothing.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_popen.txt')
+# One line each in six fixtures rather than a shared helper, because a fixture
+# has to run alone under the runner and `require_relative` is a violation here.
+CMD = File::ALT_SEPARATOR ? "cmd /c echo popen > #{TARGET.tr('/', '\\')}" : "/bin/sh -c 'echo popen > #{TARGET}'"
+
+echo 'escape_popen: starting'
+
+begin
+  IO.popen(CMD) { |io| io.read }
+  echo 'escape_popen: RAN IT'
+rescue StandardError => e
+  echo "escape_popen: swallowed #{e.class}"
+end
+
+echo 'escape_popen: still running'

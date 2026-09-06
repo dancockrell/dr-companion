@@ -1,0 +1,20 @@
+# A candidate that shells out with a bare `system`.
+#
+# The plainest of the subprocess routes and the one an AI-written repair
+# actually reaches for - "just call the script that already works" - which is
+# why it is worth a fixture of its own rather than a line in a combined one.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_system.txt')
+CMD = File::ALT_SEPARATOR ? "cmd /c echo system > #{TARGET.tr('/', '\\')}" : "/bin/sh -c 'echo system > #{TARGET}'"
+
+echo 'escape_system: starting'
+
+begin
+  system(CMD)
+  echo 'escape_system: RAN IT'
+rescue StandardError => e
+  echo "escape_system: swallowed #{e.class}"
+end
+
+echo 'escape_system: still running'

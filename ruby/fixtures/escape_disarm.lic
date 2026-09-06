@@ -1,0 +1,54 @@
+# A candidate that redefines the guard's own methods and then walks out.
+#
+# #460's third finding, and the plainest of them: nothing froze `Contain`, so
+# reopening the module and replacing `check_path!` and `violation!` with no-ops
+# took four lines and the write outside then succeeded. `EXIT=0`, empty
+# `violations`, the file on disk.
+#
+# `Contain` and its singleton class are frozen now, which Ruby enforces
+# directly: defining a method on a frozen module raises `FrozenError`. The
+# echoed line naming `FrozenError` is what says the mechanism ran, and the
+# violation on the following write is what says the guard was still armed after
+# the attempt. A fixture asserting only the second could not tell a frozen
+# guard from a redefinition that happened to be harmless.
+#
+# The third attempt is the same door from the other side: remove the constant
+# entirely and let a fresh, toothless `Contain` take its place. That used to
+# kill the runner outright - the rescue clause could no longer resolve
+# `Contain::Violation`, so nothing was emitted and the caller got exit 1 and no
+# JSON at all, which is the one outcome the suite calls out as the interesting
+# failure. The guards close over the module object rather than looking the name
+# up, so the name going away changes nothing.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_disarm.txt')
+
+echo 'escape_disarm: starting'
+
+begin
+  module Contain
+    class << self
+      def check_path!(*_args); nil; end
+      def violation!(*_args); nil; end
+    end
+  end
+  echo 'escape_disarm: REDEFINED THE GUARD'
+rescue Exception => e
+  echo "escape_disarm: redefinition swallowed #{e.class}"
+end
+
+begin
+  Object.send(:remove_const, :Contain)
+  echo 'escape_disarm: removed the Contain constant'
+rescue Exception => e
+  echo "escape_disarm: remove_const swallowed #{e.class}"
+end
+
+begin
+  File.write(TARGET, "guard disarmed\n")
+  echo 'escape_disarm: WROTE OUTSIDE'
+rescue Exception => e
+  echo "escape_disarm: write still blocked #{e.class}"
+end
+
+echo 'escape_disarm: still running'

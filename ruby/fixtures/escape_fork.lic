@@ -1,0 +1,34 @@
+# A candidate that forks.
+#
+# Its own fixture for a reason review pass 7 named honestly about itself: in
+# the combined attempt, `Process.spawn` raised first, `Contain::Violation`
+# unwound the script, and `fork` never executed - so the report said the class
+# was refused when nothing had run. That is coverage of the fixture rather than
+# of the guard.
+#
+# On Windows `fork` is unimplemented by Ruby regardless, so this fixture would
+# pass there on the platform's account and not the guard's. Both forms are
+# tried and the violation is what the harness asserts, not the absence of a
+# child: a `NotImplementedError` and a refusal look the same from outside, and
+# only the violation says which happened.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_fork.txt')
+
+echo 'escape_fork: starting'
+
+begin
+  Process.fork { File.write(TARGET, "forked\n") }
+  echo 'escape_fork: Process.fork RAN IT'
+rescue Exception => e
+  echo "escape_fork: Process.fork swallowed #{e.class}"
+end
+
+begin
+  fork { File.write(TARGET, "forked\n") }
+  echo 'escape_fork: Kernel#fork RAN IT'
+rescue Exception => e
+  echo "escape_fork: Kernel#fork swallowed #{e.class}"
+end
+
+echo 'escape_fork: still running'

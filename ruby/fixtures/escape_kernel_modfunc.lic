@@ -1,0 +1,51 @@
+# A candidate that calls the same subprocess methods through `Kernel`'s own
+# copies, and through the definition unbound from `Kernel` directly.
+#
+# This is the fixture for #460's widest gap, and none of it is exotic. The
+# guard was a module prepended to `Object`, which sits in front of *bare* calls
+# on `main`. `module_function` had already given `Kernel` a singleton copy of
+# every one of these, and a singleton copy is not in `Object`'s ancestors at
+# all - so `Kernel.system` and `Kernel.spawn` reached real subprocesses through
+# a guard that refused the identical bare calls next door. `Kernel.open` wrote
+# a file outside the sandbox the same way.
+#
+# The third attempt is the one that says why prepending could never have been
+# the answer: `Kernel.instance_method(:system)` reads the definition out of
+# `Kernel` and binds it to a fresh receiver, consulting no ancestor chain at
+# all. The only defence is for there to be one definition and for it to be the
+# guarded one, which is what replacing rather than prepending buys.
+#
+# Every attempt below rescues `Exception` and not `StandardError`, and that is
+# the opposite of `escape_file.lic`'s deliberate bare rescue. `Contain::Violation`
+# descends from `Exception`, so a `rescue StandardError` here would let the
+# first refusal unwind the whole script and the later attempts would never run -
+# and a class that never executed reads exactly like a class that was refused.
+# The suite asserts a violation for each attempt, so each has to reach.
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_kernel_modfunc.txt')
+CMD = File::ALT_SEPARATOR ? "cmd /c echo modfunc > #{TARGET.tr('/', '\\')}" : "/bin/sh -c 'echo modfunc > #{TARGET}'"
+
+echo 'escape_kernel_modfunc: starting'
+
+begin
+  Kernel.system(CMD)
+  echo 'escape_kernel_modfunc: Kernel.system RAN IT'
+rescue Exception => e
+  echo "escape_kernel_modfunc: Kernel.system swallowed #{e.class}"
+end
+
+begin
+  Kernel.spawn(CMD)
+  echo 'escape_kernel_modfunc: Kernel.spawn RAN IT'
+rescue Exception => e
+  echo "escape_kernel_modfunc: Kernel.spawn swallowed #{e.class}"
+end
+
+begin
+  Kernel.instance_method(:system).bind(self).call(CMD)
+  echo 'escape_kernel_modfunc: unbound Kernel#system RAN IT'
+rescue Exception => e
+  echo "escape_kernel_modfunc: unbound Kernel#system swallowed #{e.class}"
+end
+
+echo 'escape_kernel_modfunc: still running'
