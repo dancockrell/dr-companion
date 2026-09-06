@@ -46,9 +46,15 @@
  *     Rust half was not checked, and this exits non-zero saying so. Merging on
  *     "the parts I have installed passed" is exactly what a CI runner used to
  *     make impossible.
- *   - The summary carries the denominator: `7 of 7 stages ran`. If a stage is
- *     added and never wired, or the list is emptied by an edit, the number
- *     falls and the line stops saying what it said yesterday.
+ *   - The summary carries the denominator: `7 of 7 stages ran`, and that seven
+ *     is asserted against `EXPECTED_STAGES` rather than against the list it
+ *     came from. Both halves used to be derived from `STAGES`, so trimming the
+ *     list to two printed `2 of 2 stages ran` and exited 0 — a denominator that
+ *     shrinks with its numerator measures nothing.
+ *   - A skip inside a stage reaches this summary. `run-tests.mjs` already
+ *     refuses to say "all passed" over a suite that declined a rule, and exits
+ *     0 doing it; this read only the exit status, so the honest sentence
+ *     scrolled past and the gate said "all passed" anyway. See `partialNote`.
  *
  * # Options
  *
@@ -67,8 +73,10 @@
  * it, and on a machine running several lanes at once each needs its own.
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 // Imported, not copied. Two lists of where a Godot binary might live would
 // drift, and then the gate and the tool it runs would disagree about whether
 // there is an engine — which is the worst possible thing for them to disagree
@@ -197,7 +205,10 @@ function godotStage() {
 const STAGES = [
   { name: 'types', cmd: npx, args: ['tsc', '-b', '--noEmit'] },
   { name: 'lint', cmd: npm, args: ['run', 'lint'] },
-  { name: 'suites', cmd: npm, args: ['run', 'test:all'] },
+  // `env` here, not on the spawn call, because this is the only stage that has
+  // anything to say about a skip and a variable set for every stage would be a
+  // claim three of them cannot answer.
+  { name: 'suites', cmd: npm, args: ['run', 'test:all'], env: () => ({ DRC_TESTS_PARTIAL_FILE: partialNote }) },
   {
     name: 'rust-fmt',
     needs: cargo,
@@ -228,11 +239,64 @@ const STAGES = [
   },
 ]
 
+/**
+ * How many stages a whole gate has.
+ *
+ * The header above claims the denominator catches an emptied stage list: "If a
+ * stage is added and never wired, or the list is emptied by an edit, the number
+ * falls and the line stops saying what it said yesterday." It did not. Both
+ * halves of `N of M stages ran` were derived from the same list, so trimming
+ * `STAGES` from seven to two printed `gate ok: 2 of 2 stages ran` and exited 0
+ * — a denominator that shrinks with its numerator is not a denominator. Every
+ * other tool here asserts a floor against a constant (`SUITE_FLOOR`,
+ * `CHECK_FLOOR`, `MIN_TESTS`); this one asserted none on itself.
+ *
+ * A constant rather than a floor, because the stage list is short, hand-written
+ * and named in this file's own header: adding a stage should require saying so
+ * here, and losing one must never be quiet.
+ */
+const EXPECTED_STAGES = 7
+
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */
 const NOT_COVERED = [
   ['installer', 'npm run tauri:build', 'a 217 MB build; release work only, see docs/RELEASE.md'],
 ]
+
+/**
+ * Where `run-tests.mjs` leaves word that it skipped something.
+ *
+ * See that file's `PARTIAL_NOTE`. The suites stage runs with `stdio: 'inherit'`
+ * and exits 0 over a partial run on purpose, so without this the gate could not
+ * tell a complete sweep from one where a suite declined a rule, and said "all
+ * passed" over both. Measured on `de57ffa6`:
+ * `tools/godot-fixture-contract-test.mjs` prints one `NOT CHECKED` line today,
+ * so this was live rather than hypothetical.
+ *
+ * Overridable so the branch can be run on purpose: point
+ * `DRC_GATE_PARTIAL_FILE` at a file you have written yourself and the summary
+ * must report it without any suite having skipped anything.
+ *
+ * Kept in the OS temp directory keyed by this checkout's path, not inside the
+ * tree: several lanes run at once here and `node_modules` is a junction shared
+ * between their worktrees, so a note written there would be one lane reading
+ * another lane's run.
+ */
+const partialNote =
+  process.env.DRC_GATE_PARTIAL_FILE ||
+  join(tmpdir(), `drc-gate-partial-${createHash('sha1').update(root).digest('hex').slice(0, 12)}.json`)
+
+// The stage list itself, asserted before anything reads or runs it — including
+// `--list`, which is a claim about what this gate is and must not be able to
+// print a shorter one calmly. See EXPECTED_STAGES.
+if (STAGES.length !== EXPECTED_STAGES) {
+  console.error(
+    `gate: the stage list holds ${STAGES.length}, and this gate is ${EXPECTED_STAGES} stages: ` +
+      `${STAGES.map((s) => s.name).join(', ')}.`
+  )
+  console.error('gate: change EXPECTED_STAGES in the same commit that changes STAGES, or this is not the gate.')
+  process.exit(2)
+}
 
 const argv = process.argv.slice(2)
 
@@ -275,6 +339,14 @@ if (!existsSync(cargoManifest)) {
   console.error(`gate: ${cargoManifest} is missing; this is not a dr-companion checkout.`)
   process.exit(2)
 }
+// A note from a previous run is not evidence about this one. Removed before the
+// suites stage rather than after, so an absent file at the end means the run
+// genuinely skipped nothing.
+try {
+  rmSync(partialNote, { force: true })
+} catch {
+  // A note that cannot be cleared is read below and reported as unknown.
+}
 
 const started = Date.now()
 const results = []
@@ -301,10 +373,11 @@ for (const stage of selected) {
   }
   console.log(`\n=== ${stage.name}: ${stage.cmd} ${stage.args.join(' ')} ===`)
   const t = Date.now()
+  const stageEnv = { ...extraEnv, ...(stage.env ? stage.env() : {}) }
   const r = spawnSync(stage.cmd, stage.args, {
     cwd: root,
     stdio: 'inherit',
-    env: extraEnv ? { ...process.env, ...extraEnv } : process.env,
+    env: Object.keys(stageEnv).length ? { ...process.env, ...stageEnv } : process.env,
     shell: stage.shell === false ? false : process.platform === 'win32',
   })
   const secs = Math.round((Date.now() - t) / 1000)
@@ -326,14 +399,53 @@ for (const r of results) {
 }
 for (const [n, c, why] of NOT_COVERED) console.log(`—       ${n.padEnd(12)} not covered: ${why} (${c})`)
 
+/**
+ * What the suites stage skipped, if it said so. See `partialNote`.
+ *
+ * An unreadable note is its own answer and not a clean one: "there was no note"
+ * and "there was a note I could not read" are the two states this file exists
+ * to keep apart.
+ */
+function skippedInSuites() {
+  if (!existsSync(partialNote)) return null
+  try {
+    const note = JSON.parse(readFileSync(partialNote, 'utf8'))
+    return { count: Number(note.count) || 0, suites: Array.isArray(note.suites) ? note.suites : [] }
+  } catch (error) {
+    return { count: 0, suites: [], unreadable: error.message }
+  }
+}
+
+const skipped = selected.some((s) => s.name === 'suites') ? skippedInSuites() : null
+if (skipped) {
+  const what = skipped.unreadable
+    ? `the note at ${partialNote} could not be read (${skipped.unreadable})`
+    : `${skipped.count} thing(s) in ${skipped.suites.join(', ')}`
+  console.log(`SKIPPED suites       ${what}`)
+}
+
 const total = Math.round((Date.now() - started) / 1000)
 const denom = `${ran} of ${selected.length} stages ran`
 const partial = selected.length !== STAGES.length
 
 if (failed.length === 0 && notRun.length === 0) {
+  // A skip is not a failure, and it is not something to end on "all passed"
+  // over either — the same three states `run-tests.mjs` keeps, kept here so
+  // they survive the stage boundary.
+  const skipTail = skipped
+    ? skipped.unreadable
+      ? 'whether anything was skipped is unknown'
+      : `${skipped.count} thing(s) went unchecked in ${skipped.suites.join(', ')}`
+    : ''
   if (partial) {
-    console.log(`\ngate: ${denom} in ${total}s, all passed — but this was --only, NOT the gate.`)
+    console.log(`\ngate: ${denom} in ${total}s, no failures — but this was --only, NOT the gate.`)
+    if (skipTail) console.log(`gate: and ${skipTail}.`)
     console.log(`gate: run \`npm run gate\` with no arguments before merging.`)
+    process.exit(0)
+  }
+  if (skipTail) {
+    console.log(`\ngate: ${denom} in ${total}s, no failures — but ${skipTail}.`)
+    console.log('gate: nothing failed, so this does not block a merge; read the skip above and decide.')
     process.exit(0)
   }
   console.log(`\ngate ok: ${denom} in ${total}s. This is the pre-merge gate; there is no CI.`)
