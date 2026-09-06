@@ -252,6 +252,14 @@ export function parseGates(text, knownIds = []) {
   // eight - measured, by deleting the Gate 6 line and watching the audit pass.
   // The gates are numbered, so the gap is the thing to look for instead, and
   // that works whatever the count grows to.
+  //
+  // A gap cannot see a gate deleted off the *top*: 0..6 with 7 gone is still
+  // consecutive from zero, so this loop is silent and a floor set below the
+  // real count is satisfied. Measured, on a copy through `--plan=`: deleting
+  // the Gate 7 line left the audit at exit 0, "plan ok ... 7 gates with 101
+  // members", and Gate 7 is the one that says what 1.0 means. The floor is
+  // what closes it, so `MIN_GATES` is the real count and not one below it -
+  // see the note there.
   for (let k = 0; k < gates.length; k++) {
     if (gates[k].number !== k) {
       findings.push(
@@ -263,10 +271,24 @@ export function parseGates(text, knownIds = []) {
   return { gates, findings }
 }
 
-// Floors, set below the real counts on purpose: these catch a parser that
-// stopped matching or a section 4 that was gutted, not a plan that grew a
-// gate. Real counts at the time of writing: 8 gates, 106 members.
-const MIN_GATES = 7
+// Floors. The member floors sit below the real counts on purpose: they catch a
+// parser that stopped matching or a section 4 that was gutted, and an
+// increment retired from a gate must not fail the build.
+//
+// `MIN_GATES` is different, and is deliberately the *real* count rather than
+// one below it. A floor below the count cannot see the highest gate line
+// disappear - the numbering-gap check above is blind to that case by
+// construction - and losing the top gate is losing the definition of done.
+// Set to the count, this fails on a deleted gate. Adding one is not silently
+// fine either: `checkGateFloors` reports a floor that has fallen behind the
+// real section 4, so a ninth gate fails the audit until this literal is raised
+// in the same commit. Without that the floor decays back into the hole it was
+// raised to close, one added gate at a time - and a self-test built from
+// `MIN_GATES` itself cannot see that, which was measured: lowering this to 7
+// left the self-test green because its fixture shrank with it.
+//
+// Real counts at the time of writing: 8 gates, 103 members.
+const MIN_GATES = 8
 const MIN_GATE_MEMBERS = 2
 const MIN_GATE_MEMBERS_TOTAL = 80
 
@@ -279,6 +301,13 @@ export function checkGateFloors(gates) {
   const total = gates.reduce((n, g) => n + g.ids.length, 0)
   if (gates.length < MIN_GATES) {
     findings.push(`parsed only ${gates.length} gates from section 4 (floor ${MIN_GATES}); the parser or the section is broken`)
+  }
+  // The floor is the only thing that can see the highest gate line deleted, so
+  // it has to keep up with section 4 rather than being a number somebody set
+  // once. This is what makes that automatic: a gate added and the floor left
+  // behind is a finding, naming the edit to make.
+  if (gates.length > MIN_GATES) {
+    findings.push(`section 4 now has ${gates.length} gates but MIN_GATES in tools/plan-audit.mjs is ${MIN_GATES}; raise it to ${gates.length}, or deleting the highest gate line will pass this audit`)
   }
   if (total < MIN_GATE_MEMBERS_TOTAL) {
     findings.push(`parsed only ${total} gate members (floor ${MIN_GATE_MEMBERS_TOTAL}); the parser or the section is broken`)
@@ -447,6 +476,37 @@ function selfTest() {
   const gapHit = gap.findings.some((f) => /goes from Gate 0 to Gate 2: Gate 1 is missing/.test(f))
   console.log(`${gapHit ? 'OK  ' : 'FAIL'} gates: names a gap in the gate numbering (a deleted gate line)`)
   if (!gapHit) bad++
+
+  // The case the gap check cannot see: the *highest* gate line deleted. The
+  // remaining numbers are still 0..n-1 with no hole, so `parseGates` is
+  // silent by construction and only the count floor can catch it. Both halves
+  // are asserted, because a reader who saw only the red would reasonably
+  // assume the gap check had found it and would then be free to lower
+  // `MIN_GATES` again.
+  const eight = Array.from({ length: MIN_GATES }, (_, n) => `- **Gate ${n} – G${n}:** A1–A2.`)
+  const truncated = parseGates(eight.slice(0, -1).join('\n'), known)
+  const truncatedExpect = [
+    [truncated.findings.length === 0, `the numbering gap check is blind to a missing top gate, got ${JSON.stringify(truncated.findings)}`],
+    [
+      checkGateFloors(truncated.gates).findings.some((f) =>
+        new RegExp(`parsed only ${MIN_GATES - 1} gates`).test(f)
+      ),
+      'the gate-count floor catches the missing top gate',
+    ],
+    // The positive control on the same pair: the full list must be clean, or
+    // the red above could be the synthetic text rather than the deletion.
+    [
+      parseGates(eight.join('\n'), known).findings.length === 0 &&
+        !checkGateFloors(parseGates(eight.join('\n'), known).gates).findings.some((f) =>
+          /parsed only \d+ gates/.test(f)
+        ),
+      `${MIN_GATES} gates with none missing pass the same two checks`,
+    ],
+  ]
+  for (const [hit, what] of truncatedExpect) {
+    console.log(`${hit ? 'OK  ' : 'FAIL'} gates: ${what}`)
+    if (!hit) bad++
+  }
 
   const clean = parseGates('- **Gate 0 – Fine:** A1–A3, B1. Check: none.', known)
   const cleanOk = clean.findings.length === 0 && clean.gates.length === 1

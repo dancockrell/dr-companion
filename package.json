@@ -80,6 +80,7 @@
     "test:bug-bundle": "node --experimental-strip-types tools/bug-bundle-test.mjs",
     "privacy:build": "node tools/build-privacy-doc.mjs",
     "test:plan": "node tools/plan-audit.mjs",
+    "test:plan-self": "node tools/plan-audit.mjs --self-test",
     "build:crossing-list": "node tools/build-crossing-build-list.mjs",
     "test:panel-data-contracts": "node tools/panel-data-contracts-test.mjs",
     "test:tauri-command-callers": "node tools/tauri-command-callers-test.mjs",
