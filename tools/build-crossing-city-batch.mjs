@@ -33,9 +33,12 @@ const rooms = world.cells.map(cell => {
     const direction = compass[exit.move]
     const delta = target ? { x: target.position.x - cell.position.x, y: target.position.y - cell.position.y, z: target.position.z - cell.position.z } : null
     const bearingMatches = direction && delta ? Math.sign(delta.x) === direction[0] && Math.sign(delta.z) === direction[1] : null
+    const sourceBearingMatches = direction && target ? Math.sign(target.sourceGrid.x-cell.sourceGrid.x) === direction[0] && Math.sign(target.sourceGrid.y-cell.sourceGrid.y) === direction[1] : null
     return { command: exit.move, targetCellId: exit.targetCellId, tetherKind: exit.tetherKind,
       sourceAnchor: exit.boardAnchor, targetLoaded: Boolean(target), presentationDelta: delta,
-      compassBearingMatches: bearingMatches, socketBindingStatus: 'unverified',
+      compassBearingMatches: bearingMatches, sourceCompassBearingMatches: sourceBearingMatches,
+      bearingConflictOrigin: bearingMatches === false ? (sourceBearingMatches === false ? 'source-map' : 'presentation-layout') : null,
+      socketBindingStatus: 'unverified',
       requires: ['source endpoint', 'destination endpoint or explicit external tether', 'clear approach', 'legal-command verification'] }
   })
   // Neither a description nor a nonempty model list constitutes completion.
@@ -57,6 +60,7 @@ const counts = {
   partialRecipes: rooms.filter(r=>r.recipeStatus === 'partial-authored').length,
   complete: rooms.filter(r=>r.productionStatus === 'complete').length,
   compassMismatches: rooms.reduce((n,r)=>n+r.connections.filter(e=>e.compassBearingMatches === false).length,0),
+  sourceCompassMismatches: rooms.reduce((n,r)=>n+r.connections.filter(e=>e.sourceCompassBearingMatches === false).length,0),
 }
 const batch = { schemaVersion: 1, scope: 'All Crossing rooms in authoritative zone 1; one production batch', counts,
   acceptance: ['every room has reviewed source evidence', 'no unbuilt or placeholder room', 'all legal exits have deliberate endpoints', 'interiors and vertical relationships reviewed', 'assets have provenance and measured bounds', 'all room captures reviewed at gameplay framing', 'tests and dense-scene performance accepted'],

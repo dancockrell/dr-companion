@@ -13,6 +13,7 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 - partialRecipes: 19
 - complete: 0
 - compassMismatches: 842
+- sourceCompassMismatches: 2
 
 ## Coordinated asset families
 
