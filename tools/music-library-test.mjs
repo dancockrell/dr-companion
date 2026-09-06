@@ -330,18 +330,27 @@ console.log('\n-- 5. nothing is fetched before the click --')
   // The property, not the mechanism: the install must have exactly one caller
   // in the app, and that caller must be a click.
   const callers = []
+  let scanned = 0
+  // `withFileTypes` rather than a `statSync` before each read: the two-step
+  // form checks one file and then reads whatever is at that path afterwards,
+  // which is a different question from the one being asked and which CodeQL
+  // flags as a race.
   const walk = async (dir) => {
-    const { readdirSync, statSync } = await import('node:fs')
-    for (const name of readdirSync(dir)) {
-      const full = `${dir}/${name}`
-      if (statSync(full).isDirectory()) await walk(full)
-      else if (/\.tsx?$/.test(name) && !full.endsWith('lib/musicLibrary.ts')) {
+    const { readdirSync } = await import('node:fs')
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`
+      if (entry.isDirectory()) await walk(full)
+      else if (entry.isFile() && /\.tsx?$/.test(entry.name) && !full.endsWith('lib/musicLibrary.ts')) {
+        scanned++
         const text = readFileSync(full, 'utf8')
         if (/\binstallMusicLibrary\s*\(/.test(text)) callers.push(full)
       }
     }
   }
   await walk('src')
+  // The denominator. Without it a walk that matched nothing would report "the
+  // install has no callers" as a pass rather than as a broken scan.
+  check('the scan actually read the source tree', scanned >= 100, `${scanned} files`)
   check(
     'the install has exactly one call site in the app',
     callers.length === 1,
@@ -371,7 +380,7 @@ console.log('\n-- 5. nothing is fetched before the click --')
 
 stopMusic()
 console.log(`\n${checked} checks, ${failed} failures`)
-if (checked < 30) {
+if (checked < 31) {
   console.log(`FAIL only ${checked} checks ran - the suite did not finish`)
   process.exit(1)
 }
