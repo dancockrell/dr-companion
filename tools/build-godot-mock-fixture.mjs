@@ -70,6 +70,99 @@ for (let depth = 0; depth < neighbourhoodDepth; depth += 1) {
   frontier = next
 }
 
+/**
+ * The slice has to be able to reach the branches the viewer's tests aim at.
+ *
+ * Three GDScript cases pair an ordinary cell against an interior cutaway -
+ * `content_registry_test`, `cell_click_target_test`, `cell_detail_window_test`
+ * - because one cell alone cannot show that a height on screen came from the
+ * cell rather than from a constant that happens to agree with it. They named
+ * `1-16` for the tall one, which was an interior under the lore classification
+ * and is Town Green South, a park, under the batch. All three went red on a
+ * pair that had become 1 m against 1 m: the pair was still there, and had
+ * stopped being a pair.
+ *
+ * A hardcoded id in a test is a claim about a fixture that nothing keeps true.
+ * So the requirement is stated here instead, the neighbourhood is grown until
+ * it is met, and the ids are *published* in the fixture for the tests to read.
+ * A slice that cannot satisfy it aborts rather than shipping a fixture whose
+ * cases silently stop testing anything.
+ */
+const REQUIREMENTS = [
+  {
+    key: 'tallCellId',
+    what: 'an interior cutaway, so a height on screen can be shown to come from the cell',
+    holds: (cell) => cell.board?.footprint?.height > 1,
+  },
+  {
+    key: 'unregisteredPrimitiveCellId',
+    what: 'a cell asking for kinds no content pack has registered, so the placeholder path is reachable',
+    holds: (cell) => cell.primitives.filter((primitive) => !REGISTERED_KINDS.has(primitive.kind)).length >= 4,
+  },
+]
+
+/** Read out of the content pack, not typed here: the same derivation
+ * `tools/world-content-test.mjs` uses, for the same reason. */
+const REGISTERED_KINDS = new Set(
+  [...readFileSync('godot/scripts/shared_asset_content.gd', 'utf8').matchAll(/ContentRegistry\.register\(\s*"([^"]+)"/g)].map((match) => match[1])
+)
+
+/**
+ * The nearest cell satisfying each requirement, added one at a time.
+ *
+ * Deliberately *not* "grow the neighbourhood until it qualifies": the first
+ * version of this did that and the slice went from 19 cells to 575, because the
+ * nearest cell asking for four unregistered kinds is the Clerics' Guild chapel
+ * and everything between here and there came with it. The mock exists to
+ * exercise the loader on a small readable town square, so it takes exactly the
+ * two cells it is short of and nothing else. Their exits out of the slice
+ * become `targetCellId: null`, which is the case this fixture already carries
+ * thirteen of.
+ *
+ * Breadth-first from the existing selection, ties broken on room number, so the
+ * choice is stated rather than an accident of iteration order.
+ */
+const addNearestSatisfying = () => {
+  const guarantees = {}
+  for (const requirement of REQUIREMENTS) {
+    const already = [...selected]
+      .sort((a, b) => cellsById.get(a).roomId - cellsById.get(b).roomId)
+      .find((id) => requirement.holds(cellsById.get(id)))
+    if (already) {
+      guarantees[requirement.key] = already
+      continue
+    }
+    const seen = new Set(selected)
+    let ring = [...selected].sort((a, b) => cellsById.get(a).roomId - cellsById.get(b).roomId)
+    let found = null
+    for (let hop = 0; hop < 12 && !found; hop += 1) {
+      const next = []
+      for (const id of ring) {
+        for (const exit of cellsById.get(id)?.exits ?? []) {
+          const target = exit.targetCellId
+          if (!target || seen.has(target) || !cellsById.has(target)) continue
+          seen.add(target)
+          next.push(target)
+        }
+      }
+      if (!next.length) break
+      next.sort((a, b) => cellsById.get(a).roomId - cellsById.get(b).roomId)
+      found = next.find((id) => requirement.holds(cellsById.get(id))) ?? null
+      ring = next
+    }
+    if (!found) {
+      throw new Error(
+        `no cell within 12 hops of the ${selected.size}-cell slice satisfies ${requirement.key} (${requirement.what}); the Godot cases that read it would pass while testing nothing`
+      )
+    }
+    selected.add(found)
+    guarantees[requirement.key] = found
+  }
+  return guarantees
+}
+
+const guarantees = addNearestSatisfying()
+
 const projectExit = (exit) => {
   const inside = Boolean(exit.targetCellId) && selected.has(exit.targetCellId)
   return {
@@ -101,6 +194,9 @@ const fixture = {
   sequence: 1,
   worldId: 'crossing-mock',
   currentRoomId: rootCellId,
+  // The cells this slice was grown to contain, for the GDScript cases that need
+  // one of each rather than one in particular. See REQUIREMENTS above.
+  guarantees,
   generatedFrom: {
     source: manifestPath,
     generator: 'tools/build-godot-mock-fixture.mjs',

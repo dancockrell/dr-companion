@@ -142,6 +142,7 @@
   "test:geometric-briefs",
   "test:primitive-world",
   "test:world-content",
+  "test:world-content-loader",
   "test:node-projection",
   "test:geometric-kit",
   "test:primitive-registry",

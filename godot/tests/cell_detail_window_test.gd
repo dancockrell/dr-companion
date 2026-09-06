@@ -98,6 +98,9 @@ func _run() -> void:
 	var policy: RefCounted = load("res://scripts/cell_visibility_policy.gd").new()
 
 	_ok("the mock fixture loads", loader.load_from_path(MOCK_FIXTURE_PATH))
+	var placeholder_cell_id := _fixture_guarantee("unregisteredPrimitiveCellId")
+	_ok("and names a cell asking for kinds no content pack has registered",
+		placeholder_cell_id != "" and loader.cells.has(placeholder_cell_id), placeholder_cell_id)
 	_ok("the fixture is non-trivial, so the sweep below has something to sweep",
 		loader.cells.size() >= MIN_CELLS, "%d cells, floor %d" % [loader.cells.size(), MIN_CELLS])
 
@@ -155,15 +158,20 @@ func _run() -> void:
 		unknown.is_empty(), str(unknown) if not unknown.is_empty() else "%d ids checked" % ids.size())
 
 	# -- and now the drawing, which is what the report was about --
-	var reported_cell: Dictionary = loader.cells[REPORTED_CELL]
+	# The drawing half wants a cell that reaches the placeholder path, which is
+	# a different requirement from the walk above and is no longer the same
+	# cell: under the batch classification 1-16 is a park and asks for two
+	# registered kinds. The fixture names one, so the case cannot go on
+	# "passing" by drawing nothing.
+	var reported_cell: Dictionary = loader.cells[placeholder_cell_id]
 	var footprint: Dictionary = registry.footprint_metres(reported_cell)
-	_ok("the reported cell publishes a footprint to be drawn at", not footprint.is_empty(), str(footprint))
+	_ok("the cell under test publishes a footprint to be drawn at", not footprint.is_empty(), str(footprint))
 
 	var unregistered_kinds: Array = []
 	for primitive in reported_cell.get("primitives", []):
 		if not registry.is_registered(String(primitive.get("kind", ""))):
 			unregistered_kinds.append(primitive.get("kind", ""))
-	_ok("the reported cell really does carry kinds no content pack claims",
+	_ok("that cell really does carry kinds no content pack claims",
 		unregistered_kinds.size() >= MIN_UNREGISTERED_ON_REPORTED_CELL,
 		"%d unregistered of %d primitives, floor %d: %s" % [unregistered_kinds.size(), (reported_cell.get("primitives", []) as Array).size(), MIN_UNREGISTERED_ON_REPORTED_CELL, str(unregistered_kinds)])
 
@@ -253,3 +261,25 @@ func _ok(label: String, condition: bool, detail: String = "") -> void:
 	else:
 		_failed += 1
 		print("FAIL %s %s" % [label, detail])
+
+## The cell the fixture generator guarantees for a named requirement.
+##
+## `TALL_ROOM_ID := "1-16"` stood here: Town Green South, which was an interior
+## cutaway under the old lore classification and is a park under the batch that
+## replaced it. The pair this case needs - an ordinary cell and a taller one -
+## was still two cells and had stopped being a pair, so the check compared 1 m
+## against 1 m and went red without anything in the viewer having changed.
+##
+## `tools/build-godot-mock-fixture.mjs` states the requirement instead, grows
+## the slice by the nearest cell that meets it, and publishes the id under
+## `guarantees`. It aborts rather than emitting a fixture that cannot satisfy
+## one, so this read cannot quietly return nothing.
+func _fixture_guarantee(key: String) -> String:
+	var text := FileAccess.get_file_as_string(MOCK_FIXTURE_PATH)
+	var parsed = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		return ""
+	var guarantees = (parsed as Dictionary).get("guarantees", {})
+	if not (guarantees is Dictionary):
+		return ""
+	return String((guarantees as Dictionary).get(key, ""))

@@ -4,6 +4,10 @@
   "sequence": 1,
   "worldId": "crossing-mock",
   "currentRoomId": "1-14",
+  "guarantees": {
+    "tallCellId": "1-191",
+    "unregisteredPrimitiveCellId": "1-351"
+  },
   "generatedFrom": {
     "source": "data/world/out/1-primitive-world.json",
     "generator": "tools/build-godot-mock-fixture.mjs",
@@ -27,13 +31,19 @@
       "status": "described",
       "sourceDescriptionId": "1::Town Green North",
       "sourceDescriptionHash": "f73bd5e2ac6e412c",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "water",
-        "landmark"
+        "ordinary"
       ],
-      "spatialMode": "waterfront",
-      "palette": "river-blue-green",
+      "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "northwest"
+      ],
+      "palette": "crossing-ground-street",
       "board": {
         "footprint": {
           "width": 4.4,
@@ -178,14 +188,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "water-ribbon-5m",
-          "role": "landform"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -256,11 +258,22 @@
       "status": "described",
       "sourceDescriptionId": "1::Via Iltesh",
       "sourceDescriptionHash": "27e2f01461140dc4",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "street",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "east",
+        "southeast",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -406,10 +419,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -444,11 +453,22 @@
       "status": "described",
       "sourceDescriptionId": "1::Via Iltesh",
       "sourceDescriptionHash": "27e2f01461140dc4",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "east",
+        "southeast",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -594,10 +614,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -632,11 +648,21 @@
       "status": "described",
       "sourceDescriptionId": "1::Town Green Southeast",
       "sourceDescriptionHash": "352586dc0dc77d00",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -782,10 +808,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -838,20 +860,24 @@
       "status": "described",
       "sourceDescriptionId": "1::Town Green South",
       "sourceDescriptionHash": "a0e1b5cd1070402b",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "sacred",
-        "banking",
-        "interior",
-        "landmark"
+        "ordinary"
       ],
-      "spatialMode": "interior-cutaway",
-      "palette": "warm-interior",
+      "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "southeast",
+        "southwest"
+      ],
+      "palette": "crossing-ground-street",
       "board": {
         "footprint": {
           "width": 4.4,
           "depth": 4.4,
-          "height": 3,
+          "height": 1,
           "unit": "metre"
         },
         "ground": {
@@ -862,7 +888,7 @@
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
-          "height": 3
+          "height": 1
         },
         "spawnPoints": [
           {
@@ -985,24 +1011,12 @@
       },
       "primitives": [
         {
-          "kind": "interior-floor-5m",
+          "kind": "terrain-cell-5m",
           "role": "base"
         },
         {
-          "kind": "cutaway-wall-kit",
-          "role": "shell"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
-        },
-        {
-          "kind": "sacred-threshold-kit",
-          "role": "landmark"
-        },
-        {
-          "kind": "civic-vault-threshold-kit",
-          "role": "landmark"
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
         }
       ],
       "exits": [
@@ -1061,11 +1075,21 @@
       "status": "described",
       "sourceDescriptionId": "1::Town Green Northeast",
       "sourceDescriptionHash": "bf4bf4c9cfbd91f7",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -1211,10 +1235,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -1273,11 +1293,22 @@
       "status": "described",
       "sourceDescriptionId": "1::Manciple Cobble",
       "sourceDescriptionHash": "ad07acd79b6a9679",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "street",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "southeast",
+        "south",
+        "southwest",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -1423,10 +1454,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -1461,11 +1488,20 @@
       "status": "described",
       "sourceDescriptionId": "1::Town Green Southwest",
       "sourceDescriptionHash": "a81dbac1f7408d93",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "southeast",
+        "south",
+        "southwest",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -1611,10 +1647,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -1660,11 +1692,24 @@
       },
       "status": "missing-description",
       "sourceDescriptionId": null,
-      "tier": "unresolved",
+      "sourceDescriptionHash": null,
+      "tier": "ordinary",
       "tags": [
-        "unresolved"
+        "ordinary"
       ],
-      "spatialMode": "unresolved",
+      "spatialMode": "exterior-cell",
+      "groundKind": "path",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
@@ -1843,11 +1888,22 @@
       },
       "status": "missing-description",
       "sourceDescriptionId": null,
-      "tier": "unresolved",
+      "sourceDescriptionHash": null,
+      "tier": "ordinary",
       "tags": [
-        "unresolved"
+        "ordinary"
       ],
-      "spatialMode": "unresolved",
+      "spatialMode": "exterior-cell",
+      "groundKind": "street",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "southeast",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
@@ -2044,6 +2100,19 @@
         "interior"
       ],
       "spatialMode": "interior-cutaway",
+      "groundKind": "interior",
+      "blockKind": "building-interior",
+      "landmark": "weapon",
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "warm-interior",
       "board": {
         "footprint": {
@@ -2217,12 +2286,629 @@
       "status": "described",
       "sourceDescriptionId": "1::Salesroom",
       "sourceDescriptionHash": "686ebb40a5c30616",
-      "tier": "special",
+      "tier": "feature",
       "tags": [
-        "interior",
-        "landmark"
+        "interior"
       ],
       "spatialMode": "interior-cutaway",
+      "groundKind": "interior",
+      "blockKind": "building-interior",
+      "landmark": "armor",
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
+      "palette": "warm-interior",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 3
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.47,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.4,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.4,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.34,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.34,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.06,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.06,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
+          }
+        ]
+      },
+      "primitives": [
+        {
+          "kind": "interior-floor-5m",
+          "role": "base"
+        },
+        {
+          "kind": "cutaway-wall-kit",
+          "role": "shell"
+        }
+      ],
+      "exits": [
+        {
+          "move": "out",
+          "direction": "out",
+          "targetRoomId": 225,
+          "targetCellId": "1-225"
+        },
+        {
+          "move": "go doorway",
+          "direction": "go",
+          "targetRoomId": 193,
+          "targetCellId": null
+        }
+      ]
+    },
+    {
+      "id": "1-225",
+      "roomId": 225,
+      "title": "The Crossing, Town Green Northwest",
+      "position": {
+        "x": 331.88,
+        "y": 0,
+        "z": -283.75
+      },
+      "sourceGrid": {
+        "x": 130,
+        "y": -180,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Town Green Northwest",
+      "sourceDescriptionHash": "4b6facaa5a85d146",
+      "tier": "ordinary",
+      "tags": [
+        "ordinary"
+      ],
+      "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "southwest",
+        "west"
+      ],
+      "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.47,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.4,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.4,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.34,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.34,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.06,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.06,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
+          }
+        ]
+      },
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        }
+      ],
+      "exits": [
+        {
+          "move": "east",
+          "direction": "east",
+          "targetRoomId": 14,
+          "targetCellId": "1-14"
+        },
+        {
+          "move": "southeast",
+          "direction": "southeast",
+          "targetRoomId": 16,
+          "targetCellId": "1-16"
+        },
+        {
+          "move": "south",
+          "direction": "south",
+          "targetRoomId": 23,
+          "targetCellId": "1-23"
+        },
+        {
+          "move": "northwest",
+          "direction": "northwest",
+          "targetRoomId": 24,
+          "targetCellId": "1-24"
+        },
+        {
+          "move": "go armory",
+          "direction": "go",
+          "targetRoomId": 192,
+          "targetCellId": "1-192"
+        }
+      ]
+    },
+    {
+      "id": "1-264",
+      "roomId": 264,
+      "title": "Crossing, Midton Circle",
+      "position": {
+        "x": 394.38,
+        "y": 0,
+        "z": -283.75
+      },
+      "sourceGrid": {
+        "x": 230,
+        "y": -180,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Midton Circle",
+      "sourceDescriptionHash": "17ca36598941a292",
+      "tier": "ordinary",
+      "tags": [
+        "ordinary"
+      ],
+      "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "northwest"
+      ],
+      "palette": "crossing-ground-street",
+      "board": {
+        "footprint": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1,
+          "unit": "metre"
+        },
+        "ground": {
+          "width": 5,
+          "depth": 5,
+          "unit": "metre"
+        },
+        "selectionBounds": {
+          "width": 4.4,
+          "depth": 4.4,
+          "height": 1
+        },
+        "spawnPoints": [
+          {
+            "id": "player",
+            "role": "player",
+            "anchor": {
+              "x": 0,
+              "y": 0.47,
+              "z": 0
+            },
+            "yawDeg": 0,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
+          },
+          {
+            "id": "occupant-left",
+            "role": "occupant",
+            "anchor": {
+              "x": -1.15,
+              "y": 0.4,
+              "z": 0.75
+            },
+            "yawDeg": 45,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
+          },
+          {
+            "id": "occupant-right",
+            "role": "occupant",
+            "anchor": {
+              "x": 1.15,
+              "y": 0.4,
+              "z": 0.75
+            },
+            "yawDeg": -45,
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
+          },
+          {
+            "id": "hostile-left",
+            "role": "hostile",
+            "anchor": {
+              "x": -1.35,
+              "y": 0.34,
+              "z": -1.15
+            },
+            "yawDeg": 135,
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
+          },
+          {
+            "id": "hostile-right",
+            "role": "hostile",
+            "anchor": {
+              "x": 1.35,
+              "y": 0.34,
+              "z": -1.15
+            },
+            "yawDeg": -135,
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
+          },
+          {
+            "id": "item-left",
+            "role": "item",
+            "anchor": {
+              "x": -1.55,
+              "y": 0.06,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
+          },
+          {
+            "id": "item-right",
+            "role": "item",
+            "anchor": {
+              "x": 1.55,
+              "y": 0.06,
+              "z": 1.55
+            },
+            "yawDeg": 0,
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
+          }
+        ]
+      },
+      "primitives": [
+        {
+          "kind": "terrain-cell-5m",
+          "role": "base"
+        },
+        {
+          "kind": "rough-edge-boundary-kit",
+          "role": "boundary"
+        }
+      ],
+      "exits": [
+        {
+          "move": "north",
+          "direction": "north",
+          "targetRoomId": 265,
+          "targetCellId": null
+        },
+        {
+          "move": "west",
+          "direction": "west",
+          "targetRoomId": 17,
+          "targetCellId": "1-17"
+        }
+      ]
+    },
+    {
+      "id": "1-351",
+      "roomId": 351,
+      "title": "Clerics' Guild, Chapel",
+      "position": {
+        "x": 244.38,
+        "y": 0,
+        "z": -47.5
+      },
+      "sourceGrid": {
+        "x": -10,
+        "y": -558,
+        "z": 0
+      },
+      "status": "described",
+      "sourceDescriptionId": "1::Chapel",
+      "sourceDescriptionHash": "42112fec705e13a4",
+      "tier": "special",
+      "tags": [
+        "guild",
+        "sacred",
+        "interior"
+      ],
+      "spatialMode": "interior-cutaway",
+      "groundKind": "interior",
+      "blockKind": "building-interior",
+      "landmark": "guild",
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "warm-interior",
       "board": {
         "footprint": {
@@ -2372,419 +3058,22 @@
         {
           "kind": "special-landmark-silhouette",
           "role": "landmark"
+        },
+        {
+          "kind": "guild-threshold-kit",
+          "role": "landmark"
+        },
+        {
+          "kind": "sacred-threshold-kit",
+          "role": "landmark"
         }
       ],
       "exits": [
         {
           "move": "out",
           "direction": "out",
-          "targetRoomId": 225,
-          "targetCellId": "1-225"
-        },
-        {
-          "move": "go doorway",
-          "direction": "go",
-          "targetRoomId": 193,
+          "targetRoomId": 348,
           "targetCellId": null
-        }
-      ]
-    },
-    {
-      "id": "1-225",
-      "roomId": 225,
-      "title": "The Crossing, Town Green Northwest",
-      "position": {
-        "x": 331.88,
-        "y": 0,
-        "z": -283.75
-      },
-      "sourceGrid": {
-        "x": 130,
-        "y": -180,
-        "z": 0
-      },
-      "status": "described",
-      "sourceDescriptionId": "1::Town Green Northwest",
-      "sourceDescriptionHash": "4b6facaa5a85d146",
-      "tier": "special",
-      "tags": [
-        "landmark"
-      ],
-      "spatialMode": "exterior-cell",
-      "palette": "crossing-ground-street",
-      "board": {
-        "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
-          "height": 1,
-          "unit": "metre"
-        },
-        "ground": {
-          "width": 5,
-          "depth": 5,
-          "unit": "metre"
-        },
-        "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
-          "height": 1
-        },
-        "spawnPoints": [
-          {
-            "id": "player",
-            "role": "player",
-            "anchor": {
-              "x": 0,
-              "y": 0.47,
-              "z": 0
-            },
-            "yawDeg": 0,
-            "rigSocket": "humanoid-root",
-            "token": {
-              "shape": "capsule",
-              "height": 0.94,
-              "radius": 0.28
-            }
-          },
-          {
-            "id": "occupant-left",
-            "role": "occupant",
-            "anchor": {
-              "x": -1.15,
-              "y": 0.4,
-              "z": 0.75
-            },
-            "yawDeg": 45,
-            "rigSocket": "humanoid-root",
-            "token": {
-              "shape": "cylinder",
-              "height": 0.8,
-              "topRadius": 0.18,
-              "bottomRadius": 0.38
-            }
-          },
-          {
-            "id": "occupant-right",
-            "role": "occupant",
-            "anchor": {
-              "x": 1.15,
-              "y": 0.4,
-              "z": 0.75
-            },
-            "yawDeg": -45,
-            "rigSocket": "humanoid-root",
-            "token": {
-              "shape": "cylinder",
-              "height": 0.8,
-              "topRadius": 0.18,
-              "bottomRadius": 0.38
-            }
-          },
-          {
-            "id": "hostile-left",
-            "role": "hostile",
-            "anchor": {
-              "x": -1.35,
-              "y": 0.34,
-              "z": -1.15
-            },
-            "yawDeg": 135,
-            "rigSocket": "creature-root",
-            "token": {
-              "shape": "sphere",
-              "height": 0.68,
-              "radius": 0.34
-            }
-          },
-          {
-            "id": "hostile-right",
-            "role": "hostile",
-            "anchor": {
-              "x": 1.35,
-              "y": 0.34,
-              "z": -1.15
-            },
-            "yawDeg": -135,
-            "rigSocket": "creature-root",
-            "token": {
-              "shape": "sphere",
-              "height": 0.68,
-              "radius": 0.34
-            }
-          },
-          {
-            "id": "item-left",
-            "role": "item",
-            "anchor": {
-              "x": -1.55,
-              "y": 0.06,
-              "z": 1.55
-            },
-            "yawDeg": 0,
-            "rigSocket": "item-root",
-            "token": {
-              "shape": "box",
-              "height": 0.12,
-              "width": 0.28,
-              "depth": 0.28
-            }
-          },
-          {
-            "id": "item-right",
-            "role": "item",
-            "anchor": {
-              "x": 1.55,
-              "y": 0.06,
-              "z": 1.55
-            },
-            "yawDeg": 0,
-            "rigSocket": "item-root",
-            "token": {
-              "shape": "box",
-              "height": 0.12,
-              "width": 0.28,
-              "depth": 0.28
-            }
-          }
-        ]
-      },
-      "primitives": [
-        {
-          "kind": "terrain-cell-5m",
-          "role": "base"
-        },
-        {
-          "kind": "rough-edge-boundary-kit",
-          "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
-        }
-      ],
-      "exits": [
-        {
-          "move": "east",
-          "direction": "east",
-          "targetRoomId": 14,
-          "targetCellId": "1-14"
-        },
-        {
-          "move": "southeast",
-          "direction": "southeast",
-          "targetRoomId": 16,
-          "targetCellId": "1-16"
-        },
-        {
-          "move": "south",
-          "direction": "south",
-          "targetRoomId": 23,
-          "targetCellId": "1-23"
-        },
-        {
-          "move": "northwest",
-          "direction": "northwest",
-          "targetRoomId": 24,
-          "targetCellId": "1-24"
-        },
-        {
-          "move": "go armory",
-          "direction": "go",
-          "targetRoomId": 192,
-          "targetCellId": "1-192"
-        }
-      ]
-    },
-    {
-      "id": "1-264",
-      "roomId": 264,
-      "title": "Crossing, Midton Circle",
-      "position": {
-        "x": 394.38,
-        "y": 0,
-        "z": -283.75
-      },
-      "sourceGrid": {
-        "x": 230,
-        "y": -180,
-        "z": 0
-      },
-      "status": "described",
-      "sourceDescriptionId": "1::Midton Circle",
-      "sourceDescriptionHash": "17ca36598941a292",
-      "tier": "special",
-      "tags": [
-        "water",
-        "landmark"
-      ],
-      "spatialMode": "waterfront",
-      "palette": "river-blue-green",
-      "board": {
-        "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
-          "height": 1,
-          "unit": "metre"
-        },
-        "ground": {
-          "width": 5,
-          "depth": 5,
-          "unit": "metre"
-        },
-        "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
-          "height": 1
-        },
-        "spawnPoints": [
-          {
-            "id": "player",
-            "role": "player",
-            "anchor": {
-              "x": 0,
-              "y": 0.47,
-              "z": 0
-            },
-            "yawDeg": 0,
-            "rigSocket": "humanoid-root",
-            "token": {
-              "shape": "capsule",
-              "height": 0.94,
-              "radius": 0.28
-            }
-          },
-          {
-            "id": "occupant-left",
-            "role": "occupant",
-            "anchor": {
-              "x": -1.15,
-              "y": 0.4,
-              "z": 0.75
-            },
-            "yawDeg": 45,
-            "rigSocket": "humanoid-root",
-            "token": {
-              "shape": "cylinder",
-              "height": 0.8,
-              "topRadius": 0.18,
-              "bottomRadius": 0.38
-            }
-          },
-          {
-            "id": "occupant-right",
-            "role": "occupant",
-            "anchor": {
-              "x": 1.15,
-              "y": 0.4,
-              "z": 0.75
-            },
-            "yawDeg": -45,
-            "rigSocket": "humanoid-root",
-            "token": {
-              "shape": "cylinder",
-              "height": 0.8,
-              "topRadius": 0.18,
-              "bottomRadius": 0.38
-            }
-          },
-          {
-            "id": "hostile-left",
-            "role": "hostile",
-            "anchor": {
-              "x": -1.35,
-              "y": 0.34,
-              "z": -1.15
-            },
-            "yawDeg": 135,
-            "rigSocket": "creature-root",
-            "token": {
-              "shape": "sphere",
-              "height": 0.68,
-              "radius": 0.34
-            }
-          },
-          {
-            "id": "hostile-right",
-            "role": "hostile",
-            "anchor": {
-              "x": 1.35,
-              "y": 0.34,
-              "z": -1.15
-            },
-            "yawDeg": -135,
-            "rigSocket": "creature-root",
-            "token": {
-              "shape": "sphere",
-              "height": 0.68,
-              "radius": 0.34
-            }
-          },
-          {
-            "id": "item-left",
-            "role": "item",
-            "anchor": {
-              "x": -1.55,
-              "y": 0.06,
-              "z": 1.55
-            },
-            "yawDeg": 0,
-            "rigSocket": "item-root",
-            "token": {
-              "shape": "box",
-              "height": 0.12,
-              "width": 0.28,
-              "depth": 0.28
-            }
-          },
-          {
-            "id": "item-right",
-            "role": "item",
-            "anchor": {
-              "x": 1.55,
-              "y": 0.06,
-              "z": 1.55
-            },
-            "yawDeg": 0,
-            "rigSocket": "item-root",
-            "token": {
-              "shape": "box",
-              "height": 0.12,
-              "width": 0.28,
-              "depth": 0.28
-            }
-          }
-        ]
-      },
-      "primitives": [
-        {
-          "kind": "terrain-cell-5m",
-          "role": "base"
-        },
-        {
-          "kind": "rough-edge-boundary-kit",
-          "role": "boundary"
-        },
-        {
-          "kind": "water-ribbon-5m",
-          "role": "landform"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
-        }
-      ],
-      "exits": [
-        {
-          "move": "north",
-          "direction": "north",
-          "targetRoomId": 265,
-          "targetCellId": null
-        },
-        {
-          "move": "west",
-          "direction": "west",
-          "targetRoomId": 17,
-          "targetCellId": "1-17"
         }
       ]
     },
@@ -2805,17 +3094,29 @@
       "status": "described",
       "sourceDescriptionId": "1::Supply Stand",
       "sourceDescriptionHash": "40ba1666ebd6b149",
-      "tier": "special",
+      "tier": "feature",
       "tags": [
-        "landmark"
+        "interior"
       ],
-      "spatialMode": "exterior-cell",
-      "palette": "crossing-ground-street",
+      "spatialMode": "interior-cutaway",
+      "groundKind": "interior",
+      "blockKind": "building-interior",
+      "landmark": "performance",
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
+      "palette": "warm-interior",
       "board": {
         "footprint": {
           "width": 4.4,
           "depth": 4.4,
-          "height": 1,
+          "height": 3,
           "unit": "metre"
         },
         "ground": {
@@ -2826,7 +3127,7 @@
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
-          "height": 1
+          "height": 3
         },
         "spawnPoints": [
           {
@@ -2949,16 +3250,12 @@
       },
       "primitives": [
         {
-          "kind": "terrain-cell-5m",
+          "kind": "interior-floor-5m",
           "role": "base"
         },
         {
-          "kind": "rough-edge-boundary-kit",
-          "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
+          "kind": "cutaway-wall-kit",
+          "role": "shell"
         }
       ],
       "exits": [
@@ -2993,11 +3290,24 @@
       "status": "described",
       "sourceDescriptionId": "1::The Back Lawn",
       "sourceDescriptionHash": "4941c1e4ab673537",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "grass",
+      "blockKind": "outdoor-open",
+      "landmark": "performance",
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -3143,10 +3453,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -3183,10 +3489,20 @@
       "sourceDescriptionHash": "d67e61bfe6e92faa",
       "tier": "special",
       "tags": [
-        "market",
-        "landmark"
+        "market"
       ],
       "spatialMode": "exterior-cell",
+      "groundKind": "street",
+      "blockKind": "outdoor-open",
+      "landmark": null,
+      "boundaryEdges": [
+        "northeast",
+        "east",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -3385,11 +3701,25 @@
       },
       "status": "missing-description",
       "sourceDescriptionId": null,
-      "tier": "unresolved",
+      "sourceDescriptionHash": null,
+      "tier": "feature",
       "tags": [
-        "unresolved"
+        "water"
       ],
-      "spatialMode": "unresolved",
+      "spatialMode": "waterfront",
+      "groundKind": "water",
+      "blockKind": "water",
+      "landmark": null,
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
@@ -3535,6 +3865,10 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
+        },
+        {
+          "kind": "water-ribbon-5m",
+          "role": "landform"
         }
       ],
       "exits": [
@@ -3563,17 +3897,30 @@
       "status": "described",
       "sourceDescriptionId": "1::Underground Passageway",
       "sourceDescriptionHash": "48afe6c14d28506f",
-      "tier": "ordinary",
+      "tier": "feature",
       "tags": [
-        "ordinary"
+        "interior"
       ],
-      "spatialMode": "exterior-cell",
-      "palette": "crossing-ground-street",
+      "spatialMode": "interior-cutaway",
+      "groundKind": "cave",
+      "blockKind": "cave",
+      "landmark": "portal",
+      "boundaryEdges": [
+        "north",
+        "northeast",
+        "east",
+        "southeast",
+        "south",
+        "southwest",
+        "west",
+        "northwest"
+      ],
+      "palette": "warm-interior",
       "board": {
         "footprint": {
           "width": 4.4,
           "depth": 4.4,
-          "height": 1,
+          "height": 3,
           "unit": "metre"
         },
         "ground": {
@@ -3584,7 +3931,7 @@
         "selectionBounds": {
           "width": 4.4,
           "depth": 4.4,
-          "height": 1
+          "height": 3
         },
         "spawnPoints": [
           {
@@ -3707,12 +4054,12 @@
       },
       "primitives": [
         {
-          "kind": "terrain-cell-5m",
+          "kind": "interior-floor-5m",
           "role": "base"
         },
         {
-          "kind": "rough-edge-boundary-kit",
-          "role": "boundary"
+          "kind": "cutaway-wall-kit",
+          "role": "shell"
         }
       ],
       "exits": []

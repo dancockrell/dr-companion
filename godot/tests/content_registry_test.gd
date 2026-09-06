@@ -42,7 +42,8 @@ const PROBE_HEIGHT := 6.25
 ## ROOM_ID. The pair is the point - one cell alone cannot show that the height
 ## on screen came from the cell rather than from a constant that happens to
 ## agree with it.
-const TALL_ROOM_ID := "1-16"
+## Read from the fixture rather than named. See `_fixture_guarantee` below.
+var _tall_room_id := ""
 
 ## A ground square no board publishes either, and not square, so a plane that
 ## came back at the pitch, at the block, or with one dimension used for both is
@@ -86,6 +87,9 @@ func _run() -> void:
 	var loader: Node = root.get_node("WorldManifestLoader")
 
 	_ok("the mock fixture loads", loader.load_from_path(MOCK_FIXTURE_PATH))
+	_tall_room_id = _fixture_guarantee("tallCellId")
+	_ok("and names the interior cutaway this case pairs against an ordinary cell",
+		_tall_room_id != "" and loader.cells.has(_tall_room_id), _tall_room_id)
 	_ok("the fixture is non-trivial (a floor, so an empty load cannot pass the count below)",
 		loader.cells.size() >= 10, "%d cells" % loader.cells.size())
 
@@ -146,17 +150,17 @@ func _run() -> void:
 	# The wrong answer is available here: this fixture has both an ordinary room
 	# and an interior cutaway, so a viewer drawing one height for the whole board
 	# gets one of these two right and cannot get both.
-	var tall_published: Dictionary = registry.footprint_metres(loader.cells[TALL_ROOM_ID])
-	var tall_node: MeshInstance3D = registry.build(loader.cells[TALL_ROOM_ID], primitive)
+	var tall_published: Dictionary = registry.footprint_metres(loader.cells[_tall_room_id])
+	var tall_node: MeshInstance3D = registry.build(loader.cells[_tall_room_id], primitive)
 	var tall_box: BoxMesh = tall_node.mesh
 	_ok("an interior cutaway is drawn at the taller height it published",
 		is_equal_approx(tall_box.size.y, tall_published["height"]), "%.2f m" % tall_box.size.y)
 	_ok("which is not the height its neighbour published, so one constant cannot serve both",
 		not is_equal_approx(tall_box.size.y, real_box.size.y),
-		"%s %.2f m vs %s %.2f m" % [TALL_ROOM_ID, tall_box.size.y, ROOM_ID, real_box.size.y])
+		"%s %.2f m vs %s %.2f m" % [_tall_room_id, tall_box.size.y, ROOM_ID, real_box.size.y])
 	_ok("and its top face is reported higher than the shorter room's",
-		registry.block_top_y(loader.cells[TALL_ROOM_ID]) > registry.block_top_y(loader.cells[ROOM_ID]),
-		"%.2f m vs %.2f m" % [registry.block_top_y(loader.cells[TALL_ROOM_ID]), registry.block_top_y(loader.cells[ROOM_ID])])
+		registry.block_top_y(loader.cells[_tall_room_id]) > registry.block_top_y(loader.cells[ROOM_ID]),
+		"%.2f m vs %.2f m" % [registry.block_top_y(loader.cells[_tall_room_id]), registry.block_top_y(loader.cells[ROOM_ID])])
 
 	# -- and a cell that published nothing degrades loudly --
 	# push_error() writes to stderr here on purpose; it is the console half of
@@ -244,3 +248,25 @@ func _ok(label: String, condition: bool, detail: String = "") -> void:
 	else:
 		_failed += 1
 		print("FAIL %s %s" % [label, detail])
+
+## The cell the fixture generator guarantees for a named requirement.
+##
+## `TALL_ROOM_ID := "1-16"` stood here: Town Green South, which was an interior
+## cutaway under the old lore classification and is a park under the batch that
+## replaced it. The pair this case needs - an ordinary cell and a taller one -
+## was still two cells and had stopped being a pair, so the check compared 1 m
+## against 1 m and went red without anything in the viewer having changed.
+##
+## `tools/build-godot-mock-fixture.mjs` states the requirement instead, grows
+## the slice by the nearest cell that meets it, and publishes the id under
+## `guarantees`. It aborts rather than emitting a fixture that cannot satisfy
+## one, so this read cannot quietly return nothing.
+func _fixture_guarantee(key: String) -> String:
+	var text := FileAccess.get_file_as_string(MOCK_FIXTURE_PATH)
+	var parsed = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		return ""
+	var guarantees = (parsed as Dictionary).get("guarantees", {})
+	if not (guarantees is Dictionary):
+		return ""
+	return String((guarantees as Dictionary).get(key, ""))

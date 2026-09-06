@@ -122,6 +122,7 @@
     "map:build": "node tools/build-map.mjs && node tools/build-places.mjs",
     "world:build": "node --experimental-strip-types tools/build-world-content.mjs",
     "test:world-content": "node --experimental-strip-types tools/world-content-test.mjs",
+    "test:world-content-loader": "node --experimental-strip-types tools/world-content-loader-test.mjs",
     "map:places": "node tools/build-places.mjs",
     "test:dock": "node --experimental-strip-types tools/dock-test.mjs",
     "test:look": "node tools/look-test.mjs",

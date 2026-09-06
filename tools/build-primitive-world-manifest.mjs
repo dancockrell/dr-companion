@@ -16,11 +16,71 @@ execFileSync(process.execPath, ['tools/build-crossing-primitive-registry.mjs'], 
 const catalogue = JSON.parse(readFileSync(briefsPath, 'utf8'))
 const primitiveRegistry = JSON.parse(readFileSync(join(outputDir, 'crossing-primitive-registry.json'), 'utf8'))
 const primitiveIds = new Set(primitiveRegistry.assets.map((asset) => asset.id))
-const cellsForZone = catalogue.roomBriefs
-  .filter((brief) => brief.zone === zone && brief.map)
+
+/**
+ * The cells are the zone's rooms, and the classification comes from the batch.
+ *
+ * This filtered `catalogue.roomBriefs` for the zone, which meant a room existed
+ * on this board only if somebody had written prose about the place it belongs
+ * to. There are 1,067 such descriptions and 17,750 rooms, so the tool worked
+ * for the Crossing (975 of its 1,060 rooms) and threw `No mapped room cells
+ * found for zone <n>` for 83 of the 85 zones — Dan, 6 Sep 2026: "wow are you
+ * going to do this for 17000 rooms? how many years? figure out how to batch."
+ *
+ * The map is the room list now and `src/data/world/<zone>.json` is the
+ * classification, both of which exist for every zone. The brief catalogue is
+ * still consulted, for exactly what it is the only source of: which authored
+ * description a cell's art was derived from, and its hash. A cell with no brief
+ * carries `briefStatus: 'missing-description'`, which is what this file already
+ * meant by it, and `palette()` already had a branch for.
+ */
+const mapZone = JSON.parse(readFileSync(join('src/data/map', `${zone}.json`), 'utf8'))
+const contentZone = JSON.parse(readFileSync(join('src/data/world', `${zone}.json`), 'utf8'))
+const contentByRoom = new Map(contentZone.rooms.map((room) => [room.id, room]))
+const briefByCell = new Map(
+  catalogue.roomBriefs.filter((brief) => brief.zone === zone).map((brief) => [brief.id, brief])
+)
+
+const cellsForZone = (mapZone.rooms ?? [])
+  .map((room) => {
+    const id = `${zone}-${room.id}`
+    const content = contentByRoom.get(room.id)
+    if (!content) throw new Error(`${id} has no entry in src/data/world/${zone}.json; run npm run world:build`)
+    const brief = briefByCell.get(id)
+    return {
+      id,
+      roomId: room.id,
+      title: room.name ?? brief?.title ?? id,
+      briefStatus: brief?.briefStatus ?? 'missing-description',
+      sourceDescriptionId: brief?.sourceDescriptionId ?? null,
+      sourceDescriptionHash: brief?.sourceDescriptionHash ?? null,
+      classification: content.classification,
+      groundKind: content.ground,
+      blockKind: content.block,
+      landmark: content.landmark,
+      boundaryEdges: content.boundaryEdges,
+      map: {
+        name: room.name,
+        x: room.x,
+        y: room.y,
+        z: room.z,
+        exits: (room.exits ?? []).map(({ dir, move, to }) => ({ dir, move, to })),
+      },
+    }
+  })
   .sort((a, b) => a.roomId - b.roomId)
 
 if (!cellsForZone.length) throw new Error(`No mapped room cells found for zone ${zone}`)
+
+// A floor, not a comment. The map and the content are two files and this joins
+// them; a partial read of either would otherwise publish a smaller town with no
+// complaint, and a manifest of 30 cells looks exactly like a manifest of 1,060
+// once it is a JSON file on disk.
+if (cellsForZone.length !== contentZone.rooms.length) {
+  throw new Error(
+    `zone ${zone}: ${cellsForZone.length} map rooms against ${contentZone.rooms.length} content entries; the two disagree about how big this zone is`
+  )
+}
 
 const minX = Math.min(...cellsForZone.map((cell) => cell.map.x))
 const minY = Math.min(...cellsForZone.map((cell) => cell.map.y))
@@ -117,6 +177,12 @@ const cells = cellsForZone.map((cell) => ({
   tier: cell.classification.tier,
   tags: cell.classification.tags,
   spatialMode: cell.classification.spatialMode,
+  // From src/data/world, published so the viewer and any content pack can read
+  // the batch's answer directly rather than re-deriving it from `tags`.
+  groundKind: cell.groundKind,
+  blockKind: cell.blockKind,
+  landmark: cell.landmark,
+  boundaryEdges: cell.boundaryEdges,
   palette: palette(cell),
   board: boardLayoutFor(cell),
   primitives: primitiveRecipe(cell),
