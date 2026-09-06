@@ -107,10 +107,21 @@ console.log('\n-- the component renders that list and sends that command --')
   ok('ExitButtons builds its list from exitControls', /exitControls\(exits\)/.test(source))
   ok('renders one <button> per control', /controls\.map\(/.test(source) && /<button/.test(source))
   ok('and the click sends the control\'s own command',
-    /onClick=\{\(\) => run\(\[control\.command\]\)\}/.test(source))
+    /onClick=\{\(\) => requestGameAction\(control\.command,/.test(source))
+  // The lane, not the macro runner. `run_macro` is a bridge intent, so a
+  // click that went that way would leave the outbound command lane
+  // entirely - unordered against a script's walk loop, unpaced against the
+  // roundtime, and out of Stop's reach. Asserted here rather than left to
+  // `tools/command-lane-test.mjs`, which scans lane callers and so cannot
+  // see a file that has stopped being one.
+  ok('through the command lane, naming this a player-driven UI action',
+    /requestGameAction\(control\.command, `Go \$\{control\.label\}`, 'ui-action'\)/.test(source),
+    "requestGameAction(control.command, `Go ${control.label}`, \'ui-action\')")
+  ok('and not through the macro runner it used to use',
+    !/useMacroRunner|requestMacro/.test(source))
   ok('nothing else in it sends a command',
-    (source.match(/run\(/g) ?? []).length === 1,
-    `${(source.match(/run\(/g) ?? []).length} call(s) to run()`)
+    (source.match(/requestGameAction\(/g) ?? []).length === 1,
+    `${(source.match(/requestGameAction\(/g) ?? []).length} call(s) to requestGameAction()`)
 }
 
 // The floor. Well below the real count, so it never needs touching, and high
