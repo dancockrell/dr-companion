@@ -311,7 +311,49 @@ pub fn run() {
                             width: f64::from(area.size.width) / scale,
                             height: f64::from(area.size.height) / scale,
                         };
-                        let placed = window_size::clamp_to_work_area(work, REQUESTED, MIN, MARGIN);
+                        // `set_size` sets the *content* size and
+                        // `set_position` sets the *frame's* top-left, so a
+                        // clamp that only knows the content puts the frame
+                        // past the work area by whatever the frame adds. On
+                        // the clean VM that was 16 px of width and 39 px of
+                        // height, and the bottom edge sat 15 px inside the
+                        // taskbar on every screen
+                        // (docs/verification/first-run-2026-09-06.md, New
+                        // defect 1). Measured from this window rather than
+                        // assumed: the frame differs by DPI and by theme, and
+                        // a number hardcoded from one VM would be wrong
+                        // everywhere else.
+                        let decoration = match (window.outer_size(), window.inner_size()) {
+                            (Ok(outer), Ok(inner)) => {
+                                let dec = (
+                                    f64::from(outer.width.saturating_sub(inner.width)) / scale,
+                                    f64::from(outer.height.saturating_sub(inner.height)) / scale,
+                                );
+                                if dec == (0.0, 0.0) {
+                                    // Not an error - an undecorated window is
+                                    // a real thing - but on a decorated one it
+                                    // means the frame was not up yet, and this
+                                    // is the defect above coming back quietly.
+                                    eprintln!(
+                                        "note: window frame measured as 0x0; clamping as if undecorated"
+                                    );
+                                }
+                                dec
+                            }
+                            _ => {
+                                // Said out loud rather than silently: the
+                                // clamp still runs and still fits the content,
+                                // it just cannot account for the frame.
+                                eprintln!(
+                                    "warning: could not measure the window frame; clamping the content size only"
+                                );
+                                (0.0, 0.0)
+                            }
+                        };
+
+                        let placed = window_size::clamp_to_work_area(
+                            work, REQUESTED, MIN, MARGIN, decoration,
+                        );
                         let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
                             width: placed.width,
                             height: placed.height,
