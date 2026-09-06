@@ -389,6 +389,20 @@ export interface CharacterStatus {
    * and would describe nothing that happens.
    */
   stopLatched?: boolean
+  /**
+   * The bridge's own Pause latch (bridge 0.13.0+).
+   *
+   * Three states here, unlike `stopLatched` above, and the difference is the
+   * point of issue #462: the app owns whether *it* is paused, and this field
+   * is the bridge saying whether the half of automation the Rust lane cannot
+   * reach - travel through `go2`, script starts - is held as well. `undefined`
+   * therefore means "not confirmed", never "confirmed not paused": a bridge
+   * older than 0.13.0 has no latch at all, so a tile click can still start a
+   * walk while this app shows Paused. `pauseStatus.ts` is the reader; it
+   * renders that as "paused, bridge did not confirm" rather than folding it
+   * into either certainty.
+   */
+  pauseLatched?: boolean
   /** Other players in the room. Hunting grounds are contested. */
   roomPlayers?: string[]
   /**

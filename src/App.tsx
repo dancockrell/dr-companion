@@ -243,7 +243,9 @@ function AppViews() {
    */
   useEffect(() => {
     if (v.kind !== 'app') return
-    return subscribePresentationIntents()
+    // The store's log, so a travel click refused while paused says why where
+    // the player is already looking. See presentationIntents.ts and #462.
+    return subscribePresentationIntents((line) => useAppStore.getState().addLog(line, 'warn'))
   }, [v.kind])
 
   /*
