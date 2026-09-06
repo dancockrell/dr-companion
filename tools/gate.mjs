@@ -23,11 +23,16 @@
  *   cargo fmt --check          Rust format
  *   cargo clippy -D warnings   Rust lint
  *   cargo test                 Rust tests
+ *   node tools/godot-tests.mjs the Godot test scripts, headless
  *
- * ci.yml's `godot` job is deliberately not here: `npm run test:godot` needs an
- * engine, and the machine rule on this fleet is no Godot. It reports NOT RUN
- * rather than passing, and is named in the summary below as a stage this gate
- * does not cover, which is the honest third state rather than a silent gap.
+ * The Godot stage was the one hole this file shipped with. ci.yml had a
+ * `godot` job; when Actions went away it landed nowhere, and the first version
+ * of this gate named it as "not covered" on the belief that there is no engine
+ * on this fleet. There is one, `tools/godot-tests.mjs` finds it, and a suite of
+ * sixteen scripts that runs nowhere automated is the same defect this whole
+ * file exists to prevent, one directory over. See `godotStage` for how the
+ * machine rule that governs it (headless, bounded, kind to the other lanes) is
+ * enforced mechanically rather than promised.
  *
  * # What makes this a gate rather than a script
  *
@@ -41,7 +46,7 @@
  *     Rust half was not checked, and this exits non-zero saying so. Merging on
  *     "the parts I have installed passed" is exactly what a CI runner used to
  *     make impossible.
- *   - The summary carries the denominator: `6 of 6 stages ran`. If a stage is
+ *   - The summary carries the denominator: `7 of 7 stages ran`. If a stage is
  *     added and never wired, or the list is emptied by an edit, the number
  *     falls and the line stops saying what it said yesterday.
  *
@@ -64,6 +69,11 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+// Imported, not copied. Two lists of where a Godot binary might live would
+// drift, and then the gate and the tool it runs would disagree about whether
+// there is an engine — which is the worst possible thing for them to disagree
+// about, because one of them decides whether the other gets to run at all.
+import { findGodot, godotCandidates } from './godot-tests.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
@@ -86,6 +96,98 @@ const cargoManifest = resolve(root, 'src-tauri', 'Cargo.toml')
  * merge is possible.
  */
 const cargo = process.env.DRC_GATE_CARGO || 'cargo'
+
+/**
+ * The Godot stage's two seams, on the same reasoning as `DRC_GATE_CARGO`: both
+ * of its unhappy branches decide whether an unverified merge is possible, and
+ * a branch nobody can execute on purpose is a branch nobody can prove they
+ * fixed. Neither is reachable by waiting — this machine has an engine, and the
+ * count of running ones is somebody else's business.
+ *
+ *   DRC_GATE_GODOT=definitely-not-a-binary npm run gate -- --only=godot
+ *       -> NOT RUN, exit 1. No engine: names what was searched and the GODOT4
+ *          override.
+ *   DRC_GATE_GODOT_RUNNING=9 npm run gate -- --only=godot
+ *       -> NOT RUN, exit 1. Engine present, but nine already running, so this
+ *          declines to add a tenth.
+ *
+ * They must read as different messages, because they call for opposite things
+ * from whoever is standing there: install an engine, versus wait for the other
+ * lanes to finish. A single "godot unavailable" would collapse them.
+ */
+const godotBinary = process.env.DRC_GATE_GODOT || ''
+const godotRunningOverride = process.env.DRC_GATE_GODOT_RUNNING
+
+/**
+ * Dan's machine rule, 6 September 2026: Godot headless only, bounded, and kind
+ * to the other threads. `godot-tests.mjs` covers headless and bounded. This
+ * covers kind — several lanes run at once here, each may have an engine up, and
+ * a gate that starts a sixteen-script sweep on top of three live editors is a
+ * gate that costs somebody else their session. Two is the ceiling: at two the
+ * gate is the third, which the machine carries; above it, wait.
+ */
+const MAX_GODOT_RUNNING = 2
+
+/**
+ * How many Godot processes are already up. `tasklist` rather than a wildcard
+ * `Get-Process Godot*`, for the reason a zero always deserves: this must be
+ * able to say "I could not tell", and a process listing that returns no rows at
+ * all is a broken instrument, not an idle machine. So the row count is the
+ * control, and it is asserted before the Godot count is believed.
+ */
+function godotProcessCount() {
+  if (godotRunningOverride !== undefined) {
+    const n = Number(godotRunningOverride)
+    if (!Number.isFinite(n)) return { error: `DRC_GATE_GODOT_RUNNING=${godotRunningOverride} is not a number` }
+    return { count: n, how: `DRC_GATE_GODOT_RUNNING=${n}` }
+  }
+  if (process.platform !== 'win32') {
+    const r = spawnSync('ps', ['-A', '-o', 'comm='], { encoding: 'utf8' })
+    if (r.status !== 0 || !r.stdout) return { error: '`ps -A` produced nothing, so the count is unknown' }
+    const rows = r.stdout.split('\n').filter((l) => l.trim())
+    if (rows.length < 10) return { error: `\`ps -A\` listed only ${rows.length} processes; that is the tool failing, not an idle machine` }
+    return { count: rows.filter((l) => /godot/i.test(l)).length, how: `ps -A, ${rows.length} processes` }
+  }
+  const r = spawnSync('tasklist', ['/FO', 'CSV', '/NH'], { encoding: 'utf8' })
+  if (r.status !== 0 || !r.stdout) {
+    return { error: `tasklist did not run (${r.error?.message ?? `exit ${r.status}`}), so the count is unknown` }
+  }
+  const rows = r.stdout.split('\n').filter((l) => l.trim())
+  // The denominator. A machine with fewer than ten processes does not exist;
+  // an empty listing means the instrument, not the world.
+  if (rows.length < 10) {
+    return { error: `tasklist listed only ${rows.length} processes; that is the tool failing, not an idle machine` }
+  }
+  return { count: rows.filter((l) => /godot/i.test(l)).length, how: `tasklist, ${rows.length} processes` }
+}
+
+/**
+ * The Godot stage's precheck. Returns `{ notRun }` with a reason, or `{ env }`
+ * naming the engine it found, which is handed to the child as `GODOT4` so the
+ * tool does not search a second time and cannot pick a different answer.
+ */
+function godotStage() {
+  const candidates = godotCandidates(godotBinary || process.env.GODOT4 || '')
+  const found = findGodot(candidates)
+  if (!found) {
+    return {
+      notRun:
+        `no Godot 4.3 binary; looked at ${candidates.join(', ')} — set GODOT4 to one ` +
+        `(the gate's own seam is DRC_GATE_GODOT)`,
+    }
+  }
+  const running = godotProcessCount()
+  if (running.error) return { notRun: `could not count running Godot processes: ${running.error}` }
+  if (running.count > MAX_GODOT_RUNNING) {
+    return {
+      notRun:
+        `${running.count} Godot processes are already running (ceiling ${MAX_GODOT_RUNNING}, via ${running.how}); ` +
+        `declined to add another rather than crowd the other lanes — rerun when they are done`,
+    }
+  }
+  console.log(`gate: ${found.version} at ${found.path}; ${running.count} already running (${running.how})`)
+  return { env: { GODOT4: found.path } }
+}
 
 /**
  * Each stage names the command it is, so the summary quotes something a reader
@@ -114,12 +216,21 @@ const STAGES = [
     cmd: cargo,
     args: ['test', '--manifest-path', cargoManifest],
   },
+  {
+    name: 'godot',
+    precheck: godotStage,
+    // This node and this path, spawned directly. `shell: true` would hand a
+    // command line with two spaced Windows paths in it to cmd.exe and lose
+    // both; the other stages are `npm.cmd`/`npx.cmd`, which need the shell.
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'godot-tests.mjs')],
+  },
 ]
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */
 const NOT_COVERED = [
-  ['godot', 'npm run test:godot', 'needs a Godot 4.3 binary; no Godot on this fleet'],
   ['installer', 'npm run tauri:build', 'a 217 MB build; release work only, see docs/RELEASE.md'],
 ]
 
@@ -174,13 +285,27 @@ for (const stage of selected) {
     results.push({ ...stage, state: 'not-run', why: `${stage.needs} is not installed` })
     continue
   }
+  // A stage may have a condition richer than "does this binary resolve" — the
+  // Godot stage will not run when the machine is already busy with engines,
+  // which is a different fact from the engine being missing and has to reach
+  // the reader as a different sentence.
+  let extraEnv
+  if (stage.precheck) {
+    const pre = stage.precheck()
+    if (pre.notRun) {
+      console.log(`\n=== ${stage.name}: NOT RUN (${pre.notRun}) ===`)
+      results.push({ ...stage, state: 'not-run', why: pre.notRun })
+      continue
+    }
+    extraEnv = pre.env
+  }
   console.log(`\n=== ${stage.name}: ${stage.cmd} ${stage.args.join(' ')} ===`)
   const t = Date.now()
   const r = spawnSync(stage.cmd, stage.args, {
     cwd: root,
     stdio: 'inherit',
-    env: process.env,
-    shell: process.platform === 'win32',
+    env: extraEnv ? { ...process.env, ...extraEnv } : process.env,
+    shell: stage.shell === false ? false : process.platform === 'win32',
   })
   const secs = Math.round((Date.now() - t) / 1000)
   // `status` is null when the process was killed or never started. Neither is

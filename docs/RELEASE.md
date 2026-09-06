@@ -35,19 +35,23 @@ So the gate is one command, and it is the same suites the `checks` and `tauri`
 jobs used to run, in the same order:
 
 ```bash
-npm run gate     # tsc, lint, every suite, cargo fmt, clippy, cargo test
+npm run gate     # tsc, lint, every suite, cargo fmt, clippy, cargo test, Godot
 ```
 
-It prints its own denominator (`6 of 6 stages ran`) and refuses to report a
+It prints its own denominator (`7 of 7 stages ran`) and refuses to report a
 pass for a stage it could not run — a missing `cargo` is NOT RUN and a non-zero
 exit, never a skip. Run it, read the last line, and only then cut a tag.
 
-`npm run test:godot` is **not** in the gate: it needs a Godot 4.3 binary, which
-this fleet's machine rule forbids installing, and it reports NOT RUN rather
-than passing. The eleven scripts in `godot/tests` (131 checks) therefore have
-no automated home at all at the moment. That is a real gap, not a covered one,
-and `npm run gate` names it in its own summary every run so nobody has to
-notice its absence.
+`npm run test:godot` became the seventh stage on 6 September 2026. It had been
+named as a gap here, on the belief that this fleet's machine rule forbids a
+Godot install; the rule is *headless only, one process at a time, bounded, and
+kind to the other lanes*, and `tools/godot-tests.mjs` already worked that way,
+so the scripts in `godot/tests` were running nowhere for no reason. The gate
+counts running Godot processes before it starts and reports NOT RUN naming that
+count rather than piling a sweep on top of another lane's editor. A missing
+engine is a *different* NOT RUN, naming the paths searched and the `GODOT4`
+override, because the two call for opposite things from whoever is standing
+there: install one, versus wait.
 
 ### Building the installer
 
