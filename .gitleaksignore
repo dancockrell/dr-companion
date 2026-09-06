@@ -1,5 +1,7 @@
 # localStorage key name, not a credential. Verified by filename and shape.
-src/lib/persistence.ts:generic-api-key:8
+# Moved from :8 to :17 when the constant was exported - with the comment
+# saying why - for bridgeModeSync.ts to watch. Issue #424.
+src/lib/persistence.ts:generic-api-key:17
 
 # Room-art filenames (e.g. "1-gold-key-club.webp"), not credentials. A long
 # hyphenated string trips the entropy heuristic the same way persistence.ts's

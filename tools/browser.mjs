@@ -316,179 +316,216 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null, req
     }
     targetId = candidates[0].targetId
   }
-  const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
-  const call = (method, params) => send(method, params, sessionId)
+  /**
+   * Everything you can do to one page, bound to one attached target.
+   *
+   * A function rather than a single object literal because this app opens
+   * more than one window, and a check about two windows agreeing needs two
+   * pages driven from one browser - one profile, therefore one localStorage
+   * and one event bus between them. Two `launch()` calls give two browsers
+   * with separate profiles, which is precisely the case that cannot show a
+   * cross-window message arriving.
+   *
+   * `root` is the target this session was created for. Closing that one
+   * closes the session and the browser behind it; closing a tab opened with
+   * `newTab` closes only the tab.
+   */
+  async function attachApi(pageTargetId, { root = false } = {}) {
+    const { sessionId } = await send('Target.attachToTarget', { targetId: pageTargetId, flatten: true })
+    const call = (method, params) => send(method, params, sessionId)
 
-  await call('Page.enable')
-  await call('Runtime.enable')
+    await call('Page.enable')
+    await call('Runtime.enable')
 
-  const api = {
-    async goto(url, { waitFor = 'main' } = {}) {
-      await call('Page.navigate', { url })
-      // Wait for something real rather than for a timer. A fixed sleep is the
-      // check that passes on a slow machine and fails on a fast one, or the
-      // reverse, and never says which.
-      if (waitFor) await api.waitFor(waitFor, 15000)
-    },
+    const api = {
+      async goto(url, { waitFor = 'main' } = {}) {
+        await call('Page.navigate', { url })
+        // Wait for something real rather than for a timer. A fixed sleep is the
+        // check that passes on a slow machine and fails on a fast one, or the
+        // reverse, and never says which.
+        if (waitFor) await api.waitFor(waitFor, 15000)
+      },
 
-    /**
-     * Evaluate an *expression* in the page and return its value.
-     *
-     * Raw, with no wrapper. An earlier version guessed whether to wrap by
-     * looking for the word "return" in the source, which is exactly the kind
-     * of cleverness that fails silently: the layout probe is an IIFE whose
-     * body contains returns, so it was left unwrapped, evaluated fine, and
-     * handed back undefined. Nothing errored. The caller got `undefined` and
-     * blamed itself.
-     *
-     * Pass statements to `run` instead. Two functions that each do one thing
-     * beat one that infers which you meant.
-     */
-    async eval(expression) {
-      const r = await call('Runtime.evaluate', {
-        expression,
-        returnByValue: true,
-        awaitPromise: true,
-      })
-      if (r.exceptionDetails) {
-        throw new Error(r.exceptionDetails.exception?.description ?? 'page threw')
-      }
-      return r.result.value
-    },
-
-    /** Run a function *body* in the page, with `return` available. */
-    async run(body) {
-      return api.eval(`(() => { ${body} })()`)
-    },
-
-    /** Wait until a selector matches, or say plainly that it never did. */
-    async waitFor(selector, timeoutMs = 10000) {
-      const deadline = Date.now() + timeoutMs
-      while (Date.now() < deadline) {
-        const there = await api.eval(`!!document.querySelector(${JSON.stringify(selector)})`)
-        if (there) return true
-        await sleep(100)
-      }
-      throw new Error(`${selector} never appeared within ${timeoutMs}ms`)
-    },
-
-    /**
-     * Click the first element matching a selector, optionally filtered by the
-     * text it carries.
-     *
-     * Real mouse events at the element's centre. If it is off screen, covered,
-     * or zero-sized, this fails - which is the point, because all three are
-     * states where a person cannot click it either.
-     */
-    async click(selector, textMatch = null) {
-      const box = await api.run(`
-        const want = ${textMatch ? textMatch.toString() : 'null'};
-        const els = [...document.querySelectorAll(${JSON.stringify(selector)})];
-        const el = want ? els.find(e => want.test((e.innerText||'').trim())) : els[0];
-        if (!el) return null;
-        el.scrollIntoView({ block: 'center', inline: 'center' });
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 || r.height === 0) return { dead: 'zero-sized' };
-        const x = r.left + r.width / 2, y = r.top + r.height / 2;
-        const top = document.elementFromPoint(x, y);
-        if (!top || !(el === top || el.contains(top) || top.contains(el))) {
-          return { dead: 'covered by ' + (top ? top.tagName.toLowerCase() + '.' + String(top.className).slice(0,30) : 'nothing') };
-        }
-        return { x, y };
-      `)
-
-      if (!box) throw new Error(`nothing matched ${selector}${textMatch ? ` with ${textMatch}` : ''}`)
-      if (box.dead) throw new Error(`${selector} is not clickable: ${box.dead}`)
-
-      for (const type of ['mousePressed', 'mouseReleased']) {
-        await call('Input.dispatchMouseEvent', {
-          type,
-          x: box.x,
-          y: box.y,
-          button: 'left',
-          clickCount: 1,
+      /**
+       * Evaluate an *expression* in the page and return its value.
+       *
+       * Raw, with no wrapper. An earlier version guessed whether to wrap by
+       * looking for the word "return" in the source, which is exactly the kind
+       * of cleverness that fails silently: the layout probe is an IIFE whose
+       * body contains returns, so it was left unwrapped, evaluated fine, and
+       * handed back undefined. Nothing errored. The caller got `undefined` and
+       * blamed itself.
+       *
+       * Pass statements to `run` instead. Two functions that each do one thing
+       * beat one that infers which you meant.
+       */
+      async eval(expression) {
+        const r = await call('Runtime.evaluate', {
+          expression,
+          returnByValue: true,
+          awaitPromise: true,
         })
-      }
-      return true
-    },
+        if (r.exceptionDetails) {
+          throw new Error(r.exceptionDetails.exception?.description ?? 'page threw')
+        }
+        return r.result.value
+      },
 
-    /** Choose an option in a native select, and fire what React listens for. */
-    async select(value) {
-      const done = await api.run(`
-        const sel = [...document.querySelectorAll('select')]
-          .find(s => [...s.options].some(o => o.value === ${JSON.stringify(value)}));
-        if (!sel) return false;
-        const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-        setter.call(sel, ${JSON.stringify(value)});
-        sel.dispatchEvent(new Event('change', { bubbles: true }));
-        return true;
-      `)
-      if (!done) throw new Error(`no select offers the value ${value}`)
-      return true
-    },
+      /** Run a function *body* in the page, with `return` available. */
+      async run(body) {
+        return api.eval(`(() => { ${body} })()`)
+      },
 
-    /**
-     * Change the viewport the page is laid out in, mid-session.
-     *
-     * `--window-size` at launch fixes one size for the life of the browser,
-     * which is no use to a check whose whole subject is what happens at
-     * several window sizes. `Emulation.setDeviceMetricsOverride` is what the
-     * device toolbar drives; the page gets a resize and re-lays out.
-     *
-     * It returns what the page then reports for `innerWidth`/`innerHeight`
-     * rather than the numbers that went in, because those are not always the
-     * same thing and a probe that echoes its own input cannot fail. Callers
-     * assert on what comes back.
-     */
-    async resize(width, height) {
-      await call('Emulation.setDeviceMetricsOverride', {
-        width,
-        height,
-        deviceScaleFactor: 1,
-        mobile: false,
-      })
-      return api.run('return { w: window.innerWidth, h: window.innerHeight };')
-    },
+      /** Wait until a selector matches, or say plainly that it never did. */
+      async waitFor(selector, timeoutMs = 10000) {
+        const deadline = Date.now() + timeoutMs
+        while (Date.now() < deadline) {
+          const there = await api.eval(`!!document.querySelector(${JSON.stringify(selector)})`)
+          if (there) return true
+          await sleep(100)
+        }
+        throw new Error(`${selector} never appeared within ${timeoutMs}ms`)
+      },
 
-    async screenshot(path) {
-      const { data } = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
-      writeFileSync(path, Buffer.from(data, 'base64'))
-      return path
-    },
+      /**
+       * Click the first element matching a selector, optionally filtered by the
+       * text it carries.
+       *
+       * Real mouse events at the element's centre. If it is off screen, covered,
+       * or zero-sized, this fails - which is the point, because all three are
+       * states where a person cannot click it either.
+       */
+      async click(selector, textMatch = null) {
+        const box = await api.run(`
+          const want = ${textMatch ? textMatch.toString() : 'null'};
+          const els = [...document.querySelectorAll(${JSON.stringify(selector)})];
+          const el = want ? els.find(e => want.test((e.innerText||'').trim())) : els[0];
+          if (!el) return null;
+          el.scrollIntoView({ block: 'center', inline: 'center' });
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return { dead: 'zero-sized' };
+          const x = r.left + r.width / 2, y = r.top + r.height / 2;
+          const top = document.elementFromPoint(x, y);
+          if (!top || !(el === top || el.contains(top) || top.contains(el))) {
+            return { dead: 'covered by ' + (top ? top.tagName.toLowerCase() + '.' + String(top.className).slice(0,30) : 'nothing') };
+          }
+          return { x, y };
+        `)
 
-    /** Console errors the page produced, so a silent failure is not silent. */
-    consoleErrors() {
-      return events
-        .filter((e) => e.method === 'Runtime.exceptionThrown')
-        .map((e) => e.params?.exceptionDetails?.exception?.description ?? 'exception')
-    },
+        if (!box) throw new Error(`nothing matched ${selector}${textMatch ? ` with ${textMatch}` : ''}`)
+        if (box.dead) throw new Error(`${selector} is not clickable: ${box.dead}`)
 
-    /**
-     * Let go.
-     *
-     * Only a launched browser gets killed. Attaching to the running app and
-     * then killing it on the way out would mean every look at the app closed
-     * the app, so `cleanup` is supplied by whoever started something and
-     * absent for whoever merely borrowed it.
-     */
-    async close() {
-      // Anything still in flight is abandoned here, and its deadline would
-      // otherwise outlive the session and hold the process open exactly as
-      // the uncleared ones did. Rejected rather than dropped, so a caller
-      // awaiting one gets an error instead of a promise that never settles.
-      for (const [id, p] of pending) {
-        clearTimeout(p.timer)
-        p.reject(new Error('the browser session was closed before this replied'))
-        pending.delete(id)
-      }
-      try {
-        ws.close()
-      } catch {
-        // Already gone; the cleanup below is what actually matters.
-      }
-      if (cleanup) await cleanup()
-    },
+        for (const type of ['mousePressed', 'mouseReleased']) {
+          await call('Input.dispatchMouseEvent', {
+            type,
+            x: box.x,
+            y: box.y,
+            button: 'left',
+            clickCount: 1,
+          })
+        }
+        return true
+      },
+
+      /** Choose an option in a native select, and fire what React listens for. */
+      async select(value) {
+        const done = await api.run(`
+          const sel = [...document.querySelectorAll('select')]
+            .find(s => [...s.options].some(o => o.value === ${JSON.stringify(value)}));
+          if (!sel) return false;
+          const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+          setter.call(sel, ${JSON.stringify(value)});
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          return true;
+        `)
+        if (!done) throw new Error(`no select offers the value ${value}`)
+        return true
+      },
+
+      /**
+       * Change the viewport the page is laid out in, mid-session.
+       *
+       * `--window-size` at launch fixes one size for the life of the browser,
+       * which is no use to a check whose whole subject is what happens at
+       * several window sizes. `Emulation.setDeviceMetricsOverride` is what the
+       * device toolbar drives; the page gets a resize and re-lays out.
+       *
+       * It returns what the page then reports for `innerWidth`/`innerHeight`
+       * rather than the numbers that went in, because those are not always the
+       * same thing and a probe that echoes its own input cannot fail. Callers
+       * assert on what comes back.
+       */
+      async resize(width, height) {
+        await call('Emulation.setDeviceMetricsOverride', {
+          width,
+          height,
+          deviceScaleFactor: 1,
+          mobile: false,
+        })
+        return api.run('return { w: window.innerWidth, h: window.innerHeight };')
+      },
+
+      async screenshot(path) {
+        const { data } = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
+        writeFileSync(path, Buffer.from(data, 'base64'))
+        return path
+      },
+
+      /** Console errors the page produced, so a silent failure is not silent. */
+      consoleErrors() {
+        return events
+          .filter((e) => e.method === 'Runtime.exceptionThrown')
+          .map((e) => e.params?.exceptionDetails?.exception?.description ?? 'exception')
+      },
+
+      /**
+       * Let go.
+       *
+       * Only a launched browser gets killed. Attaching to the running app and
+       * then killing it on the way out would mean every look at the app closed
+       * the app, so `cleanup` is supplied by whoever started something and
+       * absent for whoever merely borrowed it.
+       */
+      async close() {
+        // A tab opened with `newTab` is not the session. Closing it must not
+        // take the websocket - and the browser behind it - with it, or the
+        // first tab a check finished with would end the check.
+        if (!root) {
+          await send('Target.closeTarget', { targetId: pageTargetId })
+          return
+        }
+        // Anything still in flight is abandoned here, and its deadline would
+        // otherwise outlive the session and hold the process open exactly as
+        // the uncleared ones did. Rejected rather than dropped, so a caller
+        // awaiting one gets an error instead of a promise that never settles.
+        for (const [id, p] of pending) {
+          clearTimeout(p.timer)
+          p.reject(new Error('the browser session was closed before this replied'))
+          pending.delete(id)
+        }
+        try {
+          ws.close()
+        } catch {
+          // Already gone; the cleanup below is what actually matters.
+        }
+        if (cleanup) await cleanup()
+      },
+
+      /**
+       * A second page in this same browser, attached and ready.
+       *
+       * Same profile, so the two pages share an origin: a `storage` event
+       * written by one reaches the other, which is the only way to see the
+       * browser half of `bridgeModeSync.ts` actually deliver anything.
+       */
+      async newTab(url = 'about:blank') {
+        const { targetId: opened } = await send('Target.createTarget', { url })
+        return await attachApi(opened)
+      },
+    }
+
+    return api
   }
 
-  return api
+  return await attachApi(targetId, { root: true })
 }

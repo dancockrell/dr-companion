@@ -30,7 +30,10 @@
  *      string "Dan the Bold" must not survive into the empty state;
  *   5. the demo, when it is on, says so in a sentence across the window, and
  *      that sentence is rendered only when the demo is on;
- *   6. the empty state offers the attach control and a way into the demo.
+ *   6. the empty state offers the attach control and a way into the demo;
+ *   7. the demo is one fact about the app, not one per window - leaving it in
+ *      a popped-out panel leaves it everywhere, and starting it in the main
+ *      window starts it everywhere, each at the cost of one message.
  *
  * 1 to 4 are executed, not read. 5 and 6 are source checks because App.tsx
  * cannot be imported outside Vite (`import.meta.glob` reaches it through the
@@ -188,6 +191,7 @@ mock.module('../src/bridge/index.ts', {
 const { selectBridgeMode } = await import('../src/lib/bridgeModeSelect.ts')
 const { loadPrefs } = await import('../src/lib/persistence.ts')
 const { setBridgeMode } = await import('../src/store/bridgeLifecycle.ts')
+const { createBridgeModeSync } = await import('../src/lib/bridgeModeSync.ts')
 
 console.log('-- 1. a fresh profile opens on the real bridge --')
 {
@@ -499,6 +503,171 @@ console.log('\n-- 7. one selector, not two --')
     'the persisted default is live',
     /^\s*bridgeMode: 'live',$/m.test(persistence),
     (persistence.match(/^\s*bridgeMode: '\w+',$/m) ?? [''])[0].trim()
+  )
+}
+
+console.log('\n-- 8. one demo mode for the whole app, not one per window --')
+{
+  /*
+   * Two windows, driven through the real `setBridgeMode` and the real
+   * `createBridgeModeSync`, over an in-memory transport that behaves the way
+   * Tauri's `emit` does: every message reaches every subscriber *including*
+   * the window that sent it, which is the arrangement an echo guard has to
+   * survive.
+   *
+   * The transport counts what it carries, because the number that goes wrong
+   * when the guard breaks is not the final mode - both windows still end up
+   * correct in an echo storm - it is how many times they said so.
+   */
+  function makeBus() {
+    const subscribers = new Set()
+    const carried = []
+    return {
+      carried,
+      transport: {
+        publish(mode) {
+          carried.push(mode)
+          for (const handler of [...subscribers]) handler(mode)
+        },
+        subscribe(handler) {
+          subscribers.add(handler)
+          return () => subscribers.delete(handler)
+        },
+      },
+    }
+  }
+
+  /** One window: its own store cell, its own sync, one shared bus. */
+  function makeWindow(bus, initial, { guard = true } = {}) {
+    const sync = guard
+      ? createBridgeModeSync(bus.transport)
+      : // The sabotage, kept in the file as a positive control: the same
+        // wiring with the echo guard removed. If this does not storm, the
+        // message counter below is not measuring anything.
+        { publish: (mode) => bus.transport.publish(mode), subscribe: (a) => bus.transport.subscribe(a) }
+    const state = {
+      bridgeMode: initial,
+      character: { name: 'Dan the Bold' },
+      addLog() {},
+    }
+    const set = (partial) =>
+      Object.assign(state, typeof partial === 'function' ? partial(state) : partial)
+    const get = () => state
+    const win = {
+      state,
+      change(mode) {
+        setBridgeMode(mode, set, get, (m) => {
+          state.persisted = m
+          sync.publish(m)
+        })
+      },
+    }
+    sync.subscribe((mode) => {
+      if (mode === state.bridgeMode) return
+      win.change(mode)
+    })
+    return win
+  }
+
+  {
+    const bus = makeBus()
+    const main = makeWindow(bus, 'mock')
+    const popout = makeWindow(bus, 'mock')
+    popout.change('live')
+    ok(
+      'leaving the demo in a pop-out takes the main window out of it',
+      main.state.bridgeMode === 'live',
+      `main=${main.state.bridgeMode} popout=${popout.state.bridgeMode}`
+    )
+    ok(
+      'and clears the invented character there, so its banner has nothing to sit over',
+      main.state.character === null
+    )
+    ok(
+      'the preference the main window would reload is the new one',
+      main.state.persisted === 'live',
+      `persisted=${main.state.persisted}`
+    )
+    ok(
+      'one change puts exactly one message on the transport',
+      bus.carried.length === 1,
+      `${bus.carried.length} carried: ${bus.carried.join(',')}`
+    )
+  }
+
+  {
+    // The other direction, which is the one issue #424 explicitly did not
+    // ask for and #400's framing does: starting the demo in the main window
+    // must put an already-open pop-out into it too, banner and all.
+    const bus = makeBus()
+    const main = makeWindow(bus, 'live')
+    const popout = makeWindow(bus, 'live')
+    main.change('mock')
+    ok(
+      'starting the demo in the main window puts an open pop-out into it',
+      popout.state.bridgeMode === 'mock',
+      `popout=${popout.state.bridgeMode}`
+    )
+    ok('still exactly one message', bus.carried.length === 1, `${bus.carried.length} carried`)
+  }
+
+  {
+    // The control. Same two windows, guard removed: each window answers the
+    // other's message with one of its own. Without this, a green count above
+    // could equally mean the transport was never used at all.
+    const bus = makeBus()
+    makeWindow(bus, 'mock', { guard: false })
+    makeWindow(bus, 'mock', { guard: false })
+    let stormed = false
+    try {
+      bus.transport.publish('live')
+    } catch {
+      // A RangeError from the recursion is the same finding as a high count.
+      stormed = true
+    }
+    ok(
+      'control: without the guard the same change echoes, so the count can fail',
+      stormed || bus.carried.length > 1,
+      `${bus.carried.length} carried without the guard`
+    )
+  }
+
+  {
+    // A window that does not subscribe is the bug, so the harness has to be
+    // able to see one. Same as above with the subscription left off.
+    const bus = makeBus()
+    const sync = createBridgeModeSync(bus.transport)
+    const state = { bridgeMode: 'mock', character: { name: 'Dan the Bold' }, addLog() {} }
+    const set = (p) => Object.assign(state, typeof p === 'function' ? p(state) : p)
+    setBridgeMode('live', set, () => state, (m) => sync.publish(m))
+    ok(
+      'control: an unsubscribed window would be caught - it stays in the demo',
+      state.bridgeMode === 'live' && bus.carried.length === 1
+    )
+  }
+
+  // The wiring, which the in-memory model above cannot see: every window has
+  // to actually reach that subscription, and the publish has to sit on the
+  // persist seam so the browser transport's listener reads a written value.
+  const shell = read('src/components/layout/WindowShell.tsx')
+  ok(
+    'the shell every window passes through subscribes to the mode',
+    /useBridgeModeSync\(/.test(shell)
+  )
+  const store = read('src/store/useAppStore.ts')
+  ok(
+    'and the store publishes from the same seam that persists',
+    /savePrefs\(\{ bridgeMode: mode \}\)\s*\n\s*publishBridgeMode\(mode\)/.test(store)
+  )
+  const sync = read('src/lib/bridgeModeSync.ts')
+  ok(
+    'the browser transport reuses the storage channel pins already use',
+    /subscribeStorageKey\(/.test(sync) && !/new BroadcastChannel/.test(sync),
+    'no second cross-window channel'
+  )
+  ok(
+    'and the app transport is a Tauri event, chosen once by isTauri()',
+    /isTauri\(\) \? tauriTransport : storageTransport/.test(sync)
   )
 }
 

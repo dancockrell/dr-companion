@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import { useAppStore } from '../../store/useAppStore.ts'
+import { useBridgeModeSync } from '../../lib/bridgeModeSync.ts'
 import { DemoBanner } from './DemoBanner.tsx'
 
 /**
@@ -31,6 +32,29 @@ import { DemoBanner } from './DemoBanner.tsx'
 export function WindowShell({ aux = false, children }: { aux?: boolean; children: ReactNode }) {
   const setupComplete = useAppStore((s) => s.setupComplete)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
+
+  /*
+   * The demo is one fact about the app, not one per window - issue #424.
+   * Subscribing here rather than in `App.tsx` for the same reason the banner
+   * is here: this is the one component every window kind passes through, so
+   * a window kind added tomorrow follows the mode with nobody remembering to
+   * wire it.
+   *
+   * The store is read through `getState()` rather than from a rendered value,
+   * so the comparison is against the mode as it stands when the message
+   * arrives - a captured one is stale by exactly the change being reported.
+   * The pair after it is the one `DemoBanner` and Settings use, in the same
+   * order: switch the mode, which clears the invented character, then attach
+   * whichever bridge that mode means.
+   */
+  useBridgeModeSync(
+    useCallback((mode) => {
+      const state = useAppStore.getState()
+      if (state.bridgeMode === mode) return
+      state.setBridgeMode(mode)
+      state.connectBridge()
+    }, [])
+  )
 
   return (
     <div className="flex h-full w-full flex-col bg-surface">

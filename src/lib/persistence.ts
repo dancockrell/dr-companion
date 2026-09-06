@@ -7,7 +7,15 @@ import type { UiMode } from '../types'
 import { readJSON, writeJSON } from './storage.ts'
 import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 
-const KEY = 'dr-companion-prefs-v1'
+/**
+ * The localStorage key these preferences live under.
+ *
+ * Exported because `bridgeModeSync.ts` has to watch it for a `StorageEvent`
+ * from another window, and a second copy of the string is a second thing to
+ * get wrong on the day it changes.
+ */
+export const PREFS_STORAGE_KEY = 'dr-companion-prefs-v1'
+const KEY = PREFS_STORAGE_KEY
 
 export interface PersistedPrefs {
   uiMode: UiMode
