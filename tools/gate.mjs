@@ -185,8 +185,18 @@ function godotStage() {
     // binary" over a version nothing had ever looked at — a claim the gate was
     // making on the strength of an exit code. `godotNotFoundReason` writes the
     // right one of the three; the only thing added here is the gate's own seam.
+    //
+    // And the seam is added to the two states it answers, not to all three.
+    // `detail.error` is "the project's declared Godot version is unknown" -
+    // `godot/project.godot` did not read - and no value of GODOT4 makes that
+    // file parse. Appending the remedy there diagnosed one thing and
+    // prescribed another, which is the same defect as folding the three states
+    // into one: it sends whoever is standing here to the wrong lever.
+    const reason = godotNotFoundReason(detail, candidates)
     return {
-      notRun: `${godotNotFoundReason(detail, candidates)} — set GODOT4 to one (the gate's own seam is DRC_GATE_GODOT)`,
+      notRun: detail.error
+        ? reason
+        : `${reason} — set GODOT4 to one (the gate's own seam is DRC_GATE_GODOT)`,
     }
   }
   const running = godotProcessCount()
