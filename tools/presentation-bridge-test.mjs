@@ -479,7 +479,10 @@ console.log('\n-- appearance: the player figure, and an override winning --')
 }
 
 console.log('')
-console.log(`${pass} checked, ${fail} failed`)
+// `pass + fail`, not `pass`: the denominator has to be the number of checks
+// that ran, or it shrinks by one per failure and the line reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${pass + fail} checked, ${fail} failed`)
 if (fail > 0) {
   console.error('FAILED')
   process.exit(1)
