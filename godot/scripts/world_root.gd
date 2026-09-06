@@ -37,10 +37,7 @@ const LIVE_STATUS_UNRECOGNISED := "DR Companion reported an unrecognised state (
 
 @onready var camera: Camera3D = $CameraDirector
 @onready var cell_root: Node3D = $CellRoot
-@onready var exit_root: Node3D = $ExitAnchors
 @onready var entity_projection: Node3D = $EntityProjection
-@onready var route_graph: Node3D = $RouteGraph
-@onready var route_transition: Node3D = $RouteTransition
 @onready var world_controls: CanvasLayer = $WorldControls
 @onready var world_inspector: CanvasLayer = $WorldInspector
 
@@ -49,7 +46,6 @@ const LIVE_STATUS_UNRECOGNISED := "DR Companion reported an unrecognised state (
 var _spawned_cells: Dictionary = {}
 var _active_detail_cells: Dictionary = {}
 var _visibility_policy := CellVisibilityPolicy.new()
-var _last_confirmed_room_id := ""
 ## Built in code rather than in the scene: it exists only on the live path and
 ## the scene file is shared content. Null until a live start is attempted.
 var _live_status: Label = null
@@ -64,7 +60,6 @@ func _ready() -> void:
 	world_controls.exit_requested.connect(_on_exit_requested)
 	world_inspector.inspect_entity_requested.connect(_on_entity_inspect_requested)
 	world_inspector.inspect_ground_item_requested.connect(_on_ground_item_inspect_requested)
-	exit_root.exit_requested.connect(_on_exit_requested)
 
 	if _live_requested():
 		_build_live_status()
@@ -86,7 +81,6 @@ func _ready() -> void:
 		return
 
 	_prepare_all_cells()
-	route_graph.render_routes(WorldManifestLoader.cells)
 	_apply_detail_window(MOCK_STARTING_ROOM)
 	_project_snapshot_tokens(BridgeClient.current_snapshot)
 	_focus_room(MOCK_STARTING_ROOM, camera.Mode.ROOM)
@@ -112,11 +106,11 @@ func _prepare_all_cells() -> void:
 		content.name = "DetailContent"
 		holder.add_child(content)
 
-		# A clickable body per cell, so the mock viewer can turn a click into
-		# a focus-room intent even before real per-primitive collision
-		# shapes exist. Codex's content later adds its own collision where a
-		# specific mesh needs finer picking; this is the always-present
-		# fallback the contract needs for slice 0's acceptance gate.
+		# A clickable body per cell. This is how a player travels: Dan, 6
+		# September 2026 - "you travel by clicking on another tile or by
+		# clicking on the words in the interface or by hotkey". Codex's
+		# content later adds its own collision where a specific mesh needs
+		# finer picking; this is the always-present fallback.
 		#
 		# Its size is the cell's own `board.selectionBounds`, asked for through
 		# ContentRegistry like every other board dimension. It was a hand-typed
@@ -191,14 +185,24 @@ func _cell_position(cell: Dictionary) -> Vector3:
 	var p: Dictionary = cell.get("position", {})
 	return Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
 
+## A left click on a tile is a request to be standing on that tile.
+##
+## Three cases, and the first is the one worth naming: clicking the tile you
+## are already on asks for nothing, so it sends nothing. A neighbour reached by
+## a true exit walks that exit, which is the cheap, already-validated path and
+## needs no route finder. Anything further away is a route, which this client
+## does not compute - `travel-to-room` reaches the frontend and becomes the
+## bridge's own `map_walk`, and Lich's `go2` walks it.
 func _on_cell_clicked(_camera: Node, event: InputEvent, _pos: Vector3, _normal: Vector3, _shape_idx: int, cell_id: String) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var current_room: String = BridgeClient.current_snapshot.get("currentRoomId", "")
+		if cell_id == current_room:
+			return
 		var exit := _exit_towards(current_room, cell_id)
 		if exit != "":
 			IntentSender.request_walk(current_room, exit)
 		else:
-			IntentSender.request_focus_room(cell_id)
+			IntentSender.request_travel_to_room(cell_id)
 
 func _exit_towards(from_room_id: String, target_cell_id: String) -> String:
 	for exit in WorldManifestLoader.true_exits(from_room_id):
@@ -212,14 +216,10 @@ func _on_snapshot_updated(snapshot: Dictionary) -> void:
 	var room_id: String = snapshot.get("currentRoomId", "")
 	if _spawned_cells.size() != WorldManifestLoader.cells.size() or (room_id != "" and not _spawned_cells.has(room_id)):
 		_prepare_all_cells()
-		route_graph.render_routes(WorldManifestLoader.cells)
-	if room_id != "" and not _last_confirmed_room_id.is_empty() and room_id != _last_confirmed_room_id and not _spawned_cells.is_empty():
-		route_transition.play_confirmed_route(_last_confirmed_room_id, room_id, WorldManifestLoader.cells)
 	if room_id != "":
 		_focus_room(room_id, camera.Mode.ROOM)
 		_apply_detail_window(room_id)
-		_last_confirmed_room_id = room_id
-	_rebuild_exit_anchors(room_id)
+	world_controls.render_exits(room_id, WorldManifestLoader.true_exits(room_id))
 	_project_snapshot_tokens(snapshot)
 
 func _live_requested() -> bool:
@@ -328,7 +328,7 @@ func _focus_room(room_id: String, mode: int) -> void:
 
 ## Public camera controls for the host UI. They do not mutate MUD state and
 ## do not change the detail budget: world view keeps the local bubble mounted
-## while the route mesh supplies the city-scale context.
+## and pulls the camera back far enough to see the loaded board.
 func focus_world_view() -> void:
 	if WorldManifestLoader.cells.is_empty():
 		return
@@ -355,16 +355,10 @@ func _on_view_requested(view_id: String) -> void:
 		"room": focus_current_room_view()
 
 func _on_exit_requested(from_room_id: String, exit_move: String) -> void:
-	# Markers are rebuilt from snapshots, but the room check prevents a late
-	# click from an old frame from becoming a command in a new room.
+	# The exit list is rebuilt from snapshots, but the room check prevents a
+	# late click from an old frame from becoming a command in a new room.
 	if BridgeClient.current_snapshot.get("currentRoomId", "") == from_room_id:
 		IntentSender.request_walk(from_room_id, exit_move)
-
-## Both representations receive the identical true-exit collection. They also
-## converge on `_on_exit_requested`, which rechecks the current snapshot.
-func _rebuild_exit_anchors(room_id: String) -> void:
-	exit_root.render_exits(room_id, WorldManifestLoader.cells)
-	world_controls.render_exits(room_id, WorldManifestLoader.true_exits(room_id))
 
 ## Host-facing copy of the accessible, non-3D-dependent exit labels.
 func exit_labels() -> Array:

@@ -42,38 +42,30 @@ required for this slice's acceptance gate.
 - `scripts/world_root.gd` + `scenes/WorldRoot.tscn` — wires the above into a
   running scene: loads the mock fixture, starts the mock bridge at Town Green
   North, spawns every cell's primitives through `ContentRegistry`, and turns
-  a click on a neighboring cell into a validated walk intent. It also passes
-  confirmed snapshot occupants and ground items to the projection layer.
+  a click on a tile into travel: nothing for the tile you are on, a
+  validated walk intent for a neighbour, and a `travel-to-room` intent for
+  anything further, which the desktop app turns into the bridge's own
+  `map_walk`. It also passes confirmed snapshot occupants and ground items
+  to the projection layer.
 - `scripts/cell_visibility_policy.gd` — limits detailed mounted geometry to
   the current room and at most two true-exit hops. The complete authoritative
   graph remains available to the viewer; this budget only controls scene
   children, never the room graph or exit truth. A later world/route layer can
   add cheap silhouettes without activating local prop geometry across a city.
-- `scripts/route_graph_layer.gd` — draws all known local manifest connections
-  as inexpensive static meshes grouped by typed tether family for the
-  world/route camera. Roads, paths, thresholds, stairs, ladders, ferries,
-  portals, warps, and unclassified links have distinct restrained materials.
-  It de-duplicates reciprocal exits and omits unresolved/external links rather
-  than inventing a road, bridge, or destination.
 - `scripts/world_controls.gd` — the in-view World / Route / Room controls and
   compact current-room exit list. Camera choices are presentation-only and
   have matching `1` / `2` / `3` shortcuts. Exit buttons are keyboard
-  reachable, preserve the manifest's exact move string, and share the 3D
-  markers' stale-room validation rather than creating another map window.
+  reachable, preserve the manifest's exact move string, and are re-checked
+  against the current snapshot rather than creating another map window. Since
+  issue #444 this list is the only *written* way out of a room in the viewer:
+  the exit chevrons and the route-line mesh were deleted, and travel is a
+  click on a tile, a click on one of these words, or a hotkey.
 - `scripts/world_inspector.gd` — one collapsible current-room inspector with a
   compact live player strip plus every confirmed occupant and ground item. It
   counts down only the real roundtime clock from its receipt moment, never
   invents a stun duration, keeps unassessed tactics explicit, includes every
   supplied tactical/lore fact in tooltips, and gives each row a keyboard-
   focusable Elanthipedia search.
-- `scripts/confirmed_route_transition.gd` — validates and records a confirmed
-  room-to-room change over a known manifest exit. The current static phase
-  starts no travel animation; reconnects, rejects, external routes, and unknown
-  jumps remain quiet. This is the seam a later truthful streak effect will use.
-- `scripts/exit_anchor_layer.gd` — labels and makes each true current-room
-  exit clickable. Compiled compass anchors win, then known local destinations.
-  Directionless/external exits retain their exact command in a neutral,
-  explicitly unpositioned stack rather than receiving invented geography.
 - `scripts/entity_projection_layer.gd` — creates modest tabletop tokens only
   for bridge-confirmed entities and ground items. Each token is parented below
   its reported room's tether and gets a deterministic local display slot; it
@@ -106,8 +98,10 @@ required for this slice's acceptance gate.
 - `tests/combat_presentation_test.gd` — verifies the honest distinction among
   unassessed, live-only, fresh, aging, and stale knowledge; player urgency;
   health and roundtime; and the whitelisted Elanthipedia search shape.
-- `tests/route_graph_layer_test.gd` — verifies the route view is one mesh,
-  covers known local connections, and excludes unknown/external destinations.
+- `tests/tile_travel_test.gd` — verifies a click on a tile travels: the room
+  you are already in sends nothing, a neighbour sends one walk naming that
+  exact exit, and anything further sends one `travel-to-room` naming that room
+  and no exit. Every case is run where the other answer was reachable.
 - `tests/world_controls_test.gd` — verifies the three documented camera
   requests are explicit, rejects unknown view labels, and proves the text exit
   list cannot emit an arbitrary move or a move from a stale room.
@@ -119,10 +113,6 @@ required for this slice's acceptance gate.
   topology atomically, unauthenticated data cannot replace state, guarded
   port/token discovery reaches a real loopback socket, and live intents use
   the Rust bridge's documented newline-delimited JSON shape.
-- `tests/confirmed_route_transition_test.gd` — verifies a travel ribbon needs
-  a confirmed manifest connection and refuses unknown or same-room changes.
-- `tests/exit_anchor_layer_test.gd` — verifies anchors expose only true moves
-  for their rendered room and reject arbitrary or stale requests.
 
 ## Current presentation phase
 

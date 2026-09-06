@@ -180,7 +180,16 @@ pub enum PresentationIntent {
         #[serde(rename = "itemId")]
         item_id: String,
     },
-    FocusRoom {
+    /// The click on a tile that is not a neighbour. Serde's kebab-case
+    /// renaming makes this `travel-to-room` on the wire.
+    ///
+    /// It carries a destination and no route: this process computes none, and
+    /// neither does Godot. The frontend turns it into the bridge's `map_walk`,
+    /// which hands the walking to Lich's own `go2`. That is the same division
+    /// this module's doc already draws for `walk` - validate here, execute
+    /// through the one existing command path - rather than a second router
+    /// that could disagree with Lich's map about what is reachable.
+    TravelToRoom {
         #[serde(rename = "roomId")]
         room_id: String,
     },
@@ -350,15 +359,30 @@ fn handle_intent(v: &Value, state: &PresentationBridgeState, app: &AppHandle, ou
             );
             let _ = send_json(out, &json!({"type": "intent_accepted"}));
         }
-        PresentationIntent::FocusRoom { room_id } => {
-            // Read-only and never leaves this process - Godot already has
-            // every cell's position once it has a snapshot, so this needs no
-            // round trip through the frontend at all.
+        PresentationIntent::TravelToRoom { room_id } => {
+            // Checked against the published snapshot's own cell list, for the
+            // same reason a walk is: this file's authority is "is this in the
+            // last snapshot I was handed". It is a weaker check than
+            // `validate_walk` on purpose - a destination several rooms away
+            // has no exit of the current room to be one of - and the walking
+            // itself is refused or performed downstream by Lich.
+            let guard = state.latest_snapshot.lock().unwrap();
+            let known = guard
+                .as_ref()
+                .is_some_and(|s| s.cells.iter().any(|c| c.id == room_id));
+            drop(guard);
+            if !known {
+                let _ = send_json(
+                    out,
+                    &json!({"type": "intent_rejected", "reason": "destination is not a cell of the published snapshot"}),
+                );
+                return;
+            }
+            let _ = send_json(out, &json!({"type": "intent_accepted"}));
             let _ = app.emit(
                 "presentation:intent",
-                json!({"kind": "focus-room", "roomId": room_id}),
+                json!({"kind": "travel-to-room", "roomId": room_id}),
             );
-            let _ = send_json(out, &json!({"type": "intent_accepted"}));
         }
     }
 }
@@ -782,10 +806,21 @@ mod tests {
     }
 
     #[test]
-    fn focus_room_intent_deserializes_from_the_documented_wire_shape() {
-        let raw = json!({"kind": "focus-room", "roomId": "1-14"});
+    fn travel_to_room_intent_deserializes_from_the_documented_wire_shape() {
+        let raw = json!({"kind": "travel-to-room", "roomId": "1-14"});
         let intent: PresentationIntent = serde_json::from_value(raw).expect("should parse");
-        assert!(matches!(intent, PresentationIntent::FocusRoom { room_id } if room_id == "1-14"));
+        assert!(
+            matches!(intent, PresentationIntent::TravelToRoom { room_id } if room_id == "1-14")
+        );
+    }
+
+    /// The wire kind this replaced. A viewer built before this change would
+    /// otherwise be accepted and silently do nothing, which is the failure
+    /// this whole module is written against.
+    #[test]
+    fn the_superseded_focus_room_kind_is_no_longer_accepted() {
+        let raw = json!({"kind": "focus-room", "roomId": "1-14"});
+        assert!(serde_json::from_value::<PresentationIntent>(raw).is_err());
     }
 
     /// A WorldSnapshot serializes with the documented field names

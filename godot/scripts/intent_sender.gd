@@ -55,11 +55,23 @@ func request_inspect_ground_item(item_id: String) -> bool:
 	BridgeClient.send_intent(intent)
 	return true
 
-func request_focus_room(room_id: String) -> bool:
+## Travel to a room that is not a neighbour: the click on a distant tile.
+##
+## This viewer does not own a route finder and must not grow one - Lich already
+## has the map database and `go2`, and a second router would be the drifting
+## copy `presentation_bridge.rs` refuses for exits. So the intent names only the
+## destination. The frontend turns it into the bridge's `map_walk`, which is the
+## one bridge intent that moves the character, and which refuses on its own
+## terms (Stop latched, no map, no route, go2 already running).
+##
+## Refused here for a room the manifest does not have, on the same grounds as
+## every other intent in this file: this file will not name a place the board
+## cannot show.
+func request_travel_to_room(room_id: String) -> bool:
 	if not WorldManifestLoader.has_cell(room_id):
 		intent_refused.emit("unknown room id: %s" % room_id)
 		return false
-	var intent := {"kind": "focus-room", "roomId": room_id}
+	var intent := {"kind": "travel-to-room", "roomId": room_id}
 	intent_created.emit(intent)
 	BridgeClient.send_intent(intent)
 	return true
