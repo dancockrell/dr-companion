@@ -51,12 +51,14 @@ const MUST_KEEP = [
   'You see a rat here.',
 ]
 
+let checked = 0
 let fails = 0
 
 console.log('-- private speech must be redacted --')
 for (const [line, label] of MUST_REDACT) {
   const r = scrub([line])
   const ok = r.text.startsWith('[redacted') && r.removed.length > 0
+  checked++
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(17)} ${line.slice(0, 50)}`)
 }
@@ -66,6 +68,7 @@ console.log('-- game mechanics must survive --')
 for (const line of MUST_KEEP) {
   const r = scrub([line])
   const ok = r.text === line
+  checked++
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${line.slice(0, 56)}`)
 }
@@ -77,6 +80,7 @@ const named = scrub(['Someguy swings a sword at you!'], {
   redactNames: true,
 })
 const nameOk = !named.text.includes('Someguy') && named.text.includes('[player]')
+checked++
 if (!nameOk) fails++
 console.log(`${nameOk ? 'OK  ' : 'FAIL'} on:  ${named.text}`)
 
@@ -85,9 +89,27 @@ const notNamed = scrub(['Someguy swings a sword at you!'], {
   redactNames: false,
 })
 const offOk = notNamed.text.includes('Someguy')
+checked++
 if (!offOk) fails++
 console.log(`${offOk ? 'OK  ' : 'FAIL'} off: ${notNamed.text}`)
 
 console.log('')
-console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
-process.exit(fails === 0 ? 0 : 1)
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases. This suite
+// has no check helper - every case is an inline `if (!ok) fails++` - so the
+// denominator had to be added case by case.
+const MIN_EXPECTED = 11
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)
