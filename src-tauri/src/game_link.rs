@@ -805,7 +805,7 @@ mod tests {
 
         // Cannot tell: resolution fails, which is not evidence of absence.
         // This must NOT come back "gone".
-        let verdict = probe_lich("no-such-host.invalid", 11024);
+        let verdict = probe_lich("no-such-host.invalid", crate::lich::DETACHABLE_PORT);
         assert_eq!(
             verdict, "unknown",
             "a probe that could not answer must say so, not guess gone"

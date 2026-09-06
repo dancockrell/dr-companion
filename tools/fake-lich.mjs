@@ -110,6 +110,67 @@ const TAGGED = process.argv.includes('--tagged')
 const SPLIT = process.argv.includes('--split')
 
 /**
+ * Which frontend identity Lich thinks it is talking to.
+ *
+ *   node tools/fake-lich.mjs --tagged --frontend genie
+ *
+ * This is not decoration. Lich gates every `<pushStream>`/`<popStream>` pair
+ * behind `Frontend.supports_streams?` (`messaging.rb:21-48`), and the state
+ * that predicate reads is `$frontend` (`front-end.rb:374-376`, whose default
+ * argument *is* `$frontend`). So a client attached to a Lich whose identity is
+ * `genie` receives the same session with the stream labels stripped out, the
+ * channel tabs stay empty forever, and nothing anywhere reports an error.
+ *
+ * Before this option that state was unreachable without a real Genie and a
+ * real account, which meant the app's own empty-channel behaviour had never
+ * been seen by anybody developing it. A branch nobody can execute on purpose
+ * is a branch nobody can prove they fixed.
+ *
+ * The capability sets are Lich's own, and they were not typed from memory:
+ * they were read out of `front-end.rb:230-348` and then confirmed by
+ * executing Lich's own `Frontend.has_capability?` against its own registry.
+ * See `docs/verification/lich-native-stream-2026-09-06.md`.
+ *
+ * The default is `profanity` because that is what this app's launch actually
+ * produces. `--headless=<port>` becomes `--without-frontend
+ * --detachable-client=<port>` (`arg_normalization.rb:52-53`), which routes
+ * `Frontend.client` through `resolve_headless_frontend`
+ * (`login_helpers.rb:578-584`), and that returns `'profanity'` for everything
+ * except `--saga` and `--genie`. Measured, not inferred.
+ */
+const FRONTEND_CAPABILITIES = {
+  // front-end.rb:248-249 - what DR Companion's own launch resolves to.
+  profanity: { streams: true, mono: false, roomWindow: false },
+  // front-end.rb:251-252 - no streams at all. The route this app has left.
+  genie: { streams: false, mono: true, roomWindow: false },
+  // front-end.rb:232-233 - what an interactive Wrayth session gets.
+  stormfront: { streams: true, mono: true, roomWindow: true },
+  // front-end.rb:299-300
+  saga: { streams: true, mono: true, roomWindow: true },
+}
+const FRONTEND = arg('frontend', 'profanity')
+if (!Object.hasOwn(FRONTEND_CAPABILITIES, FRONTEND)) {
+  console.error(
+    `unknown --frontend ${FRONTEND}. Known: ${Object.keys(FRONTEND_CAPABILITIES).join(', ')}`,
+  )
+  process.exit(1)
+}
+const CAPS = FRONTEND_CAPABILITIES[FRONTEND]
+
+/**
+ * Rewrite a line the way Lich would for a frontend without `streams`.
+ *
+ * `Lich::Messaging.stream_window` does not drop the line and does not send it
+ * anywhere else - it emits the same text without the wrapper
+ * (`messaging.rb:31-40`). The text still arrives; only the label is gone,
+ * which is exactly why the failure is so quiet.
+ */
+function forFrontend(line) {
+  if (CAPS.streams) return line
+  return line.replace(/<pushStream id=['"][^'"]*['"]\s*\/>/g, '').replace(/<popStream\s*\/>/g, '')
+}
+
+/**
  * Observed traffic, in the order and rough density it actually arrived.
  *
  * Firulf Vista at a busy hour: eighteen movement events in ninety seconds,
@@ -316,8 +377,11 @@ const server = createServer((socket) => {
       // Appended rather than woven in at a fixed point so the text replay
       // stays byte-identical to what was captured.
       const script = TAGGED ? [...CAPTURED_TAGGED, ...LIVE_TAGS] : CAPTURED
-      for (const [line, gap] of script) {
+      for (const [rawLine, gap] of script) {
         if (!alive) return
+        // Lich strips the stream wrappers for a frontend without the
+        // capability, rather than dropping the line - see `forFrontend`.
+        const line = forFrontend(rawLine)
         const payload = line + EOL
 
         if (SPLIT && payload.length > 8) {
@@ -366,7 +430,9 @@ server.listen(PORT, '127.0.0.1', () => {
   console.error(`fake Lich listening on 127.0.0.1:${PORT} (speed ${SPEED}x)`)
   console.error(
     `this is a fixture of captured DragonRealms text, not a game` +
-      ` (${TAGGED ? 'tagged stream' : 'plain text'}${SPLIT ? ', split across reads' : ''})`
+      ` (${TAGGED ? 'tagged stream' : 'plain text'}${SPLIT ? ', split across reads' : ''}` +
+      `, frontend ${FRONTEND}` +
+      `${CAPS.streams ? '' : ' - NO streams capability, channel labels are stripped'})`
   )
   if (reservedFor) {
     console.error(

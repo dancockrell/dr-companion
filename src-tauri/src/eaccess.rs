@@ -60,6 +60,7 @@
 //! instead would move the boundary and lose that. `password_never_reaches_an_error_string`
 //! is the check.
 
+use serde::Serialize;
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
@@ -80,14 +81,22 @@ impl<T: Read + Write> Transport for T {}
 
 /// One character on the account: the code the `L` frame needs, and the name a
 /// player recognises.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Serialize` because `lich_login_characters` hands this straight to the
+/// character picker. Nothing here is a secret: the code is a per-account
+/// identifier the `C` reply publishes, and the name is what the player sees in
+/// the game. The password is not in this type and must never be added to it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CharacterEntry {
     pub code: String,
     pub name: String,
 }
 
 /// What the `F` and `C` replies together say about an account.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Serialize` for the same reason as [`CharacterEntry`], and with the same
+/// constraint: no field here may ever hold a credential.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Account {
     /// The `F` reply verbatim - `NORMAL`, `PREMIUM`, `TRIAL`, `INTERNAL` or
     /// `FREE`. Kept whole rather than parsed into an enum: Lich only ever
@@ -1163,5 +1172,56 @@ mod tests {
         let mut buf = [0u8; 16];
         let n = s.read(&mut buf).expect("read");
         assert_eq!(&buf[..n], b"key", "Z had no reply and added nothing");
+    }
+
+    // -- the shape the picker receives -------------------------------------
+
+    /// The JSON `lich_login_characters` hands the character picker, asserted
+    /// against `docs/LICH_NATIVE_LOGIN.md` section 8 and against
+    /// `AccountCharacters` in `src/lib/lichLogin.ts`.
+    ///
+    /// This is the consuming side of the `Serialize` derive, which is the half
+    /// that otherwise never gets checked (`CLAUDE.md` section 1): a renamed
+    /// field, or a `rename_all` added later for consistency with the other
+    /// command results, would compile, serialize happily, and arrive at the
+    /// picker as `undefined`.
+    #[test]
+    fn the_account_serializes_as_the_picker_reads_it() {
+        let account = Account {
+            subscription: "NORMAL".into(),
+            characters: vec![
+                CharacterEntry {
+                    code: "C1".into(),
+                    name: "Phemius".into(),
+                },
+                CharacterEntry {
+                    code: "C2".into(),
+                    name: "Dan the Bold".into(),
+                },
+            ],
+        };
+        let v = serde_json::to_value(&account).expect("serialize");
+        assert_eq!(v["subscription"], "NORMAL", "{v}");
+        assert_eq!(v["characters"][0]["code"], "C1", "{v}");
+        assert_eq!(v["characters"][0]["name"], "Phemius", "{v}");
+        assert_eq!(v["characters"][1]["name"], "Dan the Bold", "{v}");
+        // Exactly these keys, in both directions. An extra one would be a
+        // field nobody asked for travelling to the webview, and the rule both
+        // these types carry in their own doc comments is that a credential
+        // must never become one of them.
+        // Sorted, because `serde_json`'s default map is a `BTreeMap` and the
+        // key order in the JSON is alphabetical rather than declaration
+        // order - measured, not assumed: the first version of this assertion
+        // expected declaration order and went red.
+        let mut top: Vec<&String> = v.as_object().expect("object").keys().collect();
+        top.sort();
+        assert_eq!(top, vec!["characters", "subscription"], "{v}");
+        let mut entry: Vec<&String> = v["characters"][0]
+            .as_object()
+            .expect("object")
+            .keys()
+            .collect();
+        entry.sort();
+        assert_eq!(entry, vec!["code", "name"], "{v}");
     }
 }

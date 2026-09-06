@@ -51,7 +51,6 @@ const ok = (name, cond, detail = '') => {
  * reader can act on.
  */
 const DEFERRED = Object.create(null)
-
 /**
  * The mirror of `DEFERRED`: commands the webview calls whose Rust side has not
  * landed yet.
@@ -67,12 +66,7 @@ const DEFERRED = Object.create(null)
  * whose command Rust now *does* register fails, because a stale exemption is
  * how the next genuinely broken invoke hides.
  */
-const AWAITING_BACKEND = {
-  lich_login_characters:
-    'the sign-in screen (N5) shipped before eaccess.rs (N1) registers this; remove when N1 merges',
-  lich_login_launch:
-    'the sign-in screen (N5) shipped before sal.rs/lich.rs (N3) register this; remove when N3 merges',
-}
+const AWAITING_BACKEND = {}
 
 const LIB_RS = 'src-tauri/src/lib.rs'
 
@@ -223,15 +217,29 @@ console.log('\n-- sabotage: the checks above must be able to fail --')
   // And the exemption itself must be able to expire. Registering one of the
   // awaited commands has to be reported, or AWAITING_BACKEND is a hole that
   // silently swallows a real invoke for as long as anybody leaves it there.
-  const name = Object.keys(AWAITING_BACKEND)[0]
-  ok('there is an awaiting-backend entry to test', Boolean(name), name ?? 'none')
-  if (name) {
-    const mutated = libRs.replace('setup::plan_setup,', `setup::plan_setup,\n            login::${name},`)
+  //
+  // The entry is synthetic. An earlier version took the first real one and
+  // skipped when there was none, so on the day Lane N registered both awaited
+  // commands - the day this list did its job and emptied - the sabotage
+  // stopped running and reported that as a failure. A suite that can only
+  // check itself while a defect exists stops checking the moment the defect is
+  // fixed. Empty is the correct state for AWAITING_BACKEND; this now holds
+  // either way.
+  const name = 'zz_awaited_command'
+  AWAITING_BACKEND[name] = 'synthetic, for this sabotage only'
+  try {
+    const mutated = libRs.replace('setup::plan_setup,', `setup::plan_setup,
+            login::${name},`)
     if (mutated === libRs) throw new Error('sabotage "register an awaited command" did not change the text')
     const s = analyse(mutated, files)
     ok('sabotage lands: a now-registered exemption is reported', s.staleAwaits.includes(name), s.staleAwaits.join(', '))
     ok('sabotage is scoped: nothing else went stale', s.staleAwaits.length === 1)
+  } finally {
+    delete AWAITING_BACKEND[name]
   }
+  // And the sabotage must not survive itself: a leftover synthetic entry would
+  // be a real hole in the list this file exists to keep honest.
+  ok('the synthetic entry is removed again', !(name in AWAITING_BACKEND))
 }
 {
   // And the parser itself: a lib.rs with no handler block must abort, not

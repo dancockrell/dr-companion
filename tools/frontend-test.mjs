@@ -39,6 +39,56 @@ checked++
 if (!ok3) fails++
 console.log(`${ok3?'OK  ':'FAIL'} detect from path -> ${guess}`)
 
+// --- The identity Lich gives *itself* when this app starts it -------------
+//
+// A different question from every case above, which are about which client the
+// player runs. Since Lane N the app starts Lich with `--headless=<port>` and
+// Lich resolves its own identity to `profanity`
+// (`login_helpers.rb:578-584`), measured on 6 Sep 2026 by executing Lich's own
+// resolver - see docs/verification/lich-native-stream-2026-09-06.md.
+const ok4 = m.APP_LAUNCH_IDENTITY === 'profanity'
+checked++
+if (!ok4) fails++
+console.log(`${ok4?'OK  ':'FAIL'} app launch identity -> ${m.APP_LAUNCH_IDENTITY}`)
+
+// The prefix has to follow from the identity rather than be asserted beside
+// it, or the two drift and the app tells a player to type the wrong thing.
+const ok5 = m.APP_LAUNCH_PREFIX === m.prefixFor(m.APP_LAUNCH_IDENTITY)
+checked++
+if (!ok5) fails++
+console.log(`${ok5?'OK  ':'FAIL'} app launch prefix follows the identity -> ${m.APP_LAUNCH_PREFIX}`)
+
+// And the reason it matters, asserted where the wrong answer is available: our
+// identity must not be the one frontend whose prefix is a comma. Without this,
+// both checks above would still pass if APP_LAUNCH_IDENTITY became 'genie' and
+// APP_LAUNCH_PREFIX became ',' together.
+const ok6 = m.prefixFor(m.APP_LAUNCH_IDENTITY) === ';' && m.prefixFor('genie') === ','
+checked++
+if (!ok6) fails++
+console.log(`${ok6?'OK  ':'FAIL'} the comma is genie's alone, and is not ours`)
+
+// Lich's argument parser accepts a fixed set of frontend flags, and this file
+// twice claimed one that does not exist (`--wrayth`, `--profanity`). Anything
+// non-null must be a flag `determine_frontend` (argv_options.rb:385-399) or
+// `resolve_headless_frontend` (login_helpers.rb:578-584) actually matches.
+const REAL_LICH_FLAGS = new Set([
+  '-s', '--stormfront', '-w', '--wizard', '--avalon', '--frostbite', '--saga', '--genie',
+])
+for (const f of m.FRONTENDS) {
+  if (f.lichFlag === null) continue
+  const okf = REAL_LICH_FLAGS.has(f.lichFlag)
+  checked++
+  if (!okf) fails++
+  console.log(`${okf?'OK  ':'FAIL'} ${f.id.padEnd(10)} lichFlag ${f.lichFlag} is a flag Lich parses`)
+}
+// The positive control for that loop: a flag Lich does not parse has to be
+// rejected by the same set, or a green run above only means the set contains
+// everything.
+const ok7 = !REAL_LICH_FLAGS.has('--profanity') && !REAL_LICH_FLAGS.has('--wrayth')
+checked++
+if (!ok7) fails++
+console.log(`${ok7?'OK  ':'FAIL'} --profanity and --wrayth are still not Lich flags`)
+
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or
 // half-loaded run, not a regression test on the number of cases.
