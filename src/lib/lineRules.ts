@@ -9,6 +9,17 @@
  * - the transcript, the bug bundle and `aiWorkerHost.ts`'s ingest - which
  *   reads `gameLines()` directly, deliberately outside the hook - still see
  *   every line exactly as the game sent it;
+ * - **so does `GameSignals`, which is the consumer that makes a noise.** It
+ *   takes `useRawGameLines()`. This list omitted it until issue #484, when it
+ *   was reading `useGameLines()`: a gag on a noisy combat line silenced the
+ *   alert somebody had bound to that same line, and a substitute rewriting
+ *   the words a highlight matched did it with no gag at all. The rule, put
+ *   here so the next reader inherits it rather than the omission: **a gag
+ *   hides text from the eye, never from the ear or the alert broker.**
+ *   Anything that plays a sound or raises an alert reads the raw buffer.
+ *   `tools/line-rules-test.mjs` derives that consumer list from the sound
+ *   module's own exports and fails if any member of it takes the display
+ *   hook, so this paragraph cannot go stale the way the one above it did;
  * - changing a rule re-applies to everything already on screen, because the
  *   rewrite happens where the reading happens rather than where the writing
  *   did;

@@ -161,19 +161,43 @@ export function useGameLines(): DisplayLine[] {
 }
 
 /**
- * The buffer with no rules applied, for the config panel's preview.
+ * What `useRawGameLines()` returns, without being a hook.
  *
- * The preview's whole job is to show before and after, so it needs the
- * before - and the sanctioned hook now hands back the after. Subscribed
- * exactly like the others, and here rather than in the panel because
- * `tools/gamelines-test.mjs` says the raw accessors are this file's business
- * and only this file's, which is the rule that stopped the same bug three
- * times.
+ * Exported for the same reason `currentGameLines` is: a check that wants to
+ * ask what the raw-reading consumers see should call the function they call,
+ * rather than writing `gameLines().slice()` out a second time and calling
+ * that the same thing.
+ */
+export function currentRawGameLines(): GameLine[] {
+  return gameLines().slice()
+}
+
+/**
+ * The buffer with no rules applied.
+ *
+ * Two kinds of consumer need this, and they are not the same kind:
+ *
+ * - the config panel's preview, whose whole job is to show before and after,
+ *   so it needs the before - and the sanctioned hook hands back the after;
+ * - **anything that makes a noise or raises an alert** - today that is
+ *   `GameSignals`'s alert-sound effect, which read `useGameLines()` until
+ *   issue #484. A gag is a display preference and not a delete
+ *   (`lineRules.ts`), so hiding a line from the pane must not also silence
+ *   the chime somebody bound to it, and a substitute that rewrites the words
+ *   a highlight matched must not either. `tools/line-rules-test.mjs` checks
+ *   both halves: that a gagged danger line still paints its sound off this
+ *   reading, and that every alert-playing component takes this hook rather
+ *   than `useGameLines()`.
+ *
+ * Subscribed exactly like the others, and here rather than in the consumer
+ * because `tools/gamelines-test.mjs` says the raw accessors are this file's
+ * business and only this file's, which is the rule that stopped the same bug
+ * three times.
  */
 export function useRawGameLines(): GameLine[] {
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => gameLines().slice(), [version])
+  return useMemo(() => currentRawGameLines(), [version])
 }
 
 /**

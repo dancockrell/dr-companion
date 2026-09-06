@@ -271,15 +271,19 @@ function AppViews() {
       // time through the outbound lane with source `macro`, behind the same
       // in-flight gate the action bars claim.
       macros: () => loadPlayerConfig().macros,
-      runMacro: ({ commands }) =>
+      runMacro: ({ commands }) => {
+        // Read once per fire rather than once per command: the whole macro
+        // expands against one table, and `runMacroCommands` needs that same
+        // table to tell `go #queue clear` typed literally from a `$s` whose
+        // value is a Genie directive - issue #485.
+        const { aliases, variables } = currentAliases()
         runMacroCommands(commands, {
-          expand: (command) => {
-            const { aliases, variables } = currentAliases()
-            return expandAlias(command, aliases, { variables }).text
-          },
+          expand: (command) => expandAlias(command, aliases, { variables }).text,
+          variables,
           send: (command) => requestGameAction(command, `Macro “${command}”`, 'macro'),
           claim: () => claimMacroSend().reason,
-        }),
+        })
+      },
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()

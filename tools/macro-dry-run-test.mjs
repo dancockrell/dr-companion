@@ -27,7 +27,14 @@ import { readFileSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { runMacroCommands, resolveKeybinding, chordLabel, macroEnableRefusal } from '../src/lib/keybindings.ts'
+import {
+  runMacroCommands,
+  resolveKeybinding,
+  chordLabel,
+  macroEnableRefusal,
+  plannedCommandRefusal,
+} from '../src/lib/keybindings.ts'
+import { aliasEnableRefusal, expandAlias } from '../src/lib/aliases.ts'
 
 let checked = 0
 let failed = 0
@@ -180,15 +187,149 @@ console.log('\n-- the real fire goes through the lane, with source macro --')
   ok('and hands it a send that throws, so a silent send is impossible', /throw new Error\('a dry run must not send anything'\)/.test(tab))
 }
 
+// -------------------------------------------------------------------- #485
+//
+// Variable expansion happens after the enable guard and before the lane's
+// validation, so both ends were judging text that is not what gets sent. Two
+// halves, one predicate: the dry run shows what the lane would accept, and the
+// fire re-asks the same question because a variable can be edited after the
+// macro was switched on.
+const NL = String.fromCharCode(10)
+/** The real thing, not a stub: the same expander the app hands the runner. */
+const VARS = new Map([
+  ['shop', 'bank;withdraw 5000 coins'],
+  ['nl', `go bank${NL}sell all`],
+  ['s', '#queue clear'],
+  ['ok', 'the pawnshop'],
+])
+const CLEAN = new Map([['s', 'the pawnshop']])
+const expandWith = (variables) => (c) => expandAlias(c, [], { variables }).text
+
+console.log('\n-- the dry run shows the plan the lane would accept, not the one it would throw away --')
+{
+  // The control first. An "everything is refused" result is also what a broken
+  // predicate produces, so a clean macro must come back with nothing to say.
+  const clean = runMacroCommands(['go $ok', 'buy bread'], {
+    send: () => { throw new Error('a dry run must not send anything') },
+    expand: expandWith(VARS),
+    variables: VARS,
+    dryRun: true,
+  })
+  ok('control: a clean macro plans two commands', clean.plan.length === 2, clean.plan.join(' | '))
+  ok('control: and none of them is refused', clean.planRefusals.every((r) => r === null), JSON.stringify(clean.planRefusals))
+
+  const dry = spy()
+  const plan = runMacroCommands(['go $shop', 'stow $nl'], {
+    send: dry.send,
+    expand: expandWith(VARS),
+    variables: VARS,
+    dryRun: true,
+  })
+  ok('the plan is still expanded, as before', plan.plan[0] === 'go bank;withdraw 5000 coins', plan.plan[0])
+  ok('and it says nothing was sent', dry.sent.length === 0, `${dry.sent.length} sends`)
+  ok(
+    'the separator the lane refuses is marked, with the lane’s own reason',
+    /command separator/.test(plan.planRefusals[0] ?? ''),
+    String(plan.planRefusals[0])
+  )
+  ok(
+    'so is the newline a variable smuggled in',
+    /one line|control characters/.test(plan.planRefusals[1] ?? ''),
+    String(plan.planRefusals[1])
+  )
+  ok('every refusal names the command it belongs to', plan.planRefusals.every((r, i) => r === null || r.includes(plan.plan[i])))
+
+  // And the same commands really are refused by the lane, so this is the lane's
+  // answer and not a second opinion that happens to agree with it today.
+  const real = spy()
+  const fired = runMacroCommands(['go $shop'], { send: real.send, expand: expandWith(VARS), variables: VARS })
+  ok('a real fire of the same macro sends nothing', real.sent.length === 0, `${real.sent.length} sends`)
+  ok('and reports the refusal rather than failing silently', fired.refused !== null, String(fired.refused))
+}
+
+console.log('\n-- a variable cannot smuggle Genie script past the enable guard --')
+{
+  // The issue's own example. The stored text carries no `#`, so the guard as it
+  // stood said yes and `go #queue clear` went to DragonRealms as literal text.
+  const rule = { key: 'F6', commands: ['go $s'] }
+  ok(
+    'the guard refuses it once it can see the variables',
+    (macroEnableRefusal(rule, { variables: VARS }) ?? '').includes('#queue clear'),
+    String(macroEnableRefusal(rule, { variables: VARS }))
+  )
+  ok(
+    'and names the variable to edit, not just the command',
+    (macroEnableRefusal(rule, { variables: VARS }) ?? '').includes('$s'),
+    String(macroEnableRefusal(rule, { variables: VARS }))
+  )
+  ok(
+    'control: the same macro with a harmless value may be switched on',
+    macroEnableRefusal(rule, { variables: CLEAN }) === null,
+    String(macroEnableRefusal(rule, { variables: CLEAN }))
+  )
+  ok(
+    'a command that is only a variable is caught too',
+    macroEnableRefusal({ key: 'F7', commands: ['$s'] }, { variables: VARS }) !== null
+  )
+  ok(
+    'and the alias guard gives the same answer for the same text',
+    aliasEnableRefusal({ name: 'g', expansion: 'go $s' }, { variables: VARS }) !== null,
+    String(aliasEnableRefusal({ name: 'g', expansion: 'go $s' }, { variables: VARS }))
+  )
+  ok(
+    'control: a plainly scripted rule is still refused with no table at all',
+    macroEnableRefusal({ key: 'F8', commands: ['#queue {north}'] }) !== null
+  )
+}
+
+console.log('\n-- and the fire re-asks, because a variable can change after enabling --')
+{
+  // Enabled while `$s` was harmless, fired after it was edited. Nothing re-runs
+  // the enable guard in between, so the runner has to ask again.
+  const rule = { key: 'F6', commands: ['go $s'] }
+  ok('it was switched on legitimately', macroEnableRefusal(rule, { variables: CLEAN }) === null)
+
+  // The positive control, and it is the one that makes the zero below mean
+  // something: the same macro, same runner, harmless value, really does send.
+  const good = spy()
+  const sent = runMacroCommands(rule.commands, {
+    send: good.send,
+    expand: expandWith(CLEAN),
+    variables: CLEAN,
+  })
+  ok('control: with the harmless value it sends', good.sent.length === 1 && good.sent[0] === 'go the pawnshop', good.sent.join('|'))
+  ok('control: and reports no refusal', sent.refused === null, String(sent.refused))
+
+  const after = spy()
+  const blocked = runMacroCommands(rule.commands, {
+    send: after.send,
+    expand: expandWith(VARS),
+    variables: VARS,
+  })
+  ok('with the edited value the lane sees nothing at all', after.sent.length === 0, `${after.sent.length} sends`)
+  ok('and the refusal names the script', /#queue clear/.test(blocked.refused ?? ''), String(blocked.refused))
+  ok('the slot was not spent on a macro that could not go', blocked.plan.length === 1 && blocked.sent.length === 0)
+
+  // The predicate on its own, at the boundary the lane actually enforces.
+  ok('plannedCommandRefusal passes an ordinary command', plannedCommandRefusal('go bank') === null)
+  ok('and refuses a bare directive with no variables involved', plannedCommandRefusal('#queue clear') !== null)
+}
+
 console.log('\n-- sabotage: each break reddens its own check and not the others --')
 {
   const SRC = readFileSync('src/lib/keybindings.ts', 'utf8')
   const dir = mkdtempSync(join(tmpdir(), 'macro-sabotage-'))
-  const configUrl = pathToFileURL(join(process.cwd(), 'src/lib/playerConfig.ts')).href
+  // Every relative import, not just the one this file used to have: a mutant
+  // that fails to resolve `./aliases.ts` throws on import, and an import that
+  // throws is indistinguishable from a sabotage that landed.
+  const absolutise = (text) =>
+    text.replace(/from '\.\/([A-Za-z0-9_.-]+\.ts)'/g, (_, file) =>
+      `from '${pathToFileURL(join(process.cwd(), 'src/lib', file)).href}'`
+    )
 
   async function loadMutant(label, transform) {
-    const mutated = transform(SRC).replace("from './playerConfig.ts'", `from '${configUrl}'`)
-    if (mutated === SRC) {
+    const mutated = absolutise(transform(SRC))
+    if (mutated === absolutise(SRC)) {
       throw new Error(`sabotage "${label}" changed nothing - the target text was not found, so this run proves nothing`)
     }
     const p = join(dir, `${label}.ts`)
@@ -200,8 +341,8 @@ console.log('\n-- sabotage: each break reddens its own check and not the others 
   {
     const mod = await loadMutant('dry-run-sends', (s) =>
       s.replace(
-        "if (opts.dryRun === true) return { plan, sent: [], refused: null, dryRun: true }",
-        "if (false) return { plan, sent: [], refused: null, dryRun: true }"
+        "if (opts.dryRun === true) return { plan, planRefusals, sent: [], refused: null, dryRun: true }",
+        "if (false) return { plan, planRefusals, sent: [], refused: null, dryRun: true }"
       )
     )
     const dry = spy()
@@ -257,6 +398,54 @@ console.log('\n-- sabotage: each break reddens its own check and not the others 
       { id: 'm', enabled: true, source: 'player', key: 'NumPad8', modifiers: [], commands: ['north'] },
     ])
     ok('sabotage is scoped: a bound chord still fires its macro', chosen?.kind === 'macro')
+  }
+
+  // (5) Drop the fire-time re-judge, which is #485's second half: the enable
+  //     guard alone cannot see a variable edited after the macro was enabled.
+  {
+    const mod = await loadMutant('no-fire-time-refusal', (s) =>
+      s.replace('  const blocked = planRefusals.findIndex((why) => why !== null)', '  const blocked = -1')
+    )
+    const s5 = spy()
+    mod.runMacroCommands(['go $s'], { send: s5.send, expand: expandWith(VARS), variables: VARS })
+    ok(
+      'sabotage lands: the smuggled directive reaches the send path again',
+      s5.sent.length === 1 && s5.sent[0] === 'go #queue clear',
+      s5.sent.join('|')
+    )
+    // Scoped: the plan is still computed, so this is the *gate* that went and
+    // not the predicate - a mutant that broke both would say less than it looks
+    // like it does.
+    const dry5 = mod.runMacroCommands(['go $s'], {
+      send: () => {},
+      expand: expandWith(VARS),
+      variables: VARS,
+      dryRun: true,
+    })
+    ok('sabotage is scoped: the dry run still marks it', dry5.planRefusals[0] !== null, String(dry5.planRefusals[0]))
+  }
+
+  // (6) Make the enable guard judge the stored text again, which is #485's
+  //     first half exactly as it stood.
+  {
+    const mod = await loadMutant('enable-guard-judges-stored-text', (s) =>
+      s.replace(
+        '    const { expanded, why } = scriptRefusalFor(command, opts)',
+        '    const { expanded, why } = scriptRefusalFor(command, {})'
+      )
+    )
+    ok(
+      'sabotage lands: the variable-carried directive passes the enable guard',
+      mod.macroEnableRefusal({ key: 'F6', commands: ['go $s'] }, { variables: VARS }) === null
+    )
+    ok(
+      'sabotage is scoped: a plainly scripted command is still refused',
+      mod.macroEnableRefusal({ key: 'F6', commands: ['#queue {north}'] }) !== null
+    )
+    // And the fire-time half is untouched, which is the point of having two.
+    const s6 = spy()
+    mod.runMacroCommands(['go $s'], { send: s6.send, expand: expandWith(VARS), variables: VARS })
+    ok('sabotage is scoped: the runner still refuses to send it', s6.sent.length === 0, `${s6.sent.length} sends`)
   }
 }
 

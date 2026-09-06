@@ -312,10 +312,10 @@ Wiring, one call site each:
 | Resolver | Called from | Notes |
 |---|---|---|
 | `resolveHighlights` | `useHighlights.ts` | Replaces the `read_genie_config` body. `note` still reports a denominator. |
-| `paint` | `GameLineRow`, `HighlightedText`, `GameSignals` | Unchanged. |
+| `paint` | `GameLineRow`, `HighlightedText`, `GameSignals` | Note what each one paints. The row components paint the *displayed* text; `GameSignals`, the one that plays a sound, paints the **raw** text off `useRawGameLines()`. See §14. |
 | `expandAlias` | `GameCommandBar.tsx:95`, and the macro path below | One resolver for both, so a macro and a typed line expand identically. |
 | `resolveKeybinding` | `installKeybindings` | A `macro` resolution sends each command with `sendGame(cmd, 'macro')` through `requestMacro`'s existing in-flight gate — the lane source is already `'macro'` and `command_gate.rs` already paces it. |
-| `applyLineRules` | `useGameLines()` | The one place. A gagged line is filtered out of the returned array; a substituted line is returned rewritten. |
+| `applyLineRules` | `useGameLines()` | The one place. A gagged line is filtered out of the returned array; a substituted line is returned rewritten. Which is exactly why anything that makes a noise must not read this hook — §14. |
 
 **Player macros beat built-ins.** `MOVEMENT`, `F_KEYS` and `QUICK_SWITCH_KEYS`
 stay as the shipped defaults for a player who has configured nothing; a store
@@ -782,3 +782,115 @@ Named rather than folded into the above.
 Where this document and a check disagree, **the check is right and this page
 is stale.** The checks are the `verify:` lines of Q1–Q6 in
 `docs/PLAN_TO_1_0.md`.
+
+## 14. What review pass 8 fixed: the ear, and the text that actually gets sent
+
+Two shipped defects, both of the same shape — a decision made about text that
+is not the text the next stage sees.
+
+### 14.1 A gag no longer silences an alert (#484)
+
+`GameSignals` is the component that plays a highlight's sound. It read
+`useGameLines()`, the *display* view, and `currentGameLines()` drops a gagged
+line from the array outright. So:
+
+- a gag on a noisy combat line — the natural thing to gag, and the natural
+  line to have bound an alert to — also silenced that line's chime;
+- a substitute that rewrote the words a highlight matched silenced it with no
+  gag involved at all, because the effect painted the substituted text;
+- nothing on screen connected the two, and "show gagged lines" did not fix it
+  either: `soundedUpTo` had already advanced past the line, so the sound did
+  not arrive late.
+
+Measured, before the fix, driving the real buffer through the real handler:
+a `danger` highlight with `sound: Growl.wav` on `A kobold swings a broadsword
+at you!`, with a gag on `kobold`, gave `paint()` sounds `[]` off the display
+reading and `["Growl.wav"]` off the raw one; the substitute case gave
+`[]`/`["Growl.wav"]` with no gag present. The control — `paint()` on the
+unmodified line — returned `["Growl.wav"]`, so the empty array was the rules
+and not a broken probe.
+
+**The rule, decided and written down: a gag hides text from the eye, never
+from the ear or the alert broker.** It follows from `lineRules.ts`'s own
+argument that a gag is a display preference and not a delete, which is why
+this was the defensible half of the two options the issue put.
+
+So `GameSignals` takes `useRawGameLines()`, `lineRules.ts`'s list of
+raw-reading consumers names it, and `tools/line-rules-test.mjs` checks both
+halves:
+
+- the behaviour — a gagged danger line, and a substituted one, still paint
+  their sound off the raw reading, each with a control asserting the rig can
+  produce a sound at all;
+- the source — the play-a-sound entry points are **derived from
+  `alertSound.ts`'s own exports** rather than listed, every component
+  importing one of them is classified, and every one that reads the buffer
+  must read it raw. It prints `N of N` and asserts a floor at each step, so a
+  scan that found nothing reports itself instead of reporting a clean tree.
+
+Sabotaged both ways: flipping `GameSignals` back to `useGameLines` on disk
+turns that check red (`0 of 1 … READS THE DISPLAY LIST`), and the suite
+carries the same mutation as an in-run sabotage with a control proving the
+classifier sees the real file correctly. The file was restored and its md5
+compared.
+
+### 14.2 The dry run shows what the lane would accept, and a variable cannot smuggle script (#485)
+
+`runMacroCommands` is one function for the dry run and the real fire, on
+purpose. That was true of the code path and not of the answer, because the
+real fire had one step the dry run did not: `requestGameAction` →
+`validateGameActionCommand`, which refuses `;` and control characters, and
+variables are expanded *before* it.
+
+Measured, before the fix, with `$shop = "bank;withdraw 5000 coins"` and
+`$nl = "go bank\nsell all"`: the dry run listed both commands as though they
+would go, and the lane refused both — "cannot contain a command separator"
+and "must be one line and contain no control characters".
+
+And the enable guards judged the stored text. `macroEnableRefusal({ key: 'F6',
+commands: ['go $s'] })` returned `null`; `$s = "#queue clear"` was substituted
+afterwards at fire time; `go #queue clear` was accepted by the lane and went
+to DragonRealms as literal text — the exact outcome `aliasEnableRefusal`'s own
+comment says the guard exists to prevent. 87 of the 356 aliases and 25 of the
+95 macros in the real config import switched off for that reason, and a
+one-line variable put any of them back.
+
+The fix is one predicate at every place the question is asked:
+
+- **`scriptRefusalWhy`** (in `aliases.ts`) asks two things of the text that
+  will be sent: is the *planned* text a directive, and did a variable carry a
+  directive into it. The second is checked against the variable's **value**
+  rather than by widening `isGenieScript`, so nothing changes for a config
+  with no variables in it, and the refusal can name the row to edit —
+  `$s is "#queue clear"`.
+- **`macroEnableRefusal` and `aliasEnableRefusal`** take the variable table
+  and judge the expanded text. Their callers (`MacrosTab`, `AliasesTab`,
+  `resolveAliases`) pass it.
+- **`plannedCommandRefusal`** adds the lane's own
+  `validateGameActionCommand` — the same function `requestGameAction` calls,
+  not a copy of its rules — and `runMacroCommands` asks it of every planned
+  command. On a dry run the answers come back as `planRefusals`, index for
+  index with `plan`, and the Macros tab shows each one beside the command it
+  belongs to and reports "would send 1 of 2" rather than "would send 2".
+- On a real fire the same answers refuse the macro, **before** the in-flight
+  slot is claimed and with nothing partial sent: a variable edited after the
+  macro was switched on cannot smuggle script through, because nothing re-runs
+  the enable guard in between.
+
+`tools/macro-dry-run-test.mjs` covers both halves with the wrong answer
+available: a clean macro plans two commands with no refusals and really sends
+them (the positive control for every zero), the same macro with a scripted
+variable sends nothing and names the script, and two sabotages — removing the
+fire-time check, and pointing the enable guard back at the stored text —
+each redden their own checks and leave the other's alone.
+
+### 14.3 Still true, and not changed here
+
+- `isGenieScript` is unchanged: a leading `#` in a `;`-separated part, or a
+  `\x` escape. `go #queue clear` typed literally, with no variable involved,
+  is still not called script — it is a `go` command with an odd argument, and
+  refusing it would be a different decision about a different case.
+- A macro refused at fire time sends nothing and says so in its result, which
+  `App.tsx` does not yet surface anywhere on screen. The dry run and the
+  enable-time refusal are where a player meets it today. That gap is real and
+  is not this pass's.

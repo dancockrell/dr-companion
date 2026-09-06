@@ -18,7 +18,9 @@
  * the pure half. The installer determines ownership from the live DOM.
  */
 
-import { isGenieScript, normalizeModifiers, type MacroRule } from './playerConfig.ts'
+import { normalizeModifiers, type MacroRule } from './playerConfig.ts'
+import { scriptRefusalFor, scriptRefusalWhy, type EnableRefusalOptions } from './aliases.ts'
+import { validateGameActionCommand } from './gameCommand.ts'
 
 /** NumPad movement, read directly off Dan's Genie config. */
 const MOVEMENT: Record<string, string> = {
@@ -196,13 +198,74 @@ export function builtinForChord(
  * The same answer as `aliasEnableRefusal`, asked of the other domain and
  * against the same predicate. 25 of the 95 macros in the real config measured
  * for Q1 carry Genie script and import switched off.
+ *
+ * Judged against the **expanded** commands since #485. `macroEnableRefusal({
+ * key: 'F6', commands: ['go $s'] })` returned null, `$s = "#queue clear"` was
+ * substituted afterwards by `expandAlias` at fire time, and `go #queue clear`
+ * reached DragonRealms as literal text - the exact outcome
+ * `aliasEnableRefusal`'s own comment says the guard exists to prevent. A guard
+ * on the stored text is a guard on something other than what gets sent.
+ *
+ * This is the enable-time half only. `runMacroCommands` asks the same question
+ * again at fire time, because a variable can be edited after the macro was
+ * switched on and nothing re-runs this when it is.
  */
-export function macroEnableRefusal(rule: Pick<MacroRule, 'key' | 'commands'>): string | null {
-  const scripted = rule.commands.filter((c) => isGenieScript(c))
-  return scripted.length
-    ? `${rule.key} contains Genie script (${scripted[0]}). This app has no script ` +
-        'engine, so it cannot be switched on.'
-    : null
+export function macroEnableRefusal(
+  rule: Pick<MacroRule, 'key' | 'commands'>,
+  opts: EnableRefusalOptions = {}
+): string | null {
+  for (const command of rule.commands) {
+    const { expanded, why } = scriptRefusalFor(command, opts)
+    if (!why) continue
+    const named = expanded === command ? command : `${command}, which sends ${expanded}`
+    return (
+      `${rule.key} contains Genie script (${named}: ${why}). This app has no script ` +
+      'engine, so it cannot be switched on.'
+    )
+  }
+  return null
+}
+
+/**
+ * Why one fully expanded command may not go out, or null when it may.
+ *
+ * Everything standing between a planned command and the game, in one
+ * predicate, asked at both call sites in `runMacroCommands`: the dry run, so
+ * the plan shown is the plan the lane would accept, and the real fire, so a
+ * variable edited after the macro was switched on cannot smuggle script past
+ * the enable guard. Two implementations of "would this be refused" would put
+ * the dry run back to showing a second opinion of what the real fire does,
+ * which is the thing `runMacroCommands` exists as one function to avoid.
+ *
+ * `validateGameActionCommand` is the outbound lane's own gate - the same
+ * function `requestGameAction` calls - rather than a copy of its rules, so
+ * this cannot fall behind it. It throws, and the throw is the reason in words
+ * a player can read.
+ */
+export function plannedCommandRefusal(
+  planned: string,
+  opts: EnableRefusalOptions & {
+    /**
+     * The command as stored, before expansion. Given, a variable whose value
+     * is a directive is named as the reason - which is the difference between
+     * "this cannot be sent" and "edit `$s`".
+     */
+    source?: string
+  } = {}
+): string | null {
+  const why = scriptRefusalWhy(opts.source ?? planned, planned, opts.variables)
+  if (why) {
+    return (
+      `“${planned}” is Genie script (${why}). ` +
+      'This app has no script engine, so it cannot be sent.'
+    )
+  }
+  try {
+    validateGameActionCommand(planned)
+    return null
+  } catch (e) {
+    return `“${planned}” would be refused: ${e instanceof Error ? e.message : String(e)}`
+  }
 }
 
 /**
@@ -212,6 +275,14 @@ export function macroEnableRefusal(rule: Pick<MacroRule, 'key' | 'commands'>): s
  * filtered by the caller: the resolver is what actually decides, so a rule that
  * must not run must be unreachable from this function rather than from a list
  * somebody remembered to clean.
+ *
+ * The script check here is against the stored text: a keydown resolver has no
+ * variable table and giving it one would make this pure function depend on the
+ * store. The expanded text is judged where it exists, by
+ * `plannedCommandRefusal` inside `runMacroCommands`, which is the last thing
+ * between a command and the lane and runs on every fire. Both are needed:
+ * this one keeps a scripted rule from resolving at all, and that one catches
+ * a variable edited after the rule was switched on.
  */
 function macroForEvent(
   e: { code: string; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean },
@@ -290,11 +361,33 @@ export interface MacroRunOptions {
    * and the dry run below would be showing the player the wrong one's answer.
    */
   expand?: (command: string) => string
+  /**
+   * The variable table `expand` will substitute from.
+   *
+   * Handed over as well as being closed into `expand`, because the refusal
+   * has a question `expand`'s output alone cannot answer: `go $s` and a
+   * literal `go #queue clear` produce the same text, and only one of them is
+   * a directive somebody's variable smuggled in. Optional: without it the
+   * refusal still catches everything `isGenieScript` calls script in the
+   * planned text, and the lane's own validation still runs.
+   */
+  variables?: ReadonlyMap<string, string>
 }
 
 export interface MacroRunResult {
   /** What would be sent, in order. Always populated, dry run or not. */
   plan: string[]
+  /**
+   * Why each planned command would be refused, or null, index for index with
+   * `plan` - `plannedCommandRefusal` asked of every entry.
+   *
+   * Parallel to `plan` rather than folded into it so the editor can show the
+   * reason beside the command it belongs to. Populated on a dry run too:
+   * before #485 the dry run's whole failure was that it showed a plan the
+   * lane would throw away, and the dry run is the only way to check a macro
+   * against a character standing in a bank.
+   */
+  planRefusals: Array<string | null>
   /** What actually went out. Empty on a dry run and on a refusal. */
   sent: string[]
   /** Why nothing was sent, in words for the player, or null. */
@@ -308,23 +401,50 @@ export interface MacroRunResult {
  * One function for both, on purpose: a dry run that walked a different code
  * path from the real fire would be showing the player a second implementation's
  * opinion of what the first would do.
+ *
+ * That was true of the code path and not of the answer until #485, because the
+ * real fire had one step this did not - `requestGameAction` →
+ * `validateGameActionCommand`, which refuses `;` and control characters. So a
+ * plan expanded from `$shop = "bank;withdraw 5000 coins"` was shown to the
+ * player and thrown away by the lane. `plannedCommandRefusal` is that step,
+ * asked here, of the expanded text, for both.
+ *
+ * It runs on the real fire as well, and that is the other half of #485: a
+ * macro switched on when `$s` was harmless fires after `$s` is edited to
+ * `#queue clear`, and nothing re-runs `macroEnableRefusal` in between. One
+ * predicate, two call sites - the enable guard and this - so a variable
+ * changed after enabling cannot smuggle script through.
  */
 export function runMacroCommands(
   commands: readonly string[],
   opts: MacroRunOptions
 ): MacroRunResult {
-  const plan = commands
-    .map((c) => (opts.expand ? opts.expand(c) : c).trim())
-    .filter(Boolean)
-  if (opts.dryRun === true) return { plan, sent: [], refused: null, dryRun: true }
+  // Kept in pairs, so a refusal can name the variable in the command as the
+  // player wrote it rather than only the text it turned into.
+  const planned = commands
+    .map((source) => ({ source, text: (opts.expand ? opts.expand(source) : source).trim() }))
+    .filter((p) => p.text.length > 0)
+  const plan = planned.map((p) => p.text)
+  const planRefusals = planned.map((p) =>
+    plannedCommandRefusal(p.text, { source: p.source, variables: opts.variables })
+  )
+  if (opts.dryRun === true) return { plan, planRefusals, sent: [], refused: null, dryRun: true }
+  // Before the claim, not after: a macro that cannot go out must not take the
+  // shared in-flight slot away from one that can. Nothing partial goes either
+  // - one refused command refuses the macro, because half a movement sequence
+  // arriving at a live character is worse than none of it.
+  const blocked = planRefusals.findIndex((why) => why !== null)
+  if (blocked >= 0) {
+    return { plan, planRefusals, sent: [], refused: planRefusals[blocked], dryRun: false }
+  }
   const refused = opts.claim ? opts.claim() : null
-  if (refused) return { plan, sent: [], refused, dryRun: false }
+  if (refused) return { plan, planRefusals, sent: [], refused, dryRun: false }
   const sent: string[] = []
   for (const command of plan) {
     opts.send(command)
     sent.push(command)
   }
-  return { plan, sent, refused: null, dryRun: false }
+  return { plan, planRefusals, sent, refused: null, dryRun: false }
 }
 
 export interface KeybindingHooks {

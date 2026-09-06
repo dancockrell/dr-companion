@@ -167,11 +167,16 @@ function expandOnce(
  *
  * `$0`…`$9` have already been consumed by `expandOnce` and could not match
  * `VARIABLE_TOKEN` anyway: they are positional arguments, not variables.
+ *
+ * Exported since #485 because the enable guards have to ask their question
+ * about the text that will actually be sent, and the text that will actually
+ * be sent is this function's output. A second substituter written inside a
+ * guard would be a second opinion about what `$shop` means.
  */
-function substituteVariables(
+export function substituteVariables(
   text: string,
   variables: ReadonlyMap<string, string> | undefined,
-  unknown: string[]
+  unknown: string[] = []
 ): string {
   return text.replace(VARIABLE_TOKEN, (whole, name: string) => {
     const value = variables?.get(name)
@@ -253,19 +258,27 @@ export function expandAlias(
  * nothing addresses a rule by it any more - an editor patches by
  * `AliasRule.id`.
  */
-export function resolveAliases(cfg: Pick<PlayerConfig, 'aliases'>): {
+export function resolveAliases(
+  cfg: Pick<PlayerConfig, 'aliases'> & Partial<Pick<PlayerConfig, 'variables'>>
+): {
   entries: Alias[]
   refused: Array<{ id: string; why: string }>
 } {
   const entries: Alias[] = []
   const refused: Array<{ id: string; why: string }> = []
+  // The table the expansion will actually run against, so the guard below
+  // judges the text that gets sent rather than the text as stored - #485.
+  // Optional because two callers pass a whole `PlayerConfig` and a check may
+  // pass an alias list alone; absent means "no variables", which is the same
+  // answer as an empty table rather than a different code path.
+  const variables = cfg.variables ? resolveVariables({ variables: cfg.variables }).variables : undefined
   cfg.aliases.forEach((rule, index) => {
     // Script before switched-off, because a scripted alias that somehow
     // arrived enabled - hand-edited storage, an older build, an import bug -
     // must still not run, and the reason a player needs is the script, not the
     // switch. `enableRefusal` is the same answer the editor's toggle gives, so
     // the two cannot disagree about which rules are runnable.
-    const cannot = aliasEnableRefusal(rule)
+    const cannot = aliasEnableRefusal(rule, { variables })
     if (cannot) {
       refused.push({ id: rule.id, why: cannot })
       return
@@ -280,6 +293,67 @@ export function resolveAliases(cfg: Pick<PlayerConfig, 'aliases'>): {
 }
 
 /**
+ * What a guard needs to know about the text a rule will actually produce.
+ *
+ * Shared with `macroEnableRefusal` in `keybindings.ts` rather than declared
+ * twice, so the two domains cannot drift into asking different questions.
+ */
+export interface EnableRefusalOptions {
+  /**
+   * The variable table the text will be expanded against at fire time.
+   *
+   * Omitting it judges the stored text, which is what both guards did until
+   * #485 and is right only when there are no variables in play: a macro or
+   * alias reading `go $s` carries no `#` and passed, and `$s = "#queue clear"`
+   * then put the directive on the wire as literal text. The guard has to ask
+   * its question about the text that gets sent.
+   */
+  variables?: ReadonlyMap<string, string>
+}
+
+/**
+ * Why this text is script this app cannot run, as a fragment for whichever
+ * guard is asking, or null.
+ *
+ * The one predicate behind `aliasEnableRefusal`, `macroEnableRefusal` and
+ * `plannedCommandRefusal`, so the enable-time answer and the fire-time answer
+ * cannot differ. Two questions, not one, and the second is the one #485 was
+ * about:
+ *
+ * 1. **Is the text that gets sent a directive?** `isGenieScript` on the
+ *    *planned* text, not the stored text. A macro whose command is `$s`, with
+ *    `$s = "#queue clear"`, stores no `#` and sends one.
+ * 2. **Did a variable carry a directive into it?** `go $s` expands to
+ *    `go #queue clear`, which `isGenieScript` does not call script - the
+ *    leading word is `go` - and which the issue measured arriving at
+ *    DragonRealms as literal text. Checked against the variable's *value*
+ *    rather than by widening `isGenieScript`, so nothing changes for a config
+ *    with no variables in it, and the refusal can name the row to edit.
+ */
+export function scriptRefusalWhy(
+  source: string,
+  planned: string,
+  variables?: ReadonlyMap<string, string>
+): string | null {
+  if (isGenieScript(planned)) return 'a # directive or a \\x escape'
+  if (!variables) return null
+  for (const m of source.matchAll(VARIABLE_TOKEN)) {
+    const value = variables.get(m[1])
+    if (value !== undefined && isGenieScript(value)) return `$${m[1]} is "${value}"`
+  }
+  return null
+}
+
+/** The same question asked of stored text that has not been expanded yet. */
+export function scriptRefusalFor(
+  text: string,
+  opts: EnableRefusalOptions = {}
+): { expanded: string; why: string | null } {
+  const expanded = substituteVariables(text, opts.variables)
+  return { expanded, why: scriptRefusalWhy(text, expanded, opts.variables) }
+}
+
+/**
  * Why this alias may not be switched on, or null when it may.
  *
  * One answer, asked by the resolver above and by the Aliases tab's toggle. 87
@@ -288,12 +362,21 @@ export function resolveAliases(cfg: Pick<PlayerConfig, 'aliases'>): {
  * to DragonRealms as literal text, which is not a refusal the game makes
  * politely. Named rather than silently ignored: the rule stays visible, with
  * its text, and says what would have to change.
+ *
+ * Judged against the **expanded** text since #485, because a guard on the
+ * stored text is a guard on something that is not what gets sent.
  */
-export function aliasEnableRefusal(rule: Pick<AliasRule, 'name' | 'expansion'>): string | null {
-  return isGenieScript(rule.expansion)
-    ? `"${rule.name}" contains Genie script (a # directive or a \\x escape). ` +
-        'This app has no script engine, so it cannot be switched on.'
-    : null
+export function aliasEnableRefusal(
+  rule: Pick<AliasRule, 'name' | 'expansion'>,
+  opts: EnableRefusalOptions = {}
+): string | null {
+  const { expanded, why } = scriptRefusalFor(rule.expansion, opts)
+  if (!why) return null
+  const sends = expanded === rule.expansion ? '' : `, sending "${expanded}"`
+  return (
+    `"${rule.name}" contains Genie script (${why})${sends}. ` +
+    'This app has no script engine, so it cannot be switched on.'
+  )
 }
 
 /**

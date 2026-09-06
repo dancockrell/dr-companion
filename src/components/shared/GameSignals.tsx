@@ -28,7 +28,7 @@
 import { useEffect, useRef } from 'react'
 import { gameState, subscribeGame } from '../../lib/gameLink.ts'
 import { useSyncExternalStore } from 'react'
-import { useGameLines } from '../../lib/useGameLines.ts'
+import { useRawGameLines } from '../../lib/useGameLines.ts'
 import { paint } from '../../lib/highlights.ts'
 import { useHighlights } from '../../lib/useHighlights.ts'
 import { useOffClasses } from '../../lib/offClasses.ts'
@@ -51,10 +51,26 @@ import { useAppStore } from '../../store/useAppStore.ts'
 
 export function GameSignals() {
   // Kept for API parity with the effect this was copied from - not read
-  // directly, but the `useGameLines()` subscription below already depends
-  // on the same underlying connection this establishes a view onto.
+  // directly, but the line subscription below already depends on the same
+  // underlying connection this establishes a view onto.
   useSyncExternalStore(subscribeGame, gameState, gameState)
-  const lines = useGameLines()
+  /**
+   * The **raw** buffer, not the displayed one - issue #484.
+   *
+   * `useGameLines()` is the display view: `currentGameLines()` drops a gagged
+   * line from the array outright and hands back the *substituted* text for a
+   * line a substitute matched. Reading it here meant a gag on a noisy combat
+   * line - the natural thing to gag, and the natural line to have bound an
+   * alert to - also silenced that line's chime, with nothing on screen
+   * connecting the two, and no late arrival either, because `soundedUpTo` had
+   * already advanced past it. A substitute that rewrote the words a highlight
+   * matched did the same with no gag involved.
+   *
+   * A gag hides text from the eye, never from the ear or the alert broker.
+   * `lineRules.ts`'s header is the argument for it: the raw buffer keeps every
+   * line the game sent, and a gag is a display preference, not a delete.
+   */
+  const lines = useRawGameLines()
   const { highlights, note: hlNote } = useHighlights()
   const offClasses = useOffClasses()
 
