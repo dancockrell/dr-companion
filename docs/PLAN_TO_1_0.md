@@ -297,7 +297,7 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
-| N | N3, N3b, N4 | `lane-n/n4-attach-measure` | `dev/wt-n3` | 2026-09-06 |
+| N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | N | N5, N6 | `lane-n/n5-sign-in` | `dev/wt-n5` | 2026-09-06 |
 
 N1 and N2 have merged (#441, #438). N7 is unheld and needs Dan rather than a
