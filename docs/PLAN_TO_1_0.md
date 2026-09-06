@@ -262,6 +262,7 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | **K** | Appearance (models for weapons/armor, glyphs) | new appearance data + `presentationBridge.ts` entity fields + Godot mapping | C7 decided, C4 |
 | **L** | Codex contract for the Crossing slice | `docs/THREE_D_REBUILD_HANDOFF.md`, `godot/mock/*`, contract tests in `tools/` | B3 |
 | **N** | Lich-native login and frontend (no Genie) | new `src-tauri/src/eaccess.rs`, new `src-tauri/src/sal.rs`, `lich.rs`, `LichLauncher.tsx`, `WaitingForCharacter.tsx`, `tools/build-privacy-doc.mjs` | none |
+| **Q** | Player config: the client's own macros, aliases, highlights, substitutes, gags, variables, presets | new `src/lib/playerConfig.ts`, new `src/lib/playerConfigImport.ts`, new `src/lib/lineRules.ts`, new `src/components/config/`, `useHighlights.ts`, `useAliases.ts`, `keybindings.ts`, `useGameLines.ts` | N6 |
 
 **Conflict matrix — same file, different lanes: order, do not parallelise.**
 
@@ -278,6 +279,11 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | `src-tauri/src/lich.rs` | N3 | N3 replaces `launch_args`. N6 is `[x]` (it renamed `genie_status` to `frontend_conflict_status` and rewrote the note). Nobody outside Lane N edits it while N3 is `[~]`. |
 | `src/components/shared/LichLauncher.tsx`, `WaitingForCharacter.tsx` | D2–D6 | N5 rewrote both and N6 swept what was left; both are `[x]`, so Lane D's hold on these is released. |
 | `tools/build-privacy-doc.mjs`, `docs/PRIVACY.md` | N2 | N2 alone. The generated doc is never hand-edited; change the generator. |
+| `src/lib/playerConfig.ts` | Q1, then Q2/Q3/Q4/Q5/Q6 | Q1 writes it and publishes the schema; nobody else touches it until Q1 is `[x]`. After that each editor increment adds only its own domain's defaults, never a second store. |
+| `src/lib/highlights.ts`, `useHighlights.ts` | Q2 | Q2 alone. `paint()` keeps its signature; only the source changes. |
+| `src/lib/aliases.ts`, `useAliases.ts`, `keybindings.ts` | Q3 | Q3 alone. `resolveKeybinding` gains one case and one optional argument; Lane D and Lane E do not edit these. |
+| `src/lib/useGameLines.ts` | Q4 | Q4 alone, and it is the *only* place substitutes and gags may be applied: `tools/gamelines-test.mjs` already fails the build if a component reads the buffer another way. |
+| `src/lib/pinsFile.ts`, `genieConfigWrite.ts`, `src-tauri/src/config_import.rs` | Q5 | Q5 alone. It deletes the Genie write path; Lane J must not add a caller to it in the meantime. |
 
 **Recommended concurrency, three sessions:** S1 = C0, C1, C2, C3 → A1…A8 → G.
 S2 = B1…B4 → L1…L6 → B5…B8. S3 = E1, E5–E9 → F1–F8 → E10–E12. A fourth
@@ -430,12 +436,25 @@ passes.
   Check: fresh worktree → `npm run worktree:init && cd src-tauri && cargo test
   --lib` green; `docs/verification/live-chain-*.md` exists with a date.
 - **Gate 1 — Text client stands alone:** D0–D6, E5–E9, C4–C6, C8, A7–A12,
-  N1–N7 (N8 too: Dan gave that yes on 6 Sep 2026 — §10's **N-b** — and N8 is `[x]`).
+  N1–N7, Q1–Q6 (N8 too: Dan gave that yes on 6 Sep 2026 — §10's **N-b** — and N8 is `[x]`).
   Check: `grep -c "kind === 'map'" src/App.tsx` → `0`; kill-switch suite (E5)
   green; a full play session recorded with viewer and AI absent, **signed in
   from this app with no other game client installed or running**;
   `git grep -ic genie -- src/components src-tauri/src/lich.rs src/lib/frontends.ts`
   → `0`.
+
+  Lane Q belongs in this gate for the same reason Lane N does, and it is the
+  same sentence that puts it there. "Stands alone" is a claim about what the
+  client needs beside it. After N6 a player who wants to change one highlight,
+  bind one key, hide one line or name one shortcut has to open Genie, because
+  this app has no editor for any of it and reads the rules it does honour out of
+  a Genie install's `Config` folder (`useHighlights.ts`, `useAliases.ts`). A Gate
+  1 that went GREEN on that would certify "plays all day without Genie" for a
+  client that still needs Genie to be configured, which is the same false
+  sentence N6's own PR body warned about when it wrote down what the sweep cost.
+  Q5 is in the gate as well as the editors: it is what makes the app stop
+  *writing* into a Genie install, and "stands alone" is a claim about both
+  directions. Design: `docs/PLAYER_CONFIG.md`.
 
   Lane N belongs in this gate rather than in a new one, and the gate's own name
   is the argument. "Stands alone" is a claim about what the client needs beside
@@ -2062,6 +2081,103 @@ registry admits one. K6 stays `[!]` and names S3.
 
 ---
 
+### Lane Q — Player config: the client's own macros, aliases, highlights, substitutes, gags, variables and presets
+
+N6 deleted the editors for all seven, correctly — they edited *Genie's*
+`Config\*.cfg` files and the app no longer routes through Genie — and its own
+PR body wrote down what that costs rather than leaving it to be found:
+"there is no in-app editing of macros, presets, substitutes, gags or variables
+at all now, and none of highlights or aliases. Re-implementing any of it
+*against Lich* is a new increment nobody has written." This is that increment.
+
+What survives and is built on rather than replaced: `highlights.ts`'s `paint()`
+and its catastrophic-backtracking guard, `aliases.ts`'s `expandAlias()`,
+`keybindings.ts`'s `codeToGenieKey()` and its one global listener,
+`offClasses.ts`, the read-only Genie importer, and the outbound lane, whose
+`macro` source and pacing already exist (`commandLane.ts`,
+`command_gate.rs`). What does not exist at all today: substitutes, gags,
+presets, variables, key-chord macros, and any way for a player without a Genie
+install to hold a single rule of their own.
+
+**The design, the schema, the resolver signatures, the import mapping table and
+the read-vs-inferred split are `docs/PLAN_TO_1_0.md`'s companion document,
+`docs/PLAYER_CONFIG.md`.** It is the interface Q2, Q3 and Q4 build against
+concurrently. Two rules from it are worth repeating here because they are what
+keep this from becoming a second config system: **one store** (one owner
+module, one localStorage key per domain, never a copy of a list), and **one
+resolver per domain, and it is the one the runtime already calls** — the
+editors change what those resolvers read, not how anything renders or sends.
+
+The five parsers N6 deleted are recoverable rather than lost, and Q1 restores
+them instead of writing new ones:
+`git show 2327a971^:src/lib/{substitutes,gags,presets,variables,macros}.ts`.
+
+- [ ] **Q1  The store, the schema, the migration, and the Genie import** (≈180)
+  touches: new:src/lib/playerConfig.ts, new:src/lib/playerConfigImport.ts, new:src/components/config/PlayerConfigPanel.tsx, src/lib/layout.ts, src/App.tsx, new:tools/player-config-test.mjs, new:tools/player-config-import-test.mjs, docs/PLAYER_CONFIG.md, package.json, tools/test-suites.json
+  depends-on: N6
+  do: `playerConfig.ts` owns the seven domains of `docs/PLAYER_CONFIG.md` §4, one localStorage key each (`drc.player-config.<domain>.v1`, each holding `{version, entries}`) through `storage.ts`'s `readJSON`/`writeJSON` — beside `PersistedPrefs`, not inside it, for the reason §4.1 states. Entries carry a generated `id` rather than the `sourceLine` the Genie-file era used, so an editor patches one rule by identity. `migratePlayerConfig(raw, domain)` returns `{entries, migrated, dropped}` — three states, so "nothing to migrate" and "could not read this" are never the same answer. `playerConfigImport.ts` is pure: `importGenieConfig(files) -> {config, report}`, with the five restored parsers as its readers and a per-file `{found, lines, parsed, imported, skipped[]}` report plus an `unsupported[]` list naming the Genie features this app has no home for (§6.1). Ship the panel shell with a tab per domain, each tab a one-line placeholder naming the increment that fills it (Q2/Q3/Q4/Q6) so the gap is on screen rather than in a document; `'config'` joins `PanelId` and `?view=panel&id=config` works like every other panel.
+  verify: `node tools/player-config-test.mjs` → `N checked, 0 failed`, with a floor asserting all **7** domains were exercised (a truncated domain list must fail rather than report a smaller clean run) and a round trip through `localStorage` for each. `node tools/player-config-import-test.mjs` → against a fixture carrying, per leaf, one well-formed entry and one malformed one: `parsed` and `imported` are stated against `lines` as the denominator, and `skipped` names the malformed line. `npx tsc -b` and `npm run lint` clean. `git grep -n "read_genie_config" src/lib` → the importer only.
+  sabotage: (1) delete one domain from the store's domain list → the 7-domain floor reddens naming it, and nothing else. (2) `migratePlayerConfig` returns its input unchanged → the v0→v1 case reddens and only it. (3) hand the importer an empty string for every leaf → it must report `found: false` per leaf and refuse, never "imported 0" as a success; a filter that empties its input is an error naming the reason. (4) make `writeJSON` throw → the store must surface the failure, not silently keep an in-memory copy that vanishes on reload.
+  pitfalls: 1 (the denominator: `loadAliasConfig` already counts non-blank lines because a parser that drops half the file and one that works print the same count otherwise — keep that, per domain), 12 (old data under a new meaning: a v0 entry must be migrated, never reinterpreted), 10 (stage by path).
+  done-when: a machine with **no Genie install** can hold a highlight, an alias and a macro across a restart, and a machine with one can import 356 aliases and 53 highlights and be told what did not come across.
+
+- [ ] **Q2  Highlights and presets, edited against the renderer that already exists** (≈150)
+  touches: new:src/components/config/HighlightsTab.tsx, new:src/components/config/PresetsTab.tsx, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, src/lib/highlights.ts, src/lib/useHighlights.ts, tools/highlight-test.mjs
+  depends-on: Q1
+  do: `resolveHighlights(cfg) -> {entries, refused}` in `highlights.ts` — preset ids to colours, disabled rules dropped, regexps compiled and run through the existing `PATTERN_BUDGET_MS` probe, refusals returned so the editor shows them beside the rule instead of swallowing them the way Genie does. `useHighlights.ts` reads the store instead of `read_genie_config`; its signature does not change, so `GameLineRow`, `HighlightedText`, `GameSignals`, `BattleColumn` and `GameChatColumn` are untouched. The preview pane runs `paint()` itself over the last 200 lines from `useGameLines()` — never a second matcher, or the preview and the pane can disagree.
+  verify: `node tools/highlight-test.mjs` with the new cases → `0 failed`, including: a disabled rule is absent from `resolveHighlights` output; a rule naming a deleted preset renders in the default colour **and appears in `refused`** rather than vanishing; a pattern that fails the backtracking probe is refused with its measured time. `grep -c "indexOf\|RegExp" src/components/config/HighlightsTab.tsx` → `0`, the check that the preview has no matcher of its own.
+  sabotage: (1) make the preview build its own match instead of calling `paint()` → the grep check above reddens. (2) drop the `refused` list on the floor → the deleted-preset case reddens naming the rule. (3) point `useHighlights` back at `read_genie_config` → the "no Genie install still has highlights" case reddens.
+  pitfalls: 1 (a preview that shows nothing because it was handed no lines looks exactly like a rule that matches nothing: print how many lines were searched).
+  done-when: a highlight typed into the panel colours the next matching line with no restart, on a machine with no Genie install.
+
+- [ ] **Q3  Aliases, variables and key macros, through the lane, with a dry run** (≈180)
+  touches: new:src/components/config/AliasesTab.tsx, new:src/components/config/MacrosTab.tsx, new:src/components/config/VariablesTab.tsx, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, src/lib/aliases.ts, src/lib/useAliases.ts, src/lib/keybindings.ts, tools/aliases-test.mjs, tools/keybindings-test.mjs, new:tools/macro-dry-run-test.mjs, package.json, tools/test-suites.json
+  depends-on: Q1
+  do: `expandAlias` gains an optional `{variables}` — `$name` resolved from the store, `$0`/`$1`… still positional, the split `variables.ts` made before it was deleted. Variables are `$name` and **not** `%name%` (`docs/PLAYER_CONFIG.md` §4.3: every real config's aliases already write `$shop`, `$patient`, `$preposition`, and importing them without resolving those is importing a config that does not work). `resolveKeybinding` gains an optional `macros` argument and a `{kind:'macro'}` case; a store binding beats the hardcoded `MOVEMENT`/`F_KEYS` on the same chord, and the hardcoded set stays as the shipped default for a player who has configured nothing. Firing goes through `requestMacro`'s existing in-flight gate and `sendGame(cmd, 'macro')` — the lane's `macro` source and its pacing, not a second send path. The editor's "press a key" capture calls `codeToGenieKey()`, the same translation the resolver uses.
+  verify: `node tools/keybindings-test.mjs` → a store binding on `NumPad8` wins **with the built-in `n` still present and reachable**, which is the point: a chooser tested where the wrong answer is not available only proves the code runs. `node tools/macro-dry-run-test.mjs` → a dry run records **zero** calls against a fake `sendGame`, with a positive control in the same run where a real fire records exactly the macro's command count; without that control an unwired harness passes the check that matters most. `node tools/aliases-test.mjs` → `$name` resolves, `$0` does not become a variable lookup, an undefined `$name` passes through verbatim and is reported.
+  sabotage: (1) point the dry run at the real `sendGame` → the zero-call check reddens and only it. (2) delete the built-in fallback → "an unconfigured player still walks with NumPad" reddens. (3) make the store binding lose to the built-in → the chooser case reddens naming both candidates. (4) drop the `requestMacro` gate → the double-press case reddens.
+  pitfalls: 1 (test the chooser where the wrong answer is available), 12 (`sendGame(cmd, 'macro')` exists; a second path with its own gate is a fork).
+  done-when: a key bound in the panel sends its commands through the lane with source `macro`, the dry run for the same binding sends nothing, and both are asserted by a test rather than by a screenshot.
+
+- [ ] **Q4  Substitutes and gags, previewed against real game lines** (≈120)
+  touches: new:src/lib/lineRules.ts, new:src/components/config/SubstitutesTab.tsx, new:src/components/config/GagsTab.tsx, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, src/lib/useGameLines.ts, new:tools/line-rules-test.mjs, package.json, tools/test-suites.json
+  depends-on: Q1
+  do: `applyLineRules(text, {substitutes, gags}) -> {text, gagged, matched}`, pure, substitutes before gags. One call site: `useGameLines()`, which `tools/gamelines-test.mjs` already enforces as the only way a component reads the buffer. **The raw buffer is never rewritten** — a gag is a display preference, so the transcript, the bug bundle and `aiWorkerHost.ts`'s ingest (which reads `gameLines()` directly, deliberately outside the hook) still see every line, and changing a rule re-applies to everything on screen because the rewrite happens on read. The preview calls `applyLineRules` itself over the last 200 lines and shows before/after.
+  verify: `node tools/line-rules-test.mjs` → an empty rule set returns the input unchanged and is a no-op, not a filtered-to-nothing pass; a gagged line is **still present in `gameLines()`** and absent from `useGameLines()`, which is the property that separates a display rule from data loss; a substitute rewrites only its own substring; a rule disabled in the store does not fire. `node tools/gamelines-test.mjs` → still `0 violations`, with its own floor.
+  sabotage: (1) apply the rules in `gameLink.ts`'s push instead → the "raw buffer still has it" check reddens naming the line. (2) make an empty rule set return an empty array → the no-op check reddens. (3) leave a disabled gag firing → its case reddens and nothing else.
+  pitfalls: 1 (a check that a gagged line is absent passes just as well when no lines arrived at all: assert the line count first), and the format caveat below.
+  format caveat: `#substitute {find} {replace}` and `#gag {pattern}` are **inferred** from the uniform directive convention, not read from a populated file — both files were empty on this machine, and the deleted modules said so in their own headers. Q4's import cases test the parser, not the format. Re-check against the first real populated file anybody produces, and correct `docs/PLAYER_CONFIG.md` §6.1 if it disagrees.
+  done-when: a gag typed into the panel hides the next matching line, the line is still in the raw buffer, and a rule change re-applies without a restart.
+
+- [ ] **Q5  Pins and exports move to the app's data directory; the Genie write path is deleted (answers N-c)** (≈120)
+  touches: new:src-tauri/src/player_files.rs, src-tauri/src/config_import.rs, src-tauri/src/lib.rs, src/lib/pinsFile.ts, tools/doc-claims-test.mjs, tools/doc-claims-break-check.mjs, tools/pins-file-test.mjs, docs/PLAYER_CONFIG.md
+  depends-on: Q1
+  do: §10's **N-c**, decided: pins are app data. `player_files.rs` publishes `read_player_file(leaf)` and `write_player_file(leaf, text, expectedPrevious?)` rooted at `app_data_dir()/config`, and it is not a new implementation — `sibling`, `backup_once`, `save_atomically`, `matches_on_disk` and their tests **move** out of `config_import.rs`, and the leaf validation stays `sounds::valid_plain_filename`. `pinsFile.ts` writes there; `reveal_file` (already registered) opens the folder, so "where did it go" has an answer that is not a path in a paragraph. `expectedPrevious` finally gets a caller, which `config_import.rs`'s header recorded as a downgrade when N6 left it callerless. Then delete `src/lib/genieConfigWrite.ts`, `write_genie_config`, `MAX_WRITE_BYTES` and `writable_target`, and deregister the command: the app writes nothing into a Genie install, which is the property that header held before 29 Aug 2026 and lost. Migration: on first run after this, if `read_genie_config('dr-companion-pins.yaml')` finds a file and the app-data copy does not exist, copy it across and say so on screen; the Genie copy is **left where it is** — deleting somebody's file to tidy up is not a migration.
+  verify: `cargo test player_files` → the moved cases (backup once and never again, atomic rename leaves no temp, a stale `expectedPrevious` is refused, a missing file equals an empty expectation) plus one new: a leaf that escapes `app_data_dir()/config` is refused by name. `node tools/doc-claims-test.mjs` → the "exactly one caller of `saveGenieConfig`" check is replaced by "no module names `saveGenieConfig` and `src/lib/genieConfigWrite.ts` does not exist", with a control proving the directory scan can see a file that is there. `node tools/pins-file-test.mjs` → export succeeds with **no Genie install present**, which is the case that could not work before. `git grep -n "write_genie_config\|saveGenieConfig" src src-tauri/src` → nothing outside the retired-needle fixture.
+  sabotage: (1) plant a `saveGenieConfig` call in `mapPins.ts` — the existing case at `tools/doc-claims-break-check.mjs:169`, turned the other way up → the new check reddens naming the file. (2) make `write_player_file` ignore `expectedPrevious` → the conflict test reddens. (3) make the pins migration overwrite an existing app-data copy → its case reddens. Each restores byte for byte, verified by `md5sum`.
+  pitfalls: 4 (an installed file outside any repo is shared state: re-read immediately before writing, never from a measurement taken minutes ago), 1 (an export that "succeeded" into a directory that does not exist: check the file back, do not trust the call).
+  done-when: `write_genie_config` is deregistered, `git grep saveGenieConfig src` is empty, and a pin export on a machine that has never had Genie installed produces a file the player can open.
+
+- [ ] **Q6  Export and import the whole store, and the documents** (≈90)
+  touches: new:src/components/config/ExportImportTab.tsx, new:tools/player-config-export-test.mjs, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, Q5>src-tauri/src/player_files.rs, docs/PLAYER_CONFIG.md, docs/PLAYER_DATA.md, package.json, tools/test-suites.json
+  depends-on: Q1, Q5
+  do: one JSON document for the whole store (`docs/PLAYER_CONFIG.md` §4.2), written into `app_data_dir()/config` through `write_player_file` and read back through `read_player_file`. Import is a **preview then apply**, with the same add/update/skip shape `pinsFile.ts` already uses for pins — never a silent overwrite of rules the player has edited since. A second Genie import is the same preview. Update `docs/PLAYER_DATA.md`'s inventory through its generator so the seven new storage keys are listed rather than discovered, and correct `docs/PLAYER_CONFIG.md` wherever Q2–Q5 landed differently from this design.
+  verify: `node tools/player-config-export-test.mjs` → export then import round-trips byte-identically across all seven domains, with the domain count asserted so a store missing a domain cannot round-trip cleanly; an import of a document with an unknown `version` is refused by name rather than half-applied; the preview's counts equal what apply actually changes. `node tools/build-player-data-doc.mjs --check` exits 0. `node tools/plan-audit.mjs` → `plan ok`.
+  sabotage: (1) drop one domain from the export → the round-trip reddens naming it. (2) make the import apply without the preview → the count-equality case reddens. (3) accept an unknown `version` → its case reddens.
+  pitfalls: 12 (fixing a claim in one place does not fix its copies: the storage-key inventory is generated, so change the generator), 19 (record the command, not the claim: `docs/PLAYER_CONFIG.md` ends by saying the `verify:` lines win where the prose disagrees).
+  done-when: a player can carry their whole config to another machine as one file, and a stale `docs/PLAYER_CONFIG.md` fails a check rather than being believed.
+
+**Concurrency.** Q1 first and alone — it publishes the schema everything else
+reads. Then **Q2, Q3, Q4 and Q5 run at the same time**, in four worktrees: Q2
+owns `highlights.ts`/`useHighlights.ts`, Q3 owns `aliases.ts`/`useAliases.ts`/
+`keybindings.ts`, Q4 owns `lineRules.ts`/`useGameLines.ts`, Q5 owns the Rust
+file surface and `pinsFile.ts`, and no two of them name the same source file.
+The one shared file is `PlayerConfigPanel.tsx`, where each replaces its own
+placeholder line — a one-line edit, rebase on conflict. Q6 last, because it
+exports whatever the others landed.
+
+---
+
 ## 7. Dependency graph
 
 ```
@@ -2084,6 +2200,8 @@ F9 (gates 0–2) ──► F10 ──► F11 ──► F12 ──► F13 ──�
 N1 ──► N3 ──► N4 ─┐
 N1 ──► N5 ────────┼──► N6 ──► N7
 N2 ───────────────┘        N2 ──► N8 (done; the N7 arrow was the §10 question, since answered)
+N6 ──► Q1 ─┐──► Q2 ; Q1 ──► Q3 ; Q1 ──► Q4   (Q2, Q3, Q4 concurrent)
+         └──► Q5 ──► Q6
 ```
 
 N1 and N2 are independent of everything, including each other: two sessions can
@@ -2177,7 +2295,20 @@ the decision; a later session may reopen one by writing why here.
   into a Genie install, and `tools/doc-claims-test.mjs` asserts it has exactly
   one caller so a second cannot appear unnoticed. Recommend: **move it to the
   app's own data directory and offer the Genie folder as a second location for
-  anyone who wants the shared-config behaviour.** *Undecided as of 6 Sep 2026.*
+  anyone who wants the shared-config behaviour.** *Decided:* **app data, and no
+  second location**, 6 Sep 2026, by Lane Q, which owns the increment that does
+  it (Q5). Half the recommendation is taken and half is refused, and the refused
+  half is the point: offering the Genie folder as a second destination keeps
+  `saveGenieConfig` alive for one optional case, and one optional caller is
+  exactly how a write path nobody audits survives. The app writes pins and its
+  whole player-config export into `app_data_dir()/config`, opens that folder
+  with the existing `reveal_file` command so "where did it go" has an answer,
+  and `src/lib/genieConfigWrite.ts` plus `write_genie_config` are deleted. The
+  app then never writes into a Genie install at all, which is the property
+  `config_import.rs`'s header held before 29 Aug 2026 and lost. A player who
+  already has a pins file in a Genie folder gets it copied across on first run,
+  with the original left where it is. Design and mapping:
+  `docs/PLAYER_CONFIG.md` §8.
   Not folded into N6: N6 deleted a route, and moving a player's saved file is a
   migration with its own failure modes.
 - **N-b — may the app store the player's password?** Lane N ships with the
