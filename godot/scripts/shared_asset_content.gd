@@ -82,6 +82,7 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 	holder.set_meta("review_status", recipe.status)
 	holder.set_meta("missing_content", recipe.missing)
 	holder.set_meta("description_hash", recipe.descriptionHash)
+	var exit_anchors: Dictionary = {}
 	for authored_placement in recipe.pieces:
 		var placement: Dictionary = authored_placement.duplicate(true)
 		if placement.has("approachTo"):
@@ -153,8 +154,31 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 			var tiled := _tile_ground(model, record, size, placement, ground_top, authored_placement == recipe.pieces[0])
 			model.free()
 			model = tiled
+		model.set_meta("inspection_cover", placement.get("inspectionCover", false))
+		model.set_meta("composition_role", placement.get("role", "furnishing"))
+		if placement.has("exitMove"):
+			var move: String = placement.exitMove
+			var known := false
+			for exit in cell.get("exits", []):
+				known = known or exit.get("move", "") == move
+			var socket: Array = record.get("sockets", {}).get("entrance", [])
+			if not known or socket.size() != 3 or exit_anchors.has(move):
+				model.free()
+				holder.free()
+				return null
+			var point := model.transform * Vector3(socket[0], socket[1], socket[2])
+			exit_anchors[move] = {"x": point.x, "y": point.y - ground_top, "z": point.z}
 		holder.add_child(model)
+	holder.set_meta("exit_anchors", exit_anchors)
 	return holder
+
+## Remove only authored viewing covers, never delete shell geometry or exits.
+## WorldRoot owns focus; no game state or topology is changed by inspection.
+func set_interior_inspection(content: Node, opened: bool) -> void:
+	for child in content.get_children():
+		if child is Node3D and child.get_meta("inspection_cover", false):
+			child.visible = not opened
+		set_interior_inspection(child, opened)
 
 func _tile_ground(source: Node3D, record: Dictionary, room_size: Vector3, placement: Dictionary, top: float, base: bool) -> Node3D:
 	var holder := Node3D.new()

@@ -62,14 +62,38 @@ func _run() -> void:
 		var ids: Array = []
 		for index in range(1, shop.get_child_count()):
 			var furniture: Node3D = shop.get_child(index)
+			if furniture.get_meta("composition_role") != "furnishing":
+				continue
 			ids.append(furniture.get_meta("asset_id"))
 			var box := _bounds(furniture, shop)
 			check(box.end.x < -2.0 or box.position.x > 2.0 or box.end.z < -2.0, "Shop furnishings preserve the central player area and south approach")
 			for other in range(1, index):
+				if shop.get_child(other).get_meta("composition_role") != "furnishing":
+					continue
 				check(not box.intersects(_bounds(shop.get_child(other), shop)), "Shop furniture envelopes do not overlap")
 		check("painted-river-port.pine-shop-counter" in ids, "Showroom mounts a counter, not a generic workbench")
 		check("painted-river-port.wooden-display-bin" in ids, "Showroom mounts an open goods bin")
 		check(not "painted-river-port.cargo-stack" in ids, "Freight cargo does not substitute for shop display furniture")
+		var count_before := shop.get_child_count()
+		var anchors: Dictionary = shop.get_meta("exit_anchors")
+		check(anchors.size() == cells[room_id].exits.size(), "Every showroom exit has a measured doorway socket")
+		check(is_equal_approx(float(anchors.out.x), 0.0) and float(anchors.out.z) > 7.0, "Out marker uses south doorway socket")
+		var absent_exit: Dictionary = cells[room_id].duplicate(true)
+		absent_exit.exits = []
+		check(content.build_room_composition(absent_exit) == null, "Removed live exit refuses stale doorway binding")
+		var covers := 0
+		content.set_interior_inspection(shop, true)
+		for piece in shop.get_children():
+			if piece.get_meta("inspection_cover", false):
+				covers += 1
+				check(not piece.visible, "Inspection hides authored covers")
+			else:
+				check(piece.visible, "Inspection retains rear shell and furnishings")
+		check(covers == 11, "Two five-section walls and ceiling are viewing covers")
+		content.set_interior_inspection(shop, false)
+		for piece in shop.get_children():
+			check(piece.visible, "World view restores complete geometry")
+		check(shop.get_child_count() == count_before, "Inspection never destroys geometry")
 		shop.free()
 	for room_id in ["1-14", "1-225"]:
 		var approach_room: Node3D = content.build_room_composition(cells[room_id])

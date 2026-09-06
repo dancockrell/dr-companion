@@ -22655,14 +22655,37 @@
         "painted-river-port.pine-shop-counter",
         "painted-river-port.trestle-table",
         "painted-river-port.wooden-display-bin",
-        "painted-river-port.wooden-park-bench"
+        "painted-river-port.wooden-park-bench",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.timber-doorway-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plank-approach"
       ],
       "recipeStatus": "partial-authored",
       "remainingRecipeWork": [
         "weapon inventory meshes",
         "basket",
-        "finished interior walls",
-        "pine-specific material finish"
+        "pine-specific material finish",
+        "wall finish and architectural detail",
+        "doorway-to-tether socket binding",
+        "purpose-built ceiling finish"
       ],
       "connections": [
         {
@@ -22727,7 +22750,28 @@
         "painted-river-port.plank-approach",
         "painted-river-port.display-rack",
         "painted-river-port.pine-shop-counter",
-        "painted-river-port.wooden-display-bin"
+        "painted-river-port.wooden-display-bin",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.timber-doorway-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.timber-doorway-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plank-approach"
       ],
       "recipeStatus": "partial-authored",
       "remainingRecipeWork": [
@@ -22735,7 +22779,9 @@
         "obsidian armored figure",
         "leathergoods box",
         "wall-mounted shield hooks after shell assembly",
-        "finished interior walls"
+        "wall finish and architectural detail",
+        "doorway-to-tether socket binding",
+        "purpose-built ceiling finish"
       ],
       "connections": [
         {

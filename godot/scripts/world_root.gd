@@ -157,6 +157,13 @@ func _apply_detail_window(origin_id: String) -> void:
 	for cell_id in requested.keys():
 		if not _active_detail_cells.has(cell_id):
 			_mount_cell_detail(cell_id)
+	_update_interior_inspection(origin_id if camera.mode == camera.Mode.ROOM else "")
+
+func _update_interior_inspection(room_id: String) -> void:
+	for cell_id in _active_detail_cells:
+		var holder: Node3D = _spawned_cells.get(cell_id)
+		if holder != null:
+			SharedAssetContent.set_interior_inspection(holder.get_node("DetailContent"), cell_id == room_id)
 
 func _mount_cell_detail(cell_id: String) -> void:
 	var holder: Node3D = _spawned_cells.get(cell_id)
@@ -318,6 +325,7 @@ func _focus_room(room_id: String, mode: int) -> void:
 	if cell.is_empty():
 		return
 	camera.focus_on(mode, _cell_position(cell))
+	_update_interior_inspection(room_id if mode == camera.Mode.ROOM else "")
 	route_graph.render_routes(WorldManifestLoader.cells, room_id if mode == camera.Mode.ROOM else "")
 
 ## Public camera controls for the host UI. They do not mutate MUD state and
@@ -330,6 +338,7 @@ func focus_world_view() -> void:
 	for cell in WorldManifestLoader.cells.values():
 		positions.append(_cell_position(cell))
 	camera.frame_world_positions(positions)
+	_update_interior_inspection("")
 	route_graph.render_routes(WorldManifestLoader.cells)
 
 func focus_current_room_view() -> void:
@@ -357,7 +366,20 @@ func _on_exit_requested(from_room_id: String, exit_move: String) -> void:
 ## Both representations receive the identical true-exit collection. They also
 ## converge on `_on_exit_requested`, which rechecks the current snapshot.
 func _rebuild_exit_anchors(room_id: String) -> void:
-	exit_root.render_exits(room_id, WorldManifestLoader.cells)
+	# Project existing commands onto the actual authored doorway sockets. This
+	# copy changes only marker positions, never the authoritative graph.
+	var cells: Dictionary = WorldManifestLoader.cells.duplicate()
+	var holder: Node3D = _spawned_cells.get(room_id)
+	if holder != null and cells.has(room_id):
+		var detail := holder.get_node("DetailContent")
+		for content in detail.get_children():
+			var anchors: Dictionary = content.get_meta("exit_anchors", {})
+			if not anchors.is_empty():
+				cells[room_id] = cells[room_id].duplicate(true)
+				for exit in cells[room_id].get("exits", []):
+					if anchors.has(exit.get("move", "")):
+						exit.boardAnchor = anchors[exit.move]
+	exit_root.render_exits(room_id, cells)
 	world_controls.render_exits(room_id, WorldManifestLoader.true_exits(room_id))
 
 ## Host-facing copy of the accessible, non-3D-dependent exit labels.

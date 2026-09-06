@@ -400,6 +400,31 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### Enclosed interior inspection checkpoint
+
+The two showroom recipes now assemble twenty native wall sections around a
+15 m square interior plus a ceiling cover. The native selection contains 31
+models. This is a reusable composition mechanism, not a finished building
+facade: wall finishes, ceiling treatment and merchandising remain unfinished.
+The current ceiling uses the existing repeated plank module and needs a
+purpose-built finish. Dimensions and south/east door positions are deliberate
+presentation choices, not surveyed DragonRealms architecture.
+
+All four walls and the ceiling exist. Room inspection hides the authored
+camera-facing wall sections and ceiling; other rooms and world/route modes
+restore the covers. The geometry is retained, not destroyed or permanently
+cut away. The policy currently assumes the fixed 45-degree camera and must be
+revisited before permitting camera orbit. Tests verify hidden/retained pieces,
+restoration and unchanged child counts.
+
+Exact source exit commands are bound to measured entrance sockets. WorldRoot
+passes marker-only copies of the current room data to the existing exit layer;
+it does not mutate the authoritative graph. Unknown, removed or duplicate
+doorway bindings refuse the composition. These local socket bindings do not
+solve the remaining district-scale tether geometry or the 842 compass-layout
+conflicts. Both focused room views were rendered again; the rear walls now
+bound the furnishings, while the floor repetition remains visually weak.
+
 ### Shop furnishing integration checkpoint
 
 Shared environment revision `60ce6b4eea2585fd6c707db730d9880471940b75`

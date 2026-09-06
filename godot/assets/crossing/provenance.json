@@ -1589,6 +1589,114 @@
 		},
 		{
 			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.plaster-wall-section",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.5,
+					0.0,
+					-0.175000131130219
+				],
+				"size": [
+					3.0,
+					3.0,
+					0.350000262260437
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "architecture",
+			"forwardAxis": "-Z",
+			"geometryGlb": "plaster-wall-section.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"plaster",
+				"oak"
+			],
+			"meshInstances": 5.0,
+			"nativeNode": "painted_plaster_wall_section",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "21f1d8aabf9e0332257fc0863c8b2b129248958e955efdb471ebda69ead9cc29",
+			"sockets": {
+				"join_a": [
+					1.5,
+					0.0,
+					-0.00000013113415775
+				],
+				"join_b": [
+					-1.5,
+					0.0,
+					0.00000013113415775
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 140.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.timber-doorway-section",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.5,
+					0.0,
+					-0.180000081658363
+				],
+				"size": [
+					3.0,
+					3.0,
+					0.360000163316727
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "architecture",
+			"forwardAxis": "-Z",
+			"geometryGlb": "timber-doorway-section.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"plaster",
+				"oak",
+				"oak_light"
+			],
+			"meshInstances": 10.0,
+			"nativeNode": "painted_timber_doorway_section",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "fb9de75775ecae813979709ad5638f721f1b9667fee705283c3e53f0a1315728",
+			"sockets": {
+				"entrance": [
+					0.00000001923301162,
+					0.0,
+					0.219999998807907
+				],
+				"join_a": [
+					1.5,
+					0.0,
+					-0.00000013113415775
+				],
+				"join_b": [
+					-1.5,
+					0.0,
+					0.00000013113415775
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 280.0
+		},
+		{
+			"admissionStatus": "candidate",
 			"assetId": "painted-river-port.pine-shop-counter",
 			"assetKind": "model",
 			"bounds": {
@@ -1789,8 +1897,8 @@
 		}
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
-	"revision": "60ce6b4eea2585fd6c707db730d9880471940b75",
-	"runtimeSha256": "eb9687434b017819d31bc1a3935c8dd934bfbde0e7a6fd5696ab45a7bd19ab53",
+	"revision": "9fd1f09054e0ad7b7e513b805faa26faf10f38b4",
+	"runtimeSha256": "ef78b035c8dc26f3a3446cc80e6be38e92d0c4ab1ff3e861749ffb963272a754",
 	"sourceSha256": "77ec81e341453189f598cc4d55ffc440fcaf42cc98e08e00af91f66c7f02dd03",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }
