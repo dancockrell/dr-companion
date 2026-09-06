@@ -203,9 +203,8 @@ pub(crate) async fn download_verified_from(
         // exactly as the last one left it: judged by the same rule as any
         // other failure rather than deleted for being unreadable once.
         let (handle, hashed) =
-            reopen_for_resume(&temporary, have, &mut hasher).map_err(|error| {
+            reopen_for_resume(&temporary, have, &mut hasher).inspect_err(|_| {
                 settle_partial(&temporary, have, announced);
-                error
             })?;
         received = hashed;
         on_progress(received, announced);
