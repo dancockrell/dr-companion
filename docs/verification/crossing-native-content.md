@@ -74,6 +74,14 @@ as lore-complete production scenes.
 
 ## Historical first checkpoint
 
+Publication integration: the branch retained automation commit `f04ceab6` (the
+coverage count reflects the two corrected shop bindings) and current main
+`129e222b` (AI suggestion confirmation). Neither overlapped the scenery changes;
+both histories were merged, not rewritten. After integration, the 381 Godot
+checks and frontend build passed again; imported AI-suggestion and worker checks
+passed with 150 and 125 checks respectively. The separate character-workshop
+edits in the shared checkout were not staged or modified by this work.
+
 This is **six partial room compositions in the actual Godot viewer**, not a finished
 Crossing city, a live-game acceptance run, or the generic river-port demo renamed.
 No paid generation or service credits were used.
