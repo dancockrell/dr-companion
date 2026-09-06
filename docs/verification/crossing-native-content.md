@@ -4,6 +4,23 @@
 
 ### Whole-city description recovery
 
+Current correction: generic legacy place keys such as Workroom, Workshop,
+Salesroom and Lobby joined unrelated establishments. The 3D compiler now
+requires matching normalized title families (the establishment before the
+comma), retains rejected source IDs and reasons, and excludes rejected prose
+from prompts, classifications and runtime asset requirements. This rejects
+138 Crossing assignments: **838 compatible bindings, 222 unresolved rooms**.
+These counts supersede the earlier 976/84 coverage claim below. Matching title
+families remain candidates needing room review, not proof of correct source
+prose or current game state. In particular, text mentioning Yalda under a
+Forging Society source title still needs independent investigation.
+
+Regression coverage preserves Tembeg and Falken's own descriptions while
+rejecting their use for unrelated workrooms, plus Salesroom/Lobby collisions.
+No rooms, exits or source descriptions are deleted. The historical archive
+report below covers the earlier 84-room subset and has not yet been expanded
+to the newly rejected assignments. No new art is admitted by this correction.
+
 A pinned 2020 DragonRealms XML mapping archive is now audited against every
 missing Crossing room, using exact titles, exact plain-string commands, and
 destination titles rather than assuming equivalent room numbers. The report

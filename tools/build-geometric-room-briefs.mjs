@@ -19,6 +19,9 @@ for (const file of readdirSync('src/data/map').filter((name) => name.endsWith('.
 }
 
 const normalize = (value) => String(value ?? '').replace(/\s+/g, ' ').trim()
+// Legacy place keys discard establishment names (for example "Workroom").
+// They are routing candidates, not evidence that two rooms share prose.
+const titleFamily = (value) => normalize(value).toLowerCase().split(',')[0].trim()
 const lower = (entry) => `${entry.title} ${entry.place} ${entry.lore}`.toLowerCase()
 const has = (text, ...terms) => terms.some((term) => new RegExp('\\b' + term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(text))
 const hashes = (value) => createHash('sha256').update(value).digest('hex').slice(0, 16)
@@ -81,6 +84,11 @@ for (const [roomKey, placeKey] of Object.entries(placeOf)) {
   const zone = roomKey.slice(0, split)
   const roomId = Number(roomKey.slice(split + 1))
   const room = mapRooms.get(roomKey)
+  const source = places[placeKey]
+  const descriptionBindingStatus = !source ? 'missing-source'
+    : !room ? 'missing-map-room'
+      : !titleFamily(source.title) || titleFamily(source.title) !== titleFamily(room.name)
+        ? 'rejected-title-family-mismatch' : 'compatible-title-family-needs-room-review'
   bindings.push({
     roomKey,
     zone,
@@ -94,19 +102,21 @@ for (const [roomKey, placeKey] of Object.entries(placeOf)) {
       z: room.z,
       exits: (room.exits ?? []).map(({ dir, move, to }) => ({ dir, move, to })),
     } : null,
-    briefStatus: places[placeKey] ? 'described' : 'missing-description',
+    descriptionBindingStatus,
+    rejectedSourceDescriptionId: descriptionBindingStatus === 'rejected-title-family-mismatch' ? placeKey : null,
+    briefStatus: descriptionBindingStatus === 'compatible-title-family-needs-room-review' ? 'described' : 'missing-description',
   })
 }
 bindings.sort((a, b) => a.zone.localeCompare(b.zone, undefined, { numeric: true }) || a.roomId - b.roomId)
 
 const representativeByPlace = new Map()
-for (const binding of bindings) if (!representativeByPlace.has(binding.placeKey) && binding.map) representativeByPlace.set(binding.placeKey, binding.map)
+for (const binding of bindings) if (binding.briefStatus === 'described' && !representativeByPlace.has(binding.placeKey) && binding.map) representativeByPlace.set(binding.placeKey, binding.map)
 
 const briefs = Object.entries(places).map(([key, entry]) => {
   const classification = classify(entry)
   const representativeRoom = representativeByPlace.get(key) ?? mapRooms.get(`${entry.zone}-${entry.room}`) ?? null
   const prompt = makePrompt(key, entry, representativeRoom)
-  const roomBindings = bindings.filter((binding) => binding.placeKey === key).map((binding) => binding.roomKey)
+  const roomBindings = bindings.filter((binding) => binding.placeKey === key && binding.briefStatus === 'described').map((binding) => binding.roomKey)
   return {
     id: key,
     zone: entry.zone,
@@ -122,8 +132,7 @@ const briefs = Object.entries(places).map(([key, entry]) => {
   }
 }).sort((a, b) => a.zone.localeCompare(b.zone, undefined, { numeric: true }) || a.title.localeCompare(b.title))
 
-const describedKeys = new Set(briefs.map((brief) => brief.id))
-const missingDescriptions = bindings.filter((binding) => !describedKeys.has(binding.placeKey))
+const missingDescriptions = bindings.filter((binding) => binding.briefStatus !== 'described')
 const specialPlaces = briefs.filter((brief) => brief.classification.tier === 'special')
 const featurePlaces = briefs.filter((brief) => brief.classification.tier === 'feature')
 const crossing = briefs.filter((brief) => brief.zone === '1')
@@ -134,7 +143,7 @@ const briefsByPlace = new Map(briefs.map((brief) => [brief.id, brief]))
 // own graph position and exits while retaining honest provenance for shared
 // place-level text.
 const roomBriefs = bindings.map((binding) => {
-  const placeBrief = briefsByPlace.get(binding.placeKey)
+  const placeBrief = binding.briefStatus === 'described' ? briefsByPlace.get(binding.placeKey) : null
   if (!placeBrief) return {
     id: binding.roomKey,
     zone: binding.zone,
@@ -143,6 +152,8 @@ const roomBriefs = bindings.map((binding) => {
     placeId: binding.placeKey,
     briefStatus: 'missing-description',
     sourceDescriptionId: null,
+    descriptionBindingStatus: binding.descriptionBindingStatus,
+    rejectedSourceDescriptionId: binding.rejectedSourceDescriptionId,
     classification: { tags: ['unresolved'], specialKinds: [], spatialMode: 'unresolved', tier: 'unresolved' },
     prompt: null,
     map: binding.map,
@@ -156,6 +167,7 @@ const roomBriefs = bindings.map((binding) => {
     placeId: binding.placeKey,
     briefStatus: 'described',
     sourceDescriptionId: placeBrief.id,
+    descriptionBindingStatus: binding.descriptionBindingStatus,
     sourceDescriptionHash: placeBrief.descriptionHash,
     classification: placeBrief.classification,
     prompt: makePrompt(placeBrief.id, places[binding.placeKey], representativeByPlace.get(binding.placeKey), room),

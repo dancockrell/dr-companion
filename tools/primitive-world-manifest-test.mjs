@@ -29,6 +29,13 @@ else {
   const world = JSON.parse(readFileSync(outputPath, 'utf8'))
   const townGreenNorth = world.cells.find((cell) => cell.id === '1-14')
   const byId = new Map(world.cells.map(c => [c.id, c]))
+  const rejected = byId.get('1-227')
+  if (rejected.status === 'missing-description' && rejected.sourceDescriptionId === null &&
+      rejected.rejectedSourceDescriptionId === '1::Workroom' &&
+      rejected.descriptionBindingStatus === 'rejected-title-family-mismatch' &&
+      rejected.palette === 'neutral-unresolved' && rejected.exits.some(e => e.targetCellId === '1-226'))
+    pass('rejected workroom source remains unresolved with evidence and real exits in runtime manifest')
+  else fail('runtime manifest loses description rejection or real graph')
   const compass = { north: [0, -1], northeast: [1, -1], east: [1, 0], southeast: [1, 1], south: [0, 1], southwest: [-1, 1], west: [-1, 0], northwest: [-1, -1] }
   const rooms = world.cells.map(cell => ({ id: cell.roomId, ...cell.sourceGrid,
     exits: cell.exits.map(exit => ({ move: exit.move, to: exit.targetRoomId })) }))

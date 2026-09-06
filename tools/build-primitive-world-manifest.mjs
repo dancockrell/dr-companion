@@ -83,6 +83,8 @@ const cells = cellsForZone.map((cell) => ({
   sourceGrid: { x: cell.map.x, y: cell.map.y, z: cell.map.z ?? 0 },
   status: cell.briefStatus,
   sourceDescriptionId: cell.sourceDescriptionId,
+  descriptionBindingStatus: cell.descriptionBindingStatus,
+  rejectedSourceDescriptionId: cell.rejectedSourceDescriptionId ?? null,
   sourceDescriptionHash: cell.sourceDescriptionHash,
   tier: cell.classification.tier,
   tags: cell.classification.tags,

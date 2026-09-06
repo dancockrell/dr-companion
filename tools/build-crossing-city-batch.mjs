@@ -47,6 +47,8 @@ const rooms = world.cells.map(cell => {
   // Neither a description nor a nonempty model list constitutes completion.
   const complete = Boolean(description && recipe?.status === 'approved-complete' && recipe.missing?.length === 0 && recipe.visualReview?.capture && recipe.connectionReview?.allExitsBound)
   return { id: cell.id, title: cell.title, sourceDescriptionId: cell.sourceDescriptionId,
+    descriptionBindingStatus: cell.descriptionBindingStatus,
+    rejectedSourceDescriptionId: cell.rejectedSourceDescriptionId,
     descriptionHash: cell.sourceDescriptionHash, description,
     evidenceScope: source ? (source.room === cell.roomId ? 'representative-room' : 'shared-place-binding-needs-room-review') : 'missing',
     descriptionResearch: !description && researchCandidates.has(cell.id) ? {

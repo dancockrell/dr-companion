@@ -26,6 +26,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green North",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "f73bd5e2ac6e412c",
       "tier": "special",
       "tags": [
@@ -211,6 +213,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Via Iltesh",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "27e2f01461140dc4",
       "tier": "special",
       "tags": [
@@ -360,6 +364,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Via Iltesh",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "27e2f01461140dc4",
       "tier": "special",
       "tags": [
@@ -509,6 +515,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green Southeast",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "352586dc0dc77d00",
       "tier": "special",
       "tags": [
@@ -676,6 +684,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green South",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "a0e1b5cd1070402b",
       "tier": "special",
       "tags": [
@@ -860,6 +870,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green Northeast",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "bf4bf4c9cfbd91f7",
       "tier": "special",
       "tags": [
@@ -1033,6 +1045,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Manciple Cobble",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "ad07acd79b6a9679",
       "tier": "special",
       "tags": [
@@ -1182,6 +1196,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green Southwest",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "a81dbac1f7408d93",
       "tier": "special",
       "tags": [
@@ -1343,6 +1359,8 @@
       },
       "status": "missing-description",
       "sourceDescriptionId": null,
+      "descriptionBindingStatus": "missing-source",
+      "rejectedSourceDescriptionId": null,
       "tier": "unresolved",
       "tags": [
         "unresolved"
@@ -1487,6 +1505,8 @@
       },
       "status": "missing-description",
       "sourceDescriptionId": null,
+      "descriptionBindingStatus": "missing-source",
+      "rejectedSourceDescriptionId": null,
       "tier": "unresolved",
       "tags": [
         "unresolved"
@@ -1643,6 +1663,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Milgrym's Weapons, Showroom",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "43d9343196f8e1c9",
       "tier": "feature",
       "tags": [
@@ -1782,6 +1804,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Tembeg's Armory, Salesroom",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "9ad2393fa2da1b24",
       "tier": "feature",
       "tags": [
@@ -1927,6 +1951,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green Northwest",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "4b6facaa5a85d146",
       "tier": "special",
       "tags": [
@@ -2094,6 +2120,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Midton Circle",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "17ca36598941a292",
       "tier": "special",
       "tags": [
@@ -2248,6 +2276,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Supply Stand",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "40ba1666ebd6b149",
       "tier": "ordinary",
       "tags": [
@@ -2393,6 +2423,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::The Back Lawn",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "4941c1e4ab673537",
       "tier": "ordinary",
       "tags": [
@@ -2538,6 +2570,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Mongers' Bazaar",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "d67e61bfe6e92faa",
       "tier": "special",
       "tags": [
@@ -2704,6 +2738,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Town Green Pond",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "7882e5c91c3c600b",
       "tier": "special",
       "tags": [
@@ -2857,6 +2893,8 @@
       },
       "status": "described",
       "sourceDescriptionId": "1::Underground Passageway",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
       "sourceDescriptionHash": "48afe6c14d28506f",
       "tier": "ordinary",
       "tags": [

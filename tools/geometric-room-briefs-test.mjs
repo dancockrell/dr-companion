@@ -10,6 +10,21 @@ if (!existsSync(outputPath)) fail('compiler writes its full generated catalogue'
 else {
   const result = JSON.parse(readFileSync(outputPath, 'utf8'))
   const source = JSON.parse(readFileSync('data/art/room-prompts-priority.json', 'utf8'))
+  for (const id of ['1-227', '1-435', '1-218', '1-231']) {
+    const room = result.roomBriefs.find(r => r.id === id)
+    if (room?.briefStatus === 'missing-description' && room.sourceDescriptionId === null &&
+        room.prompt === null && room.classification.tier === 'unresolved' &&
+        room.descriptionBindingStatus === 'rejected-title-family-mismatch' &&
+        room.rejectedSourceDescriptionId && room.map.exits.length &&
+        !result.briefs.find(b => b.id === room.rejectedSourceDescriptionId).roomBindings.includes(id))
+      pass(id + ' rejects unrelated establishment prose while retaining its graph')
+    else fail(id + ' inherited unrelated establishment prose or lost rejection evidence')
+  }
+  for (const id of ['1-193', '1-220', '1-25', '1-26']) {
+    if (result.roomBriefs.find(r => r.id === id)?.briefStatus === 'described')
+      pass(id + ' retains compatible source binding')
+    else fail(id + ' lost compatible source binding')
+  }
   const crossingNorth = result.briefs.find((brief) => brief.id === '1::Town Green North')
   const crossingNorthRoom = result.roomBriefs.find((brief) => brief.id === '1-14')
   if (crossingNorthRoom.classification.tags.includes('water')) fail('figurative stream of customers must not create waterfront geometry')
