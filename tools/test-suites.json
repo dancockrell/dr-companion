@@ -12,6 +12,7 @@
   "test:doc-claims",
   "test:bug-bundle",
   "test:plan",
+  "test:plan-self",
   "test:panel-data-contracts",
   "test:tauri-command-callers",
   "test:safety",
