@@ -70,6 +70,7 @@
   "test:layout",
   "test:columns",
   "test:location-line",
+  "test:first-screen",
   "test:freelayout",
   "test:dock",
   "test:mapdock",

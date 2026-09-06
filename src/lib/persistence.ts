@@ -12,6 +12,11 @@ const KEY = 'dr-companion-prefs-v1'
 export interface PersistedPrefs {
   uiMode: UiMode
   alwaysOnTop: boolean
+  /**
+   * Which bridge the app opens on. `'live'` on a fresh install - see the
+   * default below, and `bridgeModeSelect.ts` for the one function that turns
+   * this plus the URL flag into the mode the store starts in.
+   */
   bridgeMode: 'mock' | 'live'
   /** Skills the player wants to emphasize in training */
   trainFocus: string[]
@@ -160,7 +165,24 @@ export interface FavoriteStation {
 const defaults: PersistedPrefs = {
   uiMode: 'basic',
   alwaysOnTop: false,
-  bridgeMode: 'mock',
+  /**
+   * The first screen is honest.
+   *
+   * This was `'mock'` until 6 Sep 2026, which meant a machine that had never
+   * connected to anything opened on "In combat, 84 of 100 health", a character
+   * called Dan the Bold, room 308 in the Empaths' Guild and eighteen people
+   * present - all of it invented, all of it the first thing a new user ever
+   * saw of this product. It was labelled, with a badge and an indicator, and
+   * the labels were small relative to the fiction. Recorded as defect 3 of
+   * `docs/verification/first-run-2026-09-05.md`, from a real first run on a
+   * clean VM; see issue #382.
+   *
+   * With `'live'` here the app opens on the empty state it already had -
+   * `WaitingForCharacter`, which offers the attach control and the demo - and
+   * the invented world is something a person asks for rather than something
+   * they have to recognise and dismiss.
+   */
+  bridgeMode: 'live',
   trainFocus: [],
   autoSuggestHealer: true,
   huntFavorites: [],
