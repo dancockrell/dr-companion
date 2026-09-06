@@ -124,10 +124,25 @@ ok('no flags at all is not rejected as unknown', !/unknown flag/.test(vNone.out)
 // The floor. Well below what this file contains, so it never needs touching,
 // and high enough that a truncated or half-executed run reports itself rather
 // than passing for free.
-if (checks < 15) {
-  console.log(`\nFAIL only ${checks} checks ran; this file has more than that`)
+console.log('')
+// This suite already had a floor - `if (checks < 15)` against a real 18 - and
+// it is KEPT at 15 rather than recomputed. Lowering a floor that already
+// works would weaken a check to make it look like its neighbours. Only the
+// shape changed: the refusal went out as a `FAIL` line, which
+// tools/run-tests.mjs counts as one more failed check rather than as the run
+// declining to report at all. A floor has to sit outside what it counts.
+const MIN_EXPECTED = 15
+if (checks < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checks} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
 }
-
-console.log(fails === 0 ? `\n${checks} checks, all passed` : `\n${fails} of ${checks} FAILED`)
-process.exit(fails === 0 ? 0 : 1)
+// `checks`, not a pass count: the denominator has to be the number of checks
+// that ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${checks} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)

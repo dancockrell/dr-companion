@@ -7,8 +7,10 @@
  */
 import { emptyTrail, visit, recency, segments, describeTrail } from '../src/lib/trail.ts'
 
+let checked = 0
 let failed = 0
 const ok = (name, got, want) => {
+  checked++
   const pass = JSON.stringify(got) === JSON.stringify(want)
   if (!pass) failed++
   console.log(`${pass ? 'OK  ' : 'FAIL'} ${name.padEnd(46)} ${pass ? '' : `got ${JSON.stringify(got)} want ${JSON.stringify(want)}`}`)
@@ -77,5 +79,21 @@ console.log('-- the tally keeps the places you keep returning to --')
   ok('the loop rooms survived', [t.visits[5000], t.visits[5001]], [15, 15])
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed')
-process.exit(failed ? 1 : 0)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 12
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failed} failed`)
+if (failed) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)

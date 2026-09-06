@@ -37,8 +37,27 @@ import { findRuby, notCheckedMessage } from './find-ruby.mjs'
 // Which Ruby test to run, and against what. Every one of these suites took
 // the same two arguments and the same bare `ruby`, so they get one runner
 // rather than seven copies of the same missing-interpreter failure.
-const RUNNER = process.argv[2] || 'lich-scripts/test/server_test.rb'
-const SUBJECT = process.argv[3] || 'lich-scripts/companion_bridge.lic'
+//
+// A fourth thing this runner has to do, added for #406: count. Eight npm
+// scripts run through here, so this file is not a suite with a floor of its
+// own - the number of checks depends entirely on which .rb it is pointed at.
+// Each caller declares its own floor with `--min N`, asserted here rather
+// than in the Ruby, because what it guards against is the Ruby never running
+// its cases at all. That is also why the child's output is captured and
+// relayed rather than inherited: a runner that cannot see the output cannot
+// count it, and `stdio: 'inherit'` was exactly that.
+const argv = process.argv.slice(2)
+const minAt = argv.indexOf('--min')
+const MIN = minAt >= 0 ? Number(argv[minAt + 1]) : 0
+if (minAt >= 0 && !Number.isInteger(MIN)) {
+  console.error(`ruby-test: --min needs an integer, got ${argv[minAt + 1]}`)
+  process.exit(1)
+}
+// `minAt + 1` is 0 when there is no --min, which would drop the first
+// positional argument. Guard on the flag being present, not on the arithmetic.
+const positional = argv.filter((_, i) => minAt < 0 || (i !== minAt && i !== minAt + 1))
+const RUNNER = positional[0] || 'lich-scripts/test/server_test.rb'
+const SUBJECT = positional[1] || 'lich-scripts/companion_bridge.lic'
 
 
 const found = findRuby()
@@ -54,9 +73,25 @@ if (!existsSync(RUNNER)) {
   process.exit(0)
 }
 
-const r = spawnSync(found, [RUNNER, SUBJECT], { stdio: 'inherit' })
+const r = spawnSync(found, [RUNNER, SUBJECT], { encoding: 'utf8' })
 if (r.error) {
   console.log(`NOT CHECKED: could not launch ${found}: ${r.error.message}`)
   process.exit(0)
 }
+
+const output = `${r.stdout ?? ''}${r.stderr ?? ''}`
+process.stdout.write(output)
+
+const checked = (output.match(/^(?:OK|FAIL)\b/gm) || []).length
+const failed = (output.match(/^FAIL\b/gm) || []).length
+
+if (MIN > 0) {
+  console.log('')
+  if (checked < MIN) {
+    console.error(`FAILED: ${RUNNER} produced only ${checked} checks, expected at least ${MIN}`)
+    process.exit(1)
+  }
+  console.log(`${checked} checked, ${failed} failed`)
+}
+
 process.exit(r.status ?? 1)

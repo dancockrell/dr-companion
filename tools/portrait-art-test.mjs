@@ -4,8 +4,10 @@ import { readFileSync } from 'node:fs'
 const manifest = JSON.parse(readFileSync('public/portraits/manifest.json', 'utf8'))
 const ledger = JSON.parse(readFileSync('data/art/portrait-qa-ledger.json', 'utf8'))
 
+let checked = 0
 let failures = 0
 const check = (label, condition) => {
+  checked++
   console.log(`${condition ? 'OK  ' : 'FAIL'} ${label}`)
   if (!condition) failures++
 }
@@ -30,5 +32,21 @@ const pairAssets = Object.values(ledger.contactSheetReview.pairReviews).flatMap(
 check('the contact-sheet review explicitly covers every core portrait', ledger.contactSheetReview.status === 'approved' && JSON.stringify(pairAssets) === JSON.stringify([...manifest].sort()))
 check('every race pair records a reviewer decision and lore evidence', Object.values(ledger.contactSheetReview.pairReviews).every((pair) => pair.decision.startsWith('approved') && pair.loreReferences.length >= 2 && pair.notes))
 
-console.log(failures ? `\n${failures} failed` : '\nall portrait art checks passed')
-process.exit(failures ? 1 : 0)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 17
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failures} failed`)
+if (failures) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)
