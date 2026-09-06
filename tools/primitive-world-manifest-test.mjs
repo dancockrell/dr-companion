@@ -30,6 +30,29 @@ else {
   const townGreenNorth = world.cells.find((cell) => cell.id === '1-14')
   const byId = new Map(world.cells.map(c => [c.id, c]))
   const compass = { north: [0, -1], northeast: [1, -1], east: [1, 0], southeast: [1, 1], south: [0, 1], southwest: [-1, 1], west: [-1, 0], northwest: [-1, -1] }
+  const rooms = world.cells.map(cell => ({ id: cell.roomId, ...cell.sourceGrid,
+    exits: cell.exits.map(exit => ({ move: exit.move, to: exit.targetRoomId })) }))
+  const seeds = packedRoomPositions(rooms.map(({ exits, ...room }) => room))
+  const repaired = packedRoomPositions(rooms)
+  let oldBad = 0, newBad = 0, regressions = 0
+  for (const room of rooms) for (const exit of room.exits) {
+    if (!compass[exit.move] || !seeds.has(exit.to)) continue
+    const [dx, dz] = compass[exit.move]
+    const metric = map => {
+      const a = map.get(room.id), b = map.get(exit.to)
+      if (a.y !== b.y) return null
+      return { correct: Math.sign(b.x-a.x) === dx && Math.sign(b.z-a.z) === dz,
+        exact: b.x-a.x === dx*CELL_PITCH_METRES && b.z-a.z === dz*CELL_PITCH_METRES }
+    }
+    const before = metric(seeds), after = metric(repaired)
+    if (!before) continue
+    oldBad += !before.correct; newBad += !after.correct
+    regressions += before.correct && !after.correct || before.exact && !after.exact
+  }
+  if (!regressions && newBad < oldBad) pass(`full-city repair improves compass conflicts ${oldBad} -> ${newBad} without regressing correct or exact neighbours`)
+  else fail(`full-city repair regresses constraints: ${regressions}, conflicts ${oldBad} -> ${newBad}`)
+  if (JSON.stringify([...repaired]) === JSON.stringify([...packedRoomPositions([...rooms].reverse())])) pass('graph-aware whole-city packing is input-order independent')
+  else fail('graph-aware whole-city packing depends on input order')
   const greenIds = new Set(['1-14', '1-15', '1-16', '1-17', '1-23', '1-225'])
   for (const id of greenIds) for (const exit of byId.get(id).exits) {
     if (!greenIds.has(exit.targetCellId) || !compass[exit.move]) continue

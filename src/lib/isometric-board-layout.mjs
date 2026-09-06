@@ -106,6 +106,8 @@ export const CELL_BLOCK_METRES = CELL_PITCH_METRES - CELL_GAP_METRES
 
 /** Compact presentation only. Source map coordinates seed adjacent slots;
  * dense diagram insets are assigned the nearest vacant slot on their floor.
+ * Actual same-floor compass exits then repair local displacement where a
+ * vacant slot improves constraints without regressing correct relationships.
  * Nothing in this packing creates, removes or infers a MUD connection.
  * The same full room set has the same layout regardless of input ordering.
  */
@@ -153,6 +155,58 @@ export function packedRoomPositions(rooms) {
       }
     }
     result.set(room.id, slot)
+  }
+  // Repair displaced rooms against actual compass exits, not their ID or title.
+  // Only vacant local slots are considered. Never break an already-correct
+  // bearing or stretch an exact one-pitch neighbour to fix a different edge.
+  const incident = new Map(ordered.map(room => [room.id, []]))
+  for (const room of ordered) for (const exit of room.exits ?? []) {
+    const direction = expandCompassDirection(exit.move)
+    if (!direction || !result.has(exit.to)) continue
+    const vector = COMPASS_ANCHORS[direction]
+    const edge = { from: room.id, to: exit.to, dx: Math.sign(vector.x), dz: Math.sign(vector.z) }
+    if (result.get(edge.from).y !== result.get(edge.to).y) continue
+    incident.get(edge.from).push(edge)
+    incident.get(edge.to).push(edge)
+  }
+  const keyFor = p => `${p.x}:${p.y}:${p.z}`
+  const slots = new Set([...result.values()].map(keyFor))
+  const metrics = (edge, id, candidate) => {
+    const a = edge.from === id ? candidate : result.get(edge.from)
+    const b = edge.to === id ? candidate : result.get(edge.to)
+    const dx = (b.x - a.x) / CELL_PITCH_METRES, dz = (b.z - a.z) / CELL_PITCH_METRES
+    return { correct: Math.sign(dx) === edge.dx && Math.sign(dz) === edge.dz,
+      exact: dx === edge.dx && dz === edge.dz,
+      error: (dx - edge.dx) ** 2 + (dz - edge.dz) ** 2 }
+  }
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false
+    for (const room of [...ordered].sort((a, b) => a.id - b.id)) {
+      const edges = incident.get(room.id)
+      if (!edges.length) continue
+      const origin = result.get(room.id)
+      const baseline = edges.map(edge => metrics(edge, room.id, origin))
+      const bad = baseline.filter(m => !m.correct).length
+      if (!bad) continue
+      let best = origin, bestBad = bad, bestError = baseline.reduce((sum, m) => sum + m.error, 0)
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+        if (!dx && !dz) continue
+        const candidate = { x: origin.x + dx * CELL_PITCH_METRES, y: origin.y, z: origin.z + dz * CELL_PITCH_METRES }
+        if (slots.has(keyFor(candidate))) continue
+        const next = edges.map(edge => metrics(edge, room.id, candidate))
+        if (next.some((m, i) => baseline[i].correct && !m.correct || baseline[i].exact && !m.exact)) continue
+        const nextBad = next.filter(m => !m.correct).length
+        const error = next.reduce((sum, m) => sum + m.error, 0)
+        if (nextBad < bestBad || nextBad === bestBad && error < bestError) {
+          best = candidate; bestBad = nextBad; bestError = error
+        }
+      }
+      if (best !== origin) {
+        slots.delete(keyFor(origin)); slots.add(keyFor(best)); result.set(room.id, best)
+        changed = true
+      }
+    }
+    if (!changed) break
   }
   return result
 }

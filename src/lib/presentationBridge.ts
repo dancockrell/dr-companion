@@ -167,7 +167,9 @@ export function compileWorldSnapshot(params: {
   if (hereId == null) return null
 
   const rooms = (zone.rooms ?? []).filter((r): r is MapZoneRoom & { id: number } => r.id != null)
-  const positions = packedRoomPositions(rooms)
+  const positions = packedRoomPositions(rooms.map(room => ({ ...room,
+    exits: (room.moves ?? []).map((move, i) => ({ move, to: room.links?.[i]?.to })).filter(exit => exit.to != null),
+  })))
   const cells: WorldCell[] = rooms.map((room) => ({
     id: cellId(zoneId, room.id),
     title: room.title ?? '',

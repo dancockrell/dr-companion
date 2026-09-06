@@ -400,6 +400,33 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### Full-city local compass repair
+
+The shared offline/live layout compiler now uses actual compass exits after
+its deterministic source-coordinate seed. Up to four passes inspect vacant
+slots within three pitches of a room. A move must preserve every currently
+correct same-floor compass bearing and every exact one-pitch neighbour; it
+then reduces the incident conflict count, or reduces squared displacement
+from the desired neighbour positions at the same conflict count. Occupied
+slots, floor changes, speculative links and room-title inference are excluded.
+
+City-wide compass conflicts decreased from 842 to 493. The regression test
+measures same-floor constraints separately: 841 to 492, with zero correct or
+exact neighbour regressions. The extra cross-floor conflict is outside this
+local repair policy. All 1,060 rooms and 2,389 directed exits remain present;
+all room positions remain distinct, and the closest same-floor centers are
+18 m apart. Town Green's 22 checked exact neighbour relationships are retained.
+Reversing all input rooms produces identical output. Three full-city timing
+runs on this machine took 35, 30 and 26 ms; this is not a browser frame-budget
+guarantee. The frontend build, presentation bridge suite and 1,062 Godot checks
+passed. Remaining 493 conflicts require larger connected-district layout work;
+this local repair is not the final street arrangement or completed city.
+Thirteen configured room captures and the overview were regenerated. Town
+Green North and the overview were inspected: the compact green remains intact,
+but the world view is still predominantly crossing route lines with only the
+local detail window populated. This is explicitly not an acceptable finished
+city view; distant scene representation and remaining district layouts are open.
+
 ### Enclosed interior inspection checkpoint
 
 The two showroom recipes now assemble twenty native wall sections around a
