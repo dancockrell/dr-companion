@@ -277,10 +277,6 @@ export const useAppStore = create<AppState>((rawSet, get) => {
 
   disconnectBridge: () => disconnectBridge(set),
 
-  simulateConnect: () => {
-    get().connectBridge()
-  },
-
   requestIntent: (
     intent: IntentName | `travel:${string}`,
     extraArgs?: Record<string, unknown>

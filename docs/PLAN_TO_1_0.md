@@ -293,7 +293,9 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
-| G | G11 | `lane-g/g11-ui` | `dev/wt-g11` | 5 Sep 2026 |
+
+No lane is currently held. G's row was deleted on 6 Sep 2026 when G11's second
+PR (#359) merged; an empty table means every lane is free to claim.
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12 and F7 in PR #315, which emptied the
@@ -330,15 +332,16 @@ worked around: #323 (`npm run tauri:build` cannot run in any worktree prepared
 by `worktree:init`) and #324 (`run-tests` counts a suite's honest NOT CHECKED
 as a pass).
 
-**Lane G is finished except G11** (G0, G1, G2–G10 and G12; PRs #317, #322 and
-the one that carried this line). The sentence that stood here said G11 was
-"deliberately not started"; it is started now, and split so that the half that
-gives model output a path to a real game command is the half that has not
-merged. Commit 1 is the data model, the gate and its adversarial tests, with no
-producer and no UI — a suggestion cannot be created by anything the app runs,
-so nothing is reachable. Commit 2 is the panel that makes one confirmable and
-therefore sendable, and it is held open unmerged for Dan, per section 10 and
-gate 4. Nothing in G0–G12 can reach `gameActions.ts`, no
+**Lane G is finished** (G0, G1, G2–G12; PRs #317, #322, the one that carried
+this line, then #346 and #359). This paragraph has been corrected twice as G11
+moved: it once said G11 was "deliberately not started", then that its second
+half was held unmerged. Both halves are in as of 6 Sep 2026 — commit 1
+(`efbc19ec`) the data model, the gate and its adversarial tests with no
+producer and no UI; commit 2 (`129e222b`) the panel that makes a suggestion
+confirmable and therefore sendable, merged on Dan's explicit yes per section 10
+and gate 4. So a confirmed suggestion is now the one path by which model output
+can become a real game command, and it is gated on the player retyping the
+literal command. Nothing else in G0–G12 can reach `gameActions.ts`, no
 model ships (`absentProvider` is still the only provider in `src/`), and the
 only path from a candidate into canonical data is G9's promotion, which is
 explicit, records the pin id it created, and reverts by that id. One
@@ -391,7 +394,8 @@ passes.
 - **Gate 3 — Viewer optional:** B4–B8, L1–L6.
   Check: `node tools/live-chain-check.mjs` passes against the running app;
   Crossing slice walk/stun/decay recorded.
-- **Gate 4 — AI optional:** G0–G10, G12, H1–H8 (G11 only with Dan's yes).
+- **Gate 4 — AI optional:** G0–G10, G12, H1–H8 (G11 only with Dan's yes — given
+  6 Sep 2026, and G11 merged on it).
   Check: no model → panel honest, client unchanged; local Qwen → one map claim
   and one script proposal reach review with provenance; scanner tests green.
 - **Gate 5 — Public quality:** I1–I11, J complete, F5–F8.
@@ -1095,9 +1099,22 @@ whether it is embedded, docked or a separate window is D0.
   do: on `situation` transitions for stunned/webbed/immobilized (on and off) publish `PresentationEvent{kind:'status-change', authoritativeText:<flag>, roomId}` — derived from already-parsed flags, no text parsing. Godot's `event_player.gd` consumes ordered events.
   verify: `[]→['stunned']→[]` → exactly two events, increasing `sequence`; unchanged flags → none. The callerless-command sweep now lists only `extract_lich` and `bridge_install_status`.
 
-- [~] **G11  Live suggestion through the confirmation gate** (≈40; two commits)
-  owner: claude-lane-g claim: g11-confirmation-gate since: 2026-09-05
-  holding: PR #359 is green and deliberately unmerged. Commit 1 (PR #346, `efbc19ec`) is in — the data model, the gate and its adversarial tests, with no producer and no UI, so nothing in the running app can create or confirm a suggestion. PR #359 is the half that makes one confirmable and therefore sendable, and gate 4 admits G11 only with Dan's yes (section 10). Not `[x]`: the increment is not done while its second half is held. What merging #359 makes reachable, and what it does not, is the first section of its body.
+- [x] **G11  Live suggestion through the confirmation gate** (≈40; two commits)
+  done: 2026-09-06 — both halves merged. Commit 1 is PR #346, squashed as
+  `efbc19ec` (5 Sep): the data model, the gate and its adversarial tests, with
+  no producer and no UI. Commit 2 is PR #359, squashed as `129e222b` (6 Sep):
+  the panel that makes a suggestion confirmable and therefore sendable. It was
+  held unmerged because gate 4 admits G11 only with Dan's yes (section 10);
+  Dan gave it on 6 Sep 2026 and it merged on that yes. Test counts are a check,
+  not a claim — `node --experimental-strip-types tools/ai-suggestions-test.mjs`
+  and `node --experimental-test-module-mocks tools/kill-switch-test.mjs` print
+  their own; measured on `main` at `129e222b` they are **150** and **52**. (The
+  PR bodies quote 141 and 52 as of the day each was written; the suites have
+  grown since, which is why the commands above are the authority and these
+  numbers are not.) Still true, and the thing a first live session should look
+  at: the card has never been rendered with a real suggestion in it, because
+  producing one needs a local model this machine does not have — the same wall
+  H5 is `[!]` behind.
   touches: src/lib/aiSuggestions.ts, tools/ai-suggestions-test.mjs, src/lib/stateVersion.ts, src/lib/flowStop.ts, src/store/useAppStore.ts, src/types/index.ts, tools/kill-switch-test.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md, src/lib/aiWorker.ts, src/lib/aiIngest.ts, src/lib/aiWorkerHost.ts, src/components/shared/AiWorkerPanel.tsx, tools/ai-worker-test.mjs, package.json, tools/test-suites.json
   depends-on: H3, G0
   do: the handoff's §36, exactly. A suggestion is data: `{id, exactCommand, commandType, basedOnStateVersion, expiresAt, status:'pending'|'confirmed'|'expired'|'rejected'|'awaiting_result'|'resolved', evidenceRefs}`. `requestExecution(id, confirmation)` REQUIREs: status pending; not expired; `confirmation.commandText === exactCommand` (the player confirms the literal command, not a summary); the current state version equals `basedOnStateVersion` (that counter is `currentStateVersion()` in `src/lib/stateVersion.ts`, bumped by `versionedSetter`, which the store wraps its `set` in; it was also mirrored onto `AppState.stateVersion`, and #370 removed the mirror — one number, one owner, read from the module and never from the store); at most one suggestion in `awaiting_result`. Only then `requestGameAction` from `gameActions.ts` — the **only** import of it in any `ai*.ts`, and a source test asserts it is the only one. The authoritative result (next snapshot/state) resolves the suggestion; the model never marks its own proposal successful. Panel: one card with Confirm/Dismiss, the exact command in monospace, and the expiry.

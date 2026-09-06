@@ -107,8 +107,9 @@ export function WaitingForCharacter() {
         {/*
          * Asking for the demo is now an act, not the absence of one.
          *
-         * This used to call `simulateConnect()`, which is `connectBridge()`
-         * under another name and worked only because mock was already the
+         * This used to call `simulateConnect()`, which was `connectBridge()`
+         * under another name (the alias is now deleted) and worked only
+         * because mock was already the
          * mode on every fresh install. With `live` the default (issue #382)
          * that would have attached the real bridge and left the button
          * apparently doing nothing. The pair below is the same pair Settings

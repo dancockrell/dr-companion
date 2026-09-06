@@ -70,7 +70,7 @@ const BROWSER_DEPS: Dep[] = [
 
 export function SetupWizard() {
   const setSetupComplete = useAppStore((s) => s.setSetupComplete)
-  const simulateConnect = useAppStore((s) => s.simulateConnect)
+  const connectBridge = useAppStore((s) => s.connectBridge)
   const addLog = useAppStore((s) => s.addLog)
   // Opened from Settings rather than because something is missing. Changes one
   // thing: it does not skip itself when everything is present.
@@ -92,10 +92,24 @@ export function SetupWizard() {
   // Stamped when the check starts, not during render.
   const startedAt = useRef(0)
 
+  /**
+   * Leave setup and attach the bridge in whatever mode is configured.
+   *
+   * `connectBridge()` plainly, not `setBridgeMode('live')` first. This is the
+   * one exit from the wizard and it serves two buttons: "Continue", when every
+   * dependency is present, and "Open the demo dashboard", when one is missing
+   * or the app is running in a browser. Forcing `live` here would be right for
+   * the first and would break the second, so the mode stays whatever
+   * `bridgeModeSelect.ts` chose and this only opens it.
+   *
+   * This used to call `simulateConnect()`, which was `connectBridge()` under
+   * another name with this as its last caller. Deleting the alias is not a
+   * behaviour change: it called exactly this.
+   */
   const enter = useCallback(() => {
     setSetupComplete(true)
-    simulateConnect()
-  }, [setSetupComplete, simulateConnect])
+    connectBridge()
+  }, [setSetupComplete, connectBridge])
 
   const check = useCallback(async () => {
     if (!isTauri()) {
