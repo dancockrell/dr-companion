@@ -133,6 +133,8 @@ The art tooling pins commercially usable model choices rather than assuming a po
 
 The repository contains both user-facing and implementation-facing documentation. Useful starting points include:
 
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to work in this repository
+- [`docs/MERGING.md`](docs/MERGING.md) — **the pre-merge ritual. There is no CI: `npm run gate` is the gate, and the person merging runs it**
 - [`docs/BRIDGE_CONTRACT.md`](docs/BRIDGE_CONTRACT.md) — bridge protocol and capability contract
 - [`docs/TESTING.md`](docs/TESTING.md) — testing order and live verification
 - [`docs/PACKAGING.md`](docs/PACKAGING.md) — desktop packaging

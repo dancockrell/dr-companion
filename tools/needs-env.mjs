@@ -22,7 +22,7 @@
 // The sweep below therefore also picks up any script that executes a
 // `tools/*-test.*` file under any name at all.
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -161,9 +161,66 @@ for (const script of orphans) {
   }
 }
 
+/* --------------------------------------------------------------------------
+ * The break-checks, which the sweep above cannot see.
+ *
+ * Everything before this point reasons about npm scripts, and the negative
+ * suites are precisely the harnesses that must not be ordinary npm suites:
+ * each damages tracked source on purpose, so running one inside `npm run
+ * test:all` — several things at once, on a machine where other sessions build
+ * this tree — would have another lane compiling a deliberate defect. They live
+ * in `tools/gate.mjs` instead, as stages or as stated NOT_COVERED entries.
+ *
+ * Which is a perfectly good reason to keep them out, and it was used, and then
+ * nobody registered them anywhere at all. Review pass 8 (#489) found seven
+ * `*-break-check*` harnesses of which two reached the gate; one of the five had
+ * had a dead anchor since #409 and its abort — correct, loud, exit 1 — had
+ * fired for nobody in six weeks, because no command ran the file. An abort
+ * nothing executes is the same silence as no check.
+ *
+ * So this walks the directory rather than any list, and requires each harness
+ * to be reached one of the two legitimate ways. The population is the files on
+ * disk, which is the only thing that cannot go stale when somebody adds an
+ * eighth. Counting a list against itself would prove nothing.
+ * ---------------------------------------------------------------------------
+ */
+
+/** Well below the seven that exist, so it never needs touching, and high enough
+ * that a readdir returning nothing — a moved directory, a broken filter — fails
+ * here rather than printing "0 of 0 registered" and exiting clean. */
+const BREAK_CHECK_FLOOR = 6
+
+const gateSource = readFileSync(join(root, 'tools/gate.mjs'), 'utf8')
+const breakChecks = readdirSync(join(root, 'tools'))
+  .filter((f) => /-break-check\.(mjs|py|ts|js)$/.test(f))
+  .sort()
+
+console.log(`\nnegative suites, and where each one runs (${breakChecks.length}):`)
+if (breakChecks.length < BREAK_CHECK_FLOOR) {
+  fail(
+    `found only ${breakChecks.length} *-break-check.* files in tools/ (floor ${BREAK_CHECK_FLOOR}); ` +
+      'that is the walk breaking, not the harnesses being gone',
+  )
+}
+for (const file of breakChecks) {
+  // Reached by the full suite: some registered npm script runs this exact file.
+  const viaSuite = [...reachable].find((name) => scripts[name].includes(`tools/${file}`))
+  // Or named in the gate — as a stage, or in NOT_COVERED with its reason. Both
+  // are a decision somebody wrote down, which is the property being asserted;
+  // whether it runs is then the gate's own business and its summary prints it.
+  const inGate = gateSource.includes(file)
+  if (viaSuite) console.log(`OK   ${file} — run by the full suite, via ${viaSuite}`)
+  else if (inGate) console.log(`OK   ${file} — named in tools/gate.mjs`)
+  else
+    fail(
+      `${file} — no registered npm script runs it and tools/gate.mjs does not name it, ` +
+        'so nothing runs it and its aborts fire for nobody. Add a gate stage, or a NOT_COVERED entry with the reason.',
+    )
+}
+
 // Without this line an empty package.json would print the same OK lines.
 console.log(
-  `\nchecked ${NEEDS_ENVIRONMENT.length + UNWIRED.length} listed entries and ${orphans.length} unreached test scripts against ${Object.keys(scripts).length} npm scripts and ${registered.length} registered suites`,
+  `\nchecked ${NEEDS_ENVIRONMENT.length + UNWIRED.length} listed entries, ${orphans.length} unreached test scripts and ${breakChecks.length} negative suites against ${Object.keys(scripts).length} npm scripts and ${registered.length} registered suites`,
 )
 if (failed) {
   console.error(`${failed} entr${failed === 1 ? 'y has' : 'ies have'} drifted`)

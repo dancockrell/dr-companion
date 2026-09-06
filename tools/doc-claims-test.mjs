@@ -323,6 +323,53 @@ const pkg = JSON.parse(read('package.json'))
   ok('the gate runs tools/gate.mjs', /tools[/\\]gate\.mjs/.test(gate ?? ''), gate ?? '')
   ok('tools/gate.mjs exists', existsSync('tools/gate.mjs'))
 
+  /*
+   * The merge ritual reaches somebody who is about to merge, and quotes a
+   * stage count that is true.
+   *
+   * #489's fourth finding: `npm run gate` appeared in exactly two documents,
+   * neither of which anybody opens before merging, while `AGENTS.md` still
+   * told agents to distinguish "pending CI, passing CI" — states that stopped
+   * existing when the workflows were deleted. The command existed and the
+   * instruction to run it did not reach the person who needed it.
+   *
+   * `docs/MERGING.md` is now the one copy and the others link to it. The
+   * links are asserted rather than trusted, because a pointer to a page is
+   * the whole mechanism here: if `CONTRIBUTING.md` stops naming it, the
+   * ritual is unreachable again and nothing else would say so.
+   *
+   * The stage count is the part that rots. Both documents quote a number
+   * that lives in `tools/gate.mjs` as `EXPECTED_STAGES`, so this reads that
+   * constant and requires the quotes to match it. A lane adding a stage bumps
+   * one constant and two documents in the same commit, or this goes red —
+   * which is the point: a merger told to look for "7 of 7" on a gate that
+   * prints "8 of 8" learns to ignore the line.
+   */
+  const gateSource = read('tools/gate.mjs')
+  const expected = gateSource.match(/^const EXPECTED_STAGES = (\d+)$/m)?.[1]
+  ok('tools/gate.mjs declares EXPECTED_STAGES', Boolean(expected), expected ?? '(absent)')
+  const contributing = existsSync('CONTRIBUTING.md') ? read('CONTRIBUTING.md') : ''
+  ok('CONTRIBUTING.md points at the merge ritual', contributing.includes('docs/MERGING.md'))
+  ok('the README indexes it too', read('README.md').includes('docs/MERGING.md'))
+  ok('AGENTS.md sends a merger there', read('AGENTS.md').includes('docs/MERGING.md'))
+  ok('AGENTS.md no longer names CI states that do not exist', !/pending CI, passing CI/.test(read('AGENTS.md')))
+  ok('there is a pull-request template', existsSync('.github/PULL_REQUEST_TEMPLATE.md'))
+  if (!expected) {
+    notChecked('the merge ritual quotes the gate’s stage count', 'EXPECTED_STAGES did not parse out of tools/gate.mjs')
+  } else {
+    for (const doc of ['docs/MERGING.md', '.github/PULL_REQUEST_TEMPLATE.md']) {
+      const quoted = [...read(doc).matchAll(/(\d+) of (\d+) stages ran/g)]
+      ok(`${doc} quotes the gate's summary line`, quoted.length > 0, `${quoted.length} quote(s)`)
+      const wrong = quoted.filter((m) => m[1] !== expected || m[2] !== expected)
+      ok(
+        `${doc} quotes the real stage count (${expected})`,
+        wrong.length === 0,
+        wrong.map((m) => m[0]).join(', '),
+      )
+    }
+    ok('both name the command that prints it', read('docs/MERGING.md').includes('npm run gate') && read('.github/PULL_REQUEST_TEMPLATE.md').includes('npm run gate'))
+  }
+
   // And the documents that used to send a reader to CI now send them here.
   // A protocol whose pre-merge step names a check nobody runs is worse than
   // one with no step in it, because it reads as covered.

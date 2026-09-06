@@ -16,6 +16,28 @@ This document says what is likely to be wrong, how to find out, and what to
 send back. It is deliberately specific about where the weak points are, because
 a tester who knows where to push finds things faster than one who wanders.
 
+## Before you merge
+
+There is no CI. `npm run gate` is the gate and the person merging runs it; the
+ritual is [`docs/MERGING.md`](MERGING.md). `node tools/gate.mjs --list` prints
+what it covers and what it knowingly does not.
+
+Two negative suites are outside it, each for a stated reason, and both are worth
+running by hand after touching what they guard:
+
+```bash
+# damages src-tauri/src/command_gate.rs on purpose and runs cargo between edits.
+# Minutes, and no other session may be building this tree while it does.
+node tools/command-lane-break-check.mjs
+
+# drives a browser against the running app, and needs Python.
+python tools/sign-in-break-check.py
+```
+
+The rest of the `tools/*-break-check.*` harnesses are gate stages or are run by
+the full suite; `node tools/needs-env.mjs` fails if one is ever added and
+registered nowhere.
+
 ## Setting up
 
 1. Get Lich running. Sign in on the app's first screen and it starts Lich for

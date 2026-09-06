@@ -27,6 +27,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { watchTree } from './break-check-tree.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const md5 = (buf) => createHash('md5').update(buf).digest('hex')
@@ -51,15 +52,36 @@ const CASES = [
   },
   {
     name: 'the demo banner is hidden',
-    file: 'src/App.tsx',
-    find: "      {setupComplete && bridgeMode === 'mock' && <DemoBanner />}",
+    // The mount moved out of `App.tsx` in 46c8d241 (#409): every window now
+    // gets the band through the shell rather than only the main one, which is
+    // what #400 was about. The fragment here followed it. Between #409 and
+    // this commit the old `App.tsx` literal matched nothing, and the abort
+    // below did not save anybody, because no npm script and no
+    // `test-suites.json` entry ever ran this file. An abort nothing executes
+    // is the same silence as no check at all.
+    file: 'src/components/layout/WindowShell.tsx',
+    find: "      {setupComplete && bridgeMode === 'mock' && <DemoBanner compact={aux} />}",
     replace: '      {false && <span />}',
+    // Five, and all five are the same fact seen from different checks: with
+    // the mount gone, nothing in `src/` renders the band, so it is not above
+    // the view switch, the shell does not carry it, and there is no compact
+    // variant to find. Measured rather than predicted — the first version of
+    // this list named two and the harness reported the other three as
+    // UNEXPECTED, which is the entanglement guard doing its job.
     expect: [
-      'App renders the banner exactly once',
+      'exactly one component in src/ mounts it',
       'and only when the demo is on',
+      'the banner is mounted above the view switch',
+      'the shell it goes through is the default export',
+      'the pop-out windows get a compact variant of the same band',
     ],
   },
 ]
+
+// The "before" reading, taken before anything is damaged: this asserts that
+// the run changed nothing, not that the checkout was tidy. See
+// tools/break-check-tree.mjs.
+const treeBack = watchTree([...new Set(CASES.map((c) => c.file))])
 
 function runSuite() {
   const r = spawnSync(
@@ -97,7 +119,12 @@ for (const c of CASES) {
   const text = original.toString('utf8')
 
   if (!text.includes(c.find)) {
-    console.log(`ABORT ${c.name}: fragment not found in ${c.file} - the sabotage would have changed nothing`)
+    // Naming the anchor, not merely the file: an anchor that has drifted is
+    // repaired by finding where the line went, and "not found in App.tsx" sent
+    // nobody looking for it. This one sat dead from #409 until #489.
+    console.log(`ABORT ${c.name}: the anchor is not in ${c.file}, so the sabotage would have changed nothing.`)
+    console.log(`      anchor: ${JSON.stringify(c.find)}`)
+    console.log(`      find where it went (git log -S) and move the anchor; do not delete the case.`)
     process.exit(1)
   }
   writeFileSync(path, text.replace(c.find, c.replace))
@@ -128,4 +155,4 @@ for (const c of CASES) {
 }
 
 console.log(problems === 0 ? '\nboth sabotages were caught, both files restored' : `\n${problems} case(s) wrong`)
-process.exit(problems === 0 ? 0 : 1)
+process.exit(treeBack(problems === 0 ? 0 : 1))

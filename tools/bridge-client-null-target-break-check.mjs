@@ -10,10 +10,13 @@
  * the Godot test, and asserts that exactly the named checks go red. Then it
  * restores the file and confirms the restore byte for byte.
  *
- * Deliberately not an npm script and not in `tools/test-suites.json`: it writes
- * to a tracked source file, so it must never run inside the ordinary suite,
- * least of all on a machine where another session may be editing the same tree.
- * Run it by hand after changing either the guard or the code it guards.
+ * Deliberately not in `tools/test-suites.json`: it writes to a tracked source
+ * file, so it must never run inside the ordinary suite, least of all on a
+ * machine where another session may be editing the same tree. Since #489 it is
+ * a stage of `npm run gate` instead — a single-lane, pre-merge ritual, which is
+ * the condition it needs — sharing the Godot stage's precheck, so a missing or
+ * wrong-version engine reaches the summary as NOT RUN rather than as a failure.
+ * `tools/needs-env.mjs` asserts that it is still named there.
  *
  * # Four rules it enforces on itself
  *
@@ -52,6 +55,8 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { watchTree } from './break-check-tree.mjs'
+import { findGodotDetailed, godotCandidates, godotNotFoundReason } from './godot-tests.mjs'
 
 const SOURCE = 'godot/scripts/bridge_client.gd'
 const SCRIPT = 'tests/bridge_client_null_target_test.gd'
@@ -106,34 +111,30 @@ const CASES = [
 
 const md5 = (text) => createHash('md5').update(text).digest('hex')
 
-const EXPLICIT = process.env.GODOT4 || ''
-const CANDIDATES = EXPLICIT
-  ? [EXPLICIT]
-  : [
-      'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64_console.exe',
-      'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64.exe',
-      'godot',
-    ]
+// The "before" reading, taken before anything is damaged: this asserts that
+// the run changed nothing, not that the checkout was tidy. See
+// tools/break-check-tree.mjs.
+const treeBack = watchTree([SOURCE])
 
-const findGodot = () => {
-  for (const candidate of CANDIDATES) {
-    try {
-      execFileSync(candidate, ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-      return candidate
-    } catch {
-      // not here
-    }
-  }
-  return null
-}
-
-const godot = findGodot()
-if (!godot) {
-  console.error('ABORT: no Godot 4.3 binary found; this harness cannot run the test it is supposed to break.')
-  console.error(`  Looked at: ${CANDIDATES.join(', ')}`)
+/**
+ * The engine, from `godot-tests.mjs` rather than from a copy of its list.
+ *
+ * This file used to carry its own `CANDIDATES` array and its own `findGodot`,
+ * which is how it came to accept any binary that exited 0 on `--version` long
+ * after that had been fixed anywhere else — and a second answer to "is there
+ * an engine here" is the worst possible thing for two tools in one gate to
+ * disagree about, because one of them decides whether the other runs at all.
+ * `gate.mjs` imports the same three functions for the same reason.
+ */
+const CANDIDATES = godotCandidates()
+const detail = findGodotDetailed(CANDIDATES)
+if (!detail.found) {
+  console.error(`ABORT: ${godotNotFoundReason(detail, CANDIDATES)}; this harness cannot run the test it is supposed to break.`)
   console.error('  Reporting "nothing broke" here would be a negative suite that cannot fail, which is the thing it exists to prevent.')
   process.exit(2)
 }
+const godot = detail.found.path
+console.log(`engine: ${detail.found.version} at ${godot} (project declares ${detail.want})`)
 
 /** The source scan over the same class, run against the same damage. */
 const runScanner = () => {
@@ -266,5 +267,9 @@ if (!final || final.failed !== 0 || final.checked !== baseline.checked) {
 }
 
 console.log(`\n${CASES.length} sabotages of ${SOURCE}; ${bad} did not redden exactly the checks they named`)
-if (bad) process.exit(1)
+// git, not this file's own bookkeeping. The md5 above proves the restore
+// reproduced the bytes this run read; only git can see something else left
+// behind in the tree. See tools/break-check-tree.mjs.
+const treeCode = treeBack(bad ? 1 : 0)
+if (treeCode) process.exit(treeCode)
 console.log('all passed')

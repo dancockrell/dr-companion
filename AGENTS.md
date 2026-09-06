@@ -17,9 +17,13 @@ Do not leave noodles to nowhere: no unused scaffolds, orphaned modules, speculat
 5. Keep instructions local. Put a rule beside the system it governs. Put cross-project rules here. Do not scatter the same requirement through unrelated files.
 6. Do not add placeholders that can be mistaken for finished work. Mark unavoidable stand-ins clearly with ownership, intended replacement, acceptance criteria, plus machine-readable metadata where assets or generated content are involved.
 7. Validate in proportion to risk. Run the narrow test first, then the relevant suite, build, static checks, format checks, plus diff checks. Inspect visible behavior for UI or art changes. A command that was not run is not a pass.
-8. Report state truthfully. Distinguish local edits, committed work, pushed branches, open pull requests, pending CI, passing CI, plus merged code. Never claim publication or success before verifying it.
+8. Report state truthfully. Distinguish local edits, committed work, pushed branches, open pull requests, a green `npm run gate` on this branch, plus merged code. Never claim publication or success before verifying it. There is no CI on this repository: Actions is disabled and every workflow is deleted, so "pending CI" and "passing CI" are not states that exist here, and `gh pr checks` reporting nothing is indistinguishable from checks that have not started. See `docs/MERGING.md`.
 9. Make cohesive commits at meaningful checkpoints. Stage only intended files. Sync before publication. Push often enough that collaborators share the same history, without interrupting the work for empty or trivial commits.
 10. Never commit credentials, private keys, tokens, personal data, unlicensed assets, or uncertain provenance. Record source, license, authorship, transformations, approval state, plus usage restrictions for every admitted external or generated asset.
+
+## Merging — there is no CI
+
+`npm run gate` is the gate. Nothing off this machine runs anything against a branch, so a pull request with no evidence in it has been verified by nobody. The ritual — worktree, gate, rebase, squash merge, deleting the remote branch when the local step declines, and verifying by content rather than by SHA — is **[`docs/MERGING.md`](docs/MERGING.md)**, and that is its only copy. Read it before merging anything, and put the gate's summary block in the pull request.
 
 ## Work ledger — mandatory check-in and check-out
 

@@ -44,7 +44,7 @@
  * costs an import and nothing else.
  */
 import { execFileSync } from 'node:child_process'
-import { readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 
@@ -109,37 +109,143 @@ export function godotCandidates(explicit = process.env.GODOT4 || '') {
       ]
 }
 
-/** The first candidate that runs, with the version string it printed, or
- * `null`. `--version` rather than a filesystem check: a path that exists and
- * cannot execute is the same absence with more steps. */
+/**
+ * Which engine this project declares, read from `godot/project.godot` rather
+ * than typed here.
+ *
+ * `config/features=PackedStringArray("4.3", "Forward Plus")` is Godot's own
+ * statement of the version the project is for, and it is the thing that would
+ * change if the project were ever migrated. A constant `'4.3'` in this file
+ * would be a second copy of that fact, and the two would drift the day
+ * somebody opened the project in a newer editor — which is precisely the
+ * situation this check exists to catch, so the check must not be the thing
+ * that goes stale.
+ *
+ * Unreadable or unparseable is a third state, not a pass: without a declared
+ * version there is nothing to compare against, and `findGodot` says so rather
+ * than waving every binary through.
+ */
+export function declaredGodotVersion() {
+  const path = resolve(fileURLToPath(new URL('../godot/project.godot', import.meta.url)))
+  let text
+  try {
+    text = readFileSync(path, 'utf8')
+  } catch (error) {
+    return { error: `could not read ${path} (${error.message})` }
+  }
+  const m = text.match(/config\/features\s*=\s*PackedStringArray\(\s*"(\d+\.\d+)"/)
+  if (!m) return { error: `${path} has no config/features=PackedStringArray("<major.minor>") line` }
+  return { version: m[1] }
+}
+
+/**
+ * The first candidate that runs *and is the engine this project declares*,
+ * with the version string it printed, or `null`.
+ *
+ * `--version` rather than a filesystem check: a path that exists and cannot
+ * execute is the same absence with more steps. And the string it prints is
+ * read rather than merely captured, which it was not until #489: any binary
+ * that exited 0 was accepted as a Godot 4.3, so `DRC_GATE_GODOT=node` produced
+ * `gate: v24.19.0 at node; 0 already running` and went on to run the suite
+ * with it. That is survivable when the impostor is `node`, because everything
+ * downstream falls over loudly. It is not survivable when it is a Godot 4.4:
+ * the sixteen scripts run, they go green, and the gate's own message — "no
+ * Godot 4.3 binary" — was a version claim it never checked. The bug that
+ * caused this whole file to exist was a 4.4 API in a 4.3 project.
+ *
+ * A binary that runs and is the wrong engine is reported as its own state, not
+ * folded into "nothing found": the two call for opposite things from whoever
+ * is standing there — install an engine, versus you have the wrong one, and
+ * here is what it said it was.
+ *
+ * @returns {{path: string, version: string} | null} the accepted engine, or
+ *   null. `findGodot.rejected` is not used; callers wanting the detail call
+ *   `findGodotDetailed`.
+ */
 export function findGodot(candidates = godotCandidates()) {
+  const d = findGodotDetailed(candidates)
+  return d.found ?? null
+}
+
+/**
+ * The same search, with everything it learned: what it accepted, and every
+ * binary that ran and was refused, with the version string each printed.
+ *
+ * Separate from `findGodot` only in what it returns — one search, not two, for
+ * the same reason `godotCandidates` is imported by `gate.mjs` rather than
+ * copied: two answers to "is there an engine here" would drift, and the one
+ * that drifts decides whether the other gets to run.
+ *
+ * @returns {{found?: {path: string, version: string}, want?: string,
+ *   rejected: {path: string, version: string}[], error?: string}}
+ */
+export function findGodotDetailed(candidates = godotCandidates()) {
+  const declared = declaredGodotVersion()
+  const rejected = []
+  if (declared.error) return { rejected, error: declared.error }
+  // `4.3.stable.official.abcdef` matches; `4.4.stable...` and `v24.19.0` do
+  // not. Anchored, and the trailing dot is deliberate: a bare `^4\.3` would
+  // accept a hypothetical `4.30`.
+  const wanted = new RegExp(`^${declared.version.replace('.', '\\.')}\\.`)
   for (const candidate of candidates) {
+    let out
     try {
-      const out = execFileSync(candidate, ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-      return { path: candidate, version: out.trim().split('\n')[0] }
+      out = execFileSync(candidate, ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
     } catch {
       // Not here, or not runnable. Try the next one.
+      continue
     }
+    const version = out.trim().split('\n')[0]
+    if (wanted.test(version)) return { found: { path: candidate, version }, want: declared.version, rejected }
+    rejected.push({ path: candidate, version })
   }
-  return null
+  return { want: declared.version, rejected }
+}
+
+/**
+ * One sentence saying why there is no engine, in whichever of the three states
+ * the search ended in. Shared so `gate.mjs` and `main()` cannot disagree about
+ * what happened, and so "not Godot 4.3, found <what it printed>" is a distinct
+ * message from "nothing ran at all".
+ */
+export function godotNotFoundReason(detail, candidates) {
+  if (detail.error) return `the project's declared Godot version is unknown: ${detail.error}`
+  if (detail.rejected.length > 0) {
+    const list = detail.rejected.map((r) => `${r.path} printed "${r.version}"`).join('; ')
+    return `not Godot ${detail.want}: ${list}`
+  }
+  return `no Godot ${detail.want} binary; looked at ${candidates.join(', ')}`
 }
 
 function main() {
   const explicit = process.env.GODOT4 || ''
   const candidates = godotCandidates(explicit)
-  const godot = findGodot(candidates)
+  const detail = findGodotDetailed(candidates)
+  const godot = detail.found ?? null
+  const why = godotNotFoundReason(detail, candidates)
 
   if (!godot && explicit) {
-    console.error(`FAILED: GODOT4 is set to ${explicit}, and that does not run.`)
-    console.error('  An engine that was named explicitly and is missing is a broken setup,')
-    console.error('  not an absent one. Reporting "nothing checked" here would let a CI job')
-    console.error('  whose Godot install failed finish green having asserted nothing.')
+    console.error(`FAILED: GODOT4 is set to ${explicit}, and ${why}.`)
+    console.error('  An engine that was named explicitly and is missing — or is the wrong')
+    console.error('  version — is a broken setup, not an absent one. Reporting "nothing')
+    console.error('  checked" here would let a CI job whose Godot install failed finish')
+    console.error('  green having asserted nothing.')
+    process.exit(1)
+  }
+  // A binary that ran and is the wrong engine is a broken setup too, not an
+  // absent one: somebody has a Godot on this machine and it is not the one
+  // this project declares, and running the suite on it would go green on the
+  // wrong engine. Silence about that is the exact defect this file was
+  // written for — a 4.4 API in a 4.3 project.
+  if (!godot && detail.rejected.length > 0) {
+    console.error(`FAILED: ${why}.`)
+    console.error(`  ${TESTS} is a Godot ${detail.want} suite; running it on another engine would prove nothing.`)
     process.exit(1)
   }
   if (!godot) {
-    console.log('NOT CHECKED: no Godot binary found.')
+    console.log(`NOT CHECKED: ${why}.`)
     console.log(`  Looked at: ${candidates.join(', ')}`)
-    console.log('  Set GODOT4 to a Godot 4.3 executable to run these.')
+    console.log(`  Set GODOT4 to a Godot ${detail.want ?? '4.3'} executable to run these.`)
     console.log('\nno failures, but 0 of the Godot tests ran: there is no engine to run them with')
     // Deliberately 0: an absent engine is not a broken repository. The summary
     // above is what stops that reading as a pass. `gate.mjs` does not lean on
