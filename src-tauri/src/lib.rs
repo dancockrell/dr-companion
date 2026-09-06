@@ -15,6 +15,7 @@ pub mod scripts;
 pub mod setup;
 pub mod sounds;
 pub mod viewer;
+pub mod window_size;
 
 use tauri::{Emitter, Manager, WebviewWindow, WindowEvent};
 
@@ -247,18 +248,81 @@ pub fn run() {
                 // column to be worth having. Anyone who wants it narrow can
                 // drag it narrow - the columns are theirs to set. The point is
                 // that the default is not a shape the app cannot render.
-                let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
-                    width: 1180.0,
-                    height: 820.0,
-                }));
+                //
+                // Asked for, not imposed. On the clean-VM first run this set
+                // 1180x820 on a 1024x768 display and Windows did not shrink
+                // it: 224 px hung off the right edge, 91 px off the bottom,
+                // and the setup wizard's own "Check again" button was among
+                // the controls a user could not reach
+                // (docs/verification/first-run-2026-09-05.md, Defect 1). So
+                // the size goes past the work area first, and the arithmetic
+                // for that lives in `window_size` where it can be tested -
+                // this screen is not one this machine can produce.
+                //
+                // Below the minimum the layout stops being able to show its
+                // own content rather than merely being cramped. Nothing
+                // prevents resizing above it.
+                const REQUESTED: (f64, f64) = (1180.0, 820.0);
+                const MIN: (f64, f64) = (720.0, 480.0);
+                const MARGIN: f64 = 24.0;
 
-                // Below this the layout stops being able to show its own
-                // content rather than merely being cramped. Nothing prevents
-                // resizing above it.
                 let _ = window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize {
-                    width: 720.0,
-                    height: 480.0,
+                    width: MIN.0,
+                    height: MIN.1,
                 })));
+
+                // The monitor the window is already on, falling back to the
+                // primary. `current_monitor` is the one that answers "which
+                // screen is this actually opening on" when there are several,
+                // and it is what the user is looking at.
+                let monitor = window
+                    .current_monitor()
+                    .ok()
+                    .flatten()
+                    .or_else(|| window.primary_monitor().ok().flatten());
+
+                match monitor {
+                    Some(monitor) => {
+                        // work_area() is physical pixels; everything above is
+                        // logical. Dividing here rather than converting the
+                        // result keeps one unit in the clamp.
+                        let scale = monitor.scale_factor().max(0.1);
+                        let area = monitor.work_area();
+                        let work = window_size::WorkArea {
+                            x: f64::from(area.position.x) / scale,
+                            y: f64::from(area.position.y) / scale,
+                            width: f64::from(area.size.width) / scale,
+                            height: f64::from(area.size.height) / scale,
+                        };
+                        let placed = window_size::clamp_to_work_area(work, REQUESTED, MIN, MARGIN);
+                        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+                            width: placed.width,
+                            height: placed.height,
+                        }));
+                        let _ =
+                            window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                                x: placed.x,
+                                y: placed.y,
+                            }));
+                    }
+                    None => {
+                        // No monitor to ask - a headless or virtual display,
+                        // or a runtime that will not say. Ask for the default
+                        // and let the platform place it, which is exactly the
+                        // behaviour before the clamp existed. Said out loud
+                        // rather than silently: a size chosen without knowing
+                        // the screen is the defect above, and this is the one
+                        // case where there is nothing to know it from.
+                        eprintln!(
+                            "warning: no monitor reported; opening at {}x{} unclamped",
+                            REQUESTED.0, REQUESTED.1
+                        );
+                        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+                            width: REQUESTED.0,
+                            height: REQUESTED.1,
+                        }));
+                    }
+                }
             }
             Ok(())
         })
