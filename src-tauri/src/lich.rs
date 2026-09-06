@@ -2025,6 +2025,121 @@ mod tests {
         );
     }
 
+    /// #507: every `A`-reply token, through the composed path, to the sentence
+    /// the player is shown.
+    ///
+    /// The same drive as the case above and a different question. That one asks
+    /// what happens to the stored password; this asks what the player is *told*,
+    /// which before #507 was one sentence for fifteen tokens - including the
+    /// four Lich writes meanings down for and this app has a table of.
+    ///
+    /// The path is the real one, so the (token, sentence) pair asserted here is
+    /// the pair a server sending that token really produces: the mock EAccess
+    /// server -> `handshake` -> `from_refusal_code` -> `protocol_failure` ->
+    /// the `LoginFailure` the webview receives -> `login_error::refusal_sentence`
+    /// on the `token` field it carries. The webview reads the same table out of
+    /// the generated fixture, so there is one table and this end of it is
+    /// driven.
+    ///
+    /// Three denominators, because "they all differ" is also what a run over an
+    /// empty list says:
+    ///
+    /// - every token is accounted for, named or unnamed, and the two counts sum
+    ///   to the driven length;
+    /// - the named rows are asserted to be *reached*, by token, and their
+    ///   sentences to be distinct from each other, so collapsing two rows to one
+    ///   sentence goes red naming both tokens;
+    /// - `NEW` is the negative control and must reach no row at all, which is
+    ///   the case the "a reason this app does not recognise" wording is true of.
+    #[test]
+    fn every_refusal_token_reaches_the_sentence_written_for_its_cause() {
+        use crate::login_error::refusal_sentence;
+        let account = eaccess::test_support::account();
+        let stored = String::from("stored-") + "example";
+        // token -> the sentence the player would see, for the refusals that
+        // have one. Ordered so a failure prints something a person can read.
+        let mut named: std::collections::BTreeMap<&str, &'static str> =
+            std::collections::BTreeMap::new();
+        let mut unnamed: Vec<&str> = Vec::new();
+
+        for token in eaccess::test_support::REFUSAL_TOKENS {
+            let store = FakeStore::with(Some(stored.as_str()));
+            let mut server = eaccess::test_support::server_refusing(token);
+            let failure = characters_with(&mut server, &account, None, "DR", &store)
+                .expect_err("a refusal is an error");
+
+            // Only `account_refused` reads this table: the other codes have
+            // their own sentence one level up, and a row for one of their
+            // tokens is unreachable (asserted in `login_error.rs`).
+            if failure.code != "account_refused" {
+                continue;
+            }
+            match failure.token.as_deref().and_then(refusal_sentence) {
+                Some(row) => {
+                    named.insert(row.token, row.sentence);
+                }
+                None => unnamed.push(token),
+            }
+        }
+
+        // The four Lich glosses, by name. This is the list from the issue, and
+        // a token that stopped reaching its row is named individually rather
+        // than counted.
+        for token in [
+            "REJECT",
+            "NORECORD",
+            "INVALID",
+            "CHARACTER_NOT_FOUND",
+            "GENERATOR_NOT_AVAILABLE",
+        ] {
+            assert!(
+                named.contains_key(token),
+                "token {token:?} did not reach a sentence of its own; \
+                 it would fall back to the unrecognised-token wording"
+            );
+        }
+        // N tokens, N distinct sentences. Collapsing two rows to one sentence
+        // fails here naming both tokens, which is what the sabotage does.
+        let mut by_sentence: std::collections::BTreeMap<&str, Vec<&str>> =
+            std::collections::BTreeMap::new();
+        for (token, sentence) in &named {
+            by_sentence.entry(sentence).or_default().push(token);
+        }
+        let shared: Vec<String> = by_sentence
+            .iter()
+            .filter(|(_, tokens)| tokens.len() > 1)
+            .map(|(_, tokens)| tokens.join(" and "))
+            .collect();
+        assert!(
+            shared.is_empty(),
+            "these tokens share one sentence, so a cause lost its remedy: {}",
+            shared.join("; ")
+        );
+        assert_eq!(
+            by_sentence.len(),
+            named.len(),
+            "{} tokens produced {} sentences",
+            named.len(),
+            by_sentence.len()
+        );
+
+        // The negative control, and the reason the generic wording still
+        // exists: a token nobody has written down must reach no row, so the
+        // webview shows "a reason this app does not recognise" for the case
+        // that is actually true of.
+        assert!(
+            unnamed.contains(&"NEW"),
+            "NEW reached a sentence written for a named cause"
+        );
+        // Both outcomes occurred, so neither list is what an inert drive gives.
+        assert!(!named.is_empty() && !unnamed.is_empty());
+        assert_eq!(
+            named.len(),
+            crate::login_error::REFUSAL_SENTENCES.len(),
+            "the table has rows no driven token reaches, or the drive missed one"
+        );
+    }
+
     /// #488: a refused *stored* password still reaches the forgotten state.
     ///
     /// The direction the case above cannot cover on its own: it asserts which

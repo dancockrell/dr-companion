@@ -207,11 +207,46 @@ impl EAccessError {
             Self::Network { .. } => LoginCode::Network,
         }
     }
+
+    /// The raw `A`-reply token this refusal carries, if it is one.
+    ///
+    /// Issue #507: the three refusal variants are the three answers
+    /// [`Self::from_refusal_code`] can give, and every one of them was handed
+    /// the server's token to get there. Carrying it into
+    /// [`crate::login_error::LoginFailure`] is what lets the webview pick a
+    /// sentence per cause instead of one sentence for four of them.
+    ///
+    /// A `match` with no wildcard, so a variant added later has to answer this
+    /// question rather than defaulting to "no token" and quietly rejoining the
+    /// generic sentence.
+    ///
+    /// An empty code is `None` rather than `Some("")`: it means the reply had
+    /// no field to read, and a table lookup on the empty string would be a
+    /// lookup for a token that was never sent.
+    pub fn refusal_token(&self) -> Option<&str> {
+        match self {
+            Self::BadCredentials { code }
+            | Self::AccountLockedOrExpired { code }
+            | Self::AccountRefused { code } => {
+                if code.is_empty() {
+                    None
+                } else {
+                    Some(code.as_str())
+                }
+            }
+            Self::NoSuchCharacter { .. }
+            | Self::ProtocolMismatch { .. }
+            | Self::PasswordLength { .. }
+            | Self::ObscuredByteOutOfRange { .. }
+            | Self::Network { .. } => None,
+        }
+    }
 }
 
 impl From<EAccessError> for crate::login_error::LoginFailure {
     fn from(e: EAccessError) -> Self {
-        crate::login_error::LoginFailure::new(e.code(), e.to_string())
+        let token = e.refusal_token().map(str::to_string);
+        crate::login_error::LoginFailure::new(e.code(), e.to_string()).with_token(token.as_deref())
     }
 }
 

@@ -176,16 +176,37 @@ grep -n "FATAL_ERROR_CODES =" -B 4 /c/Ruby4Lich5/Lich5/lib/common/authentication
 `eaccess.rs`'s `EAccessError::from_refusal_code` is the one place this app maps
 a token to a variant:
 
-| token | Lich's gloss | this app | stored password |
-|---|---|---|---|
-| `PASSWORD` | wrong password | `BadCredentials` | **forgotten** |
-| `REJECT` | bad credentials | `AccountRefused` | kept |
-| `NORECORD` | account not found | `AccountRefused` | kept |
-| `INVALID` | invalid request | `AccountRefused` | kept |
-| `CHARACTER_NOT_FOUND` | character not in account | `AccountRefused` | kept |
-| `GENERATOR_NOT_AVAILABLE` | not entitled to the generator | `AccountRefused` | kept |
-| contains `LOCK`/`SUSPEND`/`EXPIRE`/`CLOSED`/`BANNED` | — (inferred shapes) | `AccountLockedOrExpired` | kept |
-| anything else, `NEW` and `""` included | — | `AccountRefused` | kept |
+| token | Lich's gloss | this app | stored password | what the player is told |
+|---|---|---|---|---|
+| `PASSWORD` | wrong password | `BadCredentials` | **forgotten** | That account name or password was not accepted. Check both and try again. |
+| `REJECT` | bad credentials | `AccountRefused` | kept | Play.net refused the account name and password together. Check both. Your saved password has been kept. |
+| `NORECORD` | account not found | `AccountRefused` | kept | No account with that name. Check the account name (not the character name). |
+| `INVALID` | invalid request | `AccountRefused` | kept | Play.net called the request invalid. Try again; if it repeats, the login service may have changed. |
+| `CHARACTER_NOT_FOUND` | character not in account | `AccountRefused` | kept | Play.net says that character is not on this account. Start the sign-in again to get a fresh character list. |
+| `GENERATOR_NOT_AVAILABLE` | not entitled to the generator | `AccountRefused` | kept | Play.net answered as though this app had asked to make a new character. It never does, so this is worth reporting as a bug. |
+| contains `LOCK`/`SUSPEND`/`EXPIRE`/`CLOSED`/`BANNED` | — (inferred shapes) | `AccountLockedOrExpired` | kept | Play.net has locked this account. Sign in on the Play.net website to unlock it, then come back. |
+| anything else, `NEW` and `""` included | — | `AccountRefused` | kept | …gave a reason this app does not recognise… **and the raw token** |
+
+**The sentence column is not maintained here.** The five `AccountRefused` rows
+come from `login_error.rs`'s `REFUSAL_SENTENCES`, generated into
+`src/lib/loginErrorFixtures.ts`, which is the table the webview renders; the
+other rows are `LOGIN_ERROR_SENTENCES` in `src/lib/lichLogin.ts`. Where this
+document and those disagree, they are right and this is stale. The check rather
+than the claim:
+
+```bash
+node --experimental-strip-types tools/login-error-fixture-test.mjs
+node --experimental-strip-types tools/sign-in-test.mjs
+```
+
+Issue #507 is why the column exists. Every `AccountRefused` row used to be told
+Play.net "gave a reason this app does not recognise", and to go and check the
+account on the Play.net website — one remedy for four causes, and a claim the
+gloss column two cells to its left disproves. `NORECORD` is the sharp one: it
+means the **account name** is wrong, which is a field on the screen in front of
+the player, and they were sent to a website instead. The unrecognised-token
+wording survives on the last row, which is the row it is true of, and now shows
+the raw token so a bug report carries it.
 
 `PASSWORD` is the only row that deletes anything, and that is the point of
 issue #488. Until it, the classifier had two states and everything that was not
@@ -218,6 +239,12 @@ drives each one through the composed path — mock server, real handshake, real
 classifier, real store — and asserts what happened to the secret. Not by
 building a variant and asserting on it: that is how the `NEW` fixture came to
 record a state the pipeline could not produce.
+
+`lich::tests::every_refusal_token_reaches_the_sentence_written_for_its_cause`
+(#507) drives the same population down the same path and asks the other
+question: what the player is *told*. The token crosses the boundary as a field
+on `LoginFailure` rather than inside the message, because reading a code back
+out of prose is the parser #457 was about, one field along.
 
 ### 2.3 Password obscuring
 
