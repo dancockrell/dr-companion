@@ -1027,19 +1027,49 @@ fn plaintext_of(secret: &Secret) -> Result<&str, LoginFailure> {
     })
 }
 
+/// Whether a failure is grounds for deleting the stored password.
+///
+/// A `match` over the whole enum with no wildcard, so the compiler refuses a
+/// variant added later rather than sweeping it into one answer or the other
+/// (issue #488). The old code was `matches!(e, BadCredentials { .. })`, which is
+/// the same rule and asks nothing of the next person to add a variant — and the
+/// defect was never in this line anyway. It was in the classifier that fed it:
+/// `BadCredentials` used to be the fallback for *any* token that was not one of
+/// five lock words, so an unrecognised refusal — `NEW`, `NORECORD`, `REJECT`, an
+/// empty third field from a truncated reply — destroyed a credential.
+///
+/// The rule now: forget only when the login service named the password itself
+/// ([`eaccess::EAccessError::BadCredentials`], and
+/// `EAccessError::from_refusal_code` reaches that from the single token Lich
+/// documents as "wrong password"). Everything else keeps the entry. Deleting a
+/// credential is not the safe default for a code nobody can read.
+fn is_grounds_for_forgetting(e: &eaccess::EAccessError) -> bool {
+    use eaccess::EAccessError as E;
+    match e {
+        E::BadCredentials { .. } => true,
+        E::AccountLockedOrExpired { .. }
+        | E::AccountRefused { .. }
+        | E::NoSuchCharacter { .. }
+        | E::ProtocolMismatch { .. }
+        | E::PasswordLength { .. }
+        | E::ObscuredByteOutOfRange { .. }
+        | E::Network { .. } => false,
+    }
+}
+
 /// A protocol failure, plus the one decision the store forces.
 ///
 /// A stored password the account server refuses is forgotten *here*, before
 /// the error is returned, so the next sign-in asks for a typed one rather than
-/// retrying the same dead secret for ever.
+/// retrying the same dead secret for ever. Which refusals count is
+/// [`is_grounds_for_forgetting`].
 fn protocol_failure(
     e: eaccess::EAccessError,
     source: PasswordSource,
     account: &str,
     creds: &dyn CredentialAccess,
 ) -> LoginFailure {
-    if source == PasswordSource::Stored && matches!(e, eaccess::EAccessError::BadCredentials { .. })
-    {
+    if source == PasswordSource::Stored && is_grounds_for_forgetting(&e) {
         creds.forget(account);
         return LoginFailure::stored_password_rejected(&e.to_string());
     }
@@ -1235,7 +1265,7 @@ mod tests {
     #[test]
     #[cfg_attr(
         not(debug_assertions),
-        ignore = "DRC_LICH_DRY_RUN is debug-only from #464; a_release_build_ignores_the_dry_run_knob is what runs there"
+        ignore = "DRC_LICH_DRY_RUN is debug-only from #464; the_dry_run_knob_is_debug_only is what runs there"
     )]
     fn a_dry_run_reports_the_argv_writes_the_file_and_spawns_nothing() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -1691,6 +1721,107 @@ mod tests {
             store.forgotten().is_empty(),
             "a typed refusal threw away the saved password"
         );
+    }
+
+    /// #488: every `A`-reply refusal token, through the composed path, with the
+    /// store checked afterwards.
+    ///
+    /// The path is the real one — `characters_with` -> the mock EAccess server
+    /// -> `handshake` -> `EAccessError::from_refusal_code` -> `protocol_failure`
+    /// -> the store — so the (token, forgotten?) pair asserted here is the pair
+    /// a server sending that token really produces. Building the variant
+    /// directly and asserting on it would test the assertion, which is how the
+    /// `NEW` fixture came to record a state the pipeline could not reach.
+    ///
+    /// Three denominators, because "nothing was forgotten" is what an inert
+    /// harness says too:
+    ///
+    /// - the store is asserted to hold the secret **before** each case, so a
+    ///   `FakeStore` that lost it earlier cannot pass by being empty;
+    /// - `PASSWORD` is the positive control and must be forgotten, so a run in
+    ///   which forgetting is broken outright goes red;
+    /// - `NEW` is the negative control and must be kept, which is the bug.
+    ///
+    /// Both outcomes are therefore reachable and both are asserted to occur.
+    #[test]
+    fn every_refusal_token_but_the_password_one_keeps_the_stored_password() {
+        let account = eaccess::test_support::account();
+        let stored = String::from("stored-") + "example";
+        let mut forgotten: Vec<&str> = Vec::new();
+        let mut kept: Vec<&str> = Vec::new();
+
+        for token in eaccess::test_support::REFUSAL_TOKENS {
+            // A fresh store per case, and the control that it really has
+            // something to lose.
+            let store = FakeStore::with(Some(&stored));
+            assert!(
+                store.load(&account).is_some(),
+                "token {token:?}: the store was empty before the case ran"
+            );
+            let mut server = eaccess::test_support::server_refusing(token);
+            let failure = characters_with(&mut server, &account, None, "DR", &store)
+                .expect_err("a refusal is an error");
+
+            let was_forgotten = !store.forgotten().is_empty();
+            assert_eq!(
+                was_forgotten,
+                store.load(&account).is_none(),
+                "token {token:?}: `forget` was recorded without emptying the store,                  or the other way round"
+            );
+            assert_eq!(
+                was_forgotten,
+                failure.code == "stored_password_rejected",
+                "token {token:?}: the code the webview gets ({}) and what happened to                  the stored password disagree",
+                failure.code
+            );
+            if was_forgotten {
+                forgotten.push(token);
+            } else {
+                kept.push(token);
+            }
+        }
+
+        // Named individually as well as counted: `NEW` is the exemplar in
+        // `login_error.rs`, `REJECT`/`NORECORD` are Lich's own vocabulary, and
+        // `""` is what a truncated third field leaves behind.
+        for token in ["NEW", "REJECT", "NORECORD", "INVALID", ""] {
+            assert!(
+                kept.contains(&token),
+                "token {token:?} deleted the stored password"
+            );
+        }
+        // The one token Lich documents as "wrong password"
+        // (`authenticator.rb:21`), case-insensitively, and nothing else.
+        assert_eq!(
+            forgotten,
+            vec!["PASSWORD", "password"],
+            "the set of tokens that delete a saved password has changed"
+        );
+        // Both outcomes occurred, so neither list is the answer an inert
+        // harness would give.
+        assert!(!forgotten.is_empty() && !kept.is_empty());
+        assert_eq!(
+            forgotten.len() + kept.len(),
+            eaccess::test_support::REFUSAL_TOKENS.len(),
+            "a token was driven and neither counted"
+        );
+    }
+
+    /// #488: a refused *stored* password still reaches the forgotten state.
+    ///
+    /// The direction the case above cannot cover on its own: it asserts which
+    /// tokens do not forget, and a `protocol_failure` that never forgot anything
+    /// would satisfy all but the `PASSWORD` row. This is that row on its own,
+    /// spelled out.
+    #[test]
+    fn the_password_token_still_forgets_a_stored_password() {
+        let account = eaccess::test_support::account();
+        let store = FakeStore::with(Some("stale-example"));
+        let mut server = eaccess::test_support::server_refusing("PASSWORD");
+        let failure = characters_with(&mut server, &account, None, "DR", &store)
+            .expect_err("a refused password is an error");
+        assert_eq!(failure.code, "stored_password_rejected");
+        assert_eq!(store.forgotten(), vec![account]);
     }
 
     /// #464: a release build ignores `DRC_LICH_DRY_RUN`.

@@ -19,7 +19,8 @@ export interface LoginErrorFixture {
 
 export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
   { code: "bad_credentials", message: "the account name or password was not accepted (PASSWORD)" },
-  { code: "account_locked_or_expired", message: "the account cannot sign in right now (NEW)" },
+  { code: "account_locked_or_expired", message: "the account cannot sign in right now (LOCKED)" },
+  { code: "account_refused", message: "the login service refused the account for a reason this version does not recognise (NEW)" },
   { code: "no_such_character", message: "no character named Nobody on this account (3 found)" },
   { code: "protocol_mismatch", message: "the login server's reply to A was not what this version expects: something this version does not know" },
   { code: "password_length", message: "the password is 40 characters and the login server's key is 32; this password cannot be sent" },

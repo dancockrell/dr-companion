@@ -13,14 +13,14 @@
 //! `Display` writes prose with no code, so `classifyLoginError`'s token regexp
 //! never matched, every real failure classified as `unknown`, and all seven
 //! player sentences were unreachable in the shipped app. A locked account read
-//! as *"Signing in failed. the account cannot sign in right now (NEW)"*.
+//! as *"Signing in failed. the account cannot sign in right now (LOCKED)"*.
 //!
 //! # The shape on the wire
 //!
 //! A structured object rather than a `"token: prose"` string:
 //!
 //! ```json
-//! { "code": "account_locked_or_expired", "message": "the account cannot sign in right now (NEW)" }
+//! { "code": "account_locked_or_expired", "message": "the account cannot sign in right now (LOCKED)" }
 //! ```
 //!
 //! Structured because a prefix convention is a parser waiting to be got wrong —
@@ -59,6 +59,11 @@ pub enum LoginCode {
     BadCredentials,
     /// `EAccessError::AccountLockedOrExpired`.
     AccountLockedOrExpired,
+    /// `EAccessError::AccountRefused`. The login service said no with a token
+    /// this version cannot read. Distinct from [`Self::BadCredentials`]
+    /// because it is the code that must **not** cost the player the saved
+    /// password (issue #488).
+    AccountRefused,
     /// `EAccessError::NoSuchCharacter`.
     NoSuchCharacter,
     /// `EAccessError::ProtocolMismatch`.
@@ -101,9 +106,10 @@ impl LoginCode {
     /// The denominator for the fixture test: a code added to the enum and not
     /// to this array leaves the fixture short, and the test that counts it
     /// goes red naming the shortfall.
-    pub const ALL: [LoginCode; 11] = [
+    pub const ALL: [LoginCode; 12] = [
         LoginCode::BadCredentials,
         LoginCode::AccountLockedOrExpired,
+        LoginCode::AccountRefused,
         LoginCode::NoSuchCharacter,
         LoginCode::ProtocolMismatch,
         LoginCode::PasswordLength,
@@ -121,6 +127,7 @@ impl LoginCode {
         match self {
             LoginCode::BadCredentials => "bad_credentials",
             LoginCode::AccountLockedOrExpired => "account_locked_or_expired",
+            LoginCode::AccountRefused => "account_refused",
             LoginCode::NoSuchCharacter => "no_such_character",
             LoginCode::ProtocolMismatch => "protocol_mismatch",
             LoginCode::PasswordLength => "password_length",
@@ -229,11 +236,18 @@ mod tests {
     /// read it, which is why #457 survived fifty-five green checks.
     fn every_failure() -> Vec<LoginFailure> {
         use crate::eaccess::EAccessError;
+        // The three refusals come from the classifier, never from a variant
+        // written here (issue #488). A hand-built pair is how this file came
+        // to ship `AccountLockedOrExpired { code: "NEW" }` — a state the live
+        // pipeline could not produce for that token, because `NEW` classified
+        // as `BadCredentials` and cost the player their saved password. That
+        // is #457's defect one level in, in the module written to prevent it.
+        // Passing the token through `from_refusal_code` means a fixture can
+        // only ever record what a server sending that token really gets.
         let protocol = [
-            EAccessError::BadCredentials {
-                code: "PASSWORD".into(),
-            },
-            EAccessError::AccountLockedOrExpired { code: "NEW".into() },
+            EAccessError::from_refusal_code("PASSWORD"),
+            EAccessError::from_refusal_code("LOCKED"),
+            EAccessError::from_refusal_code("NEW"),
             EAccessError::NoSuchCharacter {
                 requested: "Nobody".into(),
                 available: 3,
@@ -341,6 +355,14 @@ export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
             failures.len(),
             LoginCode::ALL.len()
         );
+        // Order too, not only coverage: the fixture is read positionally by
+        // nothing, but a sample that drifts out of `ALL`'s order is a sample
+        // somebody has re-typed rather than re-derived.
+        assert_eq!(
+            covered,
+            LoginCode::ALL.map(|c| c.as_str()).to_vec(),
+            "every_failure() is out of LoginCode::ALL order"
+        );
         for failure in &failures {
             assert!(
                 !failure.message.trim().is_empty(),
@@ -368,6 +390,28 @@ export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
             "{} has drifted from the Rust types; regenerate with \
              DRC_WRITE_LOGIN_FIXTURE=1 cargo test",
             path.display()
+        );
+    }
+
+    /// #488: the fixture's refusal samples are what the classifier produces
+    /// for those tokens, and the three of them are three *different* codes.
+    ///
+    /// The negative control is `NEW`. Before #488 it was written into this
+    /// file by hand as `AccountLockedOrExpired`, which no server sending `NEW`
+    /// could ever have produced; this asserts the fixture and the pipeline
+    /// agree, and it goes red if anyone hand-builds a variant here again.
+    #[test]
+    fn the_refusal_samples_are_the_classifier_s_own_answers() {
+        use crate::eaccess::EAccessError;
+        let by_token = |t: &str| EAccessError::from_refusal_code(t).code().as_str();
+        assert_eq!(by_token("PASSWORD"), "bad_credentials");
+        assert_eq!(by_token("LOCKED"), "account_locked_or_expired");
+        assert_eq!(by_token("NEW"), "account_refused");
+        // And the samples in the fixture are exactly those, in that order.
+        let refusals: Vec<&str> = every_failure().iter().take(3).map(|f| f.code).collect();
+        assert_eq!(
+            refusals,
+            vec![by_token("PASSWORD"), by_token("LOCKED"), by_token("NEW")]
         );
     }
 

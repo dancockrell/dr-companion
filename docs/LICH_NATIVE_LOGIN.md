@@ -145,6 +145,80 @@ branch used when neither a game code nor a character is supplied
 (`eaccess.rb:180`, reached from `authenticator.rb:46-57`). Lane N always has
 both, so `N` is never sent.
 
+### 2.2a The `A` refusal vocabulary, and which token may cost a password
+
+`eaccess.rb:115-118` is the whole of Lich's handling: if the `A` reply does not
+match `/KEY\t(?<key>.*)\t/`, it takes the last whitespace-separated field as
+`error_code` and raises `AuthenticationError` with it. It never interprets the
+token.
+
+One file does. `authenticator.rb:23` lists the codes that must not be retried,
+and the comment above it (`authenticator.rb:20-22`) glosses each one — this is
+**read**, not inferred, and it is the only written-down `A` vocabulary in the
+tree:
+
+```ruby
+# REJECT = bad credentials, NORECORD = account not found, INVALID = invalid request
+# PASSWORD = wrong password, CHARACTER_NOT_FOUND = character not in account
+# GENERATOR_NOT_AVAILABLE = account not entitled to create a character on the instance
+FATAL_ERROR_CODES = %w[REJECT NORECORD INVALID PASSWORD CHARACTER_NOT_FOUND GENERATOR_NOT_AVAILABLE].freeze
+```
+
+Read on 7 Sep 2026 from Lich 5.20.1 on this machine,
+`C:/Ruby4Lich5/Lich5/lib/common/authentication/authenticator.rb`,
+md5 `c47b25216ca6a9f0813eecd0792d5bfc`. `eaccess.rb` alongside it is
+md5 `785de8dc72423f7896657af890ba005e`. The check, not the claim:
+
+```bash
+grep -n "FATAL_ERROR_CODES =" -B 4 /c/Ruby4Lich5/Lich5/lib/common/authentication/authenticator.rb
+```
+
+`eaccess.rs`'s `EAccessError::from_refusal_code` is the one place this app maps
+a token to a variant:
+
+| token | Lich's gloss | this app | stored password |
+|---|---|---|---|
+| `PASSWORD` | wrong password | `BadCredentials` | **forgotten** |
+| `REJECT` | bad credentials | `AccountRefused` | kept |
+| `NORECORD` | account not found | `AccountRefused` | kept |
+| `INVALID` | invalid request | `AccountRefused` | kept |
+| `CHARACTER_NOT_FOUND` | character not in account | `AccountRefused` | kept |
+| `GENERATOR_NOT_AVAILABLE` | not entitled to the generator | `AccountRefused` | kept |
+| contains `LOCK`/`SUSPEND`/`EXPIRE`/`CLOSED`/`BANNED` | — (inferred shapes) | `AccountLockedOrExpired` | kept |
+| anything else, `NEW` and `""` included | — | `AccountRefused` | kept |
+
+`PASSWORD` is the only row that deletes anything, and that is the point of
+issue #488. Until it, the classifier had two states and everything that was not
+one of five lock words fell through to `BadCredentials` — which was harmless
+prose until #459 made `BadCredentials` the trigger for erasing the Windows
+Credential Manager entry. From that commit, the fallback for a token nobody has
+ever observed was a destructive action, and the tokens it destroyed a
+credential for included `NEW`, which `login_error.rs` shipped as its example of
+a *locked* account.
+
+`REJECT` is the near miss and is deliberately not in the forgetting row. Lich
+glosses it "bad credentials", which is the pair — account name **or** password —
+so a mistyped account name provokes it as readily as a stale secret. `PASSWORD`
+is the only token that names the password alone.
+
+`CHARACTER_NOT_FOUND` and `GENERATOR_NOT_AVAILABLE` are raised later in
+`eaccess.rb` (`:226`, `:165`), after the `A` step, and never reach this
+classifier: this module has its own `NoSuchCharacter` and never enters the
+generator. They are in the table because a server could still send one at `A`,
+and the row says what would happen if it did.
+
+The empty string is a row of its own in practice: `response.split(/\s+/).last`
+on a truncated reply yields `""`, and before #488 that deleted a stored
+password too.
+
+Every token above, plus the undocumented shapes #488's reviewer drove, is
+`eaccess::test_support::REFUSAL_TOKENS`, and
+`lich::tests::every_refusal_token_but_the_password_one_keeps_the_stored_password`
+drives each one through the composed path — mock server, real handshake, real
+classifier, real store — and asserts what happened to the secret. Not by
+building a variant and asserting on it: that is how the `NEW` fixture came to
+record a state the pipeline could not produce.
+
 ### 2.3 Password obscuring
 
 `eaccess.rb:109-113`, verbatim:
@@ -730,6 +804,13 @@ so the two are separated rather than blended.
    or for a wrong password.** Lich's code names the error strings it raises,
    not the bytes that provoke them. N1's mock covers the shapes Lich's own
    regexes accept and reject; the live shapes are N7's.
+   **Narrowed 7 Sep 2026 (#488).** The *vocabulary* is no longer inferred:
+   `authenticator.rb:20-23` writes six tokens down with a gloss each, and §2.2a
+   records them with the command that re-reads them. What is still inferred is
+   which of those six the live server sends at the `A` step, and whether it
+   sends anything outside them — which is exactly why an unrecognised token now
+   classifies as `AccountRefused` and keeps the stored password rather than
+   guessing at `BadCredentials` and deleting it.
 
 6. ~~**Whether the app receives the attach-time state replay at all.**~~
    **Read 7 Sep 2026 (issue #479): yes, and the reason #454 did not see it is
