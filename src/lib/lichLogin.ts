@@ -19,13 +19,18 @@
  * # What is stored
  *
  * The account name, the game code and the last character are ordinary
- * preferences, saved in plain text like every other preference. **The password
- * is not stored at all.** It is held in one component's `useState` for the
- * length of a call and cleared afterwards; it is passed as a command argument
- * and never comes back in a result, an error or a log line. Remembering it is
- * increment N8, which is opt-in, human-gated on a new Rust dependency, and not
- * built - so there is no "remember my password" control in the UI, because a
- * disabled one would read as a finished feature that merely does nothing.
+ * preferences, saved in plain text like every other preference. The password is
+ * held in one component's `useState` for the length of a call and cleared
+ * afterwards; it is passed as a command argument and never comes back in a
+ * result, an error or a log line.
+ *
+ * **It is stored if, and only if, the player ticks the box.** This paragraph
+ * used to say remembering it was "not built"; N8 built it the following day
+ * (#452), and a header asserting a password is never stored, in the module that
+ * hands one to the store, is the kind of stale claim that gets believed. Ticking
+ * the box passes it to Windows Credential Manager through `credential_store`.
+ * `src/lib/rememberPassword.ts` is the whole of that surface and
+ * `docs/PRIVACY.md` is what the player is told.
  *
  * # The error contract, and why it is a token
  *
@@ -37,9 +42,18 @@
  * token from `LOGIN_ERROR_KINDS`, a colon, and then whatever detail is safe to
  * print. `classifyLoginError` reads the token.
  *
+ * **That is the design, and the Rust side does not implement it yet** - issue
+ * #457. `impl Display for EAccessError` (`src-tauri/src/eaccess.rs:172-207`)
+ * writes prose with no prefix and both commands `.map_err(|e| e.to_string())`,
+ * so every real failure lands on `unknown` and the seven sentences below are
+ * unreachable in the app. Read this section as the contract to restore, not as
+ * a description of what happens today.
+ *
  * `tools/sign-in-test.mjs` checks that every kind has a sentence, N of N, and
- * cross-checks the set against the Rust enum's source once N1 lands
- * `src-tauri/src/eaccess.rs` - printing NOT CHECKED, not a pass, until then.
+ * cross-checks the set against the Rust enum's source. It does **not** check
+ * that Rust emits a token: its end-to-end loop builds the string it then
+ * classifies, and `lichLoginFake.ts`'s failure fixtures are token-prefixed
+ * where the real backend's are not. That is why #457 survived a green suite.
  */
 import { invokeTauri, isTauri } from './tauri.ts'
 import { loadPrefs, savePrefs } from './persistence.ts'
