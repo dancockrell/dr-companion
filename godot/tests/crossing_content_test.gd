@@ -14,7 +14,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var registry = root.get_node("ContentRegistry")
 	var content = root.get_node("SharedAssetContent")
-	var fixture: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://mock/crossing_mock_world.json"))
+	var fixture: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/crossing/world.json"))
 	var selections: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/shared_asset_selections.json"))
 	var cells: Dictionary = {}
 	for cell in fixture.cells:

@@ -7,6 +7,9 @@ func _initialize() -> void:
 	var shared: String = args[0]
 	var selections: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/shared_asset_selections.json"))
 	var spec: Dictionary = selections.nativeCatalog
+	var revision: Array = []
+	assert(OS.execute("git", ["-C", shared, "rev-parse", "HEAD"], revision) == 0)
+	assert(str(revision[0]).strip_edges() == spec.revision, "Shared catalog must match the declared revision")
 	var report: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(shared.path_join("docs/river-port-build/catalog/build-report.json")))
 	var source_path := shared.path_join(spec.source)
 	var source := (load(source_path) as PackedScene).instantiate()

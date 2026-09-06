@@ -1,5 +1,79 @@
 # Crossing native Town Green checkpoint — 6 September 2026
 
+## Current expansion checkpoint
+
+This section supersedes the six-room / mock-only scope below, which is retained
+as the first checkpoint's history. **The requested complete vertical slice is
+still unfinished.** Loading all rooms is not the same as finishing their art.
+
+- The authoring viewer now loads the entire compiled Crossing graph: **1,060
+  rooms and 2,389 directed local transitions**. The 19-room fixture remains for
+  focused regression tests. World framing now fits the full graph's extents.
+- **14 partial room compositions / 17 packaged native models**: the six Green
+  rooms plus Via Iltesh (two cells), S'zella Plaza, Supply Stand, Back Lawn,
+  Mongers' Bazaar, Milgrym's showroom, and Tembeg's salesroom.
+- The shared catalog now contains **80 models**. New reusable assets are
+  continuous turf, cut-log seating, a nailed plank approach, and display shelving.
+  The first lawn's checkerboard treatment was rejected and replaced. All prior
+  76 portable model hashes remain unchanged.
+- Source revision: `8ef2a7d2fcf4b9485bc1f63c6e3fd030e83b8d96`.
+  The packager now refuses a checkout at a different revision. The subset is
+  approximately 26.4 MB. Geometry is not decimated.
+- The live manifest loader now enriches a cell using world ID, exact cell ID,
+  and complete title. A conflicting supplied description hash refuses enrichment.
+  Only content fields are copied: live positions, board dimensions, exits and
+  population remain untouched. Metadata explicitly says the description is a
+  **compiled reference, not a newly confirmed live description**.
+- This binding is exercised with live-shaped snapshots and the actual content
+  factory in tests. No live-character session or full command-to-room-change
+  acceptance run was performed. Different Lich ID namespaces do not get guessed
+  matches; a mapping audit remains required for such sessions.
+- Corrected two source collisions in the existing place map. Milgrym no longer
+  receives Berolt's description, and Tembeg no longer receives a food-shop
+  description. Paraphrased room-specific visual evidence is linked to
+  [Milgrym's Weapons](https://elanthipedia.play.net/Milgrym%27s_Weapons) and
+  [Tembeg's Armory](https://elanthipedia.play.net/Tembeg%27s_Armory).
+- **382 Godot checks across 18 scripts pass**. Geometry-drift gate: 27 checks
+  pass. Fixture contract, geometric briefs and primitive-world tests were rerun.
+  The first PR's red gate was repaired; no unrelated tests were suppressed.
+
+### Current visible results
+
+![Expanded performance corner](crossing-native-bower.png)
+
+![Mongers' Bazaar content study](crossing-native-bazaar.png)
+
+![Weaponsmith furniture study](crossing-native-weaponsmith.png)
+
+![Full graph overview; not finished city art](crossing-native-world.png)
+
+The market is still a furnishing study, not a finished crowded market. Shop
+fixtures still lack their inventory and finished enclosing architecture. A stone
+bench in the weaponsmith study is an explicitly unfinished material substitution,
+not an assertion that the source's pine bench is stone. Do not admit these sets
+as lore-complete production scenes.
+
+### Remaining work toward the complete vertical slice
+
+1. Resolve district-scale composition and adjacent exterior/interior boundaries
+   through the existing board compiler. The current small separated tiles are
+   still visibly unlike the accepted coherent-town reference.
+2. Author the remaining rooms and named landmarks. Every composition's missing
+   pieces are machine-readable in the selection ledger; none is marked complete.
+   This pass does not claim the other 1,046 rooms are finished.
+3. Audit source identity across the city. The current catalog reports 85 rooms
+   without a description; another 138 described bindings have a different full
+   source title. Some may be valid place-level reuse, but cannot be treated as
+   room-specific proof without review. The corrected shops demonstrate the risk.
+4. Complete waterfronts, streets, civic buildings, interiors, inventory displays,
+   species-specific plants, and reusable character models; retain full exterior
+   geometry, not permanently half-open demonstration houses.
+5. Verify dense-scene performance, exact door-facing/approach placement,
+   marker and label clearance, keyboard/mouse traversal, live reconnect and
+   confirmed movement with a real character. Animation remains deferred.
+
+## Historical first checkpoint
+
 This is **six partial room compositions in the actual Godot viewer**, not a finished
 Crossing city, a live-game acceptance run, or the generic river-port demo renamed.
 No paid generation or service credits were used.

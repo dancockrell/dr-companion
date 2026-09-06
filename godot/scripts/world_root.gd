@@ -8,7 +8,6 @@ extends Node3D
 ## itself decides what a cell looks like (`ContentRegistry`'s job) or
 ## whether a click is a legal walk (`IntentSender`/`BridgeClient`'s job).
 
-const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
 const CROSSING_WORLD_PATH := "res://assets/crossing/world.json"
 const MOCK_WORLD_ID := "crossing-mock"
 const MOCK_STARTING_ROOM := "1-14"  # Town Green North
@@ -326,11 +325,10 @@ func _focus_room(room_id: String, mode: int) -> void:
 func focus_world_view() -> void:
 	if WorldManifestLoader.cells.is_empty():
 		return
-	var center := Vector3.ZERO
+	var positions: Array = []
 	for cell in WorldManifestLoader.cells.values():
-		center += _cell_position(cell)
-	center /= float(WorldManifestLoader.cells.size())
-	camera.focus_on(camera.Mode.WORLD, center)
+		positions.append(_cell_position(cell))
+	camera.frame_world_positions(positions)
 
 func focus_current_room_view() -> void:
 	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")

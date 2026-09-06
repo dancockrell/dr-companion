@@ -226,7 +226,15 @@ on purpose, so nobody mistakes this for further along than it is:
 
 ## Shared reusable asset library
 
-**6 September content update:** six exact, description-hash-bound Town Green
+**Latest 6 September expansion:** the default authoring world now contains the
+full 1,060-room Crossing graph. Fourteen partial compositions use seventeen
+textured models; the small fixture remains a regression input. Live cells can now
+receive compiled content by exact world/ID/title with conflict refusal, without
+copying offline positions or exits into live state. Full-city art and real-character
+acceptance remain incomplete. The current detailed evidence and gaps are in
+[the content checkpoint](../docs/verification/crossing-native-content.md).
+
+**Earlier 6 September content update (superseded scope):** six exact, description-hash-bound Town Green
 compositions now mount through `ContentRegistry.build_cell`. They replace the
 generic primitive stack only for matching rooms, using a seven-model native subset
 of the shared environment catalog. These are partial authored compositions, not a

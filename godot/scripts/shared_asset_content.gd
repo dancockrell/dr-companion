@@ -101,11 +101,11 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 			model.scale.z = size.z * placement.envelope[1] / dimensions[2]
 		model.rotation.y = yaw
 		model.position = Vector3(placement.center[0] * size.x, ground_top + placement.lift, placement.center[1] * size.z)
-		if placement.assetId.ends_with(".grass-verge"):
+		if placement == recipe.pieces[0]:
 			# This ground kit is rectangular. Fill the published footprint exactly;
 			# keep its top at the height already used by tokens and exit anchors.
-			model.scale.x = size.x / dimensions[0]
-			model.scale.z = size.z / dimensions[2]
+			model.scale.x = size.x * placement.envelope[0] / dimensions[0]
+			model.scale.z = size.z * placement.envelope[1] / dimensions[2]
 			model.position.y = ground_top - dimensions[1] * factor
 		model.visible = true
 		model.set_meta("asset_id", placement.assetId)

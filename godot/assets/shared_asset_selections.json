@@ -49,20 +49,30 @@
   ],
   "nativeCatalog": {
     "repository": "https://github.com/dancockrell/shared-game-environment-library",
-    "revision": "63ccd5d1b5d61364ab789ed8c0f19631ee5cd7cd",
+    "revision": "8ef2a7d2fcf4b9485bc1f63c6e3fd030e83b8d96",
     "source": "docs/river-port-build/catalog/catalog-native.scn",
     "runtimePath": "res://assets/crossing/town-green.scn",
     "provenancePath": "res://assets/crossing/provenance.json",
     "assetIds": [
-      "painted-river-port.grass-verge",
+      "painted-river-port.manicured-lawn",
       "painted-river-port.cobble-street",
       "painted-river-port.hedge-run",
-      "painted-river-port.oak-tree",
+      "painted-river-port.dirt-path",
       "painted-river-port.vine-bower",
       "painted-river-port.stone-bench",
-      "painted-river-port.dirt-path"
+      "painted-river-port.stump-seat",
+      "painted-river-port.oak-tree",
+      "painted-river-port.plank-approach",
+      "painted-river-port.cobble-plaza",
+      "painted-river-port.trestle-table",
+      "painted-river-port.tool-rack",
+      "painted-river-port.sack-stack",
+      "painted-river-port.canvas-shelter",
+      "painted-river-port.cargo-stack",
+      "painted-river-port.display-rack",
+      "painted-river-port.workbench"
     ],
-    "reviewState": "Town Green first-pass composition; not complete city or final lore approval",
+    "reviewState": "Crossing authoring pack; per-room omissions remain explicit",
     "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
   },
   "roomCompositions": [
@@ -75,7 +85,7 @@
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.grass-verge",
+          "assetId": "painted-river-port.manicured-lawn",
           "center": [
             0,
             0
@@ -148,12 +158,11 @@
       "cellId": "1-15",
       "evidence": "modwyn vine bower; limestone bench; sawed-off tree stools; open performance space",
       "missing": [
-        "modwyn fruit clusters",
-        "sawed-off stump stools"
+        "modwyn fruit clusters"
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.grass-verge",
+          "assetId": "painted-river-port.manicured-lawn",
           "center": [
             0,
             0
@@ -190,6 +199,45 @@
           ],
           "lift": 0.06,
           "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.stump-seat",
+          "center": [
+            0.28,
+            0.14
+          ],
+          "envelope": [
+            0.12,
+            0.12
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.stump-seat",
+          "center": [
+            0.26,
+            0.34
+          ],
+          "envelope": [
+            0.12,
+            0.12
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.stump-seat",
+          "center": [
+            -0.08,
+            0.34
+          ],
+          "envelope": [
+            0.12,
+            0.12
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
         }
       ],
       "status": "partial-authored",
@@ -204,7 +252,7 @@
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.grass-verge",
+          "assetId": "painted-river-port.manicured-lawn",
           "center": [
             0,
             0
@@ -243,7 +291,7 @@
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.grass-verge",
+          "assetId": "painted-river-port.manicured-lawn",
           "center": [
             0,
             0
@@ -294,7 +342,7 @@
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.grass-verge",
+          "assetId": "painted-river-port.manicured-lawn",
           "center": [
             0,
             0
@@ -341,12 +389,11 @@
       "cellId": "1-225",
       "evidence": "thick hedges with armory entrance breach; plank approach; unpainted wood exterior",
       "missing": [
-        "Tembeg unpainted exterior with displayed work",
-        "plank walkway"
+        "Tembeg unpainted exterior with displayed work"
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.grass-verge",
+          "assetId": "painted-river-port.manicured-lawn",
           "center": [
             0,
             0
@@ -383,11 +430,415 @@
           ],
           "lift": 0.06,
           "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.plank-approach",
+          "center": [
+            0,
+            -0.25
+          ],
+          "envelope": [
+            0.16,
+            0.44
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
         }
       ],
       "status": "partial-authored",
       "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
       "descriptionHash": "4b6facaa5a85d146"
+    },
+    {
+      "cellId": "1-12",
+      "descriptionHash": "27e2f01461140dc4",
+      "status": "partial-authored",
+      "evidence": "Narrow lane widening toward Clanthew Boulevard; named skyline buildings are remote, not placed in this cell",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "sword-blade lane profile",
+        "distant skyline"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-street",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            0.65,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-13",
+      "descriptionHash": "27e2f01461140dc4",
+      "status": "partial-authored",
+      "evidence": "Narrow lane widening toward Clanthew Boulevard; named skyline buildings are remote, not placed in this cell",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "sword-blade lane profile",
+        "distant skyline"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-street",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            0.65,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-19",
+      "descriptionHash": "8e87be5b9becf328",
+      "status": "partial-authored",
+      "evidence": "Granite plaza with stone benches around a polychrome statue",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "polychrome statue",
+        "granite material specificity"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-plaza",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.stone-bench",
+          "center": [
+            -0.28,
+            -0.3
+          ],
+          "envelope": [
+            0.32,
+            0.14
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.stone-bench",
+          "center": [
+            0.28,
+            -0.3
+          ],
+          "envelope": [
+            0.32,
+            0.14
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-371",
+      "descriptionHash": "40ba1666ebd6b149",
+      "status": "partial-authored",
+      "evidence": "Trampled lawn with supplies on tables and tools; no static dwarf is fabricated as a live occupant",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "mud puddles",
+        "specific pickaxe and shovel displays"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.dirt-path",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.trestle-table",
+          "center": [
+            -0.25,
+            -0.28
+          ],
+          "envelope": [
+            0.4,
+            0.3
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.tool-rack",
+          "center": [
+            0.27,
+            -0.3
+          ],
+          "envelope": [
+            0.25,
+            0.25
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.sack-stack",
+          "center": [
+            -0.25,
+            -0.28
+          ],
+          "envelope": [
+            0.2,
+            0.15
+          ],
+          "lift": 0.42,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-377",
+      "descriptionHash": "4941c1e4ab673537",
+      "status": "partial-authored",
+      "evidence": "Sprawling lawn used for amphitheater overflow seating",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "wider district composition"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.manicured-lawn",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-379",
+      "descriptionHash": "d67e61bfe6e92faa",
+      "status": "partial-authored",
+      "evidence": "Ramshackle market stalls and tattered tents on churned ground",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "tattered cloth variation",
+        "mud surface"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.dirt-path",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.canvas-shelter",
+          "center": [
+            -0.26,
+            -0.25
+          ],
+          "envelope": [
+            0.43,
+            0.42
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.trestle-table",
+          "center": [
+            0.28,
+            -0.25
+          ],
+          "envelope": [
+            0.32,
+            0.3
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.cargo-stack",
+          "center": [
+            0.3,
+            0.25
+          ],
+          "envelope": [
+            0.26,
+            0.25
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-191",
+      "descriptionHash": "43d9343196f8e1c9",
+      "status": "partial-authored",
+      "evidence": "Pine display furniture in the plain practical weapons showroom; corrected room-specific source",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "weapon inventory meshes",
+        "pine bench replacement",
+        "finished interior walls"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.plank-approach",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.display-rack",
+          "center": [
+            0,
+            -0.36
+          ],
+          "envelope": [
+            0.7,
+            0.22
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.workbench",
+          "center": [
+            -0.32,
+            0.04
+          ],
+          "envelope": [
+            0.25,
+            0.48
+          ],
+          "lift": 0.02,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.stone-bench",
+          "center": [
+            0.32,
+            0.18
+          ],
+          "envelope": [
+            0.25,
+            0.2
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-192",
+      "descriptionHash": "9ad2393fa2da1b24",
+      "status": "partial-authored",
+      "evidence": "Armor displays and sturdy wooden shop furnishings; corrected room-specific source",
+      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "missing": [
+        "armor and shield meshes",
+        "obsidian armored figure",
+        "finished interior walls"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.plank-approach",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.display-rack",
+          "center": [
+            0,
+            -0.35
+          ],
+          "envelope": [
+            0.65,
+            0.25
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.workbench",
+          "center": [
+            -0.32,
+            0.08
+          ],
+          "envelope": [
+            0.25,
+            0.45
+          ],
+          "lift": 0.02,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.cargo-stack",
+          "center": [
+            0.32,
+            0.12
+          ],
+          "envelope": [
+            0.26,
+            0.3
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        }
+      ]
     }
   ]
 }

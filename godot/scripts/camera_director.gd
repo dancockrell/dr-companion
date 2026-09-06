@@ -59,6 +59,30 @@ func _apply_immediate(to_mode: Mode, position: Vector3) -> void:
 	global_transform = _transform_for(position, framing["height"])
 	size = framing["size"]
 
+## Full-zone view must fit the actual graph, not the old 19-room fixture.
+func frame_world_positions(positions: Array) -> void:
+	if positions.is_empty():
+		return
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	var box := AABB(positions[0], Vector3.ZERO)
+	for p in positions:
+		box = box.expand(p)
+	mode = Mode.WORLD
+	focus_position = box.get_center()
+	var distance := maxf(float(FRAMING[Mode.WORLD].height), box.size.length())
+	global_transform = _transform_for(focus_position, distance)
+	far = maxf(4000.0, global_position.distance_to(box.position) + box.size.length())
+	var projected := AABB()
+	var first := true
+	for p in positions:
+		var local: Vector3 = global_transform.affine_inverse() * p
+		projected = AABB(local, Vector3.ZERO) if first else projected.expand(local)
+		first = false
+	var viewport_size := get_viewport().get_visible_rect().size
+	var aspect := viewport_size.x / maxf(1.0, viewport_size.y)
+	size = maxf(24.0, maxf(projected.size.y, projected.size.x / aspect) * 1.25 + 12.0)
+
 func _transform_for(position: Vector3, height: float) -> Transform3D:
 	# True isometric framing: equal X/Z heading and the classic 35.264 degree
 	# elevation. Rotation is intentionally not an interactive control.
