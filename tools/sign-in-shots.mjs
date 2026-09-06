@@ -222,6 +222,141 @@ try {
     /has no DragonRealms characters/.test(emptyText)
   )
   check('empty: and still offers a way back', /Back to sign in/.test(emptyText))
+
+  // ------------------------------------- the three states issue #459 needs
+  //
+  // Added with N9. The first two are what a real failure looks like now that
+  // the backend sends a code (#457) - before it, every one of them rendered as
+  // "Signing in failed." followed by whatever prose Rust happened to write.
+  // The third is the state N8 built and nothing could reach: an account whose
+  // password is saved, where the form must not ask for one again.
+
+  // locked: the sentence that costs a player most, and the reason #457 was
+  // filed. A locked account used to read "Signing in failed. the account
+  // cannot sign in right now (NEW)".
+  await b.goto(url('bridge=live'))
+  await fill(b, 'Account name', 'locked')
+  await fill(b, 'Password', 'not-a-real-password-9d4f')
+  await b.click('button', /^Sign in$/)
+  for (let i = 0; i < 60; i += 1) {
+    if (/locked this account/.test(await b.eval('document.body.innerText'))) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const lockedText = await b.eval('document.body.innerText')
+  await b.screenshot(out('sign-in-errors-2026-09-06-locked.png'))
+  check(
+    'locked: the player is told where to go and what to do',
+    /Sign in on the Play\.net website to unlock it/.test(lockedText)
+  )
+  check(
+    'locked: and what the server actually said is under it, not instead of it',
+    /the account cannot sign in right now/.test(lockedText),
+    'the detail line'
+  )
+  check(
+    'locked: the generic sentence is not what is shown',
+    !/^Signing in failed\.$/m.test(lockedText)
+  )
+  // Looking, not reading. `innerText` reports a sentence rendered below the
+  // fold of a scrolling column exactly as happily as one a player can see, and
+  // that is what issue #418 was. Measured against the window, after the
+  // component's own scroll-into-view has had its chance.
+  //
+  // This check was added because the first run of it failed: the detail line
+  // pushed the block past the bottom edge at 1024x768, and the screenshot said
+  // so while every text assertion above stayed green.
+  const errorBox = await b.run(`
+    const p = [...document.querySelectorAll('p')]
+      .find((el) => /Sign in on the Play\\.net website/.test(el.textContent || ''));
+    if (!p) return { found: false };
+    const box = p.parentElement.getBoundingClientRect();
+    return {
+      found: true,
+      top: Math.round(box.top),
+      bottom: Math.round(box.bottom),
+      viewport: document.documentElement.clientHeight,
+    };
+  `)
+  check('locked: the failure block was found (control)', errorBox.found === true, JSON.stringify(errorBox))
+  check(
+    'locked: and the whole of it is on screen, detail line included',
+    errorBox.found && errorBox.top >= 0 && errorBox.bottom <= errorBox.viewport,
+    JSON.stringify(errorBox)
+  )
+
+  // badpw: an account with nothing in the fixtures, which the stand-in
+  // refuses with the real `bad_credentials` object.
+  await b.goto(url('bridge=live'))
+  await fill(b, 'Account name', 'nosuchaccount')
+  await fill(b, 'Password', 'not-a-real-password-9d4f')
+  await b.click('button', /^Sign in$/)
+  for (let i = 0; i < 60; i += 1) {
+    if (/was not accepted/.test(await b.eval('document.body.innerText'))) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const badpwText = await b.eval('document.body.innerText')
+  await b.screenshot(out('sign-in-errors-2026-09-06-badpw.png'))
+  check(
+    'badpw: a refusal says which two things to check',
+    /That account name or password was not accepted\. Check both and try again\./.test(badpwText)
+  )
+  const badpwCleared = await b.run(`
+    return [...document.querySelectorAll('input')]
+      .filter((i) => i.type === 'password' && i.value).length;
+  `)
+  check('badpw: the field was cleared', badpwCleared === 0, `${badpwCleared} still filled`)
+
+  // stored: `saved` is a fixture account the stand-in reports a stored
+  // password for. The password field must be gone, the Sign in button must
+  // still work, and there must be a way to type a different one.
+  await b.goto(url('bridge=live'))
+  await fill(b, 'Account name', 'saved')
+  for (let i = 0; i < 60; i += 1) {
+    if (/Using the password saved/.test(await b.eval('document.body.innerText'))) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const storedText = await b.eval('document.body.innerText')
+  await b.screenshot(out('sign-in-errors-2026-09-06-stored.png'))
+  check(
+    'stored: the form says it is using the saved password',
+    /Using the password saved on this computer for saved/.test(storedText)
+  )
+  check('stored: and offers a way past it', /Use a different password/.test(storedText))
+  const storedFields = await b.run(`
+    return {
+      password: [...document.querySelectorAll('input')].filter((i) => i.type === 'password').length,
+      signInDisabled: [...document.querySelectorAll('button')]
+        .filter((x) => x.innerText.trim() === 'Sign in')
+        .map((x) => x.disabled),
+      remember: /Remember password on this computer/.test(document.body.innerText),
+    };
+  `)
+  check('stored: there is no password box at all', storedFields.password === 0, `${storedFields.password} found`)
+  check(
+    'stored: and Sign in is pressable without typing one',
+    storedFields.signInDisabled.length === 1 && storedFields.signInDisabled[0] === false,
+    JSON.stringify(storedFields.signInDisabled)
+  )
+  check(
+    'stored: the remember box is not offered when nothing is being typed',
+    storedFields.remember === false
+  )
+
+  // The direction that finds things: pressing "Use a different password" must
+  // bring the field back, or a saved password that has stopped working is a
+  // dead end.
+  await b.click('button', /^Use a different password$/)
+  for (let i = 0; i < 60; i += 1) {
+    const n = await b.run(`
+      return [...document.querySelectorAll('input')].filter((i) => i.type === 'password').length;
+    `)
+    if (n > 0) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const backToTyping = await b.run(`
+    return [...document.querySelectorAll('input')].filter((i) => i.type === 'password').length;
+  `)
+  check('stored: "Use a different password" brings the field back', backToTyping === 1, `${backToTyping} field(s)`)
 } finally {
   await b.close()
 }

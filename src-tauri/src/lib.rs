@@ -9,6 +9,7 @@ pub mod elanthipedia;
 pub mod game_link;
 pub mod lich;
 pub mod lich_health;
+pub mod login_error;
 pub mod media_keys;
 pub mod music;
 pub mod node;

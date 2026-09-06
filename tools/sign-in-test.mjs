@@ -35,15 +35,25 @@
  *   6. the character picker offers exactly what the command returned, not a
  *      list this app made up.
  *
- * # The denominator, and the one thing this file cannot check yet
+ * # The denominator, and the hole that was in it
  *
  * Property 4's required set is stated here rather than derived from the
  * implementation, because a set derived from the thing under test cannot detect
- * a missing member. The authority it *should* be derived from is the Rust
- * `EAccessError` enum, which increment N1 owns and which had not merged when
- * this was written. So the cross-check against `src-tauri/src/eaccess.rs` runs
+ * a missing member. The cross-check against `src-tauri/src/eaccess.rs` runs
  * when that file exists and prints NOT CHECKED with the reason when it does
  * not - and a run that skipped it cannot end on the words "all passed".
+ *
+ * **What this file used to do, and why it was worthless** (issue #457). Its
+ * end-to-end loop built the string it then classified - a variant name this
+ * file had snake_cased itself, a colon, and some invented detail. So it proved
+ * the classifier could read a shape *that did not exist*. Rust sent unprefixed
+ * prose, every real failure classified as `unknown`, and all seven player
+ * sentences were unreachable in the shipped app while fifty-five checks passed
+ * here.
+ *
+ * It now classifies `src/lib/loginErrorFixtures.ts`, which `cargo test`
+ * generates from the Rust types and refuses to let drift. Nothing in this file
+ * writes a backend error string any more.
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -55,10 +65,14 @@ const read = (rel) => readFileSync(join(root, rel), 'utf8').replace(/\r\n/g, '\n
 let pass = 0
 let fail = 0
 const skipped = []
-/** How many enum variants the cross-check below actually classified. Zero
- * when eaccess.rs is absent, which the denominator at the foot has to know:
- * a skipped loop must not read as assertions that never executed. */
-let variantsChecked = 0
+/** Whether the cross-check against `eaccess.rs` ran. False when that file is
+ * absent, which the denominator at the foot has to know: a skipped block must
+ * not read as assertions that never executed. */
+let eaccessChecked = false
+/** How many generated fixtures were classified. Always the whole file, which
+ * is checked in - but counted rather than assumed, because a loop over an
+ * empty import is exactly what a broken check looks like. */
+let fixturesChecked = 0
 const ok = (name, cond, detail = '') => {
   if (cond) pass += 1
   else fail += 1
@@ -96,7 +110,47 @@ const REQUIRED_KINDS = [
   // wire, whatever it is typed into.
   'login_service_changed',
   'password_unsendable',
+  // Two more N9 (#459) forced, by wiring up the stored password nothing read.
+  // Neither is a rename of `bad_password`: one is "you typed nothing and
+  // there is nothing saved", the other is "the saved one has just been thrown
+  // away because the account server refused it". A player told to re-check a
+  // password they did not type has nothing to re-check.
+  'password_needed',
+  'stored_password_rejected',
 ]
+
+/**
+ * Every code the Rust side can send, stated here as the specification half.
+ *
+ * The same argument as `REQUIRED_KINDS`: derived from `LoginCode::ALL` this
+ * would be unable to notice a code being dropped. It is checked against two
+ * independent things below - the generated fixture, which `cargo test` writes
+ * from the Rust enum, and `RUST_ERROR_CODES` in `lichLogin.ts`, which is what
+ * the classifier's own table is built from.
+ */
+const REQUIRED_CODES = [
+  'bad_credentials',
+  'account_locked_or_expired',
+  'no_such_character',
+  'protocol_mismatch',
+  'password_length',
+  'obscured_byte_out_of_range',
+  'network',
+  'lich_did_not_start',
+  'password_needed',
+  'stored_password_rejected',
+  'internal',
+]
+
+/**
+ * The one code with no player sentence, and it is deliberate.
+ *
+ * There is no advice to give about a worker thread that did not finish, so it
+ * classifies to `unknown` and prints what happened. Named here rather than
+ * left as an exception in a loop, so that a *second* code quietly landing on
+ * `unknown` - which is the whole of #457 - goes red.
+ */
+const CODES_WITHOUT_A_SENTENCE = ['internal']
 
 // --------------------------------------------------------------------------
 // A browser-shaped environment, so the real modules run unmodified.
@@ -126,9 +180,11 @@ globalThis.window = {
   setTimeout: globalThis.setTimeout.bind(globalThis),
 }
 
-const { listCharacters, launchCharacter, rememberSignIn, classifyLoginError, LOGIN_ERROR_KINDS, LOGIN_ERROR_SENTENCES, EACCESS_VARIANT_KINDS, usingFakeBackend } =
+const { listCharacters, launchCharacter, rememberSignIn, classifyLoginError, LOGIN_ERROR_KINDS, LOGIN_ERROR_SENTENCES, EACCESS_VARIANT_KINDS, RUST_ERROR_CODES, CODE_KINDS, usingFakeBackend } =
   await import('../src/lib/lichLogin.ts')
 const { loadPrefs, PREFS_STORAGE_KEY } = await import('../src/lib/persistence.ts')
+// Generated from the Rust types by `cargo test`. Read, never written here.
+const { LOGIN_ERROR_FIXTURES } = await import('../src/lib/loginErrorFixtures.ts')
 
 // Obviously fake, and it has to be: nothing resembling a real credential goes
 // in a file in this repository.
@@ -217,6 +273,9 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
     ok(`${kind} has a sentence a player can act on`, usable, JSON.stringify(sentence ?? null))
     if (usable) sentenced += 1
 
+    // The webview's own vocabulary, which `game_attach`'s string errors and
+    // the browser stand-in still use. The *backend's* vocabulary is checked
+    // against the generated fixture below, and that is the check #457 needed.
     const classified = classifyLoginError(new Error(`${kind}: raw detail from Rust`))
     ok(`${kind} is recognised from the wire, not guessed at`, classified.kind === kind && classified.sentence === sentence, classified.kind)
   }
@@ -279,13 +338,73 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
       fakeVariants.join(', ')
     )
 
-    // Classification from the Rust vocabulary, end to end, for every variant.
-    for (const v of variants) {
-      const got = classifyLoginError(new Error(`${v}: raw detail`))
-      ok(`${v} classifies to a player sentence`, got.kind === EACCESS_VARIANT_KINDS[v] && got.sentence.length > 20, got.kind)
-      variantsChecked += 1
-    }
+    // The third direction, and the one #457 needed: every variant the enum has
+    // must appear in the generated fixture. A variant with a mapping entry and
+    // no fixture is a code nothing has ever seen classified.
+    const unfixtured = variants.filter((v) => !LOGIN_ERROR_FIXTURES.some((f) => f.code === v))
+    ok('every EAccessError variant appears in the generated fixture', unfixtured.length === 0,
+      unfixtured.join(', ') || `${variants.length} of ${variants.length}`)
+    eaccessChecked = true
   }
+}
+
+// --------------------------------------------------------------------------
+// The check #457 was about: classify what Rust actually sends.
+//
+// `src/lib/loginErrorFixtures.ts` is written by `cargo test` from the Rust
+// types - one real serialisation per code, message included - and that test
+// fails if the checked-in copy has drifted. Nothing below builds a string.
+// --------------------------------------------------------------------------
+{
+  const fixtureCodes = LOGIN_ERROR_FIXTURES.map((f) => f.code)
+
+  // The denominator first: a fixture file that failed to import, or came back
+  // empty, would make every loop below vacuously true.
+  ok('the generated fixture has entries', LOGIN_ERROR_FIXTURES.length >= 7, `${LOGIN_ERROR_FIXTURES.length}`)
+
+  // Both sides of the contract, both directions. `REQUIRED_CODES` is this
+  // file's independent statement of the set; the fixture is Rust's; and
+  // `RUST_ERROR_CODES` is what the classifier's table is built from.
+  const missingFromRust = REQUIRED_CODES.filter((c) => !fixtureCodes.includes(c))
+  const extraInRust = fixtureCodes.filter((c) => !REQUIRED_CODES.includes(c))
+  ok(
+    `Rust sends exactly the required ${REQUIRED_CODES.length} codes`,
+    missingFromRust.length === 0 && extraInRust.length === 0,
+    `${fixtureCodes.length} in the fixture${missingFromRust.length ? ` - missing ${missingFromRust.join(', ')}` : ''}${extraInRust.length ? ` - extra ${extraInRust.join(', ')}` : ''}`
+  )
+  const missingFromTs = fixtureCodes.filter((c) => !RUST_ERROR_CODES.includes(c))
+  const staleInTs = RUST_ERROR_CODES.filter((c) => !fixtureCodes.includes(c))
+  ok(
+    'the webview declares the same code set as Rust',
+    missingFromTs.length === 0 && staleInTs.length === 0,
+    `${RUST_ERROR_CODES.length} declared${missingFromTs.length ? ` - not declared: ${missingFromTs.join(', ')}` : ''}${staleInTs.length ? ` - no longer sent: ${staleInTs.join(', ')}` : ''}`
+  )
+
+  // And the classification itself, on the real objects.
+  for (const fixture of LOGIN_ERROR_FIXTURES) {
+    const got = classifyLoginError(fixture)
+    const expectSentence = !CODES_WITHOUT_A_SENTENCE.includes(fixture.code)
+    const right = expectSentence
+      ? got.kind === CODE_KINDS[fixture.code] && got.kind !== 'unknown' && got.detail === fixture.message
+      : got.kind === 'unknown' && got.sentence.includes(fixture.message)
+    ok(
+      `${fixture.code} classifies to ${expectSentence ? 'a player sentence' : 'unknown, printing what happened'}`,
+      right,
+      `${got.kind}: ${got.sentence}`
+    )
+    fixturesChecked += 1
+  }
+
+  // The control that makes the loop above mean something: the *old* shape -
+  // prose with no code, which is what Rust sent before #457 - must still come
+  // out `unknown`. Without this, a classifier that returned a sentence for
+  // everything would pass every line above.
+  const prose = classifyLoginError(new Error('the account cannot sign in right now (NEW)'))
+  ok('control: unprefixed prose still classifies as unknown', prose.kind === 'unknown', prose.kind)
+  ok(
+    'control: which is what the shipped app used to do with every failure',
+    prose.sentence.includes('the account cannot sign in right now')
+  )
 }
 
 // --------------------------------------------------------------------------
@@ -374,6 +493,44 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
       `listCharacters at ${proved}, rememberIfAsked at ${store}`
     )
   }
+  // -- N9 (#459): the form uses a saved password rather than asking again --
+  ok(
+    'the form asks whether a password is saved for this account',
+    /hasStoredPassword\(/.test(signIn) && /fakeCredentialHas\(/.test(signIn),
+    'both the real backend and the stand-in'
+  )
+  ok(
+    'a saved password means no password box, and a way past it',
+    /usingStoredPassword \?/.test(signIn) && /Use a different password/.test(signIn)
+  )
+  ok(
+    'and the Sign in button stops requiring one to be typed',
+    /!password && !usingStoredPassword/.test(signIn),
+    'disabled only when there is neither'
+  )
+  ok(
+    'a store that could not be asked shows the field rather than hiding it',
+    /storedPassword === true/.test(signIn),
+    'null is not treated as false'
+  )
+
+  // -- #458: the attach waits, and the screen says so -----------------------
+  ok(
+    'the attach after a launch is given time for Lich to start',
+    /attachGame\(result\.port, undefined, LICH_STARTUP_WAIT_MS\)/.test(signIn)
+  )
+  ok(
+    'and the screen does not claim it is launched until it has attached',
+    /setStage\('starting'\)/.test(signIn) && /await attachGame[\s\S]{0,120}setStage\('launched'\)/.test(signIn)
+  )
+  {
+    const link = read('src/lib/gameLink.ts')
+    ok(
+      'the wait is passed to Rust rather than looped in the webview',
+      /waitMs: waitMs \?\? null/.test(link) && /LICH_STARTUP_WAIT_MS = /.test(link)
+    )
+  }
+
   for (const f of [
     'src/components/shared/WaitingForCharacter.tsx',
     'src/components/shared/LichLauncher.tsx',
@@ -391,15 +548,18 @@ console.log(`\n${pass} checks passed, ${fail} failed` + (skipped.length ? `, ${s
 const source = readFileSync(new URL(import.meta.url), 'utf8')
 const declaredStatic = [...source.matchAll(/^\s*ok\(/gm)].length
 const ran = pass + fail
-// The loop over REQUIRED_KINDS declares three `ok(` sites and runs them once
-// per kind, so the floor is stated in terms of both.
-// Three `ok(` sites sit in loops: two run once per required kind, one runs
-// once per enum variant. The last is zero when eaccess.rs is absent, and
-// counting it as one would make the honest skip look like a truncated run -
-// so the count comes from the loop rather than from the source.
-// The five static `ok(`s inside the eaccess block are skipped with it.
-const eaccessBlockStatic = variantsChecked ? 0 : 5
-const expected = declaredStatic - 3 - eaccessBlockStatic + REQUIRED_KINDS.length * 2 + variantsChecked
+// Three `ok(` sites sit in loops whose length is not one: two run once per
+// required kind, and one runs once per generated fixture. They are subtracted
+// from the static count and added back as the number of times they actually
+// ran, so a loop over an empty list cannot pass for a loop that ran.
+//
+// The six static `ok(`s inside the eaccess block are skipped with it when that
+// file is absent - counting them would make an honest skip look like a
+// truncated run.
+const LOOP_SITES = 3
+const eaccessBlockStatic = eaccessChecked ? 0 : 6
+const expected =
+  declaredStatic - LOOP_SITES - eaccessBlockStatic + REQUIRED_KINDS.length * 2 + fixturesChecked
 if (ran < expected) {
   console.log(`FAIL only ${ran} of an expected ${expected} assertions ran - the rest never executed`)
   process.exit(1)

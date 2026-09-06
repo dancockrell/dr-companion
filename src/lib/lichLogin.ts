@@ -34,26 +34,32 @@
  *
  * # The error contract, and why it is a token
  *
- * A Tauri command's failure reaches the webview as a string. Matching English
- * prose to decide which sentence to show would break the first time somebody
- * reworded a message on the Rust side, and would break silently - every error
- * would quietly become the generic one. So the contract is that every failure
- * from `lich_login_characters` and `lich_login_launch` starts with a stable
- * token from `LOGIN_ERROR_KINDS`, a colon, and then whatever detail is safe to
- * print. `classifyLoginError` reads the token.
+ * Matching English prose to decide which sentence to show would break the
+ * first time somebody reworded a message on the Rust side, and would break
+ * silently - every error would quietly become the generic one. So the contract
+ * is that every failure from `lich_login_characters` and `lich_login_launch`
+ * carries a **machine code**: a Tauri command's `Err` is serialised by serde
+ * like any other value, and these two send
+ * `{ code: "account_locked_or_expired", message: "…" }`.
+ * `classifyLoginError` reads `code`, and the message is detail shown under the
+ * sentence rather than instead of it.
  *
- * **That is the design, and the Rust side does not implement it yet** - issue
- * #457. `impl Display for EAccessError` (`src-tauri/src/eaccess.rs:172-207`)
- * writes prose with no prefix and both commands `.map_err(|e| e.to_string())`,
- * so every real failure lands on `unknown` and the seven sentences below are
- * unreachable in the app. Read this section as the contract to restore, not as
- * a description of what happens today.
+ * **This section used to describe a contract nothing implemented** - issue
+ * #457. `impl Display for EAccessError` wrote prose with no prefix and both
+ * commands did `.map_err(|e| e.to_string())`, so every real failure landed on
+ * `unknown` and all seven sentences below were unreachable in the shipped app.
+ * A locked account read as *"Signing in failed. the account cannot sign in
+ * right now (NEW)"*. `src-tauri/src/login_error.rs` is the Rust half, and
+ * `LoginCode` there is the one definition of the code set.
  *
- * `tools/sign-in-test.mjs` checks that every kind has a sentence, N of N, and
- * cross-checks the set against the Rust enum's source. It does **not** check
- * that Rust emits a token: its end-to-end loop builds the string it then
- * classifies, and `lichLoginFake.ts`'s failure fixtures are token-prefixed
- * where the real backend's are not. That is why #457 survived a green suite.
+ * The check that would have caught it, and now exists: `cargo test` generates
+ * `tools/fixtures/login-errors.json` **from the Rust types**, one real
+ * serialisation per code, and fails if the checked-in file has drifted;
+ * `tools/sign-in-test.mjs` classifies that file rather than a string it built
+ * itself. Its end-to-end loop used to manufacture the token it then read back,
+ * which is why #457 survived fifty-five green checks. `lichLoginFake.ts` throws
+ * the same generated objects, so the browser stand-in cannot produce a shape
+ * the backend never sends.
  */
 import { invokeTauri, isTauri } from './tauri.ts'
 import { loadPrefs, savePrefs } from './persistence.ts'
@@ -108,6 +114,40 @@ export const LOGIN_ERROR_KINDS = [
   'login_service_changed',
   'password_unsendable',
   'lich_did_not_start',
+  // The two states N9 (#459) made reachable by wiring the stored password up.
+  // Neither is a rename of `bad_password`: one is "you did not type one and
+  // there is none saved", the other is "the saved one has just been thrown
+  // away because the account server refused it". Telling a player to re-check
+  // a password they did not type is how a credential feature becomes a loop.
+  'password_needed',
+  'stored_password_rejected',
+] as const
+
+/**
+ * Every `code` the Rust side can send, as a closed set.
+ *
+ * The second half of the contract, and it is written down here so the two
+ * sides can be *compared* rather than assumed equal: `tools/sign-in-test.mjs`
+ * derives the same set from `tools/fixtures/login-errors.json` - which
+ * `cargo test` generates from `LoginCode::ALL` - and fails naming any code
+ * that is in one list and not the other.
+ *
+ * `internal` is deliberately not in {@link CODE_KINDS} below: there is no
+ * advice to give about a worker thread that did not finish, so it classifies
+ * to `unknown` and the raw message is printed, which is the honest answer.
+ */
+export const RUST_ERROR_CODES = [
+  'bad_credentials',
+  'account_locked_or_expired',
+  'no_such_character',
+  'protocol_mismatch',
+  'password_length',
+  'obscured_byte_out_of_range',
+  'network',
+  'lich_did_not_start',
+  'password_needed',
+  'stored_password_rejected',
+  'internal',
 ] as const
 
 /**
@@ -145,6 +185,22 @@ export const EACCESS_VARIANT_KINDS: Record<string, LoginErrorKind> = {
   obscured_byte_out_of_range: 'password_unsendable',
 }
 
+/**
+ * Every Rust code that has a player sentence, which is all of them but
+ * `internal`.
+ *
+ * Built from {@link EACCESS_VARIANT_KINDS} rather than restating it: the seven
+ * protocol codes have one table, and this adds the three that happen outside
+ * the protocol. Those three are named the same on both sides because there is
+ * nothing to translate - one Rust failure, one thing the player does.
+ */
+export const CODE_KINDS: Record<string, LoginErrorKind> = {
+  ...EACCESS_VARIANT_KINDS,
+  lich_did_not_start: 'lich_did_not_start',
+  password_needed: 'password_needed',
+  stored_password_rejected: 'stored_password_rejected',
+}
+
 export type LoginErrorKind = (typeof LOGIN_ERROR_KINDS)[number] | 'unknown'
 
 /**
@@ -166,6 +222,10 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
     'This password cannot be sent to the login service. Changing it on the Play.net website is the only way round it.',
   lich_did_not_start:
     'The sign-in worked but Lich did not start. Use "Why won\'t it start?" below to find out why.',
+  password_needed:
+    'No password was sent and none is saved for this account. Type your password and try again.',
+  stored_password_rejected:
+    'The saved password no longer works, so it has been forgotten. Type your password again.',
   unknown: 'Signing in failed.',
 }
 
@@ -175,26 +235,60 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
  * Kept separate from the invoking code so it can be run over every kind in a
  * test without a browser, a backend or an account.
  */
-export function classifyLoginError(raw: unknown): { kind: LoginErrorKind; sentence: string } {
-  const text = raw instanceof Error ? raw.message : String(raw ?? '')
-  const token = /^([a-z_]+)\s*:/.exec(text.trim())?.[1] ?? ''
-  // Either vocabulary is accepted: the webview's own kind, or the snake_case
-  // name of the Rust variant. Whichever the command layer chooses to send,
-  // this reads it - and a variant that is in neither stays `unknown` rather
-  // than being guessed at.
-  const kind: LoginErrorKind = (LOGIN_ERROR_KINDS as readonly string[]).includes(token)
-    ? (token as LoginErrorKind)
-    : (EACCESS_VARIANT_KINDS[token] ?? 'unknown')
+export function classifyLoginError(raw: unknown): {
+  kind: LoginErrorKind
+  sentence: string
+  /** Whatever the backend said, for the line under the sentence. */
+  detail: string
+} {
+  // The shape a Tauri command's `Err` arrives in: the serialised value itself,
+  // not an `Error`. Read structurally rather than by parsing text, because a
+  // message that happens to begin `something:` is not a code and a code is not
+  // a prefix of prose.
+  const structured =
+    typeof raw === 'object' && raw !== null && typeof (raw as { code?: unknown }).code === 'string'
+      ? (raw as { code: string; message?: unknown })
+      : null
+
+  const text = structured
+    ? String(structured.message ?? '')
+    : raw instanceof Error
+      ? raw.message
+      : String(raw ?? '')
+
+  // A string failure still classifies, and that is not a second contract: it is
+  // for the callers that are not these two commands - `game_attach`, whose
+  // errors are strings for the Attach button's sake, and anything a browser
+  // stand-in throws. Those carry a `code:` prefix or nothing at all.
+  const prefix = /^([a-z_]+)\s*:/.exec(text.trim())?.[1] ?? ''
+  const code = structured ? structured.code : prefix
+
+  // Either vocabulary is accepted: the webview's own kind, or the Rust code.
+  // A code that is in neither stays `unknown` rather than being guessed at.
+  const kind: LoginErrorKind = (LOGIN_ERROR_KINDS as readonly string[]).includes(code)
+    ? (code as LoginErrorKind)
+    : (CODE_KINDS[code] ?? 'unknown')
+
+  // The prefix is dropped from the detail only when it was actually read as a
+  // code. A string whose leading word means nothing to us keeps it, because
+  // the whole text is then the only information there is.
+  const detail =
+    !structured && kind !== 'unknown'
+      ? text.trim().slice(text.trim().indexOf(':') + 1).trim()
+      : text.trim()
+
   if (kind === 'unknown') {
     // The raw text is more use than a shrug, so it is appended rather than
     // swallowed - but only once, and only when there is something to append.
-    const detail = text.trim()
     return {
       kind,
-      sentence: detail ? `${LOGIN_ERROR_SENTENCES.unknown} ${detail}` : LOGIN_ERROR_SENTENCES.unknown,
+      sentence: detail
+        ? `${LOGIN_ERROR_SENTENCES.unknown} ${detail}`
+        : LOGIN_ERROR_SENTENCES.unknown,
+      detail,
     }
   }
-  return { kind, sentence: LOGIN_ERROR_SENTENCES[kind] }
+  return { kind, sentence: LOGIN_ERROR_SENTENCES[kind], detail }
 }
 
 /**
@@ -209,6 +303,16 @@ export function usingFakeBackend(): boolean {
   return !isTauri() && dryRunRequested()
 }
 
+/**
+ * `password` is optional from N9 (issue #459).
+ *
+ * An empty string is sent as `null`, which is what asks Rust to use the
+ * password saved in Windows Credential Manager for this account - the read
+ * half N8 shipped and nothing called. An empty string sent as an empty string
+ * would instead be a sign-in attempt with no password, which the account
+ * server refuses as bad credentials and which reads to a player as though
+ * their password were wrong.
+ */
 export async function listCharacters(args: {
   account: string
   password: string
@@ -217,7 +321,7 @@ export async function listCharacters(args: {
   if (usingFakeBackend()) return await fakeListCharacters(args)
   return (await invokeTauri('lich_login_characters', {
     account: args.account,
-    password: args.password,
+    password: args.password || null,
     gameCode: args.gameCode,
   })) as AccountCharacters
 }
@@ -231,7 +335,7 @@ export async function launchCharacter(args: {
   if (usingFakeBackend()) return await fakeLaunch(args)
   return (await invokeTauri('lich_login_launch', {
     account: args.account,
-    password: args.password,
+    password: args.password || null,
     gameCode: args.gameCode,
     character: args.character,
   })) as LaunchResult

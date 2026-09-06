@@ -28,6 +28,8 @@
  * nobody can trigger is an unhappy path nobody can prove they fixed.
  */
 
+import { LOGIN_ERROR_FIXTURES } from './loginErrorFixtures.ts'
+
 export interface FakeArgs {
   account: string
   password: string
@@ -46,28 +48,59 @@ export function dryRunRequested(): boolean {
 }
 
 /**
+ * The failure objects, exactly as Rust sends them.
+ *
+ * **Not written here.** `LOGIN_ERROR_FIXTURES` is generated from the Rust
+ * types by `cargo test`, so a stand-in cannot produce a shape the backend
+ * never sends - which it did until #457: this file threw
+ * `'account_locked: this account is locked'`, a token-prefixed string only the
+ * fake could produce, while the real backend sent unprefixed prose. A mock
+ * that cannot produce the real state is not a check, and the screenshots taken
+ * against it were of a screen no player could reach.
+ */
+function failureFor(code: string): { code: string; message: string } {
+  const found = LOGIN_ERROR_FIXTURES.find((f) => f.code === code)
+  // Loud rather than a quiet fallback: a code that has vanished from the
+  // generated set means this file is naming something Rust no longer sends,
+  // and a stand-in that silently invented a message would hide exactly that.
+  if (!found) throw new Error(`no generated fixture for ${code}; regenerate loginErrorFixtures.ts`)
+  return { code: found.code, message: found.message }
+}
+
+/**
  * The fixture accounts, keyed by the account name typed into the form.
  *
  * `demo` is the ordinary case. The rest each reach one arm of
  * `LOGIN_ERROR_KINDS` or the empty-list state, so the sabotage in
  * `tools/sign-in-test.mjs` and the screenshots in `tools/sign-in-shots.mjs`
- * have something to press.
+ * have something to press. The values are **Rust codes**, not webview kinds:
+ * these are the vocabulary the backend speaks.
  */
 const FIXTURES: Record<string, { fail?: string; characters?: string[] }> = {
   demo: { characters: ['Phemius', 'Testwright', 'Nobody'] },
   nochars: { characters: [] },
-  locked: { fail: 'account_locked: this account is locked' },
-  offline: { fail: 'service_unreachable: eaccess.play.net:7910 did not answer' },
-  ghost: { fail: 'character_not_found: no such character on this account' },
-  nolich: { fail: 'lich_did_not_start: no launcher found' },
-  // Named for the Rust variant rather than the webview kind, deliberately:
-  // `classifyLoginError` accepts either vocabulary, and these two are the
-  // only place the enum's own names are exercised end to end in a browser.
-  garbled: { fail: 'protocol_mismatch: the reply to A was not what this version expects' },
-  longpw: { fail: 'password_length: the password is longer than the key' },
+  locked: { fail: 'account_locked_or_expired' },
+  offline: { fail: 'network' },
+  ghost: { fail: 'no_such_character' },
+  nolich: { fail: 'lich_did_not_start' },
+  garbled: { fail: 'protocol_mismatch' },
+  longpw: { fail: 'password_length' },
+  // The two states N9 wired up (#459). `saved` signs in with no typed
+  // password at all, which is what the form does when a password is stored;
+  // `stale` is the saved password the account server has stopped accepting.
+  saved: { characters: ['Phemius', 'Testwright', 'Nobody'] },
+  stale: { fail: 'stored_password_rejected' },
 }
 
 const DELAY_MS = 120
+
+/** The accounts the stand-in treats as having a password in the store. */
+const STORED_PASSWORD_ACCOUNTS = ['saved', 'stale']
+
+/** Whether the stand-in has a saved password for this account. */
+export function fakeCredentialHas(account: string): boolean {
+  return STORED_PASSWORD_ACCOUNTS.includes(account.trim().toLowerCase())
+}
 
 function fixtureFor(account: string) {
   return FIXTURES[account.trim().toLowerCase()]
@@ -76,11 +109,13 @@ function fixtureFor(account: string) {
 export async function fakeListCharacters(args: FakeArgs) {
   await new Promise((r) => setTimeout(r, DELAY_MS))
   const fixture = fixtureFor(args.account)
-  if (!fixture) throw new Error('bad_password: no such account in the dry-run fixtures')
+  if (!fixture) throw failureFor('bad_credentials')
   // The launch-only failure is not a sign-in failure, so it has to get past
   // this call to be reachable at all.
-  if (fixture.fail && !fixture.fail.startsWith('lich_did_not_start')) throw new Error(fixture.fail)
-  if (!args.password) throw new Error('bad_password: no password given')
+  if (fixture.fail && fixture.fail !== 'lich_did_not_start') throw failureFor(fixture.fail)
+  // An account with a saved password is signed in to with none typed, which is
+  // the whole point of N9; every other account still needs one.
+  if (!args.password && !fakeCredentialHas(args.account)) throw failureFor('password_needed')
   return {
     subscription: 'NORMAL',
     characters: (fixture.characters ?? []).map((name, i) => ({
@@ -93,6 +128,6 @@ export async function fakeListCharacters(args: FakeArgs) {
 export async function fakeLaunch(args: FakeArgs) {
   await new Promise((r) => setTimeout(r, DELAY_MS))
   const fixture = fixtureFor(args.account)
-  if (fixture?.fail) throw new Error(fixture.fail)
+  if (fixture?.fail) throw failureFor(fixture.fail)
   return { pid: 4242, port: 11024 }
 }

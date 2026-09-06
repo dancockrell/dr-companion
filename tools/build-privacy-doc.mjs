@@ -150,8 +150,52 @@ for (const line of endpointLines) {
 // check after it - and those are the ones that say *which* host went missing,
 // which is the whole diagnosis. A `--check` run reports all of them and exits
 // non-zero; a write run refuses outright.
+/**
+ * Whether the endpoint a password is sent to is fixed in a release build.
+ *
+ * `DRC_EACCESS_HOST` and `DRC_EACCESS_PORT` redirect where the account name
+ * and password go. They exist so a test can aim the protocol client at a mock,
+ * and until issue #464 they were plain `std::env::var` reads with no gate - so
+ * a shipped app started with them set would have sent a password somewhere
+ * else, while this document said it goes to Simutronics and nowhere else.
+ *
+ * The document may only make that claim while the gate is there, so the
+ * generator reads the gate rather than trusting the sentence. Three states:
+ * `gated`, `ungated`, and `unreadable` - a file this scan could not parse must
+ * not be published as though it had passed.
+ */
+function endpointOverrideGate() {
+  const path = join('src-tauri', 'src', 'credentials.rs')
+  let text
+  try {
+    text = readFileSync(path, 'utf8')
+  } catch (e) {
+    return { state: 'unreadable', why: `${path}: ${String(e)}` }
+  }
+  // The positive control: this scan can find something in this file that is
+  // certainly there. Without it, "the gate is missing" and "the read is
+  // broken" are the same observation.
+  if (!/pub const EACCESS_ENDPOINT/.test(text)) {
+    return { state: 'unreadable', why: `${path} does not declare EACCESS_ENDPOINT; the scan is looking at the wrong file` }
+  }
+  const gated =
+    /pub const fn overrides_are_honoured\(\)\s*->\s*bool\s*\{\s*cfg!\(debug_assertions\)\s*\}/.test(text) &&
+    /if !overrides_are_honoured\(\)\s*\{\s*return Ok\(\(EACCESS_ENDPOINT\.0\.to_string\(\), EACCESS_ENDPOINT\.1\)\);/.test(text)
+  return gated
+    ? { state: 'gated', why: 'overrides_are_honoured() is cfg!(debug_assertions) and eaccess_endpoint returns the constant when it is false' }
+    : { state: 'ungated', why: 'eaccess_endpoint no longer returns the declared constant before reading DRC_EACCESS_HOST/PORT' }
+}
+
+const overrideGate = endpointOverrideGate()
+
 const CHECKING = process.argv.includes('--check')
 if (!CHECKING) {
+  if (overrideGate.state !== 'gated') {
+    throw new Error(
+      `the endpoint override gate is ${overrideGate.state}: ${overrideGate.why}. ` +
+        'Refusing to publish a document claiming your password goes to one place while a release build can be told otherwise.',
+    )
+  }
   if (files.length < 200) throw new Error(`scanned only ${files.length} source files; refusing to publish.`)
   if (lines.length < 20) throw new Error(`only ${lines.length} lines matched; refusing to publish.`)
   if (hosts.size < 3) throw new Error(`only ${hosts.size} hosts found; refusing to publish.`)
@@ -178,7 +222,7 @@ const DESTINATIONS = [
     contacted: true,
     what: 'Simutronics\' own account server, and the only place this app sends anything you typed as a credential. It is what signs you in to DragonRealms, and it is the same server every other DragonRealms client - Lich, Genie, the official one - talks to for the same reason.',
     sends: 'Your account name, your password (obscured by the XOR the protocol specifies, which is not encryption - the TLS around it is), the game you chose, and the character you picked from the list it sends back. Nothing else: no game text, no map, no settings, and nothing about this app.',
-    where: '`src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910.',
+    where: '`src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910. **That destination is fixed in the app you install.** Development builds accept two environment variables that point the login at a test server instead, which is how the failure cases are tested without an account; a release build ignores them and returns the declared endpoint before either is read, and the generator of this document refuses to publish if that stops being true.',
     note: 'Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. That box is off every time the screen opens, it says what ticking it means - "Stored in Windows Credential Manager. Anyone signed in to this Windows account can use it." - and Settings carries a Forget control that removes the entry again (`src-tauri/src/credential_store.rs`, `src/lib/rememberPassword.ts`). This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.',
   },
   {
@@ -354,6 +398,10 @@ if (CHECKING) {
   // Its own denominator: without this, a pattern that stopped matching and an
   // app that stopped connecting report identically, and the only symptom is
   // that `stale` names the host the pattern used to find.
+  // Three states, not two: an unreadable file is reported as itself rather
+  // than as a missing gate or as a pass.
+  ok(`the endpoint override is debug-only (#464)`, overrideGate.state === 'gated',
+    `${overrideGate.state}: ${overrideGate.why}`)
   ok('the endpoint scan still matches declared sockets', endpointLines.length >= ENDPOINT_FLOOR,
     `${endpointLines.length} line(s), ${endpoints.size} endpoint(s): ${[...endpoints].map(([h, p]) => `${h}:${p}`).join(', ') || 'none'}`)
   ok('every host the scan found is described', unclassified.length === 0,
