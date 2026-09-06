@@ -62,7 +62,10 @@ console.log('\n-- malformed or unknown intents are dropped, never guessed at --'
 }
 
 console.log('')
-console.log(`${pass} checked, ${fail} failed`)
+// `pass + fail`, not `pass`: the denominator has to be the number of checks
+// that ran, or it shrinks by one per failure and the line reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${pass + fail} checked, ${fail} failed`)
 // Set well below the real count (14 at time of writing): this exists to
 // catch a suite that crashed partway or never ran, not to be re-tuned every
 // time a check is added.

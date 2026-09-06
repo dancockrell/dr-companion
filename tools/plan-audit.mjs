@@ -12,6 +12,7 @@
  *   node tools/plan-audit.mjs --tally     status counts and recorded minutes
  *   node tools/plan-audit.mjs --claims    list .agents/claims by status
  *   node tools/plan-audit.mjs --self-test prove the audit can go red
+ *   node tools/plan-audit.mjs --plan=X    audit a copy instead (for sabotage)
  *
  * # What a `touches:` entry can be
  *
@@ -142,21 +143,152 @@ function describe(marker) {
 }
 
 /**
- * Gate membership, from section 4. Kept here rather than parsed out of the
- * prose because the prose states ranges ("A1-A6") that a parser would have to
- * guess the expansion of, and a wrong guess would report a gate green that is
- * not. When section 4 changes, change this table in the same commit; the
- * `--tally` output names any gate increment that is not a real ID, so a
- * rename cannot leave this silently pointing at nothing.
+ * Gate membership, derived from section 4 of the plan itself.
+ *
+ * This used to be a hardcoded table beside the prose, on the grounds that the
+ * prose states ranges a parser would have to guess the expansion of. Two
+ * sources for one fact drift, and they had: the table omitted Gate 7 entirely,
+ * and read "J complete" as J1 and J2 when lane J had grown to five increments.
+ * So the prose is the source and this parses it.
+ *
+ * The grammar it accepts, and nothing else:
+ *
+ *   - **Gate 4 - AI optional:** G0-G10, G12, H1-H8 (G11 only with Dan's yes).
+ *     Check: ...
+ *
+ *   A1-A6      an inclusive range, same lane letter, expanded numerically
+ *   G12        one increment
+ *   J complete every increment in lane J
+ *   (...)      a parenthetical: any ids inside it are EXCLUDED and reported,
+ *              which is where "only with Dan's yes" lives
+ *   Check:     everything from here on is the gate's own check, not membership
+ *
+ * Anything in the membership text that is not one of those is ignored, and an
+ * id that names no increment is a finding rather than a silent omission - the
+ * failure this replaces was a membership claim nobody could check.
+ *
+ * The dash in the ranges is an en dash (U+2013) in the real file; a plain
+ * hyphen and an em dash are accepted too so a typed edit does not vanish.
  */
-const GATES = {
-  '0 stable base': ['C0', 'C1', 'C2', 'C3', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'B1', 'B2', 'B3', 'E1', 'E2', 'E3', 'E4', 'F1'],
-  '1 text client alone': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'E5', 'E6', 'E7', 'E8', 'E9', 'C4', 'C5', 'C6', 'C8', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12'],
-  '2 first run': ['E10', 'E11', 'E12', 'F2', 'F3', 'F4'],
-  '3 viewer optional': ['B4', 'B5', 'B6', 'B7', 'B8', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6'],
-  '4 AI optional': ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G12', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8'],
-  '5 public quality': ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7', 'I8', 'I9', 'I10', 'I11', 'J1', 'J2', 'F5', 'F6', 'F7', 'F8'],
-  '6 release': ['F9', 'F10', 'F11', 'F12'],
+const GATE_HEADER = /^- \*\*Gate (\d+)\s*[–—-]\s*([^:*]+?)\s*:\*\*\s*(.*)$/
+const GATE_RANGE = /\b([A-L])(\d+)\s*[–—-]\s*([A-L])(\d+)\b/g
+const GATE_LANE = /\b([A-L]) complete\b/g
+const GATE_ID = /\b([A-L]\d+[a-z]?)\b/g
+
+export function parseGates(text, knownIds = []) {
+  const lines = text.split(/\r?\n/)
+  const gates = []
+  const findings = []
+  const byLane = new Map()
+  for (const id of knownIds) {
+    if (!byLane.has(id[0])) byLane.set(id[0], [])
+    byLane.get(id[0]).push(id)
+  }
+  const known = new Set(knownIds)
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = GATE_HEADER.exec(lines[i])
+    if (!m) continue
+    // The membership can wrap onto indented continuation lines; it ends at the
+    // next list item, a blank line, or the gate's own `Check:` clause.
+    let body = m[3]
+    for (let j = i + 1; j < lines.length; j++) {
+      const next = lines[j]
+      if (!/^\s+\S/.test(next) || /^\s*- /.test(next)) break
+      body += ' ' + next.trim()
+    }
+    const cut = body.search(/\bCheck:/)
+    let members = cut === -1 ? body : body.slice(0, cut)
+
+    // Parentheticals are qualifiers, not membership. Pull the ids out of them
+    // so the exclusion is printed rather than being invisible in a count.
+    const excluded = []
+    members = members.replace(/\(([^)]*)\)/g, (_all, inner) => {
+      for (const x of inner.matchAll(GATE_ID)) if (!excluded.includes(x[1])) excluded.push(x[1])
+      return ' '
+    })
+
+    const name = `${m[1]} ${m[2]}`
+    const ids = []
+    const add = (id) => {
+      if (!ids.includes(id)) ids.push(id)
+    }
+
+    members = members.replace(GATE_RANGE, (all, l1, n1, l2, n2) => {
+      if (l1 !== l2) {
+        findings.push(`gate "${name}" states the range ${all.trim()}, which crosses lanes`)
+        return ' '
+      }
+      const from = Number(n1)
+      const to = Number(n2)
+      if (to < from) {
+        findings.push(`gate "${name}" states the range ${all.trim()}, which runs backwards`)
+        return ' '
+      }
+      for (let n = from; n <= to; n++) add(`${l1}${n}`)
+      return ' '
+    })
+
+    members = members.replace(GATE_LANE, (_all, lane) => {
+      const inLane = byLane.get(lane) ?? []
+      if (inLane.length === 0) findings.push(`gate "${name}" says "${lane} complete", but lane ${lane} has no increments`)
+      for (const id of inLane) add(id)
+      return ' '
+    })
+
+    for (const x of members.matchAll(GATE_ID)) add(x[1])
+
+    for (const id of ids) {
+      if (!known.has(id)) findings.push(`gate "${name}" names ${id}, which is not an increment`)
+    }
+    for (const id of excluded) {
+      if (!known.has(id)) findings.push(`gate "${name}" excludes ${id}, which is not an increment`)
+    }
+    gates.push({ name, ids, excluded, line: i + 1, number: Number(m[1]) })
+  }
+
+  // The floor below catches a gutted section 4. It cannot catch ONE deleted
+  // gate line, because eight gates minus one still clears a floor set below
+  // eight - measured, by deleting the Gate 6 line and watching the audit pass.
+  // The gates are numbered, so the gap is the thing to look for instead, and
+  // that works whatever the count grows to.
+  for (let k = 0; k < gates.length; k++) {
+    if (gates[k].number !== k) {
+      findings.push(
+        `section 4 goes from Gate ${k === 0 ? '(nothing)' : gates[k - 1].number} to Gate ${gates[k].number}: Gate ${k} is missing or out of order`
+      )
+      break
+    }
+  }
+  return { gates, findings }
+}
+
+// Floors, set below the real counts on purpose: these catch a parser that
+// stopped matching or a section 4 that was gutted, not a plan that grew a
+// gate. Real counts at the time of writing: 8 gates, 106 members.
+const MIN_GATES = 7
+const MIN_GATE_MEMBERS = 2
+const MIN_GATE_MEMBERS_TOTAL = 80
+
+/**
+ * The floors and the denominator, shared by `--tally` and the plain audit so
+ * neither can be the lenient one.
+ */
+export function checkGateFloors(gates) {
+  const findings = []
+  const total = gates.reduce((n, g) => n + g.ids.length, 0)
+  if (gates.length < MIN_GATES) {
+    findings.push(`parsed only ${gates.length} gates from section 4 (floor ${MIN_GATES}); the parser or the section is broken`)
+  }
+  if (total < MIN_GATE_MEMBERS_TOTAL) {
+    findings.push(`parsed only ${total} gate members (floor ${MIN_GATE_MEMBERS_TOTAL}); the parser or the section is broken`)
+  }
+  for (const g of gates) {
+    if (g.ids.length < MIN_GATE_MEMBERS) {
+      findings.push(`gate "${g.name}" parsed to ${g.ids.length} member(s) (floor ${MIN_GATE_MEMBERS}); its line in section 4 did not parse`)
+    }
+  }
+  return { findings, total }
 }
 
 function bar(done, total, width = 24) {
@@ -164,7 +296,7 @@ function bar(done, total, width = 24) {
   return '#'.repeat(filled) + '.'.repeat(width - filled)
 }
 
-function tally(increments) {
+function tally(increments, planText) {
   const counts = { ' ': 0, '~': 0, x: 0, '!': 0, '-': 0 }
   const marker = new Map()
   let minutes = 0
@@ -198,22 +330,24 @@ function tally(increments) {
     console.log(`  ${lane}  ${bar(l.done, l.total)}  ${String(l.done).padStart(2)}/${String(l.total).padEnd(3)}${extra ? '  ' + extra : ''}`)
   }
 
-  console.log('\nby gate (section 4)')
-  let unknown = 0
-  for (const [name, ids] of Object.entries(GATES)) {
-    const known = ids.filter((id) => marker.has(id))
-    for (const id of ids) {
-      if (!marker.has(id)) {
-        unknown++
-        console.log(`  WARNING gate "${name}" names ${id}, which is not an increment`)
-      }
-    }
-    const done = known.filter((id) => marker.get(id) === 'x').length
-    const blocked = known.filter((id) => marker.get(id) === '!').length
-    const state = done === known.length && known.length > 0 ? 'GREEN' : `${blocked ? blocked + ' blocked' : ''}`
-    console.log(`  ${name.padEnd(22)} ${bar(done, known.length)}  ${String(done).padStart(2)}/${String(known.length).padEnd(3)}${state ? '  ' + state : ''}`)
+  console.log('\nby gate (derived from section 4 of the plan)')
+  const { gates, findings } = parseGates(planText, [...marker.keys()])
+  const floors = checkGateFloors(gates)
+  for (const g of gates) {
+    const done = g.ids.filter((id) => marker.get(id) === 'x').length
+    const blocked = g.ids.filter((id) => marker.get(id) === '!').length
+    const state = done === g.ids.length && g.ids.length > 0 ? 'GREEN' : `${blocked ? blocked + ' blocked' : ''}`
+    const note = g.excluded.length ? `  (excludes ${g.excluded.join(', ')})` : ''
+    console.log(`  ${g.name.padEnd(28)} ${bar(done, g.ids.length)}  ${String(done).padStart(2)}/${String(g.ids.length).padEnd(3)}${state ? '  ' + state : ''}${note}`)
   }
-  if (unknown > 0) console.log(`\n${unknown} gate member(s) name no increment - fix the GATES table in this file`)
+  // The denominator, printed: a section 4 that stopped parsing has to look
+  // different from a section 4 with nothing wrong in it.
+  console.log(`\n${gates.length} gates parsed from section 4, ${floors.total} members, all naming real increments`)
+  for (const f of [...findings, ...floors.findings]) console.log(`  FAIL ${f}`)
+  if (findings.length || floors.findings.length) {
+    console.error(`FAILED: ${findings.length + floors.findings.length} finding(s) in section 4 of ${PLAN}`)
+    process.exit(1)
+  }
 }
 
 function claims() {
@@ -273,6 +407,52 @@ function selfTest() {
     for (const f of r.findings) console.log(`     ${f}`)
     bad++
   }
+  // Section 4's gate parser gets the same treatment: a synthetic section with
+  // one of every defect, plus the two readings that the hardcoded table it
+  // replaced got wrong (a whole gate missing, and "J complete" read as two).
+  const gateText = [
+    '## 4. Gates',
+    '',
+    '- **Gate 0 – Stable base:** A1–A3, B1.',
+    '  Check: something involving A9, which is not membership.',
+    '- **Gate 1 – Wrapped:** A1–A2, B complete (A3 only with a yes — not',
+    '  given). Check: nothing.',
+    '- **Gate 2 – Bad ids:** A1–A9, C complete, B9–B7, A1–B2.',
+  ].join('\n')
+  const known = ['A1', 'A2', 'A3', 'B1', 'B2']
+  const gr = parseGates(gateText, known)
+  const gateExpect = [
+    [gr.gates.length === 3, `parses all 3 gate lines, got ${gr.gates.length}`],
+    [gr.gates[0]?.ids.join(',') === 'A1,A2,A3,B1', `expands A1–A3 and stops at Check:, got ${gr.gates[0]?.ids.join(',')}`],
+    [gr.gates[1]?.ids.join(',') === 'A1,A2,B1,B2', `reads "B complete" as the whole lane, got ${gr.gates[1]?.ids.join(',')}`],
+    [gr.gates[1]?.excluded.join(',') === 'A3', `keeps the parenthetical id out of membership and names it, got ${gr.gates[1]?.excluded.join(',')}`],
+    [gr.findings.some((f) => /names A4, which is not an increment/.test(f)), 'names an id the plan does not have'],
+    [gr.findings.some((f) => /"C complete", but lane C has no increments/.test(f)), 'names an empty lane'],
+    [gr.findings.some((f) => /B9.*B7.*runs backwards/.test(f)), 'names a backwards range'],
+    [gr.findings.some((f) => /A1.*B2.*crosses lanes/.test(f)), 'names a range that crosses lanes'],
+    // The floors: three gates and eleven members must not satisfy them, or
+    // they are decoration. This is the "remove a gate line" sabotage in
+    // miniature, run every time rather than by hand.
+    [checkGateFloors(gr.gates).findings.some((f) => /parsed only 3 gates/.test(f)), 'the gate-count floor can fire'],
+    [checkGateFloors(gr.gates).findings.some((f) => /parsed only \d+ gate members/.test(f)), 'the gate-member floor can fire'],
+    [checkGateFloors([{ name: 'x', ids: ['A1'], excluded: [] }]).findings.some((f) => /parsed to 1 member/.test(f)), 'the per-gate floor can fire'],
+  ]
+  for (const [hit, what] of gateExpect) {
+    console.log(`${hit ? 'OK  ' : 'FAIL'} gates: ${what}`)
+    if (!hit) bad++
+  }
+  // The positive control: a clean gate line must produce no findings at all,
+  // or every red above could be the parser rather than the planted defect.
+  const gap = parseGates(['- **Gate 0 – A:** A1–A2.', '- **Gate 2 – C:** B1–B2.'].join('\n'), known)
+  const gapHit = gap.findings.some((f) => /goes from Gate 0 to Gate 2: Gate 1 is missing/.test(f))
+  console.log(`${gapHit ? 'OK  ' : 'FAIL'} gates: names a gap in the gate numbering (a deleted gate line)`)
+  if (!gapHit) bad++
+
+  const clean = parseGates('- **Gate 0 – Fine:** A1–A3, B1. Check: none.', known)
+  const cleanOk = clean.findings.length === 0 && clean.gates.length === 1
+  console.log(`${cleanOk ? 'OK  ' : 'FAIL'} gates: a clean gate line produces no findings`)
+  if (!cleanOk) bad++
+
   if (bad) {
     console.error('FAILED self-test')
     process.exit(1)
@@ -280,19 +460,26 @@ function selfTest() {
   console.log('self-test passed: the audit reports every planted defect and nothing else')
 }
 
-const args = new Set(process.argv.slice(2))
+const argv = process.argv.slice(2)
+const args = new Set(argv)
+// A seam, so the unhappy paths can be run on purpose: point the audit at a
+// scratch copy of the plan, damage it, and watch this go red. A branch nobody
+// can reach deliberately is a branch nobody can prove they fixed.
+const planArg = argv.find((a) => a.startsWith('--plan='))
+const PLAN_PATH = planArg ? planArg.slice('--plan='.length) : PLAN
 if (args.has('--self-test')) {
   selfTest()
 } else if (args.has('--claims')) {
   claims()
 } else {
-  if (!existsSync(PLAN)) {
-    console.error(`FAILED: ${PLAN} is missing`)
+  if (!existsSync(PLAN_PATH)) {
+    console.error(`FAILED: ${PLAN_PATH} is missing`)
     process.exit(1)
   }
-  const increments = parsePlan(readFileSync(PLAN, 'utf8'))
+  const planText = readFileSync(PLAN_PATH, 'utf8')
+  const increments = parsePlan(planText)
   if (args.has('--tally')) {
-    tally(increments)
+    tally(increments, planText)
   } else {
     // The ledger has to parse before anything reads it. One claim with an
     // unescaped `\R` in a Windows path made `--claims` throw for every session
@@ -320,7 +507,20 @@ if (args.has('--self-test')) {
     for (const p of r.perIncrement) {
       if (p.clean) console.log(`OK   ${p.label.padEnd(8)} paths ${p.checked}${p.awaiting ? `, awaiting ${p.awaiting}` : ''}`)
     }
-    for (const f of r.findings) console.log(`FAIL ${f}`)
+
+    // Section 4's gates name increments, and those names are claims about this
+    // same file. They are checked here rather than only under `--tally`,
+    // because `--tally` is not what CI runs.
+    const ids = increments.flatMap((inc) => inc.ids)
+    const g = parseGates(planText, ids)
+    const floors = checkGateFloors(g.gates)
+    const gateFindings = [...g.findings, ...floors.findings]
+    for (const gate of g.gates) {
+      if (!gateFindings.some((f) => f.includes(`"${gate.name}"`))) {
+        console.log(`OK   gate ${gate.name.padEnd(26)} ${gate.ids.length} members${gate.excluded.length ? `, excludes ${gate.excluded.join(', ')}` : ''}`)
+      }
+    }
+    for (const f of [...r.findings, ...gateFindings]) console.log(`FAIL ${f}`)
     if (r.ids < MIN_INCREMENTS) {
       console.error(`FAILED: parsed only ${r.ids} increments (floor ${MIN_INCREMENTS}); the parser or the file is broken`)
       process.exit(1)
@@ -329,10 +529,10 @@ if (args.has('--self-test')) {
       console.error(`FAILED: checked only ${r.checked} paths (floor ${MIN_PATHS}); the parser or the file is broken`)
       process.exit(1)
     }
-    if (r.findings.length) {
-      console.error(`FAILED: ${r.findings.length} finding(s) in ${PLAN}`)
+    if (r.findings.length || gateFindings.length) {
+      console.error(`FAILED: ${r.findings.length + gateFindings.length} finding(s) in ${PLAN_PATH}`)
       process.exit(1)
     }
-    console.log(`plan ok: ${r.ids} increments, ${r.checked} paths checked, ${r.awaiting} paths awaiting other increments (not checked)`)
+    console.log(`plan ok: ${r.ids} increments, ${r.checked} paths checked, ${r.awaiting} paths awaiting other increments (not checked), ${g.gates.length} gates with ${floors.total} members`)
   }
 }
