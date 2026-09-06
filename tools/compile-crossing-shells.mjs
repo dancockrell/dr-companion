@@ -28,7 +28,7 @@ export function compileCrossingShells(compositions) {
   writeFileSync(input,JSON.stringify(recipe))
   execFileSync(process.env.CARGO??'cargo',['build','--release','--locked','--manifest-path',join(shared,'procedural/Cargo.toml')],{stdio:'inherit'})
   execFileSync(join(shared,'procedural/target/release/scene-forge-cli'+(process.platform==='win32'?'.exe':'')),[input,compiled],{stdio:'inherit'})
-  execFileSync(process.env.GODOT4,['--headless','--path',join(shared,'procedural/godot'),'--script','res://pack_scene.gd','--',compiled,packed],{stdio:'inherit'})
+  execFileSync(process.env.GODOT4,['--position','-4000,-4000','--no-focus','--max-fps','10','--rendering-method','gl_compatibility','--path',join(shared,'procedural/godot'),'--script','res://pack_scene.gd','--',compiled,packed],{stdio:'inherit',windowsHide:true})
   if (!existsSync(packed)) throw new Error('Scene Forge did not produce its package')
   copyFileSync(packed,output)
   const data=JSON.parse(readFileSync(compiled,'utf8'))

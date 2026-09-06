@@ -98,6 +98,8 @@
   "completion": {
     "commit": "Native-scale floor repetition and socket-bound approaches: included in this checkpoint",
     "checks": [
+      "Missing-render defect resolved: dummy headless export omitted instance buffers; graphics-backed export now validates and reload-compares buffers, and actual background capture shows the room shells",
+      "Post-fix 18 Godot scripts and 5457 checks passed; 12 shared native buffers roundtripped; source/caching/binding tests passed; final-art admission remains rejected",
       "Rust integration: 59 generated compositions, 44 shell-bearing rooms, 12 shared meshes; source/caching/binding tests passed",
       "18 Godot headless scripts passed with 5457 checks, including saved culling bounds and changed traversal-kind refusal",
       "Actual hidden viewer capture 1-197 rejected: shell invisible; empty automatic AABB corrected but visible runtime outcome still unresolved",

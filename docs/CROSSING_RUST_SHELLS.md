@@ -63,16 +63,25 @@ the regression now also tests addition of an exit to an exitless room.
 
 These are neutral construction prototypes, not approved finished interiors.
 Standalone shell renders were inspected in the shared project. The actual viewer
-capture at `docs/verification/crossing-native-room-1-197.png` is REJECTED: the
-room shell is not visibly rendered. Diagnostics confirmed the node was visible,
+initial capture at `docs/verification/crossing-native-room-1-197.png` was rejected: the
+room shell was not visibly rendered in the first capture. Diagnostics confirmed the node was visible,
 correctly positioned and loaded, but its automatic MultiMesh rendering AABB was
 empty. The shared importer now persists explicit transformed culling bounds and
 native reload tests prove those bounds survive. The subsequent off-screen
-capture still did not demonstrate visible shell geometry; this remaining native
-rendering discrepancy is an open integration defect, not an approved result.
-Do not expand shell coverage or call this production-ready until it is resolved.
-The capture helper logs actual shell transforms and bounds for that investigation.
+capture still did not demonstrate visible shell geometry. Further export inspection
+found that the dummy headless backend omitted the MultiMesh instance buffer while
+preserving its instance count. The build now exports using a brief graphics-backed,
+off-screen process, validates buffer length and reloads the saved package to compare
+buffers and bounds. The updated capture at the same path visibly shows both room
+shells and their door openings. This resolves the missing-render defect, not the
+art-quality gate: the scene remains bare construction geometry with unfinished
+materials, strong shadow artifacts and no room-specific furnishings.
+The capture helper logs actual shell transforms and bounds for future regressions.
 
 Full Crossing visual review, dense-scene performance, 8 GB VRAM measurement and
 Unity execution remain unverified. Godot testing is headless; captures remain off-screen,
 low-priority and frame-rate-limited to respect the user's desktop.
+
+Current research and implemented/proposed method distinctions are maintained in
+the shared repository's [Scene Forge architecture and research ledger](https://github.com/dancockrell/shared-game-environment-library/blob/art/catalog-foundation/docs/PROCEDURAL_SCENE_BUILDER.md).
+Do not duplicate that ledger or imply its proposed search solver is implemented.
