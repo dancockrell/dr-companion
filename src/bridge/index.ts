@@ -116,6 +116,21 @@ export const bridge = {
     return realBridge.getStatus()
   },
 
+  /**
+   * The reconnect counter and its bound, exposed for the same reason
+   * `getLiveStatus` is: `onLiveStatus` is edge-triggered, so a window that
+   * mounts part-way through a reconnect run hears nothing until the next
+   * transition and would otherwise show attempt 0 over a run already on its
+   * fifth.
+   */
+  getLiveAttempt() {
+    return realBridge.getAttempt()
+  },
+
+  getLiveMaxAttempts() {
+    return realBridge.getMaxAttempts()
+  },
+
   setLiveUrl(url: string) {
     realBridge.setUrl(url)
   },

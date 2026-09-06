@@ -52,6 +52,26 @@ export type SetupStatus = 'ready' | 'missing' | 'checking' | 'installing' | 'err
 /** What the bridge reports about its own connection gates. */
 export type AuthMode = 'token' | 'origin-only' | 'unknown'
 
+/**
+ * The live bridge's transport state, as the store carries it.
+ *
+ * A superset of `RealBridgeStatus` with `'mock'` added, because the store has
+ * one field for both bridge modes and the mock has no socket to be in any of
+ * the transport states. Kept here rather than imported from `bridge/` so the
+ * type layer does not depend on the transport layer; `bridgeLifecycle.ts` is
+ * the one place that maps between them, and `tools/link-reconnect-test.mjs`
+ * asserts the mapping covers every `RealBridgeStatus` so a new one cannot be
+ * added without a home here.
+ */
+export type BridgeTransportStatus =
+  | 'mock'
+  | 'disconnected'
+  | 'connecting'
+  | 'reconnecting'
+  | 'connected'
+  | 'gave-up'
+  | 'error'
+
 export interface SetupComponent {
   id: SetupComponentId
   label: string
@@ -631,6 +651,25 @@ export interface AppState {
   /** Set when the bridge stopped itself for looping. */
   runawayReason: string | null
   bridgeConnected: boolean
+  /**
+   * The live bridge's transport state in full, beside the boolean above.
+   *
+   * `bridgeConnected` answers "can anything be sent", which is the question
+   * nearly every caller has, and it stays. This answers "and if not, is it
+   * coming back" - which only the status bars ask, and which used to be
+   * unanswerable, because a bridge that was reconnecting and one that had
+   * stopped both set `bridgeConnected: false` and the difference lived in a
+   * free-text log line nothing parsed. See issue #479.
+   *
+   * `'mock'` while the mock bridge is selected: the mock has no socket and no
+   * reconnect, and calling it `'connected'` would put a live-transport word on
+   * a thing that has no transport.
+   */
+  bridgeStatus: BridgeTransportStatus
+  /** Which re-dial the bridge is on; 0 when it is not reconnecting. */
+  bridgeAttempt: number
+  /** The bound, carried from the transport so the bar can say "3 of 8". */
+  bridgeMaxAttempts: number
   /**
    * Which gates the bridge has up: both, origin only, or not reported.
    *

@@ -19,6 +19,8 @@
   "test:safety",
   "test:flow-stop",
   "test:command-lane",
+  "test:link-reconnect",
+  "test:link-reconnect-break",
   "test:kill-switch",
   "test:pause-travel",
   "test:pause-travel-break",

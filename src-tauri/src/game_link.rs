@@ -35,7 +35,7 @@
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -107,6 +107,25 @@ pub struct LinkState {
     pub connected: bool,
     pub host: String,
     pub port: u16,
+    /// Whether the link is between sockets rather than without one.
+    ///
+    /// Three states, not two, and this is the one that was missing. A socket
+    /// that has dropped and a socket that is being re-dialled look identical
+    /// from a text pane - both are silent - and they want opposite things of
+    /// the player: wait, versus go and look at Lich. Before this the app only
+    /// ever said "not attached", which is true of both and useful for neither.
+    pub reconnecting: bool,
+    /// Which re-dial this is, 1-based, and 0 when none is under way.
+    ///
+    /// Carried into the give-up state too, where it is the count that was
+    /// spent: "gave up after 6 attempts" is a fact a player can act on, where
+    /// "could not connect" is the same sentence as the very first refusal.
+    pub attempt: u32,
+    /// The bound. Published so the UI can say "3 of 6" rather than counting
+    /// upward toward a ceiling only Rust knows about - and so a test can
+    /// assert from outside that a bound exists at all, which is the half that
+    /// a removed bound would otherwise pass.
+    pub max_attempts: u32,
     /// Lines received since connecting. The denominator: a pane that is empty
     /// because nothing arrived reads exactly like one that is empty because
     /// the parse dropped everything.
@@ -196,11 +215,21 @@ fn probe_lich(host: &str, port: u16) -> &'static str {
 ///
 /// A consumer must therefore expect `lich` to change after a disconnect, and
 /// must not treat the first value as final.
-fn emit_disconnect(app: &AppHandle, host: String, port: u16, lines: u64, note: String) {
+fn emit_disconnect(
+    app: &AppHandle,
+    host: String,
+    port: u16,
+    lines: u64,
+    note: String,
+    attempt: u32,
+) {
     let mut st = LinkState {
         connected: false,
         host: host.clone(),
         port,
+        reconnecting: false,
+        attempt,
+        max_attempts: RECONNECT_MAX_ATTEMPTS,
         lines,
         note,
         lich: "unknown".into(),
@@ -220,6 +249,181 @@ fn emit_disconnect(app: &AppHandle, host: String, port: u16, lines: u64, note: S
     });
 }
 
+/// How many times a dropped link re-dials before it stops and says so.
+///
+/// Bounded on purpose, and the bound is the whole feature rather than a
+/// safety rail on it. An unbounded retry is a client that can never say
+/// anything except "not connected yet", so a Lich that has exited and a Lich
+/// that is thirty seconds into a restart produce the same forever-spinner and
+/// the player learns to ignore it. Six attempts on the schedule below spans
+/// about half a minute, which covers a Lich restart and a network blip and
+/// does not cover a Lich that is gone.
+pub(crate) const RECONNECT_MAX_ATTEMPTS: u32 = 6;
+
+/// First backoff wait. The socket has just died; nothing is gained by dialling
+/// in the same millisecond, and half a second is under the threshold at which
+/// a person reads a gap as a stall.
+pub(crate) const RECONNECT_BASE: Duration = Duration::from_millis(500);
+
+/// The ceiling on one wait. Doubling from 500ms reaches 16s at attempt six,
+/// and a player watching a reconnect should not sit through a wait longer than
+/// this without the counter moving.
+pub(crate) const RECONNECT_MAX_DELAY: Duration = Duration::from_secs(8);
+
+/// How long to wait before the `attempt`-th re-dial. 1-based.
+///
+/// Pure, so the schedule is a thing a test can read rather than a thing a test
+/// has to time. `base * 2^(attempt-1)`, capped - and the cap is applied with
+/// `min` on a saturating shift, because `2^31` of anything overflows and an
+/// overflow here would produce a *short* wait, which is the failure that looks
+/// like the feature working.
+pub(crate) fn backoff_delay(attempt: u32, base: Duration, cap: Duration) -> Duration {
+    let shift = attempt.saturating_sub(1).min(32);
+    let scaled = base.saturating_mul(1u32.checked_shl(shift).unwrap_or(u32::MAX));
+    scaled.min(cap)
+}
+
+/// Why a reconnect run stopped without a socket.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum GaveUp {
+    /// The bound was reached. Names the count, because "could not connect" is
+    /// the same sentence as the first refusal and tells nobody that five more
+    /// were tried.
+    Exhausted { attempts: u32, last: String },
+    /// Something said stop: a deliberate detach, or the app shutting down.
+    /// Not a failure and must never be reported as one.
+    Cancelled { attempts: u32 },
+    /// The dialler answered with something no amount of retrying can fix -
+    /// Lich itself has exited. Retrying five more times would spend thirty
+    /// seconds proving a thing already known.
+    Fatal { attempts: u32, reason: String },
+}
+
+impl GaveUp {
+    pub(crate) fn attempts(&self) -> u32 {
+        match self {
+            GaveUp::Exhausted { attempts, .. }
+            | GaveUp::Cancelled { attempts }
+            | GaveUp::Fatal { attempts, .. } => *attempts,
+        }
+    }
+
+    /// The sentence the pane shows. Every arm names the attempt count.
+    pub(crate) fn note(&self, host: &str, port: u16) -> String {
+        match self {
+            GaveUp::Exhausted { attempts, last } => {
+                format!("Gave up reconnecting to {host}:{port} after {attempts} attempts - {last}")
+            }
+            GaveUp::Cancelled { attempts } => {
+                format!("Stopped reconnecting to {host}:{port} after {attempts} attempts.")
+            }
+            GaveUp::Fatal { attempts, reason } => {
+                format!(
+                    "Stopped reconnecting to {host}:{port} after {attempts} attempts - {reason}"
+                )
+            }
+        }
+    }
+}
+
+/// The reconnect schedule, with everything it touches injected.
+///
+/// The clock, the dialler and the reporter are all parameters so this can be
+/// driven in a unit test that takes no wall-clock time and needs no Tauri app
+/// handle - which is what makes "the backoff schedule was actually followed"
+/// something a test can *read* rather than something it has to measure and
+/// then forgive for being 40ms out.
+///
+/// `wanted` is asked before every wait and again before every dial. A detach
+/// that lands mid-backoff must not produce a socket nobody asked for.
+///
+/// Returns the connection and the attempt number it arrived on, or the reason
+/// the run stopped. `Cancelled` is not a failure; `note` above keeps the three
+/// apart so a caller cannot fold them into one.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn reconnect_run<T>(
+    max_attempts: u32,
+    base: Duration,
+    cap: Duration,
+    wanted: &dyn Fn() -> bool,
+    dial: &mut dyn FnMut() -> Result<T, DialOutcome>,
+    before_wait: &mut dyn FnMut(u32, Duration),
+    sleep: &dyn Fn(Duration),
+) -> Result<(T, u32), GaveUp> {
+    // A bound of zero would make this a no-op that reports success at nothing,
+    // which is the shape of every silent-pass defect in this repository.
+    // Refused loudly rather than tolerated.
+    assert!(
+        max_attempts > 0,
+        "a reconnect with no attempts is not a reconnect"
+    );
+    let mut last = String::new();
+    for attempt in 1..=max_attempts {
+        if !wanted() {
+            return Err(GaveUp::Cancelled {
+                attempts: attempt - 1,
+            });
+        }
+        let delay = backoff_delay(attempt, base, cap);
+        before_wait(attempt, delay);
+        sleep(delay);
+        if !wanted() {
+            return Err(GaveUp::Cancelled {
+                attempts: attempt - 1,
+            });
+        }
+        match dial() {
+            Ok(t) => return Ok((t, attempt)),
+            Err(DialOutcome::Retry(e)) => last = e,
+            Err(DialOutcome::Fatal(reason)) => {
+                return Err(GaveUp::Fatal {
+                    attempts: attempt,
+                    reason,
+                })
+            }
+        }
+    }
+    Err(GaveUp::Exhausted {
+        attempts: max_attempts,
+        last,
+    })
+}
+
+/// What a failed dial means for the run.
+pub(crate) enum DialOutcome {
+    /// Nothing is listening yet. Worth another attempt.
+    Retry(String),
+    /// The process behind the port has gone. No number of attempts fixes it.
+    Fatal(String),
+}
+
+/// One re-dial of the real port, classified.
+///
+/// `dial_with_retry` is reused rather than re-implemented: it already owns the
+/// single-dial semantics, the "Lich exited" branch and the launch-file rules,
+/// and a second dialler here would be a fork that drifts from it. The zero
+/// wait is deliberate - the *schedule* belongs to `reconnect_run` above, and a
+/// dialler with its own internal wait would give the link two backoffs
+/// stacked, neither of which the state it publishes would describe.
+fn dial_once(host: &str, port: u16) -> Result<TcpStream, DialOutcome> {
+    match dial_with_retry(
+        host,
+        port,
+        Duration::ZERO,
+        DIAL_INTERVAL,
+        &crate::lich::spawned_lich_status,
+    ) {
+        Ok(s) => Ok(s),
+        // `dial_with_retry`'s exited branch is the only one that means "stop".
+        // Matched on the sentence it builds rather than on a code because that
+        // function returns a String; the two are asserted to agree by
+        // `a_lich_that_exited_is_not_retried`, so a reworded message reddens a
+        // test instead of silently turning a fatal into six more dials.
+        Err(e) if e.contains("exited") => Err(DialOutcome::Fatal(e)),
+        Err(e) => Err(DialOutcome::Retry(e)),
+    }
+}
+
 #[derive(Default)]
 pub struct GameLink {
     inner: Mutex<Option<LinkHandle>>,
@@ -227,6 +431,12 @@ pub struct GameLink {
 
 struct LinkHandle {
     /// The write half. Commands go out through this.
+    ///
+    /// Replaced in place when a reconnect succeeds, rather than the handle
+    /// being torn down and rebuilt: `lines`, `backlog` and the sequence
+    /// numbering must survive a reconnect or the pane loses its scrollback
+    /// every time the network hiccups, and a fresh handle would restart the
+    /// sequence at 1 while the frontend still held the old high-water mark.
     out: TcpStream,
     host: String,
     port: u16,
@@ -236,16 +446,37 @@ struct LinkHandle {
     /// Cleared to stop the reader thread. The thread owns its own socket
     /// clone, so dropping this struct alone would leave it reading forever.
     running: Arc<AtomicBool>,
+    /// Whether the *player* still wants to be attached, which is a different
+    /// question from whether a socket is currently open.
+    ///
+    /// `running` answers "is a reader thread alive"; a dropped socket and a
+    /// pressed Detach both clear it, and the two want opposite things — one
+    /// should re-dial and the other must not. Without a second flag the
+    /// supervisor cannot tell them apart, and a detach that happens to land
+    /// while the reader is winding down would come back reconnected.
+    desired: Arc<AtomicBool>,
+    /// Which re-dial is under way: 0 when none is. Read by `attached()` so a
+    /// refused send says *reconnecting* rather than *not attached*, which is
+    /// the difference between "wait" and "go and press a button".
+    reconnecting: Arc<AtomicU32>,
 }
 
 fn state_of(h: Option<&LinkHandle>, note: &str) -> LinkState {
     match h {
         Some(h) => {
             let connected = h.running.load(Ordering::Relaxed);
+            let attempt = h.reconnecting.load(Ordering::Relaxed);
             LinkState {
                 connected,
                 host: h.host.clone(),
                 port: h.port,
+                // A reconnect in flight is never also "connected": the
+                // supervisor clears the counter before it publishes the
+                // connected state, so these two cannot both be true and a
+                // consumer does not have to decide which wins.
+                reconnecting: !connected && attempt > 0,
+                attempt,
+                max_attempts: RECONNECT_MAX_ATTEMPTS,
                 lines: h.lines.load(Ordering::Relaxed),
                 note: note.to_string(),
                 // While connected we hold an open socket to it, so no probe is
@@ -259,6 +490,9 @@ fn state_of(h: Option<&LinkHandle>, note: &str) -> LinkState {
             connected: false,
             host: String::new(),
             port: 0,
+            reconnecting: false,
+            attempt: 0,
+            max_attempts: RECONNECT_MAX_ATTEMPTS,
             lines: 0,
             note: note.to_string(),
             // Never attached, so there is no host to ask and nothing to
@@ -405,6 +639,19 @@ pub fn game_attach(
             if h.running.load(Ordering::Relaxed) {
                 return Err(format!("Already attached to {}:{}.", h.host, h.port));
             }
+            // A reconnect in flight is a dial already under way, and this
+            // would start a second one beside it: two dials racing for the
+            // same port, and whichever lost would leave an orphan reader
+            // thread on a socket no handle points at. `running` alone cannot
+            // see that - it is false during a reconnect, which is exactly when
+            // the Attach button is on screen.
+            let attempt = h.reconnecting.load(Ordering::Relaxed);
+            if attempt > 0 {
+                return Err(format!(
+                    "Already reconnecting to {}:{} - attempt {attempt} of {RECONNECT_MAX_ATTEMPTS}. Detach first to stop it.",
+                    h.host, h.port
+                ));
+            }
         }
     }
 
@@ -432,14 +679,96 @@ pub fn game_attach(
     let lines = Arc::new(AtomicU64::new(0));
     let running = Arc::new(AtomicBool::new(true));
     let backlog: Arc<Mutex<BacklogBuf>> = Arc::new(Mutex::new(BacklogBuf::default()));
+    let desired = Arc::new(AtomicBool::new(true));
+    let reconnecting = Arc::new(AtomicU32::new(0));
 
+    spawn_reader(Reader {
+        app: app.clone(),
+        read_half,
+        host: host.clone(),
+        port,
+        lines: Arc::clone(&lines),
+        running: Arc::clone(&running),
+        backlog: Arc::clone(&backlog),
+        desired: Arc::clone(&desired),
+        reconnecting: Arc::clone(&reconnecting),
+    });
+
+    let handle = LinkHandle {
+        out: stream,
+        host: host.clone(),
+        port,
+        lines: Arc::clone(&lines),
+        backlog: Arc::clone(&backlog),
+        running: Arc::clone(&running),
+        desired,
+        reconnecting,
+    };
+
+    let st = state_of(Some(&handle), "");
+    *link.inner.lock().unwrap() = Some(handle);
+
+    // Announced, not just returned.
+    //
+    // Returning the state tells whoever called; emitting tells everyone. Those
+    // are different, and the difference showed up on the first real login:
+    // attaching through anything other than the TypeScript wrapper - the
+    // script API, a devtools call, a second window - left the pane streaming
+    // live game text under a header that still read "not attached", because
+    // only the caller's own local copy was updated.
+    //
+    // Worse, it was unrecoverable from the UI: pressing Attach then hit the
+    // "Already attached" guard above, which fails, so the frontend's state was
+    // never corrected and the button could not fix what the button appeared to
+    // be for. A dev-mode HMR reload reaches the same state honestly, with the
+    // Rust side still attached and a freshly-mounted pane that has forgotten.
+    //
+    // The disconnect paths in the reader thread already emit `game:state` for
+    // exactly this reason. Connecting is the same kind of event and was the
+    // one that did not say so.
+    let _ = app.emit("game:state", st.clone());
+
+    Ok(st)
+}
+
+/// Everything one reader thread needs. A struct rather than nine positional
+/// arguments because the reader is now started from two places - the first
+/// attach and every reconnect - and two call sites getting nine `Arc`s in the
+/// same order by eye is a swap waiting to happen.
+struct Reader {
+    app: AppHandle,
+    read_half: TcpStream,
+    host: String,
+    port: u16,
+    lines: Arc<AtomicU64>,
+    running: Arc<AtomicBool>,
+    backlog: Arc<Mutex<BacklogBuf>>,
+    desired: Arc<AtomicBool>,
+    reconnecting: Arc<AtomicU32>,
+}
+
+/// Start the thread that owns the read half, and hand its ending to
+/// `socket_ended`.
+///
+/// Extracted from `game_attach` so a reconnect can start an identical reader
+/// on a fresh socket. Identical is the point: a second, slightly different
+/// reader for the reconnect path would be a fork, and the half that drifted
+/// would be the half only reachable after a network fault - which is the half
+/// nobody exercises.
+fn spawn_reader(r: Reader) {
+    let Reader {
+        app,
+        read_half,
+        host,
+        port,
+        lines,
+        running,
+        backlog,
+        desired,
+        reconnecting,
+    } = r;
+    let host_for_thread = host.clone();
     {
-        let lines = Arc::clone(&lines);
-        let running = Arc::clone(&running);
-        let backlog = Arc::clone(&backlog);
-        let app = app.clone();
-        let host_for_thread = host.clone();
-
         std::thread::spawn(move || {
             let mut reader = BufReader::new(read_half);
             let mut raw: Vec<u8> = Vec::with_capacity(4096);
@@ -481,12 +810,16 @@ pub fn game_attach(
                         // A clean EOF is what both "Lich exited" and "Lich
                         // dropped us" look like from here. Only the port can
                         // tell them apart, and it is asked off this thread.
-                        emit_disconnect(
+                        socket_ended(
                             &app,
-                            host_for_thread.clone(),
+                            &host_for_thread,
                             port,
-                            lines.load(Ordering::Relaxed),
-                            "Lich closed the connection.".into(),
+                            &lines,
+                            "Lich closed the connection.",
+                            &running,
+                            &backlog,
+                            &desired,
+                            &reconnecting,
                         );
                         break;
                     }
@@ -547,12 +880,16 @@ pub fn game_attach(
                     }
                     Err(e) => {
                         running.store(false, Ordering::Relaxed);
-                        emit_disconnect(
+                        socket_ended(
                             &app,
-                            host_for_thread.clone(),
+                            &host_for_thread,
                             port,
-                            lines.load(Ordering::Relaxed),
-                            format!("Connection lost: {e}"),
+                            &lines,
+                            &format!("Connection lost: {e}"),
+                            &running,
+                            &backlog,
+                            &desired,
+                            &reconnecting,
                         );
                         break;
                     }
@@ -560,40 +897,221 @@ pub fn game_attach(
             }
         });
     }
+}
 
-    let handle = LinkHandle {
-        out: stream,
-        host: host.clone(),
+/// What happens when the read half stops: report, or re-dial and report.
+///
+/// The whole of the reconnect decision is here rather than in the reader,
+/// because there is exactly one question to answer and it is not about
+/// reading: **did the player ask for this?** A detach sets `desired` false
+/// before it shuts the socket, so a reader that wakes with `desired` clear is
+/// looking at its own requested end and must report a plain detach; a reader
+/// that wakes with `desired` still set has lost a socket the player still
+/// wants, and that is the case worth re-dialling.
+///
+/// Getting that backwards in either direction is the failure: reconnecting
+/// after a detach reopens a connection somebody deliberately closed, and not
+/// reconnecting after a drop is the behaviour this exists to replace.
+#[allow(clippy::too_many_arguments)]
+fn socket_ended(
+    app: &AppHandle,
+    host: &str,
+    port: u16,
+    lines: &Arc<AtomicU64>,
+    note: &str,
+    running: &Arc<AtomicBool>,
+    backlog: &Arc<Mutex<BacklogBuf>>,
+    desired: &Arc<AtomicBool>,
+    reconnecting: &Arc<AtomicU32>,
+) {
+    if !desired.load(Ordering::Relaxed) {
+        emit_disconnect(
+            app,
+            host.to_string(),
+            port,
+            lines.load(Ordering::Relaxed),
+            note.to_string(),
+            0,
+        );
+        return;
+    }
+    start_reconnect(
+        app.clone(),
+        host.to_string(),
         port,
-        lines: Arc::clone(&lines),
-        backlog: Arc::clone(&backlog),
-        running: Arc::clone(&running),
-    };
+        Arc::clone(lines),
+        Arc::clone(running),
+        Arc::clone(backlog),
+        Arc::clone(desired),
+        Arc::clone(reconnecting),
+        note.to_string(),
+    );
+}
 
-    let st = state_of(Some(&handle), "");
-    *link.inner.lock().unwrap() = Some(handle);
+/// Re-dial on a bounded schedule, publishing every step, and start a fresh
+/// reader if one answers.
+///
+/// Runs on its own thread: it sleeps between attempts, and it is called from a
+/// reader thread that is winding down. `reconnect_run` owns the schedule and
+/// the give-up rule; everything here is the wiring — a real clock, a real
+/// dial, and a `game:state` per attempt so the counter the UI shows is a fact
+/// this thread published rather than one the UI counted for itself.
+#[allow(clippy::too_many_arguments)]
+fn start_reconnect(
+    app: AppHandle,
+    host: String,
+    port: u16,
+    lines: Arc<AtomicU64>,
+    running: Arc<AtomicBool>,
+    backlog: Arc<Mutex<BacklogBuf>>,
+    desired: Arc<AtomicBool>,
+    reconnecting: Arc<AtomicU32>,
+    why: String,
+) {
+    std::thread::spawn(move || {
+        let emit = |connected: bool, attempt: u32, note: String| {
+            let _ = app.emit(
+                "game:state",
+                LinkState {
+                    connected,
+                    host: host.clone(),
+                    port,
+                    reconnecting: !connected && attempt > 0,
+                    attempt,
+                    max_attempts: RECONNECT_MAX_ATTEMPTS,
+                    lines: lines.load(Ordering::Relaxed),
+                    note,
+                    // Not probed here. The re-dial *is* the probe, and its
+                    // answer arrives as the attempt succeeding or failing, so
+                    // spending two seconds on `probe_lich` between attempts
+                    // would slow the reconnect down to refine a field the next
+                    // attempt is about to settle anyway.
+                    lich: if connected { "alive" } else { "unknown" }.into(),
+                },
+            );
+        };
 
-    // Announced, not just returned.
-    //
-    // Returning the state tells whoever called; emitting tells everyone. Those
-    // are different, and the difference showed up on the first real login:
-    // attaching through anything other than the TypeScript wrapper - the
-    // script API, a devtools call, a second window - left the pane streaming
-    // live game text under a header that still read "not attached", because
-    // only the caller's own local copy was updated.
-    //
-    // Worse, it was unrecoverable from the UI: pressing Attach then hit the
-    // "Already attached" guard above, which fails, so the frontend's state was
-    // never corrected and the button could not fix what the button appeared to
-    // be for. A dev-mode HMR reload reaches the same state honestly, with the
-    // Rust side still attached and a freshly-mounted pane that has forgotten.
-    //
-    // The disconnect paths in the reader thread already emit `game:state` for
-    // exactly this reason. Connecting is the same kind of event and was the
-    // one that did not say so.
-    let _ = app.emit("game:state", st.clone());
+        let wanted = || desired.load(Ordering::Relaxed);
+        let mut dial = || dial_once(&host, port);
+        let mut before_wait = |attempt: u32, delay: Duration| {
+            reconnecting.store(attempt, Ordering::Relaxed);
+            emit(
+                false,
+                attempt,
+                format!(
+                    "{why} Reconnecting to {host}:{port} - attempt {attempt} of {RECONNECT_MAX_ATTEMPTS}, in {:.1}s.",
+                    delay.as_secs_f32()
+                ),
+            );
+        };
 
-    Ok(st)
+        let outcome = reconnect_run(
+            RECONNECT_MAX_ATTEMPTS,
+            RECONNECT_BASE,
+            RECONNECT_MAX_DELAY,
+            &wanted,
+            &mut dial,
+            &mut before_wait,
+            &std::thread::sleep,
+        );
+
+        match outcome {
+            Ok((stream, attempt)) => {
+                let _ = stream.set_nodelay(true);
+                let read_half = match stream.try_clone() {
+                    Ok(r) => r,
+                    Err(e) => {
+                        reconnecting.store(0, Ordering::Relaxed);
+                        emit_disconnect(
+                            &app,
+                            host.clone(),
+                            port,
+                            lines.load(Ordering::Relaxed),
+                            format!("Reconnected but could not split the connection - {e}"),
+                            attempt,
+                        );
+                        return;
+                    }
+                };
+
+                // The write half is swapped into the existing handle rather
+                // than a new handle being built. `lines`, `backlog` and the
+                // sequence numbering are the pane's scrollback, and a fresh
+                // handle would reset the sequence to 1 under a frontend still
+                // holding the old high-water mark - which filters the whole
+                // new session out of the next backfill.
+                {
+                    let link = app.state::<GameLink>();
+                    let mut guard = link.inner.lock().unwrap();
+                    match guard.as_mut() {
+                        Some(h) => h.out = stream,
+                        // The handle went while this thread was dialling, so
+                        // whatever asked for that also no longer wants this
+                        // socket. Drop it rather than resurrecting a link
+                        // nothing is holding.
+                        None => {
+                            reconnecting.store(0, Ordering::Relaxed);
+                            return;
+                        }
+                    }
+                }
+
+                // Cleared BEFORE the connected state is published, so
+                // `reconnecting` and `connected` are never both true and no
+                // consumer has to decide which one wins.
+                reconnecting.store(0, Ordering::Relaxed);
+                running.store(true, Ordering::Relaxed);
+                spawn_reader(Reader {
+                    app: app.clone(),
+                    read_half,
+                    host: host.clone(),
+                    port,
+                    lines: Arc::clone(&lines),
+                    running: Arc::clone(&running),
+                    backlog: Arc::clone(&backlog),
+                    desired: Arc::clone(&desired),
+                    reconnecting: Arc::clone(&reconnecting),
+                });
+                emit(true, attempt, format!("Reconnected on attempt {attempt}."));
+                // A separate event, not a flag on the state, because it is an
+                // *edge* and the state is a level. The frontend has to throw
+                // away the tag parser's accumulated vitals on this edge - a
+                // reconnect is a new socket and the old numbers describe a
+                // moment that has passed - and a level would fire that reset
+                // again on every later `game:state`.
+                //
+                // Lich replays its own snapshot on a fresh accept
+                // (`global_defs.rb:2357-2361`), so some of the state comes
+                // back on its own. Not all of it, and not promptly: the
+                // replay is four progressBars, a spell, seven indicators and
+                // a compass, and it sleeps up to ten seconds first
+                // (`global_defs.rb:2307`, on an indicator DragonRealms never
+                // sets). Room, occupants, scripts and roundtime are not in it
+                // at all. `src/lib/linkReplay.ts` is what asks the bridge for
+                // those.
+                let _ = app.emit("game:reconnected", attempt);
+            }
+            Err(gave_up) => {
+                reconnecting.store(0, Ordering::Relaxed);
+                let attempts = gave_up.attempts();
+                if matches!(gave_up, GaveUp::Cancelled { .. }) {
+                    // A detach already published its own state. Emitting here
+                    // would overwrite "Detached." with a reconnect's account
+                    // of being told to stop, which is this thread's business
+                    // and not the player's.
+                    return;
+                }
+                emit_disconnect(
+                    &app,
+                    host.clone(),
+                    port,
+                    lines.load(Ordering::Relaxed),
+                    gave_up.note(&host, port),
+                    attempts,
+                );
+            }
+        }
+    });
 }
 
 /// Everything read since `since`, for a pane that was not listening yet.
@@ -654,7 +1172,7 @@ pub(crate) fn write_command(link: &GameLink, command: &str) -> Result<(), String
     let mut guard = link.inner.lock().unwrap();
     let h = guard.as_mut().ok_or("Not attached to a game.")?;
     if !h.running.load(Ordering::Relaxed) {
-        return Err("The connection is closed.".into());
+        return Err(closed_reason(h));
     }
 
     // Lich reads lines. CRLF because that is what the frontends it knows send,
@@ -667,17 +1185,43 @@ pub(crate) fn write_command(link: &GameLink, command: &str) -> Result<(), String
     Ok(())
 }
 
+/// Why a handle that exists still cannot take a command.
+///
+/// Two reasons, not one, and they ask opposite things of the player: a link
+/// that is re-dialling wants them to wait, and a link that has stopped wants
+/// them to go and look at Lich. Reporting both as "The connection is closed."
+/// is the same sentence for "in a moment" and "not without your help", which
+/// is the defect this lane was opened about one layer down.
+fn closed_reason(h: &LinkHandle) -> String {
+    let attempt = h.reconnecting.load(Ordering::Relaxed);
+    if attempt > 0 {
+        format!(
+            "The connection dropped and is reconnecting - attempt {attempt} of {RECONNECT_MAX_ATTEMPTS}. Nothing can be sent until it is back."
+        )
+    } else {
+        "The connection is closed.".into()
+    }
+}
+
 /// Whether the socket would take a command right now.
 ///
-/// Asked before queueing so the two failures a caller can actually do
-/// something about — not attached, connection closed — still come back at the
-/// call site with the words they always had, instead of arriving later as an
-/// event nobody is listening for.
+/// Asked before queueing so the failures a caller can actually do something
+/// about — not attached, reconnecting, connection closed — still come back at
+/// the call site with words, instead of arriving later as an event nobody is
+/// listening for.
+///
+/// **This is what stops a command being queued into a dead socket.** The lane's
+/// queue outlives every attach and detach on purpose (`command_gate::start`),
+/// so without this check a send during a drop would be accepted, sit in the
+/// queue looking sent, and either fail silently much later or go out into a
+/// session that has moved on. Refusing here costs the player one honest
+/// sentence and is the only place that sentence can be said while anybody is
+/// still listening for it.
 pub(crate) fn attached(link: &GameLink) -> Result<(), String> {
     let guard = link.inner.lock().unwrap();
     let h = guard.as_ref().ok_or("Not attached to a game.")?;
     if !h.running.load(Ordering::Relaxed) {
-        return Err("The connection is closed.".into());
+        return Err(closed_reason(h));
     }
     Ok(())
 }
@@ -715,6 +1259,13 @@ pub fn game_send(
 pub fn game_detach(app: AppHandle, link: State<'_, GameLink>) -> LinkState {
     let mut guard = link.inner.lock().unwrap();
     if let Some(h) = guard.as_ref() {
+        // `desired` first, and before `running`, because the reader thread
+        // reads it the moment its socket ends. Clearing `running` alone would
+        // wake a reader that still believes the player wants a link, and it
+        // would answer a deliberate detach by starting a reconnect. The order
+        // is the whole of the guarantee, so it is asserted rather than
+        // trusted: `a_detach_does_not_reconnect`.
+        h.desired.store(false, Ordering::Relaxed);
         h.running.store(false, Ordering::Relaxed);
         // Shutting the socket wakes the reader out of its blocking read.
         // Without this the thread sits in `read_until` until the game happens
@@ -739,6 +1290,454 @@ mod tests {
     use super::*;
     use std::io::Read;
     use std::net::TcpListener;
+
+    // ---------------------------------------------------------------- reconnect
+
+    /// A port for the give-up messages below to name.
+    ///
+    /// Deliberately NOT 11024. `tools/detachable-port-test.mjs` requires that
+    /// number to appear as a value in exactly one Rust file - `lich.rs`'s
+    /// `DETACHABLE_PORT`, which claims to be one number in one place - and a
+    /// second literal here would make that claim false for the sake of a test
+    /// fixture that does not care which port it is.
+    const NOTE_PORT: u16 = 4123;
+
+    /// The schedule itself, read rather than timed.
+    ///
+    /// A test that measured the waits would be asserting the operating
+    /// system's scheduler as much as this function, and would have to forgive
+    /// it enough slack to also forgive a genuinely wrong exponent.
+    #[test]
+    fn the_backoff_doubles_and_then_stops_at_the_cap() {
+        let base = Duration::from_millis(500);
+        let cap = Duration::from_secs(8);
+        let got: Vec<Duration> = (1..=6).map(|n| backoff_delay(n, base, cap)).collect();
+        assert_eq!(
+            got,
+            vec![
+                Duration::from_millis(500),
+                Duration::from_secs(1),
+                Duration::from_secs(2),
+                Duration::from_secs(4),
+                Duration::from_secs(8),
+                Duration::from_secs(8),
+            ],
+            "the published schedule is not what the UI's countdown will show"
+        );
+
+        // The cap is what makes this bounded per-wait, so prove it binds
+        // rather than merely being present: an attempt far past the doubling
+        // range must still return the cap and not an overflowed short wait.
+        assert_eq!(backoff_delay(64, base, cap), cap);
+        assert_eq!(backoff_delay(u32::MAX, base, cap), cap);
+    }
+
+    /// A dialler that fails a set number of times and then answers, counting
+    /// every call. The count is the denominator: a run that reports success
+    /// having dialled once is a run that never exercised the schedule.
+    struct FakeDialer {
+        fail_first: u32,
+        calls: u32,
+        fatal_at: Option<u32>,
+    }
+
+    impl FakeDialer {
+        fn new(fail_first: u32) -> Self {
+            FakeDialer {
+                fail_first,
+                calls: 0,
+                fatal_at: None,
+            }
+        }
+        fn dial(&mut self) -> Result<&'static str, DialOutcome> {
+            self.calls += 1;
+            // A hard ceiling well above any legitimate bound, so a run whose
+            // bound has been *removed* fails loudly here instead of hanging
+            // and being killed by the harness with no message.
+            assert!(
+                self.calls <= 40,
+                "the reconnect dialled {} times: the attempt bound is gone",
+                self.calls
+            );
+            if self.fatal_at == Some(self.calls) {
+                return Err(DialOutcome::Fatal(
+                    "Lich started and then exited with code 1 without opening 127.0.0.1:1.".into(),
+                ));
+            }
+            if self.calls <= self.fail_first {
+                Err(DialOutcome::Retry("Could not reach 127.0.0.1:1".into()))
+            } else {
+                Ok("socket")
+            }
+        }
+    }
+
+    /// What `run_with` hands back: the run's own result, and the delay it
+    /// asked for before each attempt. Named so the signature stays readable.
+    type RunOutcome = Result<(&'static str, u32), GaveUp>;
+    /// Drive `reconnect_run` with no clock, recording what it asked to wait.
+    fn run_with(
+        dialer: &mut FakeDialer,
+        wanted: &dyn Fn() -> bool,
+        max_attempts: u32,
+    ) -> (RunOutcome, Vec<(u32, Duration)>) {
+        let waits: Mutex<Vec<(u32, Duration)>> = Mutex::new(Vec::new());
+        let mut before_wait =
+            |attempt: u32, delay: Duration| waits.lock().unwrap().push((attempt, delay));
+        let out = reconnect_run(
+            max_attempts,
+            RECONNECT_BASE,
+            RECONNECT_MAX_DELAY,
+            wanted,
+            &mut || dialer.dial(),
+            &mut before_wait,
+            // The clock is a no-op, so the assertion below is about the
+            // schedule this code chose and not about how long a test took.
+            &|_d| {},
+        );
+        let w = waits.lock().unwrap().clone();
+        (out, w)
+    }
+
+    /// The ordinary case: a socket that comes back part-way through the
+    /// schedule is reconnected to, on the attempt the schedule says.
+    #[test]
+    fn a_link_that_comes_back_is_reconnected_to_on_the_scheduled_attempt() {
+        let mut dialer = FakeDialer::new(3);
+        let (out, waits) = run_with(&mut dialer, &|| true, RECONNECT_MAX_ATTEMPTS);
+        let (sock, attempt) = out.expect("the fourth dial answers");
+        assert_eq!(sock, "socket");
+        assert_eq!(attempt, 4, "reported the wrong attempt number");
+        assert_eq!(dialer.calls, 4, "dialled more times than it reported");
+        assert_eq!(
+            waits,
+            vec![
+                (1, Duration::from_millis(500)),
+                (2, Duration::from_secs(1)),
+                (3, Duration::from_secs(2)),
+                (4, Duration::from_secs(4)),
+            ],
+            "the waits published to the UI are not the schedule that ran"
+        );
+    }
+
+    /// The positive control this whole file needs: a link that never drops
+    /// connects on the first attempt and spends no schedule at all.
+    ///
+    /// Without it, a `reconnect_run` that had silently become a no-op — or one
+    /// whose dialler always answered regardless — would pass the test above
+    /// just as well, and the four assertions there would be measuring nothing.
+    #[test]
+    fn a_stand_in_that_never_drops_connects_on_the_first_attempt() {
+        let mut dialer = FakeDialer::new(0);
+        let (out, waits) = run_with(&mut dialer, &|| true, RECONNECT_MAX_ATTEMPTS);
+        let (_, attempt) = out.expect("nothing was wrong");
+        assert_eq!(attempt, 1);
+        assert_eq!(dialer.calls, 1);
+        assert_eq!(waits.len(), 1, "waited more than the schedule's first step");
+    }
+
+    /// The bound. Giving up names the count, because "could not connect" is
+    /// what the very first refusal already said.
+    ///
+    /// This is the case the sabotage removes: with the bound gone, `FakeDialer`
+    /// aborts at 40 calls rather than this ever reaching an assertion.
+    #[test]
+    fn an_exhausted_run_gives_up_naming_the_attempt_count() {
+        let mut dialer = FakeDialer::new(u32::MAX);
+        let (out, waits) = run_with(&mut dialer, &|| true, RECONNECT_MAX_ATTEMPTS);
+        let gave_up = out.expect_err("nothing ever answered");
+        assert_eq!(
+            gave_up,
+            GaveUp::Exhausted {
+                attempts: RECONNECT_MAX_ATTEMPTS,
+                last: "Could not reach 127.0.0.1:1".into(),
+            }
+        );
+        assert_eq!(dialer.calls, RECONNECT_MAX_ATTEMPTS);
+        assert_eq!(waits.len() as u32, RECONNECT_MAX_ATTEMPTS);
+
+        let note = gave_up.note("127.0.0.1", NOTE_PORT);
+        assert!(
+            note.contains(&format!("after {RECONNECT_MAX_ATTEMPTS} attempts")),
+            "the give-up note does not say how many attempts were spent: {note}"
+        );
+        assert!(
+            note.contains(&format!("127.0.0.1:{NOTE_PORT}")),
+            "the give-up note does not say what it gave up on: {note}"
+        );
+    }
+
+    /// A Lich that has exited is not dialled five more times. The fatal arm
+    /// stops the run at once and says why.
+    #[test]
+    fn a_lich_that_exited_is_not_retried() {
+        let mut dialer = FakeDialer::new(u32::MAX);
+        dialer.fatal_at = Some(1);
+        let (out, _) = run_with(&mut dialer, &|| true, RECONNECT_MAX_ATTEMPTS);
+        let gave_up = out.expect_err("a dead Lich cannot be reconnected to");
+        assert_eq!(gave_up.attempts(), 1);
+        assert!(matches!(gave_up, GaveUp::Fatal { .. }));
+        assert_eq!(dialer.calls, 1, "kept dialling a process it knew had gone");
+        let note = gave_up.note("127.0.0.1", NOTE_PORT);
+        assert!(note.contains("exited"), "{note}");
+        assert!(note.contains("after 1 attempts"), "{note}");
+    }
+
+    /// `dial_once` classifies fatal against the sentence `dial_with_retry`
+    /// actually builds, not against one written here from memory.
+    ///
+    /// The two live in different functions and nothing but this makes them
+    /// agree, so a reword of the exit message would otherwise turn every
+    /// dead-Lich reconnect into six pointless dials with no test noticing.
+    #[test]
+    fn the_fatal_classification_matches_the_dialler_it_reads() {
+        let _pending = crate::lich::LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let port = a_closed_port();
+        let err = dial_with_retry(
+            "127.0.0.1",
+            port,
+            Duration::ZERO,
+            Duration::from_millis(50),
+            &|| crate::lich::SpawnedLich::Exited(Some(1)),
+        )
+        .expect_err("a dead Lich cannot be attached to");
+        assert!(
+            err.contains("exited"),
+            "dial_once matches on \"exited\" and dial_with_retry no longer says it: {err}"
+        );
+        crate::lich::shred_pending_launch_files();
+    }
+
+    /// A detach that lands mid-backoff stops the run, and stopping on request
+    /// is not a failure.
+    #[test]
+    fn a_detach_mid_backoff_cancels_rather_than_failing() {
+        let mut dialer = FakeDialer::new(u32::MAX);
+        let wanted = AtomicBool::new(true);
+        let waits: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+        let out = reconnect_run(
+            RECONNECT_MAX_ATTEMPTS,
+            RECONNECT_BASE,
+            RECONNECT_MAX_DELAY,
+            &|| wanted.load(Ordering::Relaxed),
+            &mut || dialer.dial(),
+            &mut |attempt, _| {
+                waits.lock().unwrap().push(attempt);
+                // Detach lands during the second backoff.
+                if attempt == 2 {
+                    wanted.store(false, Ordering::Relaxed);
+                }
+            },
+            &|_d| {},
+        );
+        assert_eq!(
+            out.expect_err("cancelled"),
+            GaveUp::Cancelled { attempts: 1 },
+            "a detach was reported as a connection failure"
+        );
+        assert_eq!(
+            dialer.calls, 1,
+            "dialled after being told to stop, so a detach would have come back connected"
+        );
+    }
+
+    /// A bound of zero is a reconnect that reports on work it never did, which
+    /// is the shape of every silent-pass defect in this repository. It aborts.
+    #[test]
+    #[should_panic(expected = "a reconnect with no attempts is not a reconnect")]
+    fn a_bound_of_zero_is_refused_rather_than_reporting_a_clean_run() {
+        let mut dialer = FakeDialer::new(0);
+        let _ = run_with(&mut dialer, &|| true, 0);
+    }
+
+    /// The real dialler, against real sockets: two genuine refusals, then a
+    /// genuine listener.
+    ///
+    /// This is the half `FakeDialer` cannot cover - that `dial_once` reaches a
+    /// socket at all, that a real refusal is classified `Retry` rather than
+    /// `Fatal`, and that the run survives the error strings the operating
+    /// system actually produces rather than only the one this file invents.
+    ///
+    /// # Why the switch is by port and not by a sleeping opener
+    ///
+    /// The first draft opened a listener 900ms into the run and asserted the
+    /// reconnect landed on attempt 2 or later. It landed on attempt 1, and the
+    /// reason is written a few hundred lines up this file in `probe_lich`: on
+    /// Windows a connect to a *closed* loopback port does not refuse, it sits
+    /// for about two seconds and then times out. So attempt 1's dial was still
+    /// blocking when the opener bound the port, and it connected - a wall-clock
+    /// race that no choice of sleep makes deterministic, because the thing
+    /// being raced is a platform timeout this test does not control.
+    ///
+    /// Switching which *port* is dialled takes the clock out of the question:
+    /// the first two dials go to a port that is shut for the whole test and the
+    /// third to one that is open for the whole test, so the wrong answer is
+    /// genuinely available on attempts 1 and 2 and cannot be reached by luck.
+    #[test]
+    fn the_real_dialler_survives_real_refusals_and_connects_when_one_answers() {
+        let _pending = crate::lich::LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let shut = a_closed_port();
+        let open = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let open_port = open.local_addr().expect("addr").port();
+
+        let calls = AtomicU32::new(0);
+        let refusals: Mutex<Vec<String>> = Mutex::new(Vec::new());
+        let waits: Mutex<Vec<Duration>> = Mutex::new(Vec::new());
+        let started = std::time::Instant::now();
+
+        let out = reconnect_run(
+            RECONNECT_MAX_ATTEMPTS,
+            RECONNECT_BASE,
+            RECONNECT_MAX_DELAY,
+            &|| true,
+            &mut || {
+                let n = calls.fetch_add(1, Ordering::Relaxed) + 1;
+                let port = if n <= 2 { shut } else { open_port };
+                let r = dial_once("127.0.0.1", port);
+                if let Err(DialOutcome::Retry(ref e)) = r {
+                    refusals.lock().unwrap().push(e.clone());
+                }
+                r
+            },
+            &mut |_a, d| waits.lock().unwrap().push(d),
+            &std::thread::sleep,
+        );
+
+        let (stream, attempt) = out.expect("the third dial reaches a listener that is really open");
+        drop(stream);
+
+        assert_eq!(attempt, 3, "the two shut ports were not really dialled");
+        let refusals = refusals.lock().unwrap().clone();
+        assert_eq!(
+            refusals.len(),
+            2,
+            "a real refusal was not classified as retryable: {refusals:?}"
+        );
+        for r in &refusals {
+            assert!(
+                r.contains("Could not reach"),
+                "a single dial reported something other than a refusal: {r}"
+            );
+        }
+
+        // It really slept the schedule rather than spinning through it. The
+        // floor is the scheduled total; the dials themselves add more, which is
+        // why this is `>=` and not an equality.
+        let scheduled: Duration = waits.lock().unwrap().iter().sum();
+        assert!(
+            started.elapsed() >= scheduled,
+            "the run finished in {:?} having scheduled {scheduled:?} of waiting, so it did not sleep",
+            started.elapsed()
+        );
+        crate::lich::shred_pending_launch_files();
+    }
+
+    /// A handle in a chosen state, so the lane's refusal can be read without a
+    /// Tauri app or a live socket.
+    fn handle_in(running: bool, attempt: u32) -> (GameLink, TcpListener) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        let out = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+        let link = GameLink::default();
+        *link.inner.lock().unwrap() = Some(LinkHandle {
+            out,
+            host: "127.0.0.1".into(),
+            port,
+            lines: Arc::new(AtomicU64::new(0)),
+            backlog: Arc::new(Mutex::new(BacklogBuf::default())),
+            running: Arc::new(AtomicBool::new(running)),
+            desired: Arc::new(AtomicBool::new(true)),
+            reconnecting: Arc::new(AtomicU32::new(attempt)),
+        });
+        (link, listener)
+    }
+
+    /// The lane refuses during a reconnect, and the refusal says *reconnecting*
+    /// with the attempt count - not "not attached", which sends a player to
+    /// press a button that would make things worse.
+    ///
+    /// The property, not the mechanism: what matters is that the sentence a
+    /// caller receives distinguishes "wait" from "go and look at Lich", so it
+    /// is the sentence that is asserted.
+    #[test]
+    fn a_send_during_a_reconnect_is_refused_naming_the_attempt() {
+        let (link, _listener) = handle_in(false, 3);
+        let err = attached(&link).expect_err("nothing can be sent into a dead socket");
+        assert!(
+            err.contains("reconnecting"),
+            "the refusal does not say the link is coming back: {err}"
+        );
+        assert!(
+            err.contains("attempt 3 of 6"),
+            "the refusal does not say how far along the reconnect is: {err}"
+        );
+        assert!(
+            !err.contains("Not attached"),
+            "a reconnecting link reported itself as never attached: {err}"
+        );
+        // And the write path refuses with the same sentence, so a command that
+        // slipped past the queue guard cannot reach a dead socket either.
+        let err = write_command(&link, "look").expect_err("the socket is not running");
+        assert!(err.contains("attempt 3 of 6"), "{err}");
+    }
+
+    /// The other side of the same chooser: a link that is *not* reconnecting
+    /// keeps the words it always had. Without this, a refusal that said
+    /// "reconnecting" unconditionally would pass the test above.
+    #[test]
+    fn a_closed_link_that_is_not_reconnecting_keeps_the_old_words() {
+        let (link, _listener) = handle_in(false, 0);
+        let err = attached(&link).expect_err("the socket is closed");
+        assert_eq!(err, "The connection is closed.");
+
+        let empty = GameLink::default();
+        assert_eq!(
+            attached(&empty).expect_err("never attached"),
+            "Not attached to a game."
+        );
+    }
+
+    /// An attached link takes commands, which is the denominator for the two
+    /// refusals above: a guard that refused everything would pass both.
+    #[test]
+    fn an_attached_link_is_not_refused() {
+        let (link, _listener) = handle_in(true, 0);
+        attached(&link).expect("a running link takes commands");
+    }
+
+    /// The three states the UI reads are mutually exclusive and cover the
+    /// field, asserted from `state_of` rather than trusted to the callers.
+    #[test]
+    fn the_link_reports_exactly_one_of_connected_reconnecting_or_down() {
+        for (running, attempt, want) in [
+            (true, 0, "connected"),
+            (false, 2, "reconnecting"),
+            (false, 0, "down"),
+            // The case worth pinning: a stale counter must not make a live
+            // link read as reconnecting.
+            (true, 2, "connected"),
+        ] {
+            let (link, _listener) = handle_in(running, attempt);
+            let guard = link.inner.lock().unwrap();
+            let st = state_of(guard.as_ref(), "");
+            let got = match (st.connected, st.reconnecting) {
+                (true, false) => "connected",
+                (false, true) => "reconnecting",
+                (false, false) => "down",
+                (true, true) => panic!("connected and reconnecting at once"),
+            };
+            assert_eq!(got, want, "running={running} attempt={attempt}");
+            assert_eq!(
+                st.max_attempts, RECONNECT_MAX_ATTEMPTS,
+                "the bound is not published, so no consumer can show N of M"
+            );
+        }
+    }
 
     #[test]
     fn command_transport_accepts_one_line_and_rejects_framing_controls() {

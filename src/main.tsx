@@ -7,6 +7,7 @@ import { loadPlayerArtManifest } from './lib/playerArt.ts'
 import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults.ts'
 import { loadPortraitManifest } from './lib/portraits.ts'
 import { installBridgePauseRelay } from './lib/bridgePauseRelay.ts'
+import { installLinkReplay } from './lib/linkReplay.ts'
 import App from './App.tsx'
 
 // Before the first render, so a scaled interface does not visibly reflow.
@@ -30,6 +31,14 @@ void loadPortraitManifest()
 // a new caller of `requestPauseAll` cannot forget it. See bridgePauseRelay.ts
 // and issue #462.
 installBridgePauseRelay()
+
+// Lich replays only part of the state on a reconnect, and up to ten seconds
+// late. Room, occupants, roundtime and the script list are not in that replay
+// at all, so they would go on reading as current while describing the session
+// before the drop. Subscribed once per window, same as Pause above, so a
+// window that reconnects always asks for the rest. See linkReplay.ts and
+// issue #479.
+installLinkReplay()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

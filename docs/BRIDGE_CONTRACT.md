@@ -154,6 +154,128 @@ ways and requires named checks to go red.
 
 ---
 
+## Reconnect, and the state replay (implemented — issue #479)
+
+Two transports reach Lich and they drop independently: the companion bridge on
+7415 (this document's subject) and the `--detachable-client` game socket
+`src-tauri/src/game_link.rs` holds. Both now reconnect on a **bounded**
+exponential backoff, and both report **three** states rather than two.
+
+### Three states, not two
+
+| State | Means | What a player should do |
+|---|---|---|
+| connected | a socket is open | nothing |
+| reconnecting *(N of M)* | a re-dial is under way | wait |
+| gave up *(after N)* | the bound was spent, with the reason | go and look at Lich |
+
+Folding the last two together is what this replaced. They are both "not
+connected" and they ask opposite things, so one badge for both tells half its
+readers the wrong thing — and an *unbounded* retry, which is what the bridge
+did before, has no third state at all: a bridge that is gone and one mid-restart
+produce the same permanent spinner, and a spinner that never resolves is one
+people learn to ignore.
+
+The counts are structured fields, not prose. The game link publishes
+`reconnecting`, `attempt` and `maxAttempts` on `game:state`; the bridge answers
+`getAttempt()` / `getMaxAttempts()` beside its status. Both are read through one
+classifier each — `linkPhase` in `src/lib/gameLink.ts` and `storeBridgeStatus`
+in `src/store/bridgeStatus.ts` — so `GameConnectionBar` and `SafetyFooter`
+cannot reach different conclusions about the same state.
+
+| | game socket | bridge (7415) |
+|---|---|---|
+| schedule | 0.5s doubling, capped at 8s | 1s doubling, capped at 30s |
+| bound | 6 attempts | 8 attempts |
+| dialler | `game_link::dial_with_retry`, one dial per attempt | `new WebSocket` |
+| gives up early | Lich has exited (the dialler says so) | — |
+
+The game link reuses `dial_with_retry` (#458/#475) with a zero wait rather than
+growing a second dialler: that function already owns the single-dial semantics,
+the "Lich exited" branch and the launch-file rules, and the *schedule* belongs
+to the reconnect run. A dialler with its own internal wait would give the link
+two stacked backoffs, neither of which the state it publishes would describe.
+
+### The lane refuses while the link is down. It never queues into a dead socket
+
+`game_send` calls `game_link::attached` **before** `gate.submit`. The lane's
+queue outlives every attach and detach on purpose (`command_gate::start`), so
+without that check a send during a drop would be accepted, sit in the queue
+looking sent, and either fail silently much later or go out into a session that
+has moved on. The refusal names which of three things is wrong:
+
+- `Not attached to a game.` — never attached, or detached
+- `The connection dropped and is reconnecting - attempt N of 6. Nothing can be
+  sent until it is back.`
+- `The connection is closed.` — down, and not coming back on its own
+
+Stop and Pause are unchanged by any of this.
+
+### What comes back on a reconnect, and what has to be fetched
+
+**Lich replays part of the state on its own.** A reconnect is a fresh accept,
+and every accept runs `detachable_client_send_init`
+(`global_defs.rb:2357-2360`). This app is in the branch that receives it — the
+gate is a raw ARGV match on the Genie and Saga frontend flags, and this app
+passes neither.
+
+**It is not enough, for two read reasons** (both cited in full in
+`docs/LICH_NATIVE_LOGIN.md` §4):
+
+- **It is about ten seconds late in DragonRealms.** The replay opens with
+  `100.times { sleep 0.1; break if XMLData.indicator['IconJOINED'] }`
+  (`global_defs.rb:2307`), and `IconJOINED` is a GemStone indicator that DR
+  never sets.
+- **It carries vitals, spell, seven indicators and the compass, and nothing
+  else.** No room title, no room description, no `component id='room objs'` or
+  `'room players'`, no prompt, no roundtime, no script list. The hands / wounds
+  / stance / mindstate block is gated behind `XMLData.game =~ /GS/`.
+
+**And it cannot be requested.** The detachable read loop understands
+`SET_FRONTEND_PID <n>` and an exit command and treats every other line as
+player input (`global_defs.rb:2363-2379`), and
+`detachable_client_send_init` has one caller, the accept. There is no verb to
+send, and sending something hoping for one would put a stray command into the
+game.
+
+So the app does two things on the reconnect edge (`game:reconnected`, an event
+rather than a flag, because it must fire once per reconnect):
+
+1. **Drops the tag parser's accumulated state** (`gameLink.ts`). `vitals.ts`
+   and `situation.ts` both prefer the stream's answer over the bridge's
+   whenever the stream has one, so without this a character's health from
+   before the drop keeps being reported as current until the game happens to
+   resend every tag.
+2. **Asks the bridge for a fresh `status`** (`src/lib/linkReplay.ts`, installed
+   once per window from `main.tsx`, same as `bridgePauseRelay.ts`). That
+   payload carries the room, occupants, scripts, roundtime and activity that
+   Lich's replay does not. This is the synthesis of the half Lich will not
+   give back.
+
+The bridge's own reconnect needs no equivalent: `onopen` re-sends `auth`,
+`subscribe` and `get_status` on every open, which is already a full replay of
+everything the bridge holds. That is asserted rather than assumed —
+`tools/link-reconnect-test.mjs` checks the three frames and their order, and
+`tools/link-reconnect-break-check.mjs` removes the `get_status` and requires
+that check to go red.
+
+### Checks
+
+- `cargo test --lib game_link` — the schedule (read, not timed), the bound and
+  the give-up message, the fatal "Lich exited" arm, a detach mid-backoff being
+  cancellation rather than failure, the lane's three refusals, and the three
+  states being mutually exclusive. Positive control: a stand-in that never
+  drops connects on attempt 1 and spends no schedule.
+- `npm run test:link-reconnect` — the four `linkPhase` states, an older Rust
+  binary's field-less state degrading rather than lying, the reconnect edge,
+  the bridge's bound and its rising attempt count, a deliberate retry getting a
+  fresh budget, and the transport→store mapping being total.
+- `npm run test:link-reconnect-break` — eight sabotages across both files,
+  each asserting the **exact** set of checks that reddens. Restored and
+  verified by sha256.
+
+---
+
 ## The outbound command lane (implemented)
 
 Everything above is the *bridge* — the companion-era plugin socket. This

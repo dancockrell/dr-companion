@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { AppState, SetupComponent, UiMode, AuthMode } from '../types'
+import type { AppState, SetupComponent, UiMode, AuthMode, BridgeTransportStatus } from '../types'
+import { MAX_RECONNECT_ATTEMPTS } from '../bridge/realBridge.ts'
 import { bridge } from '../bridge/index.ts'
 import type { IntentName } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
@@ -138,6 +139,11 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   consoleOpen: prefs.consoleOpen ?? false,
   runawayReason: null,
   bridgeConnected: false,
+  // 'disconnected' rather than 'error': nothing has been tried yet, and a
+  // default that reads as a failure is a claim about a dial nobody made.
+  bridgeStatus: 'disconnected' as BridgeTransportStatus,
+  bridgeAttempt: 0,
+  bridgeMaxAttempts: MAX_RECONNECT_ATTEMPTS,
   // Unknown until a bridge says otherwise, never assumed good.
   bridgeAuth: 'unknown' as AuthMode,
   bridgeAuthNote: '',

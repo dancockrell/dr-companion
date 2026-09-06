@@ -22,6 +22,8 @@ import {
   gameDropped,
   gameState,
   lichNote,
+  linkPhase,
+  linkPhaseLabel,
   subscribeGame,
 } from '../../lib/gameLink.ts'
 import { useSyncExternalStore } from 'react'
@@ -80,14 +82,49 @@ export function GameConnectionBar() {
     if (validPort(v)) writeText(PORT_KEY, v)
   }
 
+  // Four states, from one place. Read here rather than tested inline so this
+  // bar and the SafetyFooter cannot come to different conclusions about the
+  // same LinkState - which is what a second `link.connected ? ... : ...` in
+  // each of them would guarantee eventually. See `linkPhase` in gameLink.ts.
+  const phase = linkPhase(link)
+  const phaseLabel = linkPhaseLabel(link)
+
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-border px-2 py-1 text-xs">
       <span
-        className={cn('flex shrink-0 items-center', link.connected ? 'text-good' : 'text-ink-faint')}
+        className={cn(
+          'flex shrink-0 items-center',
+          phase === 'connected'
+            ? 'text-good'
+            : phase === 'reconnecting'
+              ? 'text-warn'
+              : 'text-ink-faint'
+        )}
         title={link.connected ? 'Attached' : link.note || `Not attached (${link.host}:${link.port})`}
       >
-        {link.connected ? <PlugZap className="h-3 w-3" /> : <Plug className="h-3 w-3" />}
+        {/* The reconnecting icon is the *unplugged* one, deliberately, and
+            the word beside it carries the difference. A third icon would be a
+            third thing to learn, and the state that matters here is "nothing
+            is getting through", which the unplugged plug already says. */}
+        {phase === 'connected' ? <PlugZap className="h-3 w-3" /> : <Plug className="h-3 w-3" />}
       </span>
+
+      {/* Reconnecting and gave-up, with the count. Shown ahead of the Lich
+          probe's note because it is the more immediate fact: whether to wait
+          at all comes before what to do if waiting does not work. */}
+      {phaseLabel && (
+        <span
+          className={cn(
+            'shrink-0 tabular-nums',
+            phase === 'reconnecting' ? 'text-warn' : 'text-danger'
+          )}
+          title={link.note}
+          role="status"
+          aria-live="polite"
+        >
+          {phaseLabel}
+        </span>
+      )}
 
       {!link.connected && lichNote(link.lich) && (
         <span
@@ -125,13 +162,19 @@ export function GameConnectionBar() {
         >
           <Trash2 className="h-3.5 w-3.5" aria-hidden />
         </button>
-        {link.connected ? (
+        {/* Detach covers reconnecting as well as connected, and Attach is
+            deliberately not offered during a reconnect: a dial is already
+            under way, and a second one would race it - `game_attach` refuses
+            for that reason, so offering the button would only produce an
+            error. Detach is what a player wants there anyway: it is how you
+            stop a reconnect you have decided is not going to work. */}
+        {link.connected || phase === 'reconnecting' ? (
           <button
             type="button"
             className="rounded border border-border p-1 text-ink-muted hover:text-ink"
             onClick={() => void detachGame()}
-            title="Detach"
-            aria-label="Detach"
+            title={phase === 'reconnecting' ? 'Stop reconnecting' : 'Detach'}
+            aria-label={phase === 'reconnecting' ? 'Stop reconnecting' : 'Detach'}
           >
             <Unlink className="h-3.5 w-3.5" />
           </button>
