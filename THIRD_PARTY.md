@@ -42,7 +42,7 @@ The viewer is not installed by default and the client runs without it.
 | `@tauri-apps/api` | 2.11.1 | Apache-2.0 OR MIT |
 | `clsx` | 2.1.1 | MIT |
 | `js-yaml` | 5.4.1 | MIT |
-| `lucide-react` | 1.37.0 | ISC |
+| `lucide-react` | 1.40.0 | ISC |
 | `react` | 19.2.8 | MIT |
 | `react-dom` | 19.2.8 | MIT |
 | `zustand` | 5.0.15 | MIT |
@@ -56,11 +56,11 @@ bundler, the type system and the CSS toolchain all contribute to what ships.
 |---|---|---|
 | `@tailwindcss/vite` | 4.3.3 | MIT |
 | `@tauri-apps/cli` | 2.11.4 | Apache-2.0 OR MIT |
-| `@types/node` | 26.4.0 | MIT |
+| `@types/node` | 26.4.1 | MIT |
 | `@types/react` | 19.2.18 | MIT |
-| `@types/react-dom` | 19.2.5 | MIT |
+| `@types/react-dom` | 19.2.7 | MIT |
 | `@vitejs/plugin-react` | 6.1.1 | MIT |
-| `oxlint` | 1.80.0 | MIT |
+| `oxlint` | 1.81.0 | MIT |
 | `tailwindcss` | 4.3.3 | MIT |
 | `typescript` | 6.0.3 | Apache-2.0 |
 | `vite` | 8.2.2 | MIT |
