@@ -1,21 +1,23 @@
 /**
- * Getting your frontend talking to Lich, which is the step people lose days to.
+ * Getting your frontend talking to Lich, for anybody who wants to keep using
+ * their own window alongside this app.
  *
- * From the Lich help channel:
+ * # What this page used to be, and why half of it is gone
  *
- *     "Is there anyone that can walk me through installing lich for genie? Im
- *      seeing everything pointing to wrayth and stormfront but when I try
- *      following that install instructions I only got it to login with
- *      stormfront not genie. Ive been at this for 2 days"
+ * Most of it was a walkthrough for one particular frontend: four config
+ * commands typed into that program, a connect command, and a warning that the
+ * route it described left this app's channel tabs empty. It existed because
+ * that program was how the app got a logged-in Lich to read.
  *
- *     "You can't launch genie with the lich launcher"
+ * It is not any more. The app signs in itself
+ * (`src/components/shared/SignIn.tsx`) and starts Lich with the result, so
+ * instructions for configuring another program to do this app's job point
+ * somewhere nobody needs to go. Dan gave the instruction on 6 September 2026;
+ * `docs/LICH_NATIVE_LOGIN.md` quotes it in full and carries the design.
  *
- * That second line is the whole confusion, and it explains the first. For most
- * frontends you launch Lich and Lich brings the frontend up. For Genie you do
- * the opposite: Genie launches, and you point it at the port Lich opened. Any
- * guide written for one looks broken if you are using the other.
- *
- * Values from the Genie 4 wiki, "Connecting and Profiles".
+ * What is left is the case this page was always right about: you start Lich and
+ * it brings your frontend up for you. That is one command, and it is the same
+ * shape for every frontend that has a flag.
  */
 import { useState } from 'react'
 import { Copy, Check, ExternalLink, Link2 } from 'lucide-react'
@@ -75,7 +77,6 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
 
   const cfg = INSTANCES.find((i) => i.id === instance) ?? INSTANCES[0]!
   const fe = frontendById(frontend)
-  const isGenie = fe.id === 'genie'
 
   return (
     <div className="rounded-2xl border border-border bg-surface-raised p-4 space-y-3">
@@ -118,130 +119,50 @@ export function ConnectGuide({ lichPath }: { lichPath?: string | null }) {
         </select>
       </div>
 
-      {isGenie ? (
-        <div className="space-y-2">
-          <p className="text-xs text-ink-muted leading-snug">
-            Genie is the exception: the Lich launcher will not start it. Instead
-            Genie connects to a port Lich opens, and you set that up inside
-            Genie.
+      <div className="space-y-2">
+        <p className="text-xs text-ink-muted leading-snug">
+          You start Lich and it brings {fe.label} up for you.
+        </p>
+        {/* The detected path rather than a generic `lich.rbw`, when this app
+          * has found one: a wrong path here is the commonest cause of a
+          * connect-retry loop and the error does not say so. */}
+        <Line
+          text={`ruby ${lichPath ?? 'lich.rbw'} ${cfg.lichArgs}${fe.lichFlag ? ` ${fe.lichFlag}` : ''}`}
+        />
+        {lichPath && (
+          <p className="text-xs text-good leading-snug">
+            That is where this app found Lich on your machine.
           </p>
-
-          <div className="space-y-1">
-            <p className="text-xs text-ink-muted">
-              1. See what Genie currently thinks:
-            </p>
-            <Line text="#lichsettings" />
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs text-ink-muted">
-              2. Point it at your actual lich.rbw. A wrong path here is a
-              common cause of the connect-retry loop, and the error does not
-              say so:
-            </p>
-            <Line
-              text={`#config lichpath ${lichPath ?? 'C:\\Ruby4Lich5\\Lich5\\lich.rbw'}`}
-            />
-            {lichPath && (
-              <p className="text-xs text-good leading-snug">
-                That is where this app found Lich on your machine.
-              </p>
-            )}
-          </div>
-
-          {instance === 'Prime' ? (
-            <p className="text-xs text-ink-faint leading-snug">
-              3. Prime is the default, so port {cfg.port} and{' '}
-              <code className="text-ink-muted">{cfg.genieArgs}</code> should
-              already be set. Only change them if the above disagrees.
-            </p>
-          ) : (
-            <div className="space-y-1">
-              <p className="text-xs text-ink-muted">
-                3. {cfg.label} needs a different port and different arguments.
-                This is the part that is easy to get wrong and gives no useful
-                error:
-              </p>
-              <Line text={`#config lichport ${cfg.port}`} />
-              <Line text={`#config licharguments ${cfg.genieArgs}`} />
-              <Line text="#config save" />
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <p className="text-xs text-ink-muted">
-              4. Connect, using a profile you have already saved:
-            </p>
-            <Line text={`#lichconnect YourCharacter${cfg.suffix}`} />
-          </div>
-
-          {/* Genie's own config always carries --genie, which is the correct
-            * flag for Genie and the wrong one for this app's channel tabs -
-            * see the same note in Dashboard.tsx. Not repeated per game
-            * variant above; the limitation is about the flag, not the game. */}
-          <p className="text-xs text-warn leading-snug">
-            This keeps Genie as your window. The channel tabs in this app stay
-            empty either way, because Lich only sends the game's channel
-            labels to a frontend that asks for them, and{' '}
-            <code className="text-ink-muted">--genie</code> does not. Use "Open
-            Lich to sign in" on the dashboard instead if you want those.
+        )}
+        {!fe.lichFlag && (
+          <p className="text-xs text-ink-faint leading-snug">
+            We do not have a confirmed Lich flag for {fe.label}. Check its own
+            documentation for the flag, or point it at port {cfg.port}, which is
+            the port Lich opens for this app.
           </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-xs text-ink-muted leading-snug">
-            For {fe.label} it works the other way round from Genie: you start
-            Lich and it brings the frontend up for you.
-          </p>
-          <Line
-            text={`ruby lich.rbw ${cfg.lichArgs}${fe.lichFlag ? ` ${fe.lichFlag}` : ''}`}
-          />
-          {!fe.lichFlag && (
-            <p className="text-xs text-ink-faint leading-snug">
-              We do not have a confirmed Lich flag for {fe.label}. Check its own
-              documentation for the flag, or connect it to port {cfg.port} the
-              way Genie does.
-            </p>
-          )}
-        </div>
-      )}
+        )}
+        <p className="text-xs text-ink-faint leading-snug">
+          None of this is needed to use this app on its own. Sign in on the main
+          screen and it starts Lich for you, with no other program involved.
+        </p>
+      </div>
 
       <div className="rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-2">
         <p className="text-xs text-ink-muted leading-snug">
           Then start the bridge in game with{' '}
-          <code className="text-accent">{bridgeCommand(frontend)}</code>
-          {isGenie ? (
-            <>
-              {' '}
-              — note the comma. Genie starts Lich scripts with a comma; every
-              other frontend uses a semicolon.
-            </>
-          ) : (
-            <> and switch this app to Live Lich in Settings.</>
-          )}
+          <code className="text-accent">{bridgeCommand(frontend)}</code> and
+          switch this app to Live Lich in Settings.
         </p>
       </div>
 
-      {isGenie && (
-        <p className="text-xs text-warn leading-snug">
-          On Genie 5 these commands may not exist yet: it is still in beta and
-          the guides describe Genie 4. If <code>#lichsettings</code> comes back
-          as an unknown command, that is why.
-        </p>
-      )}
-
       <a
-        href={
-          isGenie
-            ? 'https://github.com/GenieClient/Genie4/wiki/02.-Connecting-and-Profiles#lich-connect'
-            : 'https://elanthipedia.play.net/Lich_scripting_engine'
-        }
+        href="https://elanthipedia.play.net/Lich_scripting_engine"
         target="_blank"
         rel="noreferrer"
         className="inline-flex items-center gap-1 text-xs text-info hover:underline"
       >
         <ExternalLink className="w-3 h-3" />
-        {isGenie ? 'The Genie wiki page this comes from' : 'Lich on Elanthipedia'}
+        Lich on Elanthipedia
       </a>
     </div>
   )

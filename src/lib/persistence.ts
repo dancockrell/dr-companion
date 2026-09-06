@@ -47,6 +47,23 @@ export interface PersistedPrefs {
   typeScale?: number
   /** Frontend id, which decides the Lich script prefix. */
   frontend?: string
+  /**
+   * The Play.net account name last signed in with, so a returning player types
+   * it once rather than every session.
+   *
+   * There is deliberately no `lichPassword` beside these three, and no
+   * commented-out one either. The password is held in the sign-in form's own
+   * `useState` for the length of one call and never reaches this file - see
+   * `src/lib/lichLogin.ts` and `docs/LICH_NATIVE_LOGIN.md` §5. Remembering it is
+   * increment N8, opt-in and not built, and when it is built it goes to Windows
+   * Credential Manager rather than here: a password in a JSON preferences file
+   * is a plaintext password whatever it is spelled with.
+   */
+  lichAccount?: string
+  /** DR, DRX, DRF or DRT - see `GAME_CODES` in `lichLogin.ts`. */
+  lichGameCode?: string
+  /** The character last launched, so the picker can preselect it. */
+  lichCharacter?: string
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches?: number
   /**

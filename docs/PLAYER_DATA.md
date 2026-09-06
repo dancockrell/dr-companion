@@ -6,11 +6,20 @@
 
 Everything below lives in this window's `localStorage`, on this computer, in
 this app. None of it is sent anywhere. Nothing here is a password, a
-credential or a game session secret: the app never sees the player's
-password, which goes to Lich's own login (plan section 5, bar 2).
+credential or a game session secret.
+
+The password is the one worth being exact about, and the exact statement
+changed on 6 September 2026. The app signs the player in itself now
+(`src/components/shared/SignIn.tsx`), so it does handle a password: for the
+length of one call, sent over TLS to Play.net and to nowhere else. It is
+**not stored** - not here, not in any file this app writes. The account name
+is stored, in plain text, like every other preference. See
+`docs/LICH_NATIVE_LOGIN.md` section 5, and
+`tools/sign-in-test.mjs`, which drives a whole sign-in and then reads these
+preferences back to prove it.
 
 29 keys, owned by 25 files, found by scanning
-317 source files.
+321 source files.
 
 ## The keys
 
