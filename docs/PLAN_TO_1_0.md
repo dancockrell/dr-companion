@@ -261,6 +261,7 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | **J** | Map audit (#175) | per finding | D5 |
 | **K** | Appearance (models for weapons/armor, glyphs) | new appearance data + `presentationBridge.ts` entity fields + Godot mapping | C7 decided, C4 |
 | **L** | Codex contract for the Crossing slice | `docs/THREE_D_REBUILD_HANDOFF.md`, `godot/mock/*`, contract tests in `tools/` | B3 |
+| **N** | Lich-native login and frontend (no Genie) | new `src-tauri/src/eaccess.rs`, new `src-tauri/src/sal.rs`, `lich.rs`, `LichLauncher.tsx`, `WaitingForCharacter.tsx`, `tools/build-privacy-doc.mjs` | none |
 
 **Conflict matrix — same file, different lanes: order, do not parallelise.**
 
@@ -274,6 +275,9 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | `package.json`, `tools/test-suites.json` | everyone adding a test | Append beside related entries; rebase on conflict; both must still parse. |
 | `src/lib/portraits.ts`, `playerArt.ts`, `creatureArt.ts`, `Portrait.tsx`, `RoomBackdrop.tsx`, `RoomScene.tsx` | `rewrite/remove-2d` | **Nobody touches these** until C7 is decided. |
 | `docs/PLAN_TO_1_0.md` | everyone | Marker lines only, per 0.2. Structural edits to this file are their own PR titled `docs(plan): ...`. |
+| `src-tauri/src/lich.rs` | N3, N6 | N3 replaces `launch_args`; N6 removes `genie_status` and the note field. N3 first. Nobody outside Lane N edits it while either is `[~]`. |
+| `src/components/shared/LichLauncher.tsx`, `WaitingForCharacter.tsx` | N5, N6, D2–D6 | N5 rewrites both, N6 sweeps what is left. Lane D waits for N6 `[x]` — its own increments only move these components, N's rewrites them. |
+| `tools/build-privacy-doc.mjs`, `docs/PRIVACY.md` | N2 | N2 alone. The generated doc is never hand-edited; change the generator. |
 
 **Recommended concurrency, three sessions:** S1 = C0, C1, C2, C3 → A1…A8 → G.
 S2 = B1…B4 → L1…L6 → B5…B8. S3 = E1, E5–E9 → F1–F8 → E10–E12. A fourth
@@ -293,9 +297,13 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
+| **N** | design only (this PR) | `lane-n/design` | `/c/Users/Admin/dev/wt-laneN` | 2026-09-06 |
 
-No lane is currently held. G's row was deleted on 6 Sep 2026 when G11's second
-PR (#359) merged; an empty table means every lane is free to claim.
+G's row was deleted on 6 Sep 2026 when G11's second PR (#359) merged. Lane N's
+row above covers **the design PR only** — the one that writes the lane into this
+document and `docs/LICH_NATIVE_LOGIN.md`, implementing none of it. It is deleted
+when that PR merges, at which point N1 and N2 are both free to claim
+concurrently by two different sessions.
 
 Finished and released: **C** (C3–C8, PRs #291 and #296), **E/F** (E5–E8,
 F2, F6, PRs #293 and #295; then C12 and F7 in PR #315, which emptied the
@@ -403,9 +411,25 @@ passes.
 - **Gate 0 — Stable base:** C0–C3, A1–A6, B1–B3, E1–E4, F1.
   Check: fresh worktree → `npm run worktree:init && cd src-tauri && cargo test
   --lib` green; `docs/verification/live-chain-*.md` exists with a date.
-- **Gate 1 — Text client stands alone:** D0–D6, E5–E9, C4–C6, C8, A7–A12.
+- **Gate 1 — Text client stands alone:** D0–D6, E5–E9, C4–C6, C8, A7–A12,
+  N1–N7 (N8 only with Dan's yes on a new Rust dependency).
   Check: `grep -c "kind === 'map'" src/App.tsx` → `0`; kill-switch suite (E5)
-  green; a full play session recorded with viewer and AI absent.
+  green; a full play session recorded with viewer and AI absent, **signed in
+  from this app with no other game client installed or running**;
+  `git grep -ic genie -- src/components src-tauri/src/lich.rs src/lib/frontends.ts`
+  → `0`.
+
+  Lane N belongs in this gate rather than in a new one, and the gate's own name
+  is the argument. "Stands alone" is a claim about what the client needs beside
+  it, and today it needs Genie — not for the game stream, which has been
+  Lich-native since `--headless=11024` shipped, but for the account login, which
+  the app cannot perform and Lich's own window cannot complete on this machine
+  (`src-tauri/src/lich.rs:490-495`). Section 5's bar already says the same thing
+  in item 3, "play all day without Genie", so a Gate 1 that went GREEN while the
+  Genie instructions were still the only way in would be certifying a sentence
+  that is not true. A separate gate would let that happen and would also put
+  Lane N after Gate 7, which is where 1.0 is defined. Evidence and the design
+  are in `docs/LICH_NATIVE_LOGIN.md`.
 - **Gate 2 — First run:** E10–E12, F2–F4.
   Check: a never-used-Lich person reaches a playing session from the installer
   in under ten minutes on the clean VM, recorded in `docs/verification/`.
@@ -431,10 +455,23 @@ the viewer and AI shipped disabled. Gates 3–5 can follow the first release.
 ## 5. The bar
 
 A player who has never seen this repo can: (1) install from one Windows
-installer with no terminal; (2) sign in through Lich's own login — this app
-never touches the password; (3) play all day without Genie; (4) lose nothing
+installer with no terminal; (2) sign in from this app — it sends the account and
+password to `eaccess.play.net`, to Simutronics and nowhere else, and stores the
+password only if asked and only in Windows Credential Manager;
+(3) play all day without Genie; (4) lose nothing
 when anything breaks; (5) optionally open the viewer; (6) optionally use a
 local model; (7) uninstall cleanly with scripts, settings and maps intact.
+
+Item 2 used to read "sign in through Lich's own login — this app never touches
+the password", which was written true and stopped being achievable: Lich's own
+window cannot complete a sign-in on this machine
+(`src-tauri/src/lich.rs:490-495`), so the only route that existed was the Genie
+instructions in `WaitingForCharacter.tsx`, and Dan retired Genie on 6 Sep 2026.
+Lane N replaces the promise with what will actually be true rather than leaving
+a bar nothing can clear. The privacy claim it costs is real and is not softened
+anywhere: `docs/PRIVACY.md`, `docs/ENGINE.md:33-37` and
+`LichLauncher.tsx:304-307` all say the app never sees the password, and N2 and
+N5 change every one of them.
 5 and 6 are absent by default and harmless when absent.
 
 ---
@@ -1517,6 +1554,108 @@ receives. No portraits, no images in the client.
   sabotage: put the scale back to 0.25 → `FAIL blocks touch or overlap: closest neighbours are 2.00m apart but blocks are 4.4m wide`; restored, md5 `5938abc03a96` either side.
   pitfalls: two rooms (Paladins' Guild `1-804`/`1-866` and `1-805`/`1-867`) share exact map coordinates and overlap at any scale. That is a map-data defect rather than a layout one, so it is not folded into the gutter failure it cannot fix. It is no longer NOT CHECKED either: the NOT-CHECKED sweep made the two pairs an explicit `KNOWN_COINCIDENT` allowlist in `tools/primitive-world-manifest-test.mjs`, so a *third* duplicate fails instead of printing in the same harmless shape, and an entry that stops being coincident fails as stale. **Not verified on screen**: the Godot window is GPU-composited and would not screenshot for Lane B either, so this geometry is proved by measurement and by the tests, and the look still wants Dan's eye.
 
+### Lane N — Lich-native login and frontend (no Genie)
+
+Dan, 6 Sep 2026: *"we aren't using genie anymore… you have to implement
+correctly using lich."* **Read `docs/LICH_NATIVE_LOGIN.md` before claiming any
+increment here.** It carries the EAccess protocol read out of Lich 5.20.1 with
+`file:line` cites, the argument for the `.sal` launch over writing Lich's
+`entry.yaml`, the credential decision, the published interface, and — the part
+that matters most — a list of what is **inferred and not yet measured**. Two
+items on that list decide whether this design works as written, and each is
+measured by an increment rather than argued.
+
+The one fact that makes this lane small: **the app is already a Lich frontend
+for game text.** `lich.rs:517` starts Lich with `--headless=11024`, which
+`arg_normalization.rb:52-53` expands to
+`--without-frontend --detachable-client=11024`; `game_link.rs:304` dials that
+port and `gameStream.ts` parses what comes down it. Genie supplied one thing
+only — the account login, because `--login <Character>` needs a saved entry and
+Lich's own window cannot create one here (`lich.rs:490-495`). Lane N performs
+that login itself. It does not add a second launch path beside the Genie one; it
+replaces it, and there is no fallback (`CLAUDE.md` §0).
+
+**Parallelism.** N1 and N2 have no dependency on each other or on anything
+outside this lane and can be claimed by two sessions on day one. N5 depends only
+on the *interface* in `docs/LICH_NATIVE_LOGIN.md` §8, not on N3 or N4 existing,
+so a third session can build the UI against `DRC_LICH_DRY_RUN=1` while N3 and N4
+run. N3 → N4 → N7 is the only serial chain. N6 is a sweep and goes last among
+the code increments. N8 is optional and human-gated and blocks nothing.
+
+- [ ] **N1  EAccess protocol client in Rust, against a mock** (≈120)
+  touches: new:src-tauri/src/eaccess.rs, src-tauri/src/lib.rs
+  depends-on: none
+  do: port §2 of `docs/LICH_NATIVE_LOGIN.md` exactly. Split I/O from protocol so the protocol is testable without TLS: `pub trait Transport: Read + Write`, `list_characters(&mut T, account, &Secret, game_code) -> Result<Account, EAccessError>` and `login(&mut T, account, &Secret, game_code, character) -> Result<LaunchData, EAccessError>`, plus a `TlsTransport` built on the `rustls`/`native-tls` stack Tauri already pulls in (check `Cargo.lock` first; **if neither is already a dependency, stop and add the ask to §10 rather than adding a crate**). Frames in order: `K`, `A\t<account>\t<obscured>`, `M`, `F\t<code>`, `G\t<code>`, `P\t<code>`, `C`, `L\t<char code>\tSTORM`, each `puts`-terminated so the wire bytes end `\n\n`. Obscuring is `out[i] = ((pw[i] - 32) ^ key[i]) + 32` on raw bytes; a password longer than the hashkey is a hard error naming the lengths, never a wrap or a truncation. `C` is parsed by stripping `^C\t\d+\t\d+\t\d+\t\d+[\t\n]` then scanning code/name pairs, matching the name case-sensitively. `L` must begin `L\tOK\t`; keys are kept UPPERCASE in `LaunchData` and their order preserved. Certificate validation is ordinary system roots — Lich's `simu.pem` pin is deliberately not reproduced, and `LICH_NATIVE_LOGIN.md` §3.1 says why. `DRC_EACCESS_HOST`/`DRC_EACCESS_PORT` exist only so a test can aim this at a mock.
+  verify: `cd src-tauri && cargo test --lib eaccess` — a mock `Transport` replaying the exact byte sequence from Lich's source drives a full `login` to a `LaunchData` containing `GAMEHOST`, `GAMEPORT` and `KEY`, and the suite prints how many frames it asserted. Separately, a run with `DRC_EACCESS_PORT=7911` must fail **naming 7911**, which proves the override is read (a default that happens to work proves nothing).
+  sabotage: (1) change `- 32` to `- 31` in the obscuring loop → only the obscuring case goes red, with the expected and actual bytes printed; (2) drop the `M` frame → only the sequence case goes red; (3) make `resolve_char_code` match case-insensitively → only the character-lookup case goes red. Assert **which** cases go red, not that something did: a sabotage that reddens three checks means the checks are entangled.
+  pitfalls: 3 (a credential-shaped literal in a fixture — assemble it at runtime), 15, 16. **No real credential and no real login in this increment.** A bare TLS handshake against `eaccess.play.net:7910` with zero frames sent is permitted as a sanity check and is not required for `done`; if it is run, record the result in the claim.
+  done-when: `cargo test --lib eaccess` green, all three sabotages reproduced and restored with matching `md5sum`, and no network call in any test.
+
+- [ ] **N2  Credentials, and a privacy doc that is true** (≈90)
+  touches: new:src-tauri/src/credentials.rs, tools/build-privacy-doc.mjs, docs/PRIVACY.md, docs/ENGINE.md, src-tauri/src/lib.rs
+  depends-on: none
+  do: two halves, both about honesty rather than storage. (a) `credentials.rs`: a `Secret(String)` newtype with `Drop` overwriting the bytes in place, a `Debug` that prints `Secret(<redacted>)`, and no `Deref` to `&str` — callers ask for `.expose_for_obscuring()` so every use site is greppable. No new crate; `zeroize` would be a dependency ask for nothing this does not already do. (b) the doc: `build-privacy-doc.mjs` scans only for `https?://` (`:41-79` `HOST`), so a raw TLS socket to `eaccess.play.net:7910` is invisible to it and the generator throws `stale` (`:275-280`). **Do not write a fake `https://` into a comment to satisfy the regex** — that makes the source lie to pass a test. Teach the scanner a second pattern for a declared non-HTTP endpoint, add the `eaccess.play.net` entry to `DESTINATIONS` (`:98-170`), and rewrite the "short version" prose in the `md` template that currently claims *"your Play.net credentials are never sent anywhere by this app"*. Correct `docs/ENGINE.md:33-37` in the same pass — it says handling passwords first-party is "a line the project has deliberately stayed behind", and the line has moved.
+  verify: `node tools/build-privacy-doc.mjs --check` exit 0; `grep -c "eaccess.play.net" docs/PRIVACY.md` ≥ 1; `grep -c "never sent anywhere by this app" docs/PRIVACY.md` → `0`; `node tools/doc-claims-test.mjs` green; `grep -rn "expose_for_obscuring" src-tauri/src | wc -l` prints every use site.
+  sabotage: (1) delete the `eaccess.play.net` row from `DESTINATIONS` → `--check` exits non-zero naming it unclassified; (2) delete the new scan pattern → `--check` exits non-zero naming it stale. Both must be reproduced, because they are the two directions the generator checks and only one of them is the new code. Note `EXCLUDE = /test|127\.0\.0\.1|localhost/` matches the substring `test` anywhere in the rendered `path:line:text`, so a sabotage that lands in a line containing "test" or "latest" will be dropped silently and read as a pass — put the declaration where no such word appears and prove the sabotage reached the branch.
+  pitfalls: 3, 15, 16.
+  done-when: PRIVACY.md names the host, says what is sent, says the password is not stored by default and where it goes when it is, and no document anywhere still says the app never sees it.
+
+- [ ] **N3  The `.sal` launch file, and Lich started from it** (≈90)
+  touches: new:src-tauri/src/sal.rs, src-tauri/src/lich.rs, src-tauri/src/lib.rs
+  depends-on: N1
+  do: `sal::write_temp(&LaunchData) -> PathBuf` writes `KEY=…` and the rest one `UPPER=value` per line into a random 16-hex basename in the app's own temp directory — never the repo, never Lich's `TEMP_DIR` — and `sal::shred(path)` removes it. Replace `lich::launch_args` (`lich.rs:517-556`): the character branch becomes `[<sal path>, "--headless=11024", "--start-scripts=companion_bridge"]` and drops `--login`, `--dragonrealms` and `--stormfront`, all three of which the launch file now supplies (`GAMECODE=DR` at `main.rb:225-231`). Keep `--headless=` rather than the expanded pair: it is one token, it is what already ships, and `arg_normalization.rb:33-35` refuses to combine it with an explicit `--detachable-client`, so the existing `opens_the_detachable_client_port` assertion (`lich.rs:640-651`) stays valid unchanged. Add the `lich_login_launch` command per `LICH_NATIVE_LOGIN.md` §8 — it returns `{ pid, port }` after spawning, and shreds the `.sal` when `game_attach` reports the socket up, on a timeout, and at process exit. `DRC_LICH_DRY_RUN=1` writes and shreds the file and reports the argv without spawning. **The password never appears in argv**: a Windows command line is readable by any process of this user.
+  verify: **not a reading of `arg_normalization.rb`** — start real Lich with a hand-written `.sal` carrying a deliberately invalid `KEY`, then `netstat -ano | grep LISTENING | grep :11024` shows Lich listening. That is the measurement `LICH_NATIVE_LOGIN.md` §7 item 2 asks for: it proves `--headless` normalisation runs on the `.sal` path, and it needs no valid account because the port opens before the game key is used. Kill that Lich **by the PID you started**, never by image name (§1 trap 12). Then `cargo test --lib sal` green and `DRC_LICH_DRY_RUN=1` reporting the argv with the `.sal` path first.
+  sabotage: (1) omit `GAMECODE=` from the written file → Lich exits printing `error: launch_data contains no GAMECODE info` (`main.rb:232`), and the test asserts that exact string rather than a non-zero exit; (2) make `shred` a no-op → the leftover-file check goes red naming the path. Sabotage (1) proves the file reaches Lich's reader at all, which a green launch alone does not.
+  pitfalls: 8, 9, 12, 14 (the `.sal` content and the temp path contain backslashes — write those files with Write/Edit or build them with forward slashes, never a heredoc), 16.
+  done-when: a `.sal` produced from a `LaunchData` starts Lich, 11024 listens, and `stat` says the file is gone afterwards.
+
+- [ ] **N4  Attach, and measure what the frontend identity actually buys** (≈75)
+  touches: tools/fake-lich.mjs, src/lib/frontends.ts, tools/frontend-test.mjs, src-tauri/src/game_link.rs
+  depends-on: N3
+  do: the stream format does not change — same detachable port, same Lich-processed Simutronics XML, same `gameStream.ts`. What changes is Lich's own frontend identity, and `LICH_NATIVE_LOGIN.md` §7 item 1 says plainly that this was read but not traced: on this path `resolve_headless_frontend` returns `'profanity'` (`login_helpers.rb:578-584`) while `Frontend.client` comes from the `GAME=` line as `'stormfront'` (`main.rb:373-383`), and **which of the two decides `Frontend.supports_streams?` is not established**. Establish it. If streams are supported, the channel tabs fill for the first time and the Genie warning at `LichLauncher.tsx:283` was a real cost this lane removes; if not, say so in `docs/LIVE-STATE.md` rather than implying otherwise. Then: extend `fake-lich.mjs` to serve the `.sal`-route identity so the unhappy paths are reachable without an account, and make `frontends.ts` model exactly the identities that can now occur — the `genie` `,` branch and its case in `frontend-test.mjs` go with N6, not here, so this increment leaves the test green rather than half-deleting a case.
+  verify: against a live Lich started by N3, `;send <c><channel>` style traffic or the `<pushStream id=…>` frames observed on 11024, recorded verbatim in `docs/verification/lich-native-stream-<date>.md` with the answer to §7 item 1 stated as measured. `npm run test:frontend` green. The state replay on attach (`global_defs.rb:2306-2343`, suppressed for Genie only) must be observed arriving.
+  sabotage: point `game_attach` at a port nothing listens on → the pane reports disconnected with a reason, and the existing `tools/backlog-test.mjs` reconnect checks stay green.
+  pitfalls: 12, 16, and §1 trap 22 if you edit a tracked file by fragment.
+  note: `tools/fake-lich.mjs` defaults to **11124**, not 11024, on purpose. Do not "fix" that.
+  done-when: the verification doc exists with a date and states the streams answer as measured, not inferred.
+
+- [ ] **N5  The sign-in screen, replacing the Genie instructions** (≈120)
+  touches: new:src/components/shared/SignIn.tsx, src/components/shared/LichLauncher.tsx, src/components/shared/WaitingForCharacter.tsx, src/components/first-run/ConnectGuide.tsx
+  depends-on: N1
+  do: build against the interface in `LICH_NATIVE_LOGIN.md` §8 and `DRC_LICH_DRY_RUN=1`; this does **not** wait for N3 or N4. Account, password, game (DR / DRX / DRF / DRT), then `lich_login_characters` and a real character picker from the `C` reply — the player types no character name. On pick, `lich_login_launch`, then the existing `game_attach` with the port the command returns. The "remember my password" checkbox does **not** appear until N8 exists; shipping it disabled would be a placeholder that reads as finished work. Delete, in this increment, the three passages that are now false: the `#config lichpath` / `--genie --dragonrealms` / `#lichconnect` block (`WaitingForCharacter.tsx:138-160`), the same block in `LichLauncher.tsx:263-285`, and the "Lich's own login window cannot sign in on this machine… Genie is not one it can offer" panel (`LichLauncher.tsx:227-233`). Replace the password claim at `LichLauncher.tsx:304-307` with the truth: the password goes to Simutronics and nowhere else, and is not kept.
+  verify: `npx tsc -b` exit 0; `node tools/tauri-command-callers-test.mjs` green (both new commands now have callers, so no `DEFERRED` entry is needed and any that N1/N3 added must be removed in this increment — a stale entry is itself a failure at `:46-51`); `git grep -c "lichconnect\|licharguments" src/` → `0`; the app run with `DRC_LICH_DRY_RUN=1` reaches the character picker against a mock and the sign-in screen fits the 1024x768 default window without clipping (§1, and defect #418 was exactly this).
+  sabotage: return an empty character list from the mock → the screen says the account has no DragonRealms characters and offers a way back, rather than showing an empty list.
+  pitfalls: 5, 6, 16.
+  done-when: no Genie instruction is reachable in the UI and a mock sign-in completes end to end.
+
+- [ ] **N6  Delete Genie from the connection path, everywhere** (≈90)
+  touches: src-tauri/src/lich.rs, src-tauri/src/lib.rs, src/lib/frontends.ts, tools/frontend-test.mjs, src/types/index.ts, src/store/useAppStore.ts, docs/BRIDGE_CONTRACT.md, lich-scripts/companion_bridge.lic, src/components/game/GameConnectionBar.tsx, src/components/dashboard/Dashboard.tsx, src/data/instances.ts
+  depends-on: N4, N5
+  do: remove `genie_status` (`lich.rs:412-425`) and its registration (`lib.rs:153`); the Genie sentence in the `LichStatus` note (`lich.rs:490-497`); the `genie` branch of `frontends.ts` and its case in `frontend-test.mjs`; `'genie'` from the frontend union (`types/index.ts:40`) and from `useAppStore.ts:37-38`; the Genie comments in `companion_bridge.lic`; and the two topology claims in `BRIDGE_CONTRACT.md:8-10, :117-121`, the first of which ("It must not parse the game stream itself") has been false since `gameStream.ts` shipped. Also retire the four extra places the frontend retypes `11024` (`GameConnectionBar.tsx:34`, `Dashboard.tsx:150`, `instances.ts:41`, and whatever survives in `WaitingForCharacter.tsx`) in favour of the port `lich_login_launch` returns — `lich.rs:107` already claims to be "one number in one place" and is not.
+  **Out of scope, deliberately, and each for a reason stated in `LICH_NATIVE_LOGIN.md` §6:** `genie_pos`/`genie_id`/`genie_zone` in `src/bridge/types.ts` are Lich map fields that carry Genie's name and deleting them deletes map coordinates; the whole Genie config-editor subsystem (`genieConfigEdit.ts`, `config_import.rs`, the highlights/aliases/macros/variables/presets/substitutes/gags/keybindings modules and editors, the Genie detection in `setup.rs` and `sounds.rs`) and `genie-plugin/` are a shipped feature whose retirement is a product decision, filed in §10. This increment adds one sentence in the config importer's UI saying it reads Genie's own files and has nothing to do with signing in — so a player is not left wondering why Genie is half-present.
+  verify: `git grep -ic genie -- src/components src-tauri/src/lich.rs src/lib/frontends.ts src/types/index.ts src/store/useAppStore.ts` → `0`; `node tools/tauri-command-callers-test.mjs` green; `node tools/frontend-test.mjs` green with a lower check count and the new count stated in the claim; `npm run test:bridge`-family suites green; full suite `all passed`.
+  sabotage: none — this is a deletion. Its guard is the `git grep -ic genie` in Gate 1's check, which fails the moment any of it comes back.
+  pitfalls: 10 (stage by path; this touches eleven files and `git add -A` would sweep another lane), 17 (do not leave a "legacy Genie sign-in" anywhere), 20.
+  done-when: the grep is zero and nothing in the app mentions Genie except the config importer, which says what it is.
+
+- [!] **N7  Live sign-in with Dan's real account** (≈30 of his time)
+  blocked-on: a human. This increment cannot be done by any session: it needs Dan's real Play.net account and password typed into the running app, and no fixture on this machine can substitute for the one thing being proved — that the protocol in §2 of `docs/LICH_NATIVE_LOGIN.md` is right against the real server. No session may ask for the credential, hold it, or type it.
+  touches: none
+  depends-on: N4, N5, N6
+  do: the exact steps, for Dan, in order. (1) Build and run the app. (2) Open the sign-in screen; type the account name and password; choose **DragonRealms**. (3) Confirm the character list that appears is his real list — this is the `C` reply and it proves the login half. (4) Pick Phemius. (5) Confirm the game text appears in the transcript within a few seconds, and that `,` is no longer the Lich command character — `;companion_bridge` is. (6) Confirm the channel tabs behave as N4's measurement said they would. (7) Close the app; confirm nothing under `%LOCALAPPDATA%` contains the password (`Select-String` for it across the app's data directory, run by Dan on his own machine, result reported as a count and not as text). (8) Say whether "remember my password" is wanted at all, which is N8's gate.
+  verify: `docs/verification/lich-native-login-<date>.md` records steps 3, 5, 6 and 7 with what was seen, and step 7's count as `0`.
+  done-when: that doc exists and step 7 says zero.
+
+- [!] **N8  Optional: remember the password in Windows Credential Manager** (≈60)
+  blocked-on: Dan's yes on a new Rust dependency. `keyring` (MIT OR Apache-2.0) is not in `src-tauri/Cargo.lock` — `grep -in "^name = \"keyring\"" src-tauri/Cargo.lock` returns nothing — and `docs/SETUP-POLICY.md` is ask-before-install. Also blocked on N7 step 8: if Dan does not want the feature, this increment is dropped rather than built.
+  touches: src-tauri/Cargo.toml, N2>src-tauri/src/credentials.rs, N5>src/components/shared/SignIn.tsx, tools/build-privacy-doc.mjs, docs/PRIVACY.md
+  depends-on: N2, N7
+  do: store the password under a per-account entry in Windows Credential Manager through `keyring`, behind a checkbox that defaults to **off**. Never a settings file, never obfuscated bytes on disk — `LICH_NATIVE_LOGIN.md` §5.2 says there is no third option and means it. Removing the account must remove the credential; so must the uninstaller's "delete application data" path, alongside the four bearer files E3 found. Update PRIVACY.md through its generator.
+  verify: with the box unticked, the credential store has no entry for the account after a full sign-in (checked by `cmdkey /list` filtered to this app's target name); with it ticked, exactly one; after removing the account, zero again.
+  sabotage: make the delete path a no-op → the third check goes red naming the surviving target.
+  pitfalls: this is the only increment in the lane that ships a stored secret. If it is not built, **nothing else in the lane changes** — not storing the password is the shipped default, and N5 does not render the checkbox until this is `[x]`.
+  done-when: the three counts above are 0, 1, 0, measured with `cmdkey`.
+
 ---
 
 ## 7. Dependency graph
@@ -1538,7 +1677,14 @@ A1, B6 ──► E12
 E5, E6, E7, E8, E9, E11, F2, F6, I1 : independent
 I1 ──► I2 ; I1 ──► I3…I10 ──► I11
 F9 (gates 0–2) ──► F10 ──► F11 ──► F12 ──► F13 ──► F14
+N1 ──► N3 ──► N4 ─┐
+N1 ──► N5 ────────┼──► N6 ──► N7 ──► N8
+N2 ───────────────┘        N2 ──► N8
 ```
+
+N1 and N2 are independent of everything, including each other: two sessions can
+start Lane N on the same day. N5 builds against the published interface, not
+against N3's code, so it runs concurrently with N3 and N4.
 
 ---
 
@@ -1589,6 +1735,29 @@ the decision; a later session may reopen one by writing why here.
   (2D art out, `removed2d.tsx` throwing sites as the to-do list); keep
   `src/domain/*` + `docs/ADAPTERS.md` as a separate proposal PR reviewed on
   its own. *Decided:* **as recommended**, 5 Sep 2026; the rebase is the branch owner's work, C7 only records the question.
+- **N-a — does the Genie config editor survive?** Genie is gone from the
+  connection path (Lane N). It is *not* gone from the app: `genieConfigEdit.ts`,
+  `genieConfigWrite.ts`, `useGenieConfigEditor.ts`, the highlights / aliases /
+  macros / variables / presets / substitutes / gags / keybindings modules and
+  their editors, `src-tauri/src/config_import.rs`, the Genie install detection in
+  `setup.rs` and `sounds.rs`, and the C# `genie-plugin/` are a shipped feature
+  that reads a player's *existing* Genie files. Whether "we aren't using genie
+  anymore" retires that too is a product call, not a connection one, so Lane N
+  deliberately leaves it alone rather than half-deleting it. Recommend: **keep
+  it, relabelled as an importer** — a player moving off Genie wants their
+  twenty highlights and forty macros to come with them, and the code already
+  works; retire it once nothing has read a Genie file for a release or two.
+  *Undecided as of 6 Sep 2026.* If the answer is "delete it", that is its own
+  lane and its own PR, not an appendix to N6.
+- **N-b — may the app store the player's password?** Lane N ships with the
+  password **not stored** and typed each session, which needs no dependency and
+  no decision. N8 would add an opt-in "remember me" using Windows Credential
+  Manager via the `keyring` crate (MIT OR Apache-2.0, not currently a
+  dependency), which `docs/SETUP-POLICY.md` makes an ask. Recommend: **yes,
+  opt-in, default off** — the alternative players reach for otherwise is
+  writing it into a Genie or Lich config in the clear. *Undecided as of
+  6 Sep 2026*; N8 stays `[!]` until answered, and nothing else in the lane waits
+  on it.
 - **F3 — signing.** Recommend unsigned for beta with a SmartScreen note;
   revisit at 1.0. *Decided:* **unsigned for beta**, 5 Sep 2026.
 - **F4 — update check.** Recommend a "newer version available" link via the
