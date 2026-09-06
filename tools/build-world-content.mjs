@@ -40,18 +40,23 @@ import { join } from 'node:path'
 import { landmarkFor } from '../src/lib/mapLandmarks.ts'
 import { expandCompassDirection } from '../src/lib/isometric-board-layout.mjs'
 import {
+  COHORT_MAJORITY_DENOMINATOR,
+  COHORT_MAJORITY_NUMERATOR,
   GROUND_KINDS,
   GROUND_RULES,
+  THRESHOLD_DIRECTIONS,
   blockKindFor,
   boundaryEdgesFor,
   groundKindFromText,
   groundKindFromZoneName,
+  placeCohorts,
   spatialModeFor,
   specialKindsFor,
   tagsFor,
   tierFor,
   titleContext,
   titleSubject,
+  unifyPlaceCohort,
 } from '../src/lib/world-content-rules.mjs'
 
 const MAP_DIR = 'src/data/map'
@@ -223,8 +228,6 @@ function directGround(room, zone) {
  * country by phase one, so the rooms still asking are the isolated ones a
  * doorway is genuinely the only route to.
  */
-const THRESHOLD_DIRECTIONS = new Set(['go', 'out'])
-
 function propagate(zone, decided) {
   for (const crossThresholds of [false, true]) propagatePhase(zone, decided, crossThresholds)
 }
@@ -263,6 +266,120 @@ function propagatePhase(zone, decided, crossThresholds) {
   }
 }
 
+/**
+ * A named street should not render as two grounds.
+ *
+ * Measured over the shipped content before this pass existed: 147 of the 2,199
+ * places holding two or more rooms in one zone had rooms disagreeing about
+ * their ground kind, over 1,243 rooms. "Via Iltesh" was street in `1-12` and
+ * grass in `1-13`, both decided by neighbour propagation, and they are the same
+ * street.
+ *
+ * The unit is a *cohort*, not a place name — `placeCohorts` in the rules module
+ * has the argument, and the short version is that `place` doubles as the room's
+ * own sub-name, so ten zones share a "Tunnel" and grouping by name would hand
+ * every tunnel in the game one answer. Split by walk connectivity the same 147
+ * becomes **93 disagreeing cohorts over 810 rooms**: 54 of the name groups were
+ * never one place to begin with, and each of their halves already agrees with
+ * itself.
+ *
+ * # Why this runs after propagation and not between its two phases
+ *
+ * Both of the first run's bad cases are arguments for putting it last.
+ *
+ * The doorway case: counting thresholds from the start put 284 Crossing streets
+ * under a roof, because a street ringed by shop doors has an interior one exit
+ * away in every direction. This pass reads the same walk-only edge set, so it
+ * cannot make that mistake itself — but if it ran *before* propagation's second
+ * phase, the kind it had just spread along a whole street would then be free to
+ * cross those doors, and the failure would come back amplified, sourced from a
+ * cohort rather than from one room.
+ *
+ * The interior-voting case: barring interiors from voting at all left 1,024
+ * rooms unknown, because a back room whose only clue is the shop it opens off
+ * had nothing to learn from. Phase two exists for those rooms. Running this
+ * pass first would change what phase two sees; running it after leaves that
+ * evidence exactly as it was and touches only the answers.
+ *
+ * So its input is frozen: every room has a ladder answer, and nothing this pass
+ * writes is ever read as evidence by anything else. It runs before block kinds
+ * are computed, which is the only ordering requirement in the other direction —
+ * a room's block kind and its boundary edges have to be derived from the ground
+ * kind that is finally published, not from one this pass then overwrote.
+ */
+const cohortStats = {
+  cohorts: 0,
+  multiRoom: 0,
+  disagreeing: 0,
+  disagreeingRooms: 0,
+  unified: 0,
+  changedRooms: 0,
+  heldCohorts: 0,
+  heldRooms: 0,
+  reasons: new Map(),
+  examples: [],
+}
+
+function unifyCohorts(zone, decided) {
+  const answerOf = (id) => decided.get(id) ?? { kind: 'unknown', rule: 'unknown' }
+  for (const cohort of placeCohorts(zone.rooms)) {
+    cohortStats.cohorts += 1
+    if (cohort.ids.length < 2) continue
+    cohortStats.multiRoom += 1
+    const verdict = unifyPlaceCohort(cohort.ids, answerOf)
+    if (verdict.state === 'agreed') continue
+    cohortStats.disagreeing += 1
+    cohortStats.disagreeingRooms += cohort.ids.length
+    if (verdict.state === 'held') {
+      cohortStats.heldCohorts += 1
+      cohortStats.heldRooms += cohort.ids.length
+      const key = verdict.reasonKey
+      cohortStats.reasons.set(key, (cohortStats.reasons.get(key) ?? 0) + 1)
+      if (cohortStats.examples.length < 8) {
+        cohortStats.examples.push(
+          `held  ${zone.id}-* "${cohort.place}" ${cohort.ids.length} rooms — ${verdict.reason}`
+        )
+      }
+      continue
+    }
+    cohortStats.unified += 1
+    cohortStats.changedRooms += verdict.changed.length
+    for (const change of verdict.changed) decided.set(change.id, { kind: change.to, rule: 'cohort' })
+  }
+}
+
+/**
+ * What the same count would be without the connectivity split, for the report.
+ *
+ * Printed beside the real number because the plan quotes it, and because the
+ * gap between the two *is* the argument for the cohort: a place-name group that
+ * falls into pieces which each agree with themselves was never a disagreement.
+ */
+function countNameGroups(zone, decided) {
+  const groups = new Map()
+  for (const room of zone.rooms) {
+    if (!room.place) continue
+    if (!groups.has(room.place)) groups.set(room.place, [])
+    groups.get(room.place).push(room.id)
+  }
+  let multi = 0
+  let split = 0
+  let rooms = 0
+  for (const ids of groups.values()) {
+    if (ids.length < 2) continue
+    multi += 1
+    const kinds = new Set(ids.map((id) => (decided.get(id) ?? { kind: 'unknown' }).kind))
+    if (kinds.size > 1) {
+      split += 1
+      rooms += ids.length
+    }
+  }
+  return { multi, split, rooms }
+}
+
+const nameGroupsBefore = { multi: 0, split: 0, rooms: 0 }
+const nameGroupsAfter = { multi: 0, split: 0, rooms: 0 }
+
 const residue = []
 const perZone = []
 const zoneOutputs = new Map()
@@ -275,6 +392,16 @@ for (const zone of zones) {
     if (direct) decided.set(room.id, direct)
   }
   propagate(zone, decided)
+
+  const before = countNameGroups(zone, decided)
+  nameGroupsBefore.multi += before.multi
+  nameGroupsBefore.split += before.split
+  nameGroupsBefore.rooms += before.rooms
+  unifyCohorts(zone, decided)
+  const after = countNameGroups(zone, decided)
+  nameGroupsAfter.multi += after.multi
+  nameGroupsAfter.split += after.split
+  nameGroupsAfter.rooms += after.rooms
 
   // Two passes over the zone: block kinds have to exist for every room before
   // any room's boundary edges can ask what is on the far side of an exit.
@@ -361,11 +488,37 @@ for (const row of colourRows) {
   )
 }
 console.log('')
-console.log('rooms decided, by rule (in the order the rules are tried)')
+console.log('rooms decided, by rule (the ladder in order, then the cohort pass that overrides it)')
 for (const rule of GROUND_RULES) {
   const n = ruleCounts.get(rule)
   console.log(`  ${rule.padEnd(10)} ${String(n).padStart(6)}  ${((n / totalRooms) * 100).toFixed(1).padStart(5)}%`)
 }
+console.log('')
+console.log(
+  `place cohorts (one place name, one zone, walk-connected — thresholds ${[...THRESHOLD_DIRECTIONS].join('/')} are not walk edges)`
+)
+console.log(
+  `  ${cohortStats.cohorts} cohorts, ${cohortStats.multiRoom} of two or more rooms, ${cohortStats.disagreeing} disagreeing internally (${cohortStats.disagreeingRooms} rooms)`
+)
+console.log(
+  `  unified ${cohortStats.unified} of them, moving ${cohortStats.changedRooms} rooms to their cohort's majority ` +
+    `(at least ${COHORT_MAJORITY_NUMERATOR}/${COHORT_MAJORITY_DENOMINATOR}, no tie, no minority room on a stronger rule)`
+)
+console.log(`  left ${cohortStats.heldCohorts} cohorts (${cohortStats.heldRooms} rooms) exactly as the ladder decided them:`)
+for (const [reason, n] of [...cohortStats.reasons].sort((a, b) => b[1] - a[1])) {
+  console.log(`    ${String(n).padStart(4)}  ${reason}`)
+}
+for (const example of cohortStats.examples) console.log(`    ${example}`)
+console.log(
+  `  same-place groups ignoring connectivity: ${nameGroupsBefore.split} of ${nameGroupsBefore.multi} split over ${nameGroupsBefore.rooms} rooms before, ` +
+    `${nameGroupsAfter.split} over ${nameGroupsAfter.rooms} after`
+)
+console.log(
+  '    the two counts differ because a place name is not a place: split by walk connectivity, the name groups that disagree'
+)
+console.log(
+  '    fall into cohorts that mostly agree with themselves, and what is left is the runs a player really can walk end to end.'
+)
 console.log('')
 console.log('ground kinds')
 for (const [kind, n] of [...kindCounts].sort((a, b) => b[1] - a[1])) {
@@ -592,6 +745,24 @@ files.set(
         unknownPercent: Number(unknownPercent.toFixed(3)),
       },
       byRule: Object.fromEntries(GROUND_RULES.map((rule) => [rule, ruleCounts.get(rule)])),
+      // Published rather than only printed, for the same reason
+      // `unknownCeilingPercent` is: `tools/world-content-test.mjs` reads the
+      // artefact, not the builder, so the numbers it asserts are the ones this
+      // content was actually built under.
+      cohorts: {
+        majority: `${COHORT_MAJORITY_NUMERATOR}/${COHORT_MAJORITY_DENOMINATOR}`,
+        total: cohortStats.cohorts,
+        multiRoom: cohortStats.multiRoom,
+        disagreeing: cohortStats.disagreeing,
+        disagreeingRooms: cohortStats.disagreeingRooms,
+        unified: cohortStats.unified,
+        changedRooms: cohortStats.changedRooms,
+        held: cohortStats.heldCohorts,
+        heldRooms: cohortStats.heldRooms,
+        heldBy: Object.fromEntries([...cohortStats.reasons].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))),
+        nameGroupsSplitBefore: nameGroupsBefore.split,
+        nameGroupsSplitAfter: nameGroupsAfter.split,
+      },
       byGround: Object.fromEntries([...kindCounts].filter(([, n]) => n)),
       colourTable: colourRows.map(({ colour, rooms, support, kind, purity, admitted }) => ({
         colour,

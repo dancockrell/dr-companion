@@ -5,31 +5,50 @@
   "counts": {
     "zones": 85,
     "rooms": 17750,
-    "unknown": 86,
-    "unknownPercent": 0.485
+    "unknown": 84,
+    "unknownPercent": 0.473
   },
   "byRule": {
     "colour": 1135,
-    "title": 13358,
+    "title": 13354,
     "label": 36,
     "zone": 418,
-    "neighbour": 2717,
-    "unknown": 86
+    "neighbour": 2644,
+    "unknown": 84,
+    "cohort": 79
+  },
+  "cohorts": {
+    "majority": "2/3",
+    "total": 8996,
+    "multiRoom": 2028,
+    "disagreeing": 93,
+    "disagreeingRooms": 810,
+    "unified": 41,
+    "changedRooms": 79,
+    "held": 52,
+    "heldRooms": 484,
+    "heldBy": {
+      "tie": 26,
+      "below two thirds": 14,
+      "a minority room outranks the majority": 12
+    },
+    "nameGroupsSplitBefore": 147,
+    "nameGroupsSplitAfter": 113
   },
   "byGround": {
-    "street": 2795,
-    "path": 1437,
-    "interior": 5901,
-    "cave": 1550,
-    "water": 1375,
-    "snow": 204,
+    "street": 2792,
+    "path": 1446,
+    "interior": 5887,
+    "cave": 1541,
+    "water": 1387,
+    "snow": 202,
     "swamp": 223,
     "sand": 428,
-    "forest": 1064,
-    "farmland": 329,
-    "grass": 1320,
-    "rock": 1038,
-    "unknown": 86
+    "forest": 1065,
+    "farmland": 325,
+    "grass": 1316,
+    "rock": 1054,
+    "unknown": 84
   },
   "colourTable": [
     {
@@ -466,7 +485,7 @@
       "id": "66",
       "name": "Shard to Gondola Area",
       "rooms": 765,
-      "unknown": 3
+      "unknown": 1
     },
     {
       "id": "67",
