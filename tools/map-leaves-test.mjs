@@ -78,8 +78,27 @@ ok('gateway rooms expose both their destination and unresolved-exit count',
 console.log('\n-- positive control: this suite can actually fail --')
 ok('sabotage check: a genuinely present pattern is detected', src.includes('MapCanvas'))
 
-const denom = pass + fail
-ok(`enough was checked for a pass to mean something: ${denom} assertions`, denom >= 6)
-
-console.log(fail === 0 ? '\nall passed' : `\n${fail} FAILED`)
-process.exit(fail === 0 ? 0 : 1)
+console.log('')
+const total = pass + fail
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+//
+// This replaces an `ok(denom >= 6)` that stood here. Same intent, and the
+// old shape was circular: the floor was itself a check, so it incremented
+// the very denominator it was measuring, and it could only report as one
+// more FAIL line among the rest rather than aborting the run naming the
+// number. A floor has to sit outside what it counts.
+const MIN_EXPECTED = 6
+if (total < MIN_EXPECTED) {
+  console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `total`, not `pass`: the denominator has to be the number of checks that
+// ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${total} checked, ${fail} failed`)
+if (fail > 0) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
