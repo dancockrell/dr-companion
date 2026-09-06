@@ -8,7 +8,8 @@ let pass = 0
 let fail = 0
 function ok(label, condition) {
   console.log(`${condition ? 'OK  ' : 'FAIL'} ${label}`)
-  condition ? pass++ : fail++
+  if (condition) pass++
+  else fail++
 }
 
 const dir = mkdtempSync(join(tmpdir(), 'map-state-sync-'))
@@ -45,5 +46,21 @@ ok('both map surfaces consume subscribed pin snapshots', [mapWindow, mapPanel].e
 ok('both map surfaces consume subscribed marker snapshots', [mapWindow, mapPanel].every((source) => source.includes('usePlayerMarker(')))
 ok('manual render counters are gone', !`${mapWindow}${mapPanel}`.match(/pinVersion|markerVersion/))
 
-console.log(fail === 0 ? '\nall passed' : `\n${fail} FAILED`)
-process.exit(fail === 0 ? 0 : 1)
+console.log('')
+const total = pass + fail
+// Far below the real count (9) on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 6
+if (total < MIN_EXPECTED) {
+  console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `total`, not `pass`: the denominator has to be the number of checks that
+// ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${total} checked, ${fail} failed`)
+if (fail > 0) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')

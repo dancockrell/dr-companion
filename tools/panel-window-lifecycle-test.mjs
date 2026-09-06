@@ -8,7 +8,8 @@ let pass = 0
 let fail = 0
 function ok(label, condition) {
   console.log(`${condition ? 'OK  ' : 'FAIL'} ${label}`)
-  condition ? pass++ : fail++
+  if (condition) pass++
+  else fail++
 }
 
 let registry = ['map']
@@ -99,5 +100,21 @@ ok('dashboard and map consume the same authoritative registry', [dashboard, mapP
 ok('the old two-second polling registry is gone', !`${dashboard}${mapPanel}`.includes('setInterval('))
 ok('open and close errors have visible retry controls', dashboard.includes('windowErrors.map') && mapPanel.includes('windowFailure'))
 
-console.log(fail === 0 ? '\nall passed' : `\n${fail} FAILED`)
-process.exit(fail === 0 ? 0 : 1)
+console.log('')
+const total = pass + fail
+// Far below the real count (13) on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 9
+if (total < MIN_EXPECTED) {
+  console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `total`, not `pass`: the denominator has to be the number of checks that
+// ran, or it shrinks by one per failure and reports a smaller suite on
+// exactly the run where you need to know the size did not change.
+console.log(`${total} checked, ${fail} failed`)
+if (fail > 0) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
