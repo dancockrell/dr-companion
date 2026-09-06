@@ -3,11 +3,18 @@
  *
  * # Why this suite exists
  *
- * `.github/workflows/release.yml` decides whether a build carries the world
- * viewer once, and every later step reads that decision:
+ * A release decides whether it carries the world viewer once, and every later
+ * step reads that decision as a flag:
  *
- *     npm run release:config -- ${{ ... && '--require-viewer' || '' }}
- *     npm run release:verify -- ${{ ... && '--expect-viewer' || '' }}
+ *     npm run release:config -- --require-viewer
+ *     npm run release:verify -- --expect-viewer
+ *
+ * Those two lines used to be workflow expressions in
+ * `.github/workflows/release.yml`, which is deleted - Actions was disabled for
+ * this repository on 6 September 2026 and releases are built by hand
+ * (`docs/RELEASE.md`). That makes this suite matter more rather than less: a
+ * misspelling in a workflow expression at least sat in a file under review,
+ * where a flag typed at a prompt during a release is seen once by one person.
  *
  * Both flags used to be read with `process.argv.includes(...)`, which cannot
  * tell "not passed" from "misspelled". A `--requre-viewer` in that expression
@@ -15,12 +22,13 @@
  * smaller installer, `release:verify` would not look for the viewer, and every
  * step would be green - the exact outcome both flags exist to prevent.
  *
- * That is not a hypothetical waiting for someone to be careless. Issue #344
- * establishes that the repository has no `SHARED_ASSETS_TOKEN`
- * (`gh api repos/dancockrell/dr-companion/actions/secrets` -> `total_count: 0`),
- * so the branch that passes either flag has never executed once. A typo there
- * would sit unnoticed until the first viewer-carrying release quietly failed
- * to carry a viewer.
+ * That is not a hypothetical waiting for someone to be careless. The branch
+ * that passes either flag has never executed once: while releases were built
+ * by a workflow, Issue #344 established that the repository had no
+ * `SHARED_ASSETS_TOKEN` and the viewer branch was unreachable, and no
+ * viewer-carrying release has been built by hand since either. A typo would
+ * sit unnoticed until the first release that was supposed to carry a viewer
+ * quietly failed to.
  *
  * # What it checks, and the control that makes the checks mean something
  *

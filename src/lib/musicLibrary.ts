@@ -4,8 +4,10 @@
  * # The gap this closes
  *
  * `public/audio/` is gitignored and pulled by `tools/vendor-audio.mjs`, which
- * nothing in `npm run build`, `npm run tauri:build` or `.github/workflows/
- * release.yml` runs. So every installer ever produced carried none of the 182
+ * nothing in `npm run build` or `npm run tauri:build` runs - and nothing else
+ * runs either, since CI was removed on 6 Sep 2026 and a release is now just
+ * `npm run tauri:build` on somebody's machine. So every installer ever
+ * produced carried none of the 182
  * tracks `data/audio/manifest.json` names, and #383 made the app say so
  * honestly - a `Music not installed` state with a disabled transport and no
  * dead Retry. Honest, and a dead end: there was nothing a listener could do

@@ -3,7 +3,9 @@
  *
  * # Why this exists
  *
- * `.github/workflows/release.yml` passes both of its guard flags through a
+ * `.github/workflows/release.yml` - deleted 6 Sep 2026 along with the rest of
+ * CI, so the flags are typed by hand at a release now (`docs/RELEASE.md`) -
+ * passed both of its guard flags through a
  * template expression:
  *
  *     npm run release:config -- ${{ steps.assets.outputs.viewer == 'true' && '--require-viewer' || '' }}

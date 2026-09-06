@@ -1483,7 +1483,9 @@ The whole of Elanthia's item knowledge is smaller than one photograph off a
 modern phone, and the hourly delta is roughly a single page.
 
 **Decision: one scheduled scrape, committed to the repository, fetched over
-plain HTTPS.** `.github/workflows/elanthipedia.yml`.
+plain HTTPS.** `tools/elanthipedia.mjs`, run by hand. It had a monthly
+workflow until 6 September 2026, when Actions was disabled for this
+repository; the tool is unchanged and the refresh is now somebody's to run.
 
 Why this and not the alternatives:
 

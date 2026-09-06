@@ -50,7 +50,9 @@ import { readFlags } from './cli-flags.mjs'
  * One parse for all three flags, and an unknown one is fatal.
  *
  * `--require-viewer` arrives from a template expression in
- * `.github/workflows/release.yml`, so a misspelling there would have been read
+ * a workflow expression in `.github/workflows/release.yml` (deleted 6 Sep 2026
+ * with the rest of CI; releases are built by hand now, `docs/RELEASE.md`), so a
+ * misspelling there would have been read
  * as "no viewer required": the smaller installer would ship, every step green,
  * on the one build that was supposed to carry a viewer. See tools/cli-flags.mjs.
  */

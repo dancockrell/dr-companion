@@ -272,12 +272,18 @@ const pkg = JSON.parse(read('package.json'))
 // --------------------------------------------------------------------------
 // I. One Node version, in one place.
 // --------------------------------------------------------------------------
-// Three statements of the same fact: package.json's `engines.node`, README's
-// prose, and whatever every workflow hands actions/setup-node. Before 6 Sep
-// 2026 there was no `engines` field at all, so the README's "Node 24 or newer"
-// had nothing to be checked against, and elanthipedia.yml sat on 22 - a
-// difference nobody intended and therefore nobody was testing. `engines` is now
-// the authority and no workflow may hand-type a version.
+// Two statements of the same fact: package.json's `engines.node` and README's
+// prose. Before 6 Sep 2026 there was no `engines` field at all, so the README's
+// "Node 24 or newer" had nothing to be checked against.
+//
+// There used to be a third statement and a third check here: every workflow's
+// `actions/setup-node`, asserted to read `node-version-file: package.json` and
+// never to hand-type a version. That check is gone with its subject. Actions
+// was disabled for this repository on 6 Sep 2026 and every workflow deleted,
+// so a scan of `.github/workflows` would now find an empty directory - and
+// "no workflow hand-types a node-version" is exactly what a scan of nothing
+// says, which is the shape of check this file exists to refuse. `engines` is
+// the authority and `npm run gate` is what runs against it.
 {
   const engines = pkg.engines?.node
   ok('package.json declares engines.node', typeof engines === 'string', engines ?? '(absent)')
@@ -289,33 +295,61 @@ const pkg = JSON.parse(read('package.json'))
   if (!claim) {
     notChecked('README Node version claim', 'the document no longer states one in the expected shape')
   } else {
-    ok('README’s Node claim matches engines.node', claim[1] === engineMajor, `README ${claim[1]}, engines ${engines}`)
+    ok('README\u2019s Node claim matches engines.node', claim[1] === engineMajor, `README ${claim[1]}, engines ${engines}`)
   }
-
-  // The workflows. The denominator first: if the glob or the regexp breaks,
-  // "no hand-typed pins" is exactly what a broken extractor says.
-  const wfDir = '.github/workflows'
-  const wfs = readdirSync(wfDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
-  ok('the workflow scan found workflows', wfs.length >= 3, `${wfs.length} file(s)`)
-  let setupNodeSteps = 0
-  const handTyped = []
-  for (const f of wfs) {
-    const src = read(join(wfDir, f))
-    setupNodeSteps += src.match(/actions\/setup-node@/g)?.length ?? 0
-    for (const m of src.matchAll(/^\s*node-version:\s*'?([^'\s#]+)'?/gm)) handTyped.push(`${f}:${m[1]}`)
-  }
-  ok('the workflows still call setup-node', setupNodeSteps >= 5, `${setupNodeSteps} step(s)`)
-  ok('no workflow hand-types a node-version', handTyped.length === 0, handTyped.join(', ') || 'all read node-version-file')
-
-  // And the other direction: reading the file is only a single source if every
-  // setup-node step actually does it. A step with neither key would silently
-  // take the runner's default.
-  let fromFile = 0
-  for (const f of wfs) fromFile += read(join(wfDir, f)).match(/^\s*node-version-file:\s*package\.json\s*$/gm)?.length ?? 0
-  ok('every setup-node step reads package.json', fromFile === setupNodeSteps, `${fromFile} of ${setupNodeSteps}`)
 }
 
 // --------------------------------------------------------------------------
+// I2. There is no CI, and nothing may quietly reintroduce a check that reads
+// a workflow.
+// --------------------------------------------------------------------------
+// The denominator problem this whole file is about, applied to its own
+// premise. A suite that scans `.github/workflows` after the directory is gone
+// reports "no violations" for a population of zero, and reads identically to
+// one that swept five files clean. So rather than leave that trap for a future
+// edit to walk into, assert the state directly: the directory is absent, and
+// `npm run gate` - the thing that replaced it - exists and is a real script.
+//
+//   gh api repos/dancockrell/dr-companion/actions/permissions   # enabled: false
+{
+  ok('there is no workflow directory', !existsSync('.github/workflows'))
+  // The control. If `existsSync` were resolving against the wrong working
+  // directory, the line above would pass for the wrong reason and so would
+  // every other absence check written the same way.
+  ok('...and the control says .github itself is still here', existsSync('.github/dependabot.yml'))
+
+  const gate = pkg.scripts?.gate
+  ok('package.json declares the local gate', typeof gate === 'string', gate ?? '(absent)')
+  ok('the gate runs tools/gate.mjs', /tools[/\\]gate\.mjs/.test(gate ?? ''), gate ?? '')
+  ok('tools/gate.mjs exists', existsSync('tools/gate.mjs'))
+
+  // And the documents that used to send a reader to CI now send them here.
+  // A protocol whose pre-merge step names a check nobody runs is worse than
+  // one with no step in it, because it reads as covered.
+  const plan = read('docs/PLAN_TO_1_0.md')
+  ok('the plan names the local gate as the pre-merge requirement', plan.includes('npm run gate'))
+  // Not `gh pr checks` outright: the phrase survives in two places on purpose
+  // - trap 21, which tells a reader it now reports nothing, and increment C1's
+  // record of what was actually done on 5 Sep, which is history and not an
+  // instruction. What must not survive is a live instruction to WAIT on
+  // checks, because waiting on nothing succeeds instantly and looks like a
+  // pass.
+  ok('the plan no longer tells anyone to wait on PR checks', !/gh pr checks[^\n]*--watch/.test(plan))
+  // The pre-merge ritual specifically. A protocol whose gate is a command
+  // nobody runs is worse than one with no gate, because it reads as covered.
+  const protocol = plan.slice(plan.indexOf('## 2.'), plan.indexOf('## 3.'))
+  ok('the lane protocol found its own section', protocol.length > 500, `${protocol.length} chars`)
+  ok('the lane protocol names npm run gate', protocol.includes('npm run gate'))
+  // RELEASE.md still names `.github/workflows` - inside the ls-tree command a
+  // reader runs to confirm it is empty, which is the point of recording a
+  // check rather than a claim. What must not survive is a description of a
+  // release that a workflow gates and builds.
+  const release = read('docs/RELEASE.md')
+  ok('RELEASE.md no longer describes a workflow-gated release', !/release[.]yml|needs: ci|workflow_call/.test(release))
+  ok('RELEASE.md names the local gate instead', release.includes('npm run gate'))
+  ok('RELEASE.md tells a reader how to confirm there is no CI', release.includes('actions/permissions'))
+}
+
 // J. docs/TESTING.md's problem-kind table, derived from the exported set.
 // --------------------------------------------------------------------------
 // The table used to be a fourth copy of a list that already existed twice in

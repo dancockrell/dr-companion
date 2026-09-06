@@ -18,6 +18,7 @@
  *
  *   path/that/exists.ts        must exist now
  *   new:path/to/create.ts      must NOT exist until the increment is [x], then must
+ *   gone:path/it/deleted.ts    must exist until the increment is [x], then must NOT
  *   C1>path/arriving/later.ts  arrives with increment C1: checked only once C1 is [x]
  *   none | (prose)             skipped
  *
@@ -135,6 +136,24 @@ export function audit(increments, exists) {
         checked++
         incChecked++
         if (!exists(p)) findings.push(`${label} touches ${p} (arrived with ${via}) but it does not exist`)
+        continue
+      }
+      // `gone:` - a path the increment deleted. Asserted in both directions,
+      // like `new:`: once the increment is done the path must be absent, and
+      // until then it must still be there. Added 6 Sep 2026, when every
+      // workflow was deleted and F8's `touches:` named `.github/workflows/
+      // ci.yml` - a file that increment genuinely did touch and that no longer
+      // exists. Both alternatives were worse. Editing the historical entry to
+      // name something else makes the record lie about what the increment did;
+      // dropping the path silently reduces what the audit checks while the
+      // summary count goes on looking exactly the same, which is the shape of
+      // failure this whole file exists to refuse.
+      if (raw.startsWith('gone:')) {
+        const p = raw.slice(5)
+        checked++
+        incChecked++
+        if (inc.marker === 'x' && exists(p)) findings.push(`${label} says it deleted ${p}, but it still exists`)
+        if (inc.marker !== 'x' && !exists(p)) findings.push(`${label} has not deleted ${p} yet, but it is already absent`)
         continue
       }
       if (raw.startsWith('new:')) {

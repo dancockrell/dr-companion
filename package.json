@@ -18,6 +18,8 @@
     "check-intents": "node tools/intent-drift-test.mjs",
     "check-bridge-version": "node tools/bridge-version-drift-test.mjs",
     "lint": "oxlint",
+  "gate": "node tools/gate.mjs",
+  "gate:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings && cargo test --manifest-path src-tauri/Cargo.toml",
     "preview": "vite preview",
     "mock-lich": "node tools/mock-lich-server.mjs",
     "tauri": "tauri",

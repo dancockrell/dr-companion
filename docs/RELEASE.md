@@ -8,107 +8,109 @@ mechanics and the standing answers.
 
 ## 1. What a release run does
 
-`.github/workflows/release.yml` fires on any `v*` tag, and on manual dispatch
-with a tag name. It runs the whole of `ci.yml` on that commit, then builds the
-Windows NSIS installer and opens a **draft** release with the artefact
-attached. Nothing is published to players until somebody un-drafts it.
-
-### The suites run before the build, and that is enforced rather than intended
-
-Until 5 September 2026 they did not. `ci.yml`'s `push` trigger filters on
-`branches:`, which cannot match `refs/tags/v*` — branch and tag filters are
-separate lists — and `release.yml` had no `needs:`. So a tag pushed at any
-commit built an installer and opened a draft release having run `test:bundle`
-and nothing else: 1 of 142 suites, no `tsc`, no lint, no `cargo clippy`, no
-Rust tests, on a commit nobody had verified. Trap 21 in `docs/PLAN_TO_1_0.md`
-records that `main` has no branch protection and no rulesets either, so nothing
-outside those two files closed it.
-
-`ci.yml` now also carries a `workflow_call:` trigger and `release.yml`'s
-`installer` job is `needs: ci`. The suites stay defined in one place, and
-GitHub's own scheduler will not start the build until every job in `ci.yml` has
-succeeded on that commit. Check it rather than take it on trust:
+A release is built **on this machine**. There is no workflow: Actions was
+disabled for this repository on 6 September 2026 (GitHub Actions minutes were
+at 1,903 of 2,000 for the month and this repository had spent $127.80 of it),
+`.github/workflows/` is empty, and nothing off this machine builds, tests or
+publishes anything.
 
 ```bash
-grep -n "workflow_call" .github/workflows/ci.yml       # the trigger
-grep -n "needs: ci" .github/workflows/release.yml      # the gate
+gh api repos/dancockrell/dr-companion/actions/permissions   # enabled: false
+git ls-tree origin/main .github/workflows                   # empty
+git ls-tree origin/main .github/                            # the control: still there
 ```
 
-A `needs:` edge is enforced by the runner, not by anybody remembering; the
-alternative considered — `tags: ['v*']` on `ci.yml` plus a `workflow_run` or a
-commit-status poll here — runs the suites *beside* the release rather than
-before it, which is a report and not a gate.
+**Where this document and those commands disagree, the commands are right and
+this text is stale.**
 
-One thing `needs:` cannot see: `workflow_dispatch` checks out
-`inputs.tag`, which need not be the commit the gate ran on (`github.sha`).
-`installer`'s first step compares the two and fails when they differ, so
-dispatch with the tag selected as the ref.
+### The suites run before the build, and that is now a person's job
 
-### The Godot tests run in CI
+This used to be enforced by a job-dependency edge that GitHub's scheduler would
+not let a build start without. Nothing enforces it now. That is the real cost
+of removing CI and it is worth stating plainly rather than discovering: a tag
+is just a tag, and an installer built from an unverified commit looks exactly
+like one built from a verified commit.
 
-`ci.yml`'s `godot` job installs a pinned Godot 4.3 for Linux (URL and sha512
-pinned together, the sum taken from the release's own `SHA512-SUMS.txt`) and
-runs `npm run test:godot` — the eleven scripts in `godot/tests`, 131 checks,
-which before 5 September 2026 ran only when a human typed the command on a
-machine that happened to have an engine. The job refuses to run at all if
-`godot/project.godot` stops declaring the version the download is pinned to.
-`tools/godot-tests.mjs` treats `GODOT4` as a contract rather than the first
-entry in a fallback list, so an install that failed makes the job red instead
-of green-with-nothing-checked.
+So the gate is one command, and it is the same suites the `checks` and `tauri`
+jobs used to run, in the same order:
+
+```bash
+npm run gate     # tsc, lint, every suite, cargo fmt, clippy, cargo test
+```
+
+It prints its own denominator (`6 of 6 stages ran`) and refuses to report a
+pass for a stage it could not run — a missing `cargo` is NOT RUN and a non-zero
+exit, never a skip. Run it, read the last line, and only then cut a tag.
+
+`npm run test:godot` is **not** in the gate: it needs a Godot 4.3 binary, which
+this fleet's machine rule forbids installing, and it reports NOT RUN rather
+than passing. The eleven scripts in `godot/tests` (131 checks) therefore have
+no automated home at all at the moment. That is a real gap, not a covered one,
+and `npm run gate` names it in its own summary every run so nobody has to
+notice its absence.
+
+### Building the installer
 
 ```bash
 npm run version:set -- 1.0.0-beta.1     # package.json, tauri.conf.json, Cargo.toml
-git commit -m "chore(release): 1.0.0-beta.1" -- package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
-git tag v1.0.0-beta.1 && git push origin v1.0.0-beta.1
-gh run watch "$(gh run list --workflow=release.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
+node tools/set-version.mjs --check      # refuses a half-bumped tree
+npm run gate                            # the gate; read the last line
+npm run release:config                  # add --require-viewer for a viewer build
+npm run tauri:build                     # ~217 MB NSIS installer, several minutes
+npm run release:verify                  # add --expect-viewer to match the above
 ```
 
-`node tools/set-version.mjs --check` refuses a tree where those files disagree,
-so a release cannot be cut from a half-bumped version.
+The installer lands in `src-tauri/target/release/bundle/nsis/*-setup.exe`.
+Record its size and digest by hand, because nothing else does any more — CI
+used to print the sha256 to the run summary, which is what let a tester prove
+the file they installed was the file that was built:
+
+```bash
+sha256sum src-tauri/target/release/bundle/nsis/*-setup.exe
+ls -l     src-tauri/target/release/bundle/nsis/*-setup.exe
+```
+
+Put both in the verification document for that build
+(`docs/verification/first-run-*.md`) before installing it anywhere, so the
+chain of custody still has two ends: what was built here, and what was
+installed there.
+
+Then create the release by hand and attach the file:
+
+```bash
+git tag v1.0.0-beta.1 && git push origin v1.0.0-beta.1
+gh release create v1.0.0-beta.1 --draft --title "..." --notes-file <file> \
+  src-tauri/target/release/bundle/nsis/*-setup.exe
+```
+
+`--draft` is not optional. Nothing is published to players until somebody
+un-drafts it, and §3 below is the list that has to be worked first.
 
 ### The world viewer is optional, and the build says which one it made
 
 The viewer's admitted runtime assets live in the `godot/shared-assets`
-submodule, which points at a **private** repository. A workflow's built-in
-token reaches only its own repository, so a release run has no way to clone it
-unless it is given one. The first real run of this workflow died there, before
-building anything.
+submodule, which points at a **private** repository. That was the whole
+difficulty when a workflow built releases: a workflow's built-in token reaches
+only its own repository, so a run had no way to clone it, and the first real
+release run died there before building anything.
 
-An installer without the viewer is a supported build — the plan ships beta.1
-with the viewer disabled — so the workflow treats this as three states rather
-than a crash:
+Locally the problem does not arise in that form — the submodule fetches with
+whatever credentials the machine already has — but the three states remain,
+because an installer without the viewer is a supported build (beta.1 ships with
+the viewer disabled):
 
 | Condition | What happens |
 |---|---|
-| `SHARED_ASSETS_TOKEN` set and the submodule fetches | Godot is installed, the viewer is exported, `release:config --require-viewer` and `release:verify --expect-viewer` both insist on it |
-| No `SHARED_ASSETS_TOKEN` | Godot is never installed, the installer carries no viewer, and the release body says so |
-| Token set but the fetch fails | The run **fails**. A viewer was asked for; shipping the smaller installer quietly would be the one unacceptable outcome |
+| The submodule is present and a viewer is exported | `release:config --require-viewer` and `release:verify --expect-viewer` both insist on it |
+| No submodule, no viewer | The installer carries no viewer and the release body says so |
+| A viewer was asked for and is not there | The build **fails**. Shipping the smaller installer quietly is the one unacceptable outcome |
 
-**Only the middle row has ever run.** Added 5 Sep 2026 by a review pass,
-because the table above reads as three live behaviours and two of them are
-unreachable today:
-
-```
-$ gh api repos/dancockrell/dr-companion/actions/secrets
-{"total_count":0,"secrets":[]}
-```
-
-No `SHARED_ASSETS_TOKEN` exists, so `release.yml` always resolves it to the
-empty string and sets `viewer=false`. Rows 1 and 3 cannot be reached, which
-means `Install Godot`, `Export the world viewer` and `Confirm the viewer was
-actually built` are permanently skipped, and `release:config --require-viewer`
-and `release:verify --expect-viewer` are read by code that nothing can
-currently make pass either flag. **Where this paragraph and the command above
-disagree, the command is right and this text is stale.** Re-run it before
-trusting rows 1 and 3: a non-zero `total_count` is what makes them describe
-something that can happen.
-
-Because that branch has never executed, a misspelling in either workflow
-expression would have gone unnoticed indefinitely — and until 5 September 2026
-both scripts read their flags with `process.argv.includes(...)`, which cannot
-tell a flag that was not passed from one that was mistyped. `--requre-viewer`
-would have read as *no viewer required*: the smaller installer, shipped green,
-on the one build that was supposed to carry a viewer. Both now go through
+Row 3 is why both scripts take a flag rather than inferring from what happens
+to be on disk, and why a misspelled flag has to be fatal. Until 5 September
+2026 both read their flags with `process.argv.includes(...)`, which cannot tell
+a flag that was not passed from one that was mistyped: `--requre-viewer` would
+have read as *no viewer required* — the smaller installer, shipped green, on
+the one build that was supposed to carry a viewer. Both now go through
 `tools/cli-flags.mjs` and refuse an argument they do not recognise:
 
 ```bash
@@ -116,15 +118,10 @@ node tools/build-release-config.mjs --requre-viewer   # exit 1, names the token
 npm run test:release-flags                            # the suite that holds it
 ```
 
-That suite pairs every refusal with a control — the correctly spelled flag,
-run the same way, reaching its own branch — because a script that rejected
-*every* argument would otherwise score the same as one that rejects only the
-wrong ones. It does not make rows 1 and 3 reachable. Only the secret does.
-
-To build a viewer-carrying release, add a repository secret
-`SHARED_ASSETS_TOKEN` holding a token that can read the shared-assets
-repository. Nothing else changes. Do not paste a token anywhere else in the
-workflow, and never into a file: it is a credential for a private repository.
+That suite pairs every refusal with a control — the correctly spelled flag, run
+the same way, reaching its own branch — because a script that rejected *every*
+argument would otherwise score the same as one that rejects only the wrong
+ones. It runs inside `npm run gate`.
 
 ---
 
@@ -195,12 +192,18 @@ Draft releases exist so this list can be worked without a deadline.
 
 ## 4. Cleaning up a dry run
 
-A throwaway tag leaves a tag and a draft release behind. Both should go:
+A local dry run needs no tag at all: build the installer, look at it, delete
+it. Nothing is published by building.
 
 ```bash
-gh release delete v0.0.0-ci-check --yes
-git push origin --delete v0.0.0-ci-check
-git tag -d v0.0.0-ci-check
+rm -rf src-tauri/target/release/bundle/nsis    # ~217 MB per build
 ```
 
-A draft release nobody deletes becomes a draft release somebody publishes.
+If a tag or a draft release was made anyway, both should go. A draft release
+nobody deletes becomes a draft release somebody publishes.
+
+```bash
+gh release delete v0.0.0-dry-run --yes
+git push origin --delete v0.0.0-dry-run
+git tag -d v0.0.0-dry-run
+```

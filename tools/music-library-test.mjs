@@ -5,7 +5,8 @@
  * #383 established that no installer this project has ever produced carried a
  * single track: `public/audio/` is gitignored and pulled by
  * `tools/vendor-audio.mjs`, which nothing in `npm run build`,
- * `npm run tauri:build` or `release.yml` runs. PR #389 made that honest - one
+ * `npm run tauri:build` runs (nor `release.yml`, which existed until 6 Sep
+ * 2026). PR #389 made that honest - one
  * `Music not installed` state, no track name, no Retry that could not work -
  * and left it a dead end, because there was nothing a listener could press.
  *
