@@ -49,3 +49,53 @@ export function initialBridgeMode(stored: BridgeModeChoice | undefined): BridgeM
   const search = typeof window === 'undefined' ? '' : window.location.search
   return selectBridgeMode(stored, search)
 }
+
+/**
+ * The mock's pause-latch modes, as a closed set the parser and the control
+ * both read.
+ *
+ * See `MockBridge.setPauseLatchMode` for what each one means. The order is the
+ * order the chooser offers them in, and `follow` is first because it is the
+ * default.
+ */
+export const PAUSE_LATCH_MODES = ['follow', 'latched', 'clear', 'absent'] as const
+
+export type PauseLatchMode = (typeof PAUSE_LATCH_MODES)[number]
+
+function isPauseLatchMode(value: string | null): value is PauseLatchMode {
+  return PAUSE_LATCH_MODES.includes(value as PauseLatchMode)
+}
+
+/**
+ * `?mock-pause=latched|clear|absent|follow` - which cell of `pauseStatus.ts`
+ * the mock bridge should open on.
+ *
+ * Here rather than in a parser of its own, for the reason the header above
+ * gives about `?bridge=`: two functions answering "what did this URL ask for"
+ * drift, and this one is read by the mock bridge (to start in that mode) and
+ * by the settings control (to show which mode it is in). One parser, two
+ * readers.
+ *
+ * Issue #503. `bridge.setPauseLatchMode` existed with no caller anywhere, so
+ * `paused-by-bridge` and the connected form of `paused-unconfirmed` - the two
+ * cells #487 was opened for - were still unreachable in development, and the
+ * test saying otherwise was a regex over the file that *declares* the setter.
+ * A knob nothing can reach is the same absence it was added to close, one
+ * layer further in.
+ *
+ * Anything else, including an absent flag and a misspelt one, is `follow`:
+ * the default is what a developer who did not ask for a cell gets, and a
+ * typo must not silently produce a different world than the one on screen.
+ *
+ * @param search `window.location.search`, passed in so this is testable
+ *        without a DOM.
+ */
+export function selectPauseLatchMode(search: string): PauseLatchMode {
+  const flag = new URLSearchParams(search).get('mock-pause')
+  return isPauseLatchMode(flag) ? flag : 'follow'
+}
+
+/** The same decision, reading the live location. Safe under SSR and in tests. */
+export function initialPauseLatchMode(): PauseLatchMode {
+  return selectPauseLatchMode(typeof window === 'undefined' ? '' : window.location.search)
+}

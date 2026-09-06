@@ -29,6 +29,7 @@ import { DEMO_INVASION_ROOM } from '../data/demoInvasionRoom.ts'
 import { loadZone, DEFAULT_ZONE } from '../lib/mapData.ts'
 import { loadPrefs, savePrefs } from '../lib/persistence.ts'
 import { EXPECTED_BRIDGE_VERSION } from '../lib/versions.ts'
+import { initialPauseLatchMode, type PauseLatchMode } from '../lib/bridgeModeSelect.ts'
 import { registerPlayerProfiles, type PlayerArtProfile } from '../lib/playerArt.ts'
 
 type Listener = (msg: BridgeServerMessage) => void
@@ -941,9 +942,9 @@ export class MockBridge {
    * which is also what `tools/pause-reaches-travel-test.mjs` drives the
    * four-cell matrix with. Applied immediately: the next status carries it.
    */
-  private pauseLatchMode: 'follow' | 'latched' | 'clear' | 'absent' = 'follow'
+  private pauseLatchMode: PauseLatchMode = initialPauseLatchMode()
 
-  setPauseLatchMode(mode: 'follow' | 'latched' | 'clear' | 'absent') {
+  setPauseLatchMode(mode: PauseLatchMode) {
     this.pauseLatchMode = mode
     // Applied now rather than at the next tick, so the knob is visibly a knob:
     // a setter whose effect appears a second later reads as not having worked.

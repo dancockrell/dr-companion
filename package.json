@@ -70,6 +70,7 @@
     "test:login-fixture": "node --experimental-strip-types tools/login-error-fixture-test.mjs",
     "test:lich-lifetime": "node --experimental-strip-types tools/lich-lifetime-test.mjs",
     "sign-in:shots": "node tools/sign-in-shots.mjs",
+    "pause:cells": "node tools/pause-cell-shots.mjs",
     "sign-in:break-check": "python tools/sign-in-break-check.py",
     "test:presentation-bridge": "node tools/presentation-bridge-test.mjs",
     "test:presentation-intents": "node tools/presentation-intents-test.mjs",

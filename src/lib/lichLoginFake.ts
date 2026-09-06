@@ -29,6 +29,7 @@
  */
 
 import { LOGIN_ERROR_FIXTURES } from './loginErrorFixtures.ts'
+import type { AttachOffer } from './lichAttachOffer.ts'
 
 export interface FakeArgs {
   account: string
@@ -76,7 +77,10 @@ function failureFor(code: string): { code: string; message: string } {
  * have something to press. The values are **Rust codes**, not webview kinds:
  * these are the vocabulary the backend speaks.
  */
-const FIXTURES: Record<string, { fail?: string; characters?: string[] }> = {
+const FIXTURES: Record<
+  string,
+  { fail?: string; characters?: string[]; offer?: AttachOffer['kind'] }
+> = {
   demo: { characters: ['Phemius', 'Testwright', 'Nobody'] },
   nochars: { characters: [] },
   locked: { fail: 'account_locked_or_expired' },
@@ -87,7 +91,28 @@ const FIXTURES: Record<string, { fail?: string; characters?: string[] }> = {
   // Attach rather than a diagnostic. A launch-only failure like `nolich`, so
   // it has to get past the character list to be reachable at all - which is
   // what makes the fixture able to produce the state a player actually meets.
-  running: { fail: 'lich_already_running', characters: ['Phemius'] },
+  running: { fail: 'lich_already_running', characters: ['Phemius'], offer: 'foreign' },
+  // #504. The refusal is one state and the offer that follows it is four,
+  // and only one of them can be produced by an account that also produces
+  // the refusal - so each gets its own fixture. Without these the three
+  // sentences below the button are unreachable outside a machine with a
+  // real Lich in that exact condition, which is the same absence #503 was.
+  runningours: { fail: 'lich_already_running', characters: ['Phemius'], offer: 'ours' },
+  runningnoport: {
+    fail: 'lich_already_running',
+    characters: ['Phemius'],
+    offer: 'no_port',
+  },
+  runningnolich: {
+    fail: 'lich_already_running',
+    characters: ['Phemius'],
+    offer: 'no_lich',
+  },
+  runningunknown: {
+    fail: 'lich_already_running',
+    characters: ['Phemius'],
+    offer: 'unknown',
+  },
   garbled: { fail: 'protocol_mismatch' },
   longpw: { fail: 'password_length' },
   // The two states N9 wired up (#459). `saved` signs in with no typed
@@ -128,6 +153,37 @@ export async function fakeListCharacters(args: FakeArgs) {
       code: `W_DR_${i + 1}`,
       name,
     })),
+  }
+}
+
+/**
+ * Which Lich the stand-in says is running.
+ *
+ * Keyed off the same account fixture as the refusal, so a screen cannot
+ * be driven into an offer that no refusal leads to. `DEFAULT` is the
+ * honest answer for an account with no opinion: nothing is running, which
+ * is what a stand-in with no processes actually knows.
+ */
+export async function fakeAttachOffer(account: string): Promise<AttachOffer> {
+  await new Promise((r) => setTimeout(r, DELAY_MS))
+  const kind = fixtureFor(account)?.offer
+  switch (kind) {
+    case 'ours':
+      return { kind: 'ours', port: 11024 }
+    case 'foreign':
+      // A name that is not the character the form just picked, because
+      // joining somebody else's session with nothing on screen saying so
+      // is the defect this offer exists to stop.
+      return { kind: 'foreign', port: 11024, character: 'Someoneelse' }
+    case 'no_port':
+      return { kind: 'no_port', port: 11024 }
+    case 'unknown':
+      return {
+        kind: 'unknown',
+        why: 'could not read the local listening ports, so nothing is known about 11024',
+      }
+    default:
+      return { kind: 'no_lich' }
   }
 }
 

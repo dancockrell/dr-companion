@@ -17,6 +17,7 @@ import type {
 } from '../bridge/types'
 import type { Trail } from '../lib/trail'
 import type { QuickSwitchPin } from '../lib/quickSwitch'
+import type { PauseLatchMode } from '../lib/bridgeModeSelect'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -745,6 +746,17 @@ export interface AppState {
   demoCombat: () => void
   demoSafe: () => void
   demoBrokenPattern: () => void
+  /**
+   * Put the mock bridge's `pauseLatched` in one of its four modes, so every
+   * cell of `pauseStatus.ts` can be looked at in development.
+   *
+   * Beside the other four demo actions rather than left on the bridge facade
+   * alone: #503. A setter on a module export that no store action wraps has
+   * no route from a component and no route from devtools either (the only
+   * thing this app puts on `window` is `__store`), which is the absence it
+   * was added to close.
+   */
+  demoPauseLatch: (mode: PauseLatchMode) => void
   loadPreset: (id: string) => void
   setTrainFocus: (ids: string[]) => void
   toggleTrainFocus: (id: string) => void

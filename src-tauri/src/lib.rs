@@ -222,6 +222,7 @@ pub fn run() {
             lich::launch_lich,
             lich::lich_stop,
             lich::lich_release,
+            lich::lich_attach_offer,
             lich::lich_login_characters,
             lich::lich_login_launch,
             lich_health::lich_health,

@@ -62,7 +62,12 @@ import {
   tauriCredentials,
 } from '../../lib/rememberPassword.ts'
 import { RememberPasswordCheckbox } from './RememberPassword.tsx'
-import { attachGame, DEFAULT_ATTACH_PORT, LICH_STARTUP_WAIT_MS } from '../../lib/gameLink.ts'
+import { attachGame, LICH_STARTUP_WAIT_MS } from '../../lib/gameLink.ts'
+import {
+  lichAttachOffer,
+  attachAdvice,
+  type AttachOffer,
+} from '../../lib/lichAttachOffer.ts'
 import { isTauri } from '../../lib/tauri.ts'
 
 /**
@@ -104,6 +109,18 @@ export function SignIn() {
    * exists to avoid. Set from the classified `kind` and nothing else.
    */
   const [alreadyRunning, setAlreadyRunning] = useState(false)
+
+  /**
+   * Which Lich is running, read rather than assumed (#504).
+   *
+   * `null` while the answer is still coming back, and it renders as
+   * "Checking which Lich is running." with no button - because an
+   * attach offered before anything has been identified is exactly the
+   * offer this replaced. Re-read after a failed attach as well, so the
+   * sentence that follows a failure is a fresh reading rather than the
+   * old inference about why it probably failed.
+   */
+  const [offer, setOffer] = useState<AttachOffer | null>(null)
 
   /**
    * The error block, so it can be scrolled to when it appears.
@@ -183,6 +200,24 @@ export function SignIn() {
     // failure: an Attach button left over from a previous error would be
     // offering to attach to a Lich this failure says nothing about.
     setAlreadyRunning(kind === 'lich_already_running')
+    // Ask the backend which Lich that is. Nothing is offered until it
+    // answers: the old screen went straight from an image-name match to a
+    // button that dialled a constant.
+    if (kind === 'lich_already_running') {
+      setOffer(null)
+      void (async () => {
+        try {
+          setOffer(await lichAttachOffer(account.trim()))
+        } catch (e) {
+          // A failed read is not a clean no. It says so, and offers
+          // nothing - the three-state rule the rest of this flow keeps.
+          setOffer({
+            kind: 'unknown',
+            why: e instanceof Error ? e.message : String(e ?? ''),
+          })
+        }
+      })()
+    }
     // The detail is shown under the sentence rather than instead of it, and
     // not at all when the sentence already carries it (the `unknown` arm
     // appends it). Deleting information is never the answer to a busy screen.
@@ -299,23 +334,39 @@ export function SignIn() {
    * answer than an immediate one.
    */
   const attachToRunning = async () => {
+    const advice = attachAdvice(offer)
+    // Unreachable through the button, which is not rendered without a port,
+    // and asserted anyway: this is the line that used to be
+    // `Number(DEFAULT_ATTACH_PORT)` regardless of what was known.
+    if (advice.port === null) return
     setBusy(true)
     setError('')
     setErrorDetail('')
     try {
-      await attachGame(Number(DEFAULT_ATTACH_PORT))
+      await attachGame(advice.port)
       setAlreadyRunning(false)
+      setOffer(null)
       setStage('launched')
     } catch (attachFailure) {
-      // Still worth offering again: a Lich that is up but not yet listening is
-      // the commonest reason this fails, and a second press seconds later
-      // works. So the sentence changes and the button stays.
+      // The old code guessed here - "a Lich that is up but not yet
+      // listening is the commonest reason this fails, so press again" -
+      // and for a Lich started without --detachable-client a second press
+      // could never work. `report` re-reads the offer, so what appears
+      // under the sentence is a fresh answer about the Lich that is
+      // actually there, and the button only comes back if that answer
+      // still has a port in it.
       report({
         code: 'lich_did_not_start',
         message:
           attachFailure instanceof Error ? attachFailure.message : String(attachFailure ?? ''),
       })
       setAlreadyRunning(true)
+      setOffer(null)
+      try {
+        setOffer(await lichAttachOffer(account.trim()))
+      } catch (e) {
+        setOffer({ kind: 'unknown', why: e instanceof Error ? e.message : String(e ?? '') })
+      }
     } finally {
       setBusy(false)
     }
@@ -327,6 +378,7 @@ export function SignIn() {
     setError('')
     setErrorDetail('')
     setAlreadyRunning(false)
+    setOffer(null)
     // Going back is also the way out of the flow, so it is the other place the
     // password has to stop existing.
     setPassword('')
@@ -548,17 +600,35 @@ export function SignIn() {
             <p className="mt-1 text-xs leading-snug text-ink-faint">{errorDetail}</p>
           )}
           {/* The action, not a diagnostic. Rendered only for the one kind that
-            * means a Lich is up and joinable (#488 §3). */}
+            * means a Lich is up (#488 section 3), and now saying *which* Lich
+            * before it offers to join it (#504).
+            *
+            * The sentence and the button come from one function, so they
+            * cannot disagree: a `no_port` answer has no button because
+            * pressing one could never work, and a `foreign` answer names
+            * the character on the button itself, because the player is
+            * about to join somebody else's session and the name is the
+            * only thing on screen that would tell them. */}
           {alreadyRunning && (
-            <button
-              type="button"
-              onClick={() => void attachToRunning()}
-              disabled={busy}
-              className="mt-2 flex items-center gap-1.5 rounded border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent disabled:opacity-40"
-            >
-              {busy && <Loader2 className="h-3 w-3 animate-spin" />}
-              Attach to the Lich that is running
-            </button>
+            <div className="mt-2 space-y-1.5" data-testid="attach-offer">
+              <p
+                className="text-xs leading-snug text-ink-muted"
+                data-attach-kind={offer?.kind ?? 'checking'}
+              >
+                {attachAdvice(offer).sentence}
+              </p>
+              {attachAdvice(offer).action && (
+                <button
+                  type="button"
+                  onClick={() => void attachToRunning()}
+                  disabled={busy}
+                  className="flex items-center gap-1.5 rounded border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent disabled:opacity-40"
+                >
+                  {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {attachAdvice(offer).action}
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

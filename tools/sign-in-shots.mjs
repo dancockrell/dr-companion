@@ -206,6 +206,125 @@ try {
   `)
   check('error: the password field was cleared on the failure', cleared === 0, `${cleared} still filled`)
 
+  /* ------------------------------------------- the attach offer (#504)
+   *
+   * A refused launch used to put one button on screen - "Attach to the
+   * Lich that is running" - on the strength of one `tasklist` match on an
+   * image name, and pressing it dialled the constant 11024. It could join
+   * another account's character with nothing on screen saying the character
+   * had changed, and for a Lich started without `--detachable-client` its
+   * "press it again" advice could never come true.
+   *
+   * Five answers now, each its own sentence, and four of them are only
+   * reachable at all because `lichLoginFake` has a fixture per answer: a
+   * state the stand-in cannot produce is a state nobody sees until a
+   * player does.
+   *
+   * The rows assert what is *not* said as well as what is. `no_port` and
+   * `unknown` must offer no button, because a press that cannot work is
+   * the defect, and `foreign` must carry the other character's name,
+   * because that name is the only thing on screen that would stop somebody
+   * joining a session they did not mean to.
+   */
+  const OFFERS = [
+    {
+      account: 'runningours',
+      kind: 'ours',
+      shot: 'sign-in-2026-09-07-attach-ours.png',
+      says: /This app started that Lich and it is still running\./,
+      action: /^Attach to it$/,
+    },
+    {
+      account: 'running',
+      kind: 'foreign',
+      shot: 'sign-in-2026-09-07-attach-foreign.png',
+      says: /A Lich is running for Someoneelse on port 11024\./,
+      action: /^Attach to Someoneelse$/,
+    },
+    {
+      account: 'runningnoport',
+      kind: 'no_port',
+      shot: 'sign-in-2026-09-07-attach-no-port.png',
+      says: /has no attachable port/,
+      action: null,
+    },
+    {
+      account: 'runningnolich',
+      kind: 'no_lich',
+      shot: 'sign-in-2026-09-07-attach-no-lich.png',
+      says: /No Lich is running now\./,
+      action: null,
+    },
+    {
+      account: 'runningunknown',
+      kind: 'unknown',
+      shot: 'sign-in-2026-09-07-attach-unknown.png',
+      says: /Could not tell which Lich is running/,
+      action: null,
+    },
+  ]
+
+  const kindsSeen = []
+  for (const row of OFFERS) {
+    await b.goto(url('bridge=live'))
+    await fill(b, 'Account name', row.account)
+    await fill(b, 'Password', 'not-a-real-password-9d4f')
+    await b.click('button', /^Sign in$/)
+    for (let i = 0; i < 60; i += 1) {
+      if (/^Phemius$/m.test(await b.eval('document.body.innerText'))) break
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    await b.click('button', /^Phemius$/)
+    // The offer is a second round trip after the refusal, so wait for the
+    // answer rather than for the refusal.
+    let seen = null
+    for (let i = 0; i < 80; i += 1) {
+      seen = await b.run(`
+        const el = document.querySelector('[data-attach-kind]');
+        const box = document.querySelector('[data-testid="attach-offer"]');
+        return {
+          kind: el ? el.getAttribute('data-attach-kind') : null,
+          sentence: el ? el.textContent.trim() : '',
+          buttons: box ? [...box.querySelectorAll('button')].map((x) => x.innerText.trim()) : [],
+        };
+      `)
+      if (seen.kind && seen.kind !== 'checking') break
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    await b.screenshot(out(row.shot))
+    kindsSeen.push(seen.kind)
+
+    check(`attach ${row.kind}: the offer is that one`, seen.kind === row.kind, String(seen.kind))
+    check(`attach ${row.kind}: the sentence says so`, row.says.test(seen.sentence), JSON.stringify(seen.sentence))
+    // The old sentence, named, so a revert reads as a failure rather than
+    // as a different wording.
+    check(
+      `attach ${row.kind}: not the old unconditional offer`,
+      !/Attach to the Lich that is running/.test(seen.sentence + seen.buttons.join(' ')),
+      seen.buttons.join(' | ')
+    )
+    if (row.action) {
+      check(
+        `attach ${row.kind}: one button, and it says what it will join`,
+        seen.buttons.length === 1 && row.action.test(seen.buttons[0]),
+        seen.buttons.join(' | ')
+      )
+    } else {
+      check(
+        `attach ${row.kind}: nothing to press, because pressing could not work`,
+        seen.buttons.length === 0,
+        seen.buttons.join(' | ')
+      )
+    }
+  }
+  // The denominator: five distinct answers were actually produced, so a
+  // stand-in that had collapsed to one could not pass the rows above by
+  // repeating it.
+  check(
+    'attach: five distinct offers were reachable',
+    new Set(kindsSeen).size === 5,
+    kindsSeen.join(', ')
+  )
   // ------------------------------------------------- the empty-list state
   await b.goto(url('bridge=live'))
   await fill(b, 'Account name', 'nochars')
@@ -362,7 +481,7 @@ try {
 }
 
 console.log(`\n${checked} checked, ${bad} failed`)
-if (checked < 20) {
+if (checked < 40) {
   console.log('REFUSING TO REPORT A RESULT: too few checks ran for a pass to mean anything.')
   process.exit(2)
 }

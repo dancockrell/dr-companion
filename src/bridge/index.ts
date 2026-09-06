@@ -3,6 +3,7 @@
  */
 
 import { mockBridge } from './mockBridge.ts'
+import type { PauseLatchMode } from '../lib/bridgeModeSelect.ts'
 import { realBridge } from './realBridge.ts'
 import type { BridgeClientMessage, BridgeServerMessage, IntentName } from './types'
 import type { DemoPresetId } from './mockBridge'
@@ -104,8 +105,16 @@ export const bridge = {
    * `setAuthMode`/`setIntentMode` are console-only and nothing has ever called
    * them - a knob nothing in the app can reach is the same absence it was
    * added to close.
+   *
+   * That sentence was true of this method too until #503: being on the
+   * facade is not being reachable, and nothing called it. The two things
+   * that call it now are the store's `demoPauseLatch` - rendered as the
+   * mock-only chooser in `SettingsSheet` - and `?mock-pause=`, which the
+   * mock reads at construction through the same parser as `?bridge=`.
+   * `tools/pause-cell-shots.mjs` drives all four cells through that
+   * chooser in a real browser and reads the chip back.
    */
-  setPauseLatchMode(latchMode: 'follow' | 'latched' | 'clear' | 'absent') {
+  setPauseLatchMode(latchMode: PauseLatchMode) {
     if (mode === 'mock') mockBridge.setPauseLatchMode(latchMode)
   },
 

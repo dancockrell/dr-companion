@@ -254,7 +254,11 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
   lich_did_not_start:
     'The sign-in worked but Lich did not start. Use "Why won\'t it start?" below to find out why.',
   lich_already_running:
-    'Lich is already running, so this app did not start a second one. Attach to the one that is up.',
+    // #504: this used to end "Attach to the one that is up", which promises
+    // something the app may then withdraw - a Lich with no detachable port
+    // cannot be attached to, and the offer below says so. A sentence that
+    // contradicts the control under it is worse than a vaguer one.
+    'Lich is already running, so this app did not start a second one. Below is which Lich that is, and whether this app can attach to it.',
   password_needed:
     'No password was sent and none is saved for this account. Type your password and try again.',
   stored_password_rejected:
