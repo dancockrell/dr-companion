@@ -306,13 +306,24 @@ mod tests {
     /// `docs/LICH_NATIVE_LOGIN.md` §3.1 lists it. Assembled at runtime rather
     /// than written as one literal so nothing in this file is shaped like a
     /// credential.
+    ///
+    /// **`GAMEPORT` is deliberately not `11024`.** DR Prime's game port and
+    /// this app's detachable-client port are the same number by coincidence,
+    /// and they are unrelated: one is `dr.simutronics.net`'s, the other is
+    /// `lich.rs`'s `DETACHABLE_PORT`. A fixture using 11024 here would make a
+    /// writer that confused the two look correct, and it would give
+    /// `tools/detachable-port-test.mjs` a hit it cannot tell from a retyped
+    /// constant. `11124` is DR Platinum's real port, so the value is still a
+    /// true one — and using it makes the point `docs/LICH_NATIVE_LOGIN.md` §7
+    /// item 3 asks for: `GAMEPORT` is whatever the server sent, never a
+    /// constant of ours.
     fn dr_fields() -> Vec<(String, String)> {
         [
             ("GAME", "STORM"),
             ("GAMECODE", "DR"),
             ("GAMEFILE", "STORMFRONT.EXE"),
             ("GAMEHOST", "dr.simutronics.net"),
-            ("GAMEPORT", "11024"),
+            ("GAMEPORT", "11124"),
             ("KEY", "not-a-real-key-0000"),
             ("FULLGAMENAME", "DragonRealms"),
             ("UPPORT", "5535"),
@@ -384,7 +395,7 @@ mod tests {
             line.split('=').next_back().unwrap().to_string()
         };
         assert_eq!(found("GAMEHOST="), "dr.simutronics.net");
-        assert_eq!(found("GAMEPORT="), "11024");
+        assert_eq!(found("GAMEPORT="), "11124");
         assert_eq!(found("GAME="), "STORM");
     }
 
@@ -433,7 +444,7 @@ mod tests {
     fn no_other_field_collides_with_lichs_unanchored_needles() {
         let hostile: Vec<(String, String)> = [
             ("GAMECODE", "DR"),
-            ("GAMEPORT", "11024"),
+            ("GAMEPORT", "11124"),
             ("GAMEHOST", "dr.simutronics.net"),
             ("GAMEFILE", "STORMFRONT.EXE"),
             ("FULLGAMENAME", "DragonRealms"),
@@ -461,7 +472,7 @@ mod tests {
         };
         assert_eq!(first("GAME="), "STORM", "{lines:?}");
         assert_eq!(first("GAMECODE="), "DR", "{lines:?}");
-        assert_eq!(first("GAMEPORT="), "11024", "{lines:?}");
+        assert_eq!(first("GAMEPORT="), "11124", "{lines:?}");
         assert_eq!(first("GAMEHOST="), "dr.simutronics.net", "{lines:?}");
 
         // And the positive control the assertion above needs: prove the

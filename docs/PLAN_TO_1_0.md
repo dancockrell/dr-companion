@@ -297,7 +297,7 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
-| N | N3, N4 | `lane-n/n3-sal-launch` | `dev/wt-n3` | 2026-09-06 |
+| N | N3, N3b, N4 | `lane-n/n4-attach-measure` | `dev/wt-n3` | 2026-09-06 |
 | N | N5, N6 | `lane-n/n5-sign-in` | `dev/wt-n5` | 2026-09-06 |
 
 N1 and N2 have merged (#441, #438). N7 is unheld and needs Dan rather than a
@@ -1638,29 +1638,88 @@ the code increments. N8 is optional and human-gated and blocks nothing.
   pitfalls: 3, 15, 16.
   done-when: PRIVACY.md names the host, says what is sent, says the password is not stored by default and where it goes when it is, and no document anywhere still says the app never sees it.
 
-- [~] **N3  The `.sal` launch file, and Lich started from it** (≈90)
-  owner: lane-n/n3-sal-launch claim: wt-n3 since: 2026-09-06
-  progress: the launch file, the launch itself and the measurement are done and
-  merged. **The `lich_login_launch` command is not registered**, because it
-  performs the EAccess login and `src-tauri/src/eaccess.rs` does not exist yet:
-  N1 had no commits and no working-tree changes when this was built, so it was
-  neither waited for nor worked around. Everything here that does not need
-  `LaunchData` is built; the command is the whole of what is left, and
-  `lich::launch_lich_with_launch_data(&[(String, String)])` is its entire body
-  minus one call to `eaccess::login`, so finishing it is a wrapper rather than a
-  design. `sal::write_temp` takes `&[(String, String)]` rather than `&LaunchData`
-  on purpose: that is `LaunchData`’s own inner type, so N1 owns the type and this
-  module needs no second copy of it (`CLAUDE.md` §0).
+- [x] **N3  The `.sal` launch file, and Lich started from it** (≈90)
+  commit: 7eafd42e verified: 2026-09-06 minutes: 130
+  done: PR #440. `sal.rs` writes the file from Lich’s own five `Array#find`
+  regexes (transcribed, not remembered), `lich.rs` starts Lich from it with
+  `--headless=11024` alone, and the one-shot key is shredded on the app’s
+  attach — which is the first externally observable moment provably after
+  Lich’s last read (`main.rb:349` vs `:842-857`) — with a 120s timeout and a
+  sweep on the next launch behind it. Measured against a real Lich 5.20.1:
+  11024 listening on its own pid, and the `GAMECODE=`-removed sabotage
+  exiting on `main.rb:232`’s exact string.
+  `docs/verification/lich-sal-launch-2026-09-06.md`. §7 item 2 answered.
+  **`lich_login_launch` is not part of this and is N3b below.**
   touches: src-tauri/src/sal.rs, src-tauri/src/lich.rs, src-tauri/src/lib.rs, src-tauri/src/game_link.rs, docs/verification/lich-sal-launch-2026-09-06.md
-  depends-on: N1
+  depends-on: none
+  note: the EAccess half moved to the increment below, so this one no longer
+  depends on N1 at all. `sal::write_temp` takes `&[(String, String)]`, which
+  is `LaunchData`’s own inner type, so N1 owns that type and this increment
+  never needed it to exist. (Written on its own line rather than beside
+  `depends-on:` because `plan-audit.mjs:83` reads every increment ID on that
+  line as a real dependency — an earlier draft said "moved to N3b" there and
+  the audit correctly reported a dependency nobody meant.)
   do: `sal::write_temp(&LaunchData) -> PathBuf` writes `KEY=…` and the rest one `UPPER=value` per line into a random 16-hex basename in the app's own temp directory — never the repo, never Lich's `TEMP_DIR` — and `sal::shred(path)` removes it. Replace `lich::launch_args` (`lich.rs:517-556`): the character branch becomes `[<sal path>, "--headless=11024", "--start-scripts=companion_bridge"]` and drops `--login`, `--dragonrealms` and `--stormfront`, all three of which the launch file now supplies (`GAMECODE=DR` at `main.rb:225-231`). Keep `--headless=` rather than the expanded pair: it is one token, it is what already ships, and `arg_normalization.rb:33-35` refuses to combine it with an explicit `--detachable-client`, so the existing `opens_the_detachable_client_port` assertion (`lich.rs:640-651`) stays valid unchanged. Add the `lich_login_launch` command per `LICH_NATIVE_LOGIN.md` §8 — it returns `{ pid, port }` after spawning, and shreds the `.sal` when `game_attach` reports the socket up, on a timeout, and at process exit. `DRC_LICH_DRY_RUN=1` writes and shreds the file and reports the argv without spawning. **The password never appears in argv**: a Windows command line is readable by any process of this user.
   verify: **not a reading of `arg_normalization.rb`** — start real Lich with a hand-written `.sal` carrying a deliberately invalid `KEY`, then `netstat -ano | grep LISTENING | grep :11024` shows Lich listening. That is the measurement `LICH_NATIVE_LOGIN.md` §7 item 2 asks for: it proves `--headless` normalisation runs on the `.sal` path, and it needs no valid account because the port opens before the game key is used. Kill that Lich **by the PID you started**, never by image name (§1 trap 12). Then `cargo test --lib sal` green and `DRC_LICH_DRY_RUN=1` reporting the argv with the `.sal` path first.
   sabotage: (1) omit `GAMECODE=` from the written file → Lich exits printing `error: launch_data contains no GAMECODE info` (`main.rb:232`), and the test asserts that exact string rather than a non-zero exit; (2) make `shred` a no-op → the leftover-file check goes red naming the path. Sabotage (1) proves the file reaches Lich's reader at all, which a green launch alone does not.
   pitfalls: 8, 9, 12, 14 (the `.sal` content and the temp path contain backslashes — write those files with Write/Edit or build them with forward slashes, never a heredoc), 16.
   done-when: a `.sal` produced from a `LaunchData` starts Lich, 11024 listens, and `stat` says the file is gone afterwards.
 
-- [ ] **N4  Attach, and measure what the frontend identity actually buys** (≈75)
-  touches: tools/fake-lich.mjs, src/lib/frontends.ts, tools/frontend-test.mjs, src-tauri/src/game_link.rs
+- [x] **N3b  Register `lich_login_launch`** (≈15)
+  commit: pending verified: 2026-09-06 minutes: 20
+  done: N1 landed (#441) while N4 was in flight, so this stopped being blocked
+  and was finished in the same PR rather than left as a `[!]` row whose
+  blocker had gone. The command is the wrapper it was filed as: `Secret::new`
+  takes the password by move, `eaccess::connect` + `eaccess::login` produce
+  the `LaunchData`, and `&data.0` goes straight to
+  `launch_lich_with_launch_data` — one type for the launch fields, owned by
+  `eaccess.rs`. `tools/tauri-command-callers-test.mjs` carries a DEFERRED
+  entry naming N5 as the caller, and that file’s own staleness check is what
+  will force N5 to remove it.
+  note: `lich_login_characters` is deliberately **not** registered here. §8
+  publishes it, N5’s `do:` builds the picker that calls it, and registering it
+  now would mean a second DEFERRED entry for a command whose shape N5 owns.
+  touches: src-tauri/src/lich.rs, src-tauri/src/lib.rs
+  depends-on: N1, N3
+  do: this is a wrapper, not a design, and it is filed separately rather than
+  left as an unticked clause inside N3 so the gap shows up in the marker
+  counts instead of only in a lane row. `lich.rs` already publishes
+  `launch_lich_with_launch_data(&[(String, String)])`, which is the whole body
+  of the command apart from one call to `eaccess::login`. Add the
+  `#[tauri::command] lich_login_launch` per `LICH_NATIVE_LOGIN.md` §8 —
+  argument JSON `{ account, password, gameCode, character }`, result
+  `{ pid, port }` plus the `argv` and `dryRun` fields `DRC_LICH_DRY_RUN`
+  needs — and register it in `lib.rs`. Take `&data.0`: `LaunchData`’s inner
+  `Vec<(String, String)>` is what `sal::write_temp` already accepts, so N1
+  owns that type and nothing here needs a second copy of it (`CLAUDE.md` §0).
+  verify: `node tools/tauri-command-callers-test.mjs` green; the app run with
+  `DRC_LICH_DRY_RUN=1` reaches the returned argv without spawning Lich.
+  sabotage: pass a password and grep the returned `argv` for it → it must not
+  appear, with the launch file’s `KEY=` line proving the value existed to
+  leak. `lich::tests::a_dry_run_reports_the_argv_writes_the_file_and_spawns_nothing`
+  already asserts that shape one layer down.
+  done-when: the command is registered, N5 can call it, and no password
+  appears in any result, event, log line or argv.
+
+- [x] **N4  Attach, and measure what the frontend identity actually buys** (≈75)
+  commit: pending verified: 2026-09-06 minutes: 95
+  done: §7 item 1 is answered and moved to the read column. The identity is
+  `profanity` and `supports_streams?` is **true**, measured by executing Lich
+  5.20.1’s own `resolve_headless_frontend` and `Frontend.has_capability?`
+  against its own registry with this launch’s exact argv — and re-run against
+  `--saga`, `--genie` and no-detachable-port, so the chooser was tested where
+  the wrong answers were available. The old question’s two candidates were not
+  two: `Frontend.client` is an alias of `$frontend`, and the `GAME=`-derived
+  branch never runs. `docs/verification/lich-native-stream-2026-09-06.md`.
+  **One thing in `verify:` is NOT CHECKED and is not a pass:** the state
+  replay was not observed arriving on 11024. A real Lich was attached to for
+  22s and sent nothing; Lich logged no error, and the likeliest reading —
+  written as a hypothesis — is that a detachable socket does not drain before
+  the session has a real game stream. It needs N7, and it is on N7’s list.
+  `--frontend=<name>` turned out to be parsed and never read
+  (`argv_options.rb:98-99`), so the remedy §7 offered would not have worked;
+  `--wrayth` and `--profanity`, which `frontends.ts` claimed, do not exist.
+  touches: tools/fake-lich.mjs, src/lib/frontends.ts, tools/frontend-test.mjs, src-tauri/src/game_link.rs, src-tauri/src/lich.rs, src-tauri/src/sal.rs, tools/detachable-port-test.mjs, package.json, tools/test-suites.json, docs/verification/lich-native-stream-2026-09-06.md
   depends-on: N3
   do: the stream format does not change — same detachable port, same Lich-processed Simutronics XML, same `gameStream.ts`. What changes is Lich's own frontend identity, and `LICH_NATIVE_LOGIN.md` §7 item 1 says plainly that this was read but not traced: on this path `resolve_headless_frontend` returns `'profanity'` (`login_helpers.rb:578-584`) while `Frontend.client` comes from the `GAME=` line as `'stormfront'` (`main.rb:373-383`), and **which of the two decides `Frontend.supports_streams?` is not established**. Establish it. If streams are supported, the channel tabs fill for the first time and the Genie warning at `LichLauncher.tsx:283` was a real cost this lane removes; if not, say so in `docs/LIVE-STATE.md` rather than implying otherwise. Then: extend `fake-lich.mjs` to serve the `.sal`-route identity so the unhappy paths are reachable without an account, and make `frontends.ts` model exactly the identities that can now occur — the `genie` `,` branch and its case in `frontend-test.mjs` go with N6, not here, so this increment leaves the test green rather than half-deleting a case.
   verify: against a live Lich started by N3, `;send <c><channel>` style traffic or the `<pushStream id=…>` frames observed on 11024, recorded verbatim in `docs/verification/lich-native-stream-<date>.md` with the answer to §7 item 1 stated as measured. `npm run test:frontend` green. The state replay on attach (`global_defs.rb:2306-2343`, suppressed for Genie only) must be observed arriving.

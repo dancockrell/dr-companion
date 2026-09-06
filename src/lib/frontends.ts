@@ -23,7 +23,23 @@ export interface Frontend {
   label: string
   /** What you type before a Lich script name. */
   prefix: ';' | ','
-  /** The flag Lich is launched with for this frontend, where one exists. */
+  /**
+   * The flag Lich is launched with for this frontend, where one exists.
+   *
+   * `null` means Lich has **no** flag for it, which is a different claim from
+   * "nobody filled this in". Two entries here named a flag that does not exist
+   * until 6 Sep 2026 - `--wrayth` and `--profanity` - and neither appears
+   * anywhere in Lich's argument parser. `determine_frontend`
+   * (`argv_options.rb:385-399`) accepts exactly `-s`/`--stormfront`,
+   * `-w`/`--wizard`, `--avalon`, `--frostbite` and `--saga`; everything else
+   * falls through to `'unknown'`. `--genie` is honoured too, but only on the
+   * headless path (`login_helpers.rb:578-584`) - it is not in
+   * `determine_frontend` at all.
+   *
+   * There is also a `--frontend=<name>`, and it is a trap rather than an
+   * option: `argv_options.rb:98-99` parses it into `@argv_options[:frontend]`
+   * and **nothing anywhere reads that key**. Setting it does nothing.
+   */
   lichFlag: string | null
   /** Executables to look for when detecting it. */
   executables: string[]
@@ -47,7 +63,9 @@ export const FRONTENDS: Frontend[] = [
     id: 'wrayth',
     label: 'Wrayth',
     prefix: ';',
-    lichFlag: '--wrayth',
+    // Lich has no `--wrayth`. `-s`/`--stormfront` is the flag for this
+    // client, under its former name (argv_options.rb:386-387).
+    lichFlag: '--stormfront',
     executables: ['Wrayth.exe', 'StormFront.exe'],
     folders: ['Wrayth', 'StormFront'],
     note: 'Formerly StormFront. Simutronics’ long-running Windows client.',
@@ -82,7 +100,10 @@ export const FRONTENDS: Frontend[] = [
     id: 'profanity',
     label: 'ProfanityFE',
     prefix: ';',
-    lichFlag: '--profanity',
+    // Lich has no `--profanity` flag. The identity is reached by being a
+    // headless detachable client, which is what this app's own launch does
+    // (login_helpers.rb:578-584), not by asking for it.
+    lichFlag: null,
     executables: ['profanity'],
     folders: ['ProfanityFE', 'profanity'],
     note: 'Terminal client from elanthia-online.',
@@ -99,6 +120,56 @@ export const FRONTENDS: Frontend[] = [
 ]
 
 export const DEFAULT_FRONTEND = 'genie'
+
+/**
+ * The identity **Lich gives itself** when DR Companion starts it, which is a
+ * different question from every entry above.
+ *
+ * The list above answers "which client is the player using, so what do we tell
+ * them to type". This answers "what does Lich think it is talking to", and
+ * since Lane N the answer is: this app. `--headless=<port>` is normalised into
+ * `--without-frontend --detachable-client=<port>`
+ * (`arg_normalization.rb:52-53`), which routes `Frontend.client` through
+ * `resolve_headless_frontend` (`login_helpers.rb:578-584`) — and that returns
+ * `'profanity'` for every launch except `--saga` and `--genie`.
+ *
+ * **Measured, not inferred**, on 6 Sep 2026 by executing Lich 5.20.1's own
+ * `resolve_headless_frontend` and `Frontend.has_capability?` against its own
+ * registry with our exact argv:
+ * `docs/verification/lich-native-stream-2026-09-06.md`. That closes
+ * `docs/LICH_NATIVE_LOGIN.md` §7's inferred item 1.
+ *
+ * Two consequences the app depends on:
+ *
+ *   - **`supports_streams?` is `true`**, so `<pushStream id=…>` labels arrive
+ *     and the channel tabs can fill. Under Genie they never could:
+ *     `genie`'s capabilities are `[xml, mono]` with no `streams` at all
+ *     (`front-end.rb:251-252`), and `messaging.rb:21-48` gates every stream
+ *     tag on that predicate.
+ *   - **`supports_mono?` and `supports_room_window?` are `false`**, unlike an
+ *     interactive Wrayth session. Neither reaches this app: `mono` only wraps
+ *     Lich's own injected room text in `<output class="mono"/>`, and
+ *     `room_window` only injects a duplicate `<streamWindow>` of the exits.
+ *     The app parses room state from its own bridge commands instead.
+ *
+ * The `GAME=STORM` line in the launch file does **not** decide this. The
+ * branch that would set `'stormfront'` from it (`main.rb:375-376`) is inside
+ * the `else` of `if ARGV.include?('--without-frontend')` at `main.rb:359`, so
+ * it never runs on this path. It happens to have `streams` too, which is why
+ * this went unnoticed as an open question for so long — the answer is the same
+ * either way, and the identity is not.
+ */
+export const APP_LAUNCH_IDENTITY = 'profanity'
+
+/**
+ * The prefix that applies when the app started Lich itself.
+ *
+ * `$clean_lich_char = Frontend.client.eql?('genie') ? ',' : ';'`
+ * (`main.rb:58`). Our identity is never `genie`, so it is always `;` — and
+ * `main.rb:58` in fact runs before `Frontend.client` is assigned at all, with
+ * `$frontend` still `nil`, which reaches the same answer by a second route.
+ */
+export const APP_LAUNCH_PREFIX = ';'
 
 export function frontendById(id: string): Frontend {
   return FRONTENDS.find((f) => f.id === id) ?? FRONTENDS[0]!

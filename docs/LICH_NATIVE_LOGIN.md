@@ -573,14 +573,29 @@ so the two are separated rather than blended.
   `Get-NetTCPConnection` showed 11024 listening on Lich's own pid; the same
   file with `GAMECODE=` removed exited(1) printing `error: launch_data contains
   no GAMECODE info` and never opened the port.
+- **The frontend identity on the `.sal` route is `'profanity'`, and
+  `Frontend.supports_streams?` is `true`.** Not read out of `front-end.rb` -
+  measured 6 Sep 2026 by executing Lich 5.20.1's own
+  `resolve_headless_frontend` and `Frontend.has_capability?` against its own
+  registry with this launch's exact argv, and re-run against `--saga`,
+  `--genie` and no-detachable-port so the chooser was tested where the wrong
+  answers were available: `docs/verification/lich-native-stream-2026-09-06.md`.
+  The two candidates in the old question turned out not to be two: `$frontend`
+  is what `supports_streams?` reads (`front-end.rb:374-376`), `Frontend.client`
+  is an alias of that same global (`front-end.rb:407-415`), and the
+  `GAME=`-derived assignment at `main.rb:375-376` is inside the `else` of
+  `if ARGV.include?('--without-frontend')` (`main.rb:359`) and never runs. It
+  would have said `true` as well, which is why this stayed open so long.
+- **`--frontend=<name>` is parsed and never read.** `argv_options.rb:98-99`
+  writes `@argv_options[:frontend]` and nothing consumes that key, so the flag
+  §7 once offered as a remedy would have done nothing. `--wrayth` and
+  `--profanity` do not exist at all.
 
 ### Inferred, and must be measured before anything is built on it
 
-1. **Which of `resolve_headless_frontend`'s `'profanity'` and the `GAME=`-derived
-   `'stormfront'` decides `Frontend.supports_streams?` at runtime.** Both are
-   set on this path; the code was read, the interaction was not traced. It
-   decides whether the channel tabs fill. **N4 measures it against a live
-   session and records the answer; nothing may assert it before then.**
+1. ~~**Which of `resolve_headless_frontend`'s `'profanity'` and the `GAME=`-derived
+   `'stormfront'` decides `Frontend.supports_streams?` at runtime.**~~
+   **Measured 6 Sep 2026 (N4).** Moved to the read column above.
 2. ~~**Whether `--headless` normalisation runs on the `.sal` path.**~~
    **Measured 6 Sep 2026 (N3): yes.** Moved to the read column above.
 3. **Whether the `L` reply's `GAMEPORT` for DR prime is 11024.** Lich's own

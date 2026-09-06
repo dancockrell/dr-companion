@@ -191,6 +191,7 @@ pub fn run() {
             lich::lich_status,
             lich::genie_status,
             lich::launch_lich,
+            lich::lich_login_launch,
             lich_health::lich_health,
             setup::plan_setup,
             setup::downloads::download_component,

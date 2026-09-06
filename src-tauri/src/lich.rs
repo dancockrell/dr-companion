@@ -72,6 +72,8 @@ use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::credentials::Secret;
+use crate::eaccess;
 use crate::setup::{detect_ruby, pretty_path, rank_lich_installs};
 
 /// The port Lich is asked to open with `--headless`, and the port the app's
@@ -695,6 +697,57 @@ fn launch_lich_using(
 
 /// Start Lich.
 ///
+/// Sign a character in and start Lich for them.
+///
+/// The one command the sign-in screen needs, and the published shape is
+/// `docs/LICH_NATIVE_LOGIN.md` §8: argument JSON
+/// `{ account, password, gameCode, character }`, result `{ pid, port }` plus
+/// the `argv` and `dryRun` fields a dry run needs.
+///
+/// **`password` appears here and nowhere else.** It arrives as the `String`
+/// serde built, is moved straight into a [`Secret`] that overwrites its own
+/// bytes on drop, and is never returned, logged, put in an error, or placed in
+/// `argv` or in the launch file. The only thing that reaches disk is the `L`
+/// reply's one-shot game `KEY`, which goes into the `.sal` and is shredded on
+/// attach - see [`crate::sal`].
+///
+/// Two environment variables make this reachable without an account, and both
+/// exist so an unhappy path can be aimed at on purpose rather than waited for:
+/// `DRC_EACCESS_HOST`/`DRC_EACCESS_PORT` point the protocol client at a mock
+/// (`eaccess::endpoint`), and `DRC_LICH_DRY_RUN=1` writes and shreds the
+/// launch file and reports the argv without spawning Lich.
+#[tauri::command]
+pub async fn lich_login_launch(
+    account: String,
+    password: String,
+    game_code: String,
+    character: String,
+) -> Result<LaunchOutcome, String> {
+    tokio::task::spawn_blocking(move || {
+        // Moved, not copied: from here the plaintext exists in exactly one
+        // place that knows how to erase itself.
+        let password = Secret::new(password);
+        let plaintext = std::str::from_utf8(password.expose_for_obscuring())
+            .map_err(|_| "that password is not valid UTF-8".to_string())?;
+
+        let mut transport = eaccess::connect().map_err(|e| e.to_string())?;
+        let data = eaccess::login(
+            &mut transport,
+            account.trim(),
+            plaintext,
+            game_code.trim(),
+            character.trim(),
+        )
+        .map_err(|e| e.to_string())?;
+
+        // `LaunchData`'s inner `Vec<(String, String)>` is exactly what
+        // `sal::write_temp` accepts, so there is one type for this and
+        // `eaccess.rs` owns it.
+        launch_lich_with_launch_data(&data.0)
+    })
+    .await
+    .map_err(|e| format!("the sign-in task did not finish: {e}"))?
+}
 /// Open Lich's own launcher window and stop there.
 ///
 /// **The saved-entry route this used to carry is gone.** It passed
@@ -894,7 +947,10 @@ mod tests {
             ("GAME", "STORM"),
             ("GAMECODE", "DR"),
             ("GAMEHOST", "dr.simutronics.net"),
-            ("GAMEPORT", "11024"),
+            // Not 11024: DR Prime's game port and DETACHABLE_PORT are the
+            // same number by coincidence and are unrelated. See the note on
+            // `sal::tests::dr_fields`.
+            ("GAMEPORT", "11124"),
             ("KEY", "not-a-real-key-0000"),
         ]
         .iter()

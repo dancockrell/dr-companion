@@ -115,6 +115,7 @@
   "test:creature-art",
   "test:scrub",
   "test:frontend",
+  "test:detachable-port",
   "test:bundle",
   "test:bridge",
   "test:runaway",

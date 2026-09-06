@@ -51,6 +51,11 @@ const ok = (name, cond, detail = '') => {
  * reader can act on.
  */
 const DEFERRED = Object.create(null)
+DEFERRED.lich_login_launch =
+  'N3b registered it; N5 builds the sign-in screen that calls it. ' +
+  'Lane N of docs/PLAN_TO_1_0.md - N5 verify: says this entry must be gone by ' +
+  'the time that increment is done, and the staleness check below is what ' +
+  'enforces that rather than a note somebody has to remember.'
 
 /**
  * The mirror of `DEFERRED`: commands the webview calls whose Rust side has not
