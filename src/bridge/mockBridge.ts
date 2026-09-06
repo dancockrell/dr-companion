@@ -914,6 +914,57 @@ export class MockBridge {
     return MOCK_ALL_INTENTS.filter((i) => !MOCK_UNIMPLEMENTED_INTENTS.includes(i))
   }
 
+  /**
+   * What the mock's `pauseLatched` says, independently of what this app asked
+   * for. Settable for the same reason `authMode` and `intentMode` are, and
+   * issue #487 is what the missing knob cost.
+   *
+   * Following the intent alone, the mock could only ever produce three pairs -
+   * `(app false, latch absent)` at start, `(true, true)` after Pause, and
+   * `(false, false)` after Resume - because `requestPauseAll` always fires the
+   * relay. So `paused-by-bridge` was unreachable in development altogether,
+   * and `paused-unconfirmed` while connected - the reading `SafetyFooter`'s
+   * own comment calls the one worth a player's attention - could only be
+   * produced by disconnecting the bridge entirely, which is a different cell.
+   * Both are states a live bridge reaches routinely: the first after an app
+   * restart while the latch is up, the second the moment a `;unpause` on the
+   * Lich side lowers it.
+   *
+   *   'follow'  the default - the latch tracks pause/resume, as before
+   *   'latched' the bridge is holding regardless of what this app asked, which
+   *             is the app-restart cell and a second window's Pause
+   *   'clear'   the bridge is not holding, whatever this app asked - a
+   *             `;unpause go2` typed in Lich
+   *   'absent'  the field is not sent at all - a bridge before 0.13.0
+   *
+   * Reachable through the facade as `bridge.setPauseLatchMode('latched')`,
+   * which is also what `tools/pause-reaches-travel-test.mjs` drives the
+   * four-cell matrix with. Applied immediately: the next status carries it.
+   */
+  private pauseLatchMode: 'follow' | 'latched' | 'clear' | 'absent' = 'follow'
+
+  setPauseLatchMode(mode: 'follow' | 'latched' | 'clear' | 'absent') {
+    this.pauseLatchMode = mode
+    // Applied now rather than at the next tick, so the knob is visibly a knob:
+    // a setter whose effect appears a second later reads as not having worked.
+    this.character = { ...this.character, pauseLatched: this.pauseLatched() }
+    if (this.connected) this.emitStatus()
+  }
+
+  /** The value the mock publishes, given the mode above. */
+  private pauseLatched(): boolean | undefined {
+    switch (this.pauseLatchMode) {
+      case 'latched':
+        return true
+      case 'clear':
+        return false
+      case 'absent':
+        return undefined
+      default:
+        return this.character.pauseLatched
+    }
+  }
+
   private character: CharacterStatus = { ...presets[MockBridge.initial()].character }
   private inventory: InventorySummary = structuredClone(presets[MockBridge.initial()].inventory)
   private scripts: string[] = []
@@ -1785,10 +1836,15 @@ export class MockBridge {
   }
 
   private emitStatus() {
-    this.emit({
-      type: 'status',
-      payload: { ...this.character, connected: this.connected },
-    })
+    // `pauseLatched` goes through the mode rather than straight out of
+    // `character`, so an override survives the next tick instead of being
+    // undone by whatever last wrote the field. `absent` deletes the key: a
+    // bridge before 0.13.0 does not send it, and `undefined` in the object
+    // would still be a key on the wire once this is JSON.
+    const latched = this.pauseLatched()
+    const payload = { ...this.character, connected: this.connected, pauseLatched: latched }
+    if (latched === undefined) delete payload.pauseLatched
+    this.emit({ type: 'status', payload })
   }
 
   /**

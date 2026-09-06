@@ -286,6 +286,90 @@ fails += 1 unless check('a killed walker takes no step', walker.rooms_visited.em
                         walker.rooms_visited.inspect)
 
 puts ''
+puts '-- Resume clears the latch on its own, with nothing to unpause --'
+# Isolates `resume_all`'s `clear_pause!` from the reconcile added for #487.
+# With a walker in the fixture the two are indistinguishable: unpausing the
+# script would lower the latch through `reconcile_pause!` even if `resume_all`
+# had stopped clearing it, so "the latch cleared" above stops being able to
+# fail. Found by the break-check, whose `resume_all stops clearing it` sabotage
+# went green on the Ruby side the moment the reconcile existed. With nothing
+# running there is nothing to reconcile, so only the explicit clear can pass
+# this.
+reset!
+I.pause_all(FakeServer.new)
+fails += 1 unless check('paused with nothing running at all', I.pause_requested? == true)
+I.resume_all(FakeServer.new)
+fails += 1 unless check('Resume clears the latch with nothing to unpause',
+                        I.pause_requested? == false)
+
+puts ''
+puts '-- a Lich-side unpause lowers the latch (#487) --'
+# `;unpause go2` typed at the Lich prompt undoes exactly what `pause_all` did,
+# and the bridge hears nothing: no intent arrives, no socket message. Before
+# #487 the latch stayed up, so the app kept rendering its strongest
+# reassurance - "Paused, bridge confirmed" - while the character walked. The
+# bridge is the owner of "paused", so it has to answer that question from the
+# scripts it is holding rather than from a flag somebody set.
+reset!
+walker = FakeWalker.new('go2')
+FakeScriptRegistry.running << walker
+walker.tick(2)
+I.pause_all(FakeServer.new)
+fails += 1 unless check('control: latched and the walker is suspended',
+                        I.pause_requested? == true && walker.paused? == true)
+fails += 1 unless check('control: the bridge recorded what it suspended',
+                        I.paused_by_us == ['go2'], I.paused_by_us.inspect)
+3.times { |i| walker.tick(100 + i) }
+fails += 1 unless check('control: no room change while it is really held',
+                        walker.rooms_visited == [2], walker.rooms_visited.inspect)
+
+Script.unpause('go2') # the player, in Lich. Nothing goes through the bridge.
+fails += 1 unless check('the raw flag is still up, so the reconcile is what does the work',
+                        I.pause_latched_raw? == true)
+fails += 1 unless check('a Lich-side unpause lowers the latch', I.pause_requested? == false)
+fails += 1 unless check("and travel is no longer refused in the bridge's name",
+                        I.pause_refusal('map_walk').nil?, I.pause_refusal('map_walk').inspect)
+walker.tick(200)
+fails += 1 unless check('the walker really is moving again, which is why the latch had to drop',
+                        walker.rooms_visited == [2, 200], walker.rooms_visited.inspect)
+
+puts ''
+puts '-- but the latch survives everything that is not an unpause (#487) --'
+# The two ways the reconcile above could be wrong are opposite, and one of them
+# is worse than the bug it fixes: a latch that drops on its own is #462 back
+# again, with the app believing travel is held.
+reset!
+walker = FakeWalker.new('go2')
+FakeScriptRegistry.running << walker
+I.pause_all(FakeServer.new)
+Script.kill('go2') # the route ended, or Stop cancelled it. Not an unpause.
+fails += 1 unless check('a suspended script exiting does not lower the latch',
+                        I.pause_requested? == true)
+fails += 1 unless check('so a travel click started afterwards is still refused',
+                        I.map_walk(4, FakeServer.new)[0] == false)
+
+reset!
+I.pause_all(FakeServer.new) # nobody was running: the snapshot suspended nothing
+fails += 1 unless check('a pause that suspended nothing does not clear itself',
+                        I.pause_requested? == true)
+fails += 1 unless check('which is the whole point of the latch: a later walk is refused',
+                        I.map_walk(4, FakeServer.new)[0] == false)
+
+reset!
+walker = FakeWalker.new('go2')
+FakeScriptRegistry.running << walker
+I.pause_all(FakeServer.new)
+# A client disconnecting - the app closing, or being relaunched - is not an
+# unpause either. The bridge outlives the app and the latch outlives it too;
+# the app adopts it again on connect (src/lib/bridgePauseRelay.ts). Nothing in
+# this process is told about a disconnect, which is why the check is "read it
+# a hundred times and it does not drift".
+100.times { I.pause_requested? }
+fails += 1 unless check('the latch outlives the client, by design - the app mirrors it back',
+                        I.pause_requested? == true)
+fails += 1 unless check('and the walker is still suspended all the while', walker.paused? == true)
+
+puts ''
 puts '-- the refusal set is data, and reads as nothing when not paused --'
 reset!
 fails += 1 unless check('pause_refusal is nil when not paused', I.pause_refusal('map_walk').nil?)

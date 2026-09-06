@@ -93,6 +93,21 @@ export const bridge = {
   simulateBrokenPattern() {
     if (mode === 'mock') mockBridge.simulateBrokenPattern()
   },
+  /**
+   * Make the mock's `pauseLatched` say something other than what this app
+   * asked for, so every cell of `pauseStatus.ts` can be looked at in
+   * development. Issue #487: two of the four were unreachable without a live
+   * bridge in a state nobody can arrange on demand. See
+   * `MockBridge.setPauseLatchMode` for what each mode means.
+   *
+   * On the facade rather than console-only on the class, because
+   * `setAuthMode`/`setIntentMode` are console-only and nothing has ever called
+   * them - a knob nothing in the app can reach is the same absence it was
+   * added to close.
+   */
+  setPauseLatchMode(latchMode: 'follow' | 'latched' | 'clear' | 'absent') {
+    if (mode === 'mock') mockBridge.setPauseLatchMode(latchMode)
+  },
 
   onLiveStatus(fn: (status: string, detail?: string) => void) {
     return realBridge.onStatus(fn)

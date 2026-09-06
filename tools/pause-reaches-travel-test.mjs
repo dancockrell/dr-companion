@@ -76,12 +76,32 @@ ok(HANDLERS.size >= 20, `the dispatch table was read (${HANDLERS.size} intents)`
 ok(HANDLERS.has('map_walk'), 'and it contains map_walk, the intent #462 is about')
 ok(HANDLERS.has('run_macro') && HANDLERS.has('start_script'), 'and the other two movers')
 
-/** The body of a `def name ... end` at module-body indentation. */
+/**
+ * The body of a `def name ... end` at module-body indentation.
+ *
+ * The name is escaped and the boundary is a lookahead rather than `\b`,
+ * because Ruby method names end in `?` and `!` and neither works with either.
+ * `\b` after `!` never matches (two non-word characters have no boundary
+ * between them), and an unescaped `?` is a quantifier that quietly makes the
+ * preceding letter optional - so `methodBody('pause_requested?')` would have
+ * returned null and `methodBody('clear_pause!')` likewise, and a check written
+ * on top of that reads as a failing assertion about the bridge rather than a
+ * broken instrument. Found by `reconcile_pause!` returning null on a file that
+ * plainly contains it.
+ */
 function methodBody(name) {
-  const re = new RegExp(`\\n {4}def ${name}\\b[^\\n]*\\n([\\s\\S]*?)\\n {4}end\\n`)
+  const esc = name.replace(/[?!.*+^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`\\n {4}def ${esc}(?![\\w?!])[^\\n]*\\n([\\s\\S]*?)\\n {4}end\\n`)
   const m = src.match(re)
   return m ? m[1] : null
 }
+
+// Positive control on the escaping above, so a null below is a fact about the
+// bridge and not about this regex.
+ok(methodBody('pause_all') !== null, 'methodBody control: a plain name resolves')
+ok(methodBody('pause_requested?') !== null, 'methodBody control: a name ending in ? resolves')
+ok(methodBody('clear_pause!') !== null, 'methodBody control: a name ending in ! resolves')
+ok(methodBody('no_such_method_here') === null, 'methodBody control: an absent name is null')
 
 /**
  * Which intents can put the character in motion, decided by what their code
@@ -248,23 +268,149 @@ const { pauseStatus, PAUSED_TRAVEL_REFUSAL } = await import('../src/lib/pauseSta
 }
 
 {
-  const running = pauseStatus({ appPaused: false, bridgeConnected: true, bridgePauseLatched: false })
-  const confirmed = pauseStatus({ appPaused: true, bridgeConnected: true, bridgePauseLatched: true })
-  const old = pauseStatus({ appPaused: true, bridgeConnected: true, bridgePauseLatched: undefined })
-  const down = pauseStatus({ appPaused: true, bridgeConnected: false })
-  const said = pauseStatus({ appPaused: true, bridgeConnected: true, bridgePauseLatched: false })
-  ok(running.state === 'running', 'not paused reads as running')
-  ok(confirmed.state === 'paused-confirmed', 'paused + latched reads as confirmed')
-  ok(old.state === 'paused-unconfirmed', 'a bridge with no such field is unconfirmed, never confirmed')
-  ok(down.state === 'paused-unconfirmed', 'a bridge that is not there is unconfirmed')
-  ok(said.state === 'paused-unconfirmed', 'and a bridge that says false is unconfirmed too')
+  /**
+   * The whole input space, printed rather than argued, with the reader
+   * asserted per cell.
+   *
+   * Issue #487. The previous version of this block tested `running` only as
+   * `{appPaused:false, bridgePauseLatched:false}` and never exercised the
+   * `latched:true` half of that row - the cell where the bridge is refusing
+   * travel and the app renders no chip at all. A matrix with a missing cell is
+   * the same defect as a boolean with a missing state, and it is harder to
+   * see, because every case that is present passes.
+   *
+   * So the cells come from the product of the two inputs rather than a list,
+   * and the count is asserted: 2 x 3 rows, each naming an expected state.
+   */
+  const APP = [false, true]
+  const LATCH = [undefined, false, true]
+  const EXPECTED = {
+    'false|undefined': 'running',
+    'false|false': 'running',
+    'false|true': 'paused-by-bridge',
+    'true|undefined': 'paused-unconfirmed',
+    'true|false': 'paused-unconfirmed',
+    'true|true': 'paused-confirmed',
+  }
+  console.log('\n  appPaused | bridgePauseLatched -> state / label   (bridge connected)')
+  let cells = 0
+  const seen = new Set()
+  for (const appPaused of APP) {
+    for (const bridgePauseLatched of LATCH) {
+      const key = `${appPaused}|${bridgePauseLatched}`
+      const r = pauseStatus({ appPaused, bridgeConnected: true, bridgePauseLatched })
+      console.log(
+        `  ${String(appPaused).padEnd(9)} | ${String(bridgePauseLatched).padEnd(18)} -> ${r.state.padEnd(18)} "${r.label}"`
+      )
+      ok(r.state === EXPECTED[key], `cell (${key}) reads as ${EXPECTED[key]}`, r.state)
+      ok(r.label.length > 0 && r.detail.length > 20, `cell (${key}) has a label and a reason`)
+      seen.add(r.state)
+      cells++
+    }
+  }
+  ok(cells === APP.length * LATCH.length, `every cell of the matrix was read (${cells})`)
   ok(
-    new Set([running.state, confirmed.state, old.state]).size === 3,
-    'three states are actually distinguishable, not one label with three spellings'
+    seen.size === 4,
+    `all four states are reachable and distinguishable (${[...seen].sort().join(', ')})`
+  )
+
+  // The cell #487 is about, named so a regression names it too.
+  const byBridge = pauseStatus({ appPaused: false, bridgeConnected: true, bridgePauseLatched: true })
+  ok(
+    byBridge.state !== 'running',
+    'the bridge holding while the app did not ask is NOT running - the cell #487 found rendering no chip at all'
+  )
+  ok(/resume/i.test(byBridge.detail), 'and it tells the player Resume is the way out', byBridge.detail)
+
+  // A latch remembered from a bridge that has since gone is stale, not current.
+  ok(
+    pauseStatus({ appPaused: false, bridgeConnected: false, bridgePauseLatched: true }).state ===
+      'running',
+    'a latch from a disconnected bridge is not treated as a live hold'
+  )
+  const down = pauseStatus({ appPaused: true, bridgeConnected: false })
+  ok(down.state === 'paused-unconfirmed', 'a bridge that is not there is unconfirmed')
+
+  // The tooltip diagnosed one cause and named the wrong remedy: a bridge at
+  // 0.14.0 reports false the moment a `;unpause` lifts the pause it was
+  // holding, and that player was being sent to look for a download.
+  const said = pauseStatus({ appPaused: true, bridgeConnected: true, bridgePauseLatched: false })
+  ok(
+    /unpaused it in Lich/i.test(said.detail),
+    'the unconfirmed tooltip names the Lich-side unpause, not only an old bridge',
+    said.detail
+  )
+  const confirmed = pauseStatus({ appPaused: true, bridgeConnected: true, bridgePauseLatched: true })
+  ok(
+    said.detail !== confirmed.detail && said.detail.length > 20,
+    'the unconfirmed state says what a player can do about it'
+  )
+}
+
+console.log('\n-- the bridge owns "paused" and answers it from the scripts it holds --')
+{
+  // #487's second finding: `pause_all` is a snapshot and the latch gated only
+  // *new* intents, so `;unpause go2` walked the character while the bridge
+  // still reported pauseLatched=true. The behavioural half is `pause_test.rb`'s
+  // "a Lich-side unpause lowers the latch"; this is the structural half, so a
+  // rename cannot quietly remove it while that suite is skipped for want of a
+  // Ruby interpreter.
+  const reconcile = methodBody('reconcile_pause!')
+  ok(reconcile !== null, 'the bridge has a reconcile_pause!')
+  ok(
+    reconcile !== null && /Script\.running/.test(reconcile),
+    'and it reads the live scripts rather than a flag'
   )
   ok(
-    old.detail !== confirmed.detail && old.detail.length > 20,
-    'the unconfirmed state says what a player can do about it'
+    reconcile !== null && /paused\?/.test(reconcile),
+    'and specifically their paused? flags - the thing a `;unpause` changes'
+  )
+  ok(
+    reconcile !== null && /clear_pause!/.test(reconcile),
+    'and lowers the latch when they are running again'
+  )
+  const read = methodBody('pause_requested?')
+  ok(
+    read !== null && /reconcile_pause!/.test(read),
+    'the one method every reader goes through reconciles first, so no caller has to remember to'
+  )
+  const pauseAll = methodBody('pause_all')
+  ok(
+    pauseAll !== null && /@paused_by_us/.test(pauseAll),
+    'pause_all records which scripts it suspended, which is what the reconcile stands on'
+  )
+  const clear = methodBody('clear_pause!')
+  ok(
+    clear !== null && /@paused_by_us = \[\]/.test(clear),
+    'and clearing the latch forgets them, so a stale name cannot lower the next one'
+  )
+}
+
+console.log('\n-- the mock can produce every cell --')
+{
+  // "A state the fixture cannot reach is a state nobody sees until a live
+  // bridge is the first place it happens." Following the pause intent alone,
+  // the mock could only ever produce three of the six rows above, and neither
+  // of the two a live bridge reaches routinely - the app-restart cell and the
+  // one a `;unpause` produces.
+  //
+  // Source-level rather than behavioural, and that limit is real: `mockBridge`
+  // reaches `import.meta.glob`, which is Vite's and does not exist under node,
+  // so the module cannot be loaded here at all (the same reason the relay
+  // block below doubles the bridge facade).
+  const mockSrc = readFileSync('src/bridge/mockBridge.ts', 'utf8')
+  ok(/setPauseLatchMode\(/.test(mockSrc), 'the mock has a setPauseLatchMode')
+  for (const mode of ['follow', 'latched', 'clear', 'absent']) {
+    ok(mockSrc.includes(`'${mode}'`), `and it can be put in '${mode}'`)
+  }
+  ok(
+    /pauseLatched: latched/.test(mockSrc) && /delete payload\.pauseLatched/.test(mockSrc),
+    'the status goes through the mode, including deleting the key for the absent case'
+  )
+  const facade = readFileSync('src/bridge/index.ts', 'utf8')
+  ok(
+    /setPauseLatchMode/.test(facade),
+    'and the facade exposes it, so it is reachable rather than console-only like setAuthMode'
   )
 }
 
@@ -308,9 +454,18 @@ const { pauseStatus, PAUSED_TRAVEL_REFUSAL } = await import('../src/lib/pauseSta
   // asked for, which is the proposition - everything between `requestPauseAll`
   // and that call is the real code.
   const sent = []
+  const listeners = new Set()
+  /** Push a frame at the app the way the real facade fans one out. */
+  const emit = (msg) => listeners.forEach((fn) => fn(msg))
   const bridgeDouble = {
     bridge: {
       requestIntent: (intent, args) => sent.push({ type: 'intent', intent, args }),
+      // Added for #487: the relay now reads as well as writes, so the double
+      // has to be able to speak. Same shape as the real facade's onMessage.
+      onMessage: (fn) => {
+        listeners.add(fn)
+        return () => listeners.delete(fn)
+      },
     },
   }
   const nodeMajor = Number(process.versions.node.split('.')[0])
@@ -364,6 +519,61 @@ const { pauseStatus, PAUSED_TRAVEL_REFUSAL } = await import('../src/lib/pauseSta
       JSON.stringify(sent)
     )
     ok(flowStop.isAutomationPaused() === false, 'and the app records itself as running')
+  }
+
+  console.log('\n-- the app mirrors the bridge, which is the owner (#487) --')
+  {
+    // The restart case, behaviourally. The bridge's latch is a Ruby module
+    // ivar in a process that outlives every app launch, and this module graph
+    // is exactly what a freshly started app has: `isAutomationPaused()` is
+    // false because nothing here has been told anything yet. Before #487 the
+    // status carrying `pauseLatched: true` reached the store, the chip read
+    // "Running", and travel was refused with no explanation on screen.
+    ok(flowStop.isAutomationPaused() === false, 'control: a fresh app starts not paused')
+
+    // Control: a status with no latch changes nothing. Without this, the
+    // adoption check below would pass against a relay that pauses on any
+    // status at all.
+    sent.length = 0
+    emit({ type: 'status', payload: { pauseLatched: false } })
+    ok(
+      flowStop.isAutomationPaused() === false,
+      'control: a status saying the bridge is not holding does not pause the app'
+    )
+    ok(sent.length === 0, 'control: and sends nothing back', JSON.stringify(sent))
+
+    emit({ type: 'status', payload: { pauseLatched: true } })
+    ok(
+      flowStop.isAutomationPaused() === true,
+      'a status carrying the bridge latch pauses this app - the restart case'
+    )
+    ok(
+      sent.filter((m) => m.intent === 'pause').length === 1,
+      'and the adoption goes through the one sender, not a private flag',
+      JSON.stringify(sent)
+    )
+
+    // Idempotent: a status arrives every tick, and a second pause intent per
+    // tick would be a stream of them at the bridge.
+    sent.length = 0
+    emit({ type: 'status', payload: { pauseLatched: true } })
+    emit({ type: 'status', payload: { pauseLatched: true } })
+    ok(sent.length === 0, 'a latch that is already adopted is not re-sent', JSON.stringify(sent))
+
+    // The asymmetry, asserted rather than left to the comment. Auto-resuming
+    // would release a whole command lane at a live character because somebody
+    // unpaused one script in Lich.
+    emit({ type: 'status', payload: { pauseLatched: false } })
+    ok(
+      flowStop.isAutomationPaused() === true,
+      'a latch going false never auto-resumes the app - the player presses Resume'
+    )
+    ok(
+      pauseStatus({ appPaused: true, bridgeConnected: true, bridgePauseLatched: false }).state ===
+        'paused-unconfirmed',
+      'and the chip changes to the warn-coloured unconfirmed reading, which is the visible signal'
+    )
+    flowStop.requestResumeAll()
   }
 }
 

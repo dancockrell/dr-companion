@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.13.0'
+  BRIDGE_VERSION = '0.14.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1785,16 +1785,82 @@ module Companion
     # (`Script.kill`, `lib/common/script.rb:1358`).
     @pause_requested = false
 
+    # The scripts `pause_all` actually suspended, by name.
+    #
+    # This is what makes a Lich-side unpause visible at all. `pause_all` calls
+    # `Script.pause(name)`, and a player - or another Lich script - undoes
+    # exactly that with `;unpause go2` without the bridge hearing a thing. The
+    # route continues, the latch stays up, and the app reads its strongest
+    # reassurance ("Paused, bridge confirmed") while the character crosses the
+    # zone. Issue #487: #462's failure mode with a confirmation badge on it.
+    #
+    # So the latch is not only a flag somebody set. It is reconciled against
+    # the thing it is supposed to be holding - see reconcile_pause! below.
+    @paused_by_us = []
+
     def request_pause!
       @pause_requested = true
     end
 
+    # Whether this bridge is holding automation *right now*, reconciled first.
+    #
+    # The read reconciles rather than each caller remembering to. This is the
+    # one method both `pause_refusal` and the status frame go through, so
+    # putting it here is what makes "the latch and the scripts it holds cannot
+    # disagree" true of every reader, instead of true of the ones that
+    # remembered. `pause_latched_raw?` below is the unreconciled flag, for a
+    # test that wants to watch the transition rather than trigger it.
     def pause_requested?
+      reconcile_pause!
       @pause_requested
     end
 
+    # The flag with no reconciliation. Tests only - a caller that acts on this
+    # is the bug this whole block exists to close.
+    def pause_latched_raw? = @pause_requested
+
+    # What we suspended, for the same reason. Tests only.
+    def paused_by_us = @paused_by_us.dup
+
     def clear_pause!
       @pause_requested = false
+      @paused_by_us = []
+    end
+
+    # Clear the latch when the scripts it suspended are running again.
+    #
+    # Deliberately narrow, because the two ways this could be wrong are
+    # opposite and both bad:
+    #
+    #   * a script we paused having *exited* is not an unpause. It leaves
+    #     Script.running, and the latch must survive that - holding what has
+    #     not started yet is the latch's entire job (see @pause_requested).
+    #   * a pause that suspended nothing - nobody was running when the player
+    #     pressed Pause - must not clear itself immediately, or Pause followed
+    #     by a travel click would hold nothing at all, which is #462 again.
+    #
+    # So this clears in exactly one case: at least one script we suspended is
+    # still running, and none of the ones still running is paused any more.
+    # Nothing but something outside this bridge produces that.
+    #
+    # `State.safe(true) { s.paused? }` defaults the *unknown* answer to "still
+    # paused", so a script that cannot be read keeps the latch up rather than
+    # dropping it. An unreadable script is not evidence the character stopped.
+    #
+    # Returns whether it cleared, so a test asserts the transition rather than
+    # inferring it from the flag afterwards.
+    def reconcile_pause!
+      return false unless @pause_requested
+      return false if @paused_by_us.empty?
+
+      live = State.safe([]) { Script.running }.select do |s|
+        @paused_by_us.include?(State.safe(nil) { s.name })
+      end
+      return false if live.empty?
+      return false if live.any? { |s| State.safe(true) { s.paused? } }
+
+      clear_pause!
+      true
     end
 
     # Every intent that starts something autonomous, with the sentence it
@@ -2709,6 +2775,12 @@ module Companion
         State.safe(nil) { Script.pause(n) }
         paused << n
       end
+      # Remembered, not just logged: reconcile_pause! needs to know which
+      # scripts this latch is standing behind, so a `;unpause` of one of them
+      # on the Lich side can lower it. Accumulated rather than assigned - a
+      # second pause_all suspends nothing new (everything is already paused)
+      # and must not erase what the first one is holding.
+      @paused_by_us |= paused
       server.log("Paused: #{paused.join(', ')}") unless paused.empty?
       [true, "paused #{paused.size}"]
     end

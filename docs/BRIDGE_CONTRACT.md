@@ -133,20 +133,61 @@ script's `@paused`, Lich blocks the script inside `Script.current`
 finishes the route it was on. Cancelling is what `stop_all` is for, and it
 reaches a paused script too (`Script.kill` matches by name regardless).
 
+### Who owns Pause
+
+**The bridge does, and the app mirrors it.** This is a correction: the app used
+to be treated as the owner and the latch as a confirmation of the app's
+decision, which is issue #487.
+
+The bridge is the process that can actually hold a walker. `map_walk` starts
+`go2` *inside Lich*, and a Lich script or a person at the `;` prompt can pause
+and unpause it with the app never hearing — the app cannot stop them, so an app
+that claims ownership is claiming a decision it cannot enforce. Two consequences
+the contract now names:
+
+- **On connect and on every `status`, the client adopts the latch.** If
+  `pauseLatched` is `true` and the app is not paused, the app pauses itself
+  (`src/lib/bridgePauseRelay.ts`). The bridge's latch is a module ivar in a
+  process that outlives every app restart, so without this a relaunched app
+  reads "Running" while the bridge refuses travel. Adoption is
+  **one-directional**: a latch going `false` never auto-resumes the app, because
+  that would release a whole command lane at a live character on the strength of
+  somebody unpausing one script. The chip changes colour and the player presses
+  Resume.
+- **The bridge answers `pauseLatched` by reconciliation, not from a flag**
+  (bridge 0.14.0). `pause_all` records which scripts it suspended, and
+  `reconcile_pause!` lowers the latch when at least one of them is still running
+  and none of the still-running ones is paused any more — which is exactly what
+  `;unpause go2` produces. It deliberately does **not** lower the latch when a
+  suspended script merely exited (holding what has not started yet is the
+  latch's job), and never when the pause suspended nothing. Before this, a
+  Lich-side unpause walked the character while the app showed its strongest
+  reassurance.
+
 **`status.pauseLatched`** reports the latch back — on `status` only, and not on
 `hello`, because a client is sent a full `status` on the same socket immediately
 after `hello`, so a copy on the greeting would be one question with two answers.
-The client reads the field and its own pause flag as three states, not two:
+The client reads the field and its own pause flag as **four** states — every
+cell of the two-by-two, because the two facts vary independently and folding one
+cell into another is what #487 was:
 
-- **field absent** (a bridge older than 0.13.0) → the app is paused and nothing
-  has confirmed the bridge is holding travel. Shown as *paused, bridge did not
-  confirm*. It must **not** render as confirmed: that bridge has no latch, so a
-  tile click really can still start a walk.
-- **`false`** → same reading. The bridge is there and is not holding.
-- **`true`** → *paused, bridge confirmed*.
+| app asked | `pauseLatched` | reading |
+| --- | --- | --- |
+| no | absent / `false` | *Running* — nothing is held |
+| yes | `true` | *Paused, bridge confirmed* |
+| yes | absent / `false` | *Paused, bridge did not confirm* — either something unpaused it in Lich, or the bridge predates the latch (before 0.13.0). A tile click can still start a walk. |
+| no | `true` | *Paused by Lich* — the bridge is holding travel, macros and script starts and this app did not ask for it. Resume lifts it. |
 
-Same shape as `auth`/`implementedIntents` on the `hello` frame, and for the same
-reason. `tools/pause-reaches-travel-test.mjs` derives the set of intents that
+A field that is **absent** must never render as confirmed: that bridge has no
+latch at all. Same shape as `auth`/`implementedIntents` on the `hello` frame,
+and for the same reason.
+
+`src/bridge/mockBridge.ts` can produce every cell on demand —
+`bridge.setPauseLatchMode('follow' | 'latched' | 'clear' | 'absent')` — because
+a state the fixture cannot reach is a state nobody sees until a live bridge is
+the first place it happens.
+
+`tools/pause-reaches-travel-test.mjs` derives the set of intents that
 must be held from the bridge's own `HANDLERS` table, so a new intent that starts
 a script or sends player-supplied commands fails the build unless it is in the
 refusal set; `tools/pause-reaches-travel-break-check.mjs` breaks the latch three
