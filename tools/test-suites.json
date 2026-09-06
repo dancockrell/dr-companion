@@ -109,6 +109,7 @@
   "test:queue-driver",
   "test:quickswitch",
   "test:keybindings",
+  "test:exit-controls",
   "test:gateway",
   "test:map-leaves",
   "test:video-frame-harvest",

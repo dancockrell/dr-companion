@@ -193,9 +193,11 @@ func send_intent(intent: Dictionary) -> Dictionary:
 			intent_rejected.emit(intent, "presentation bridge write failed")
 		return current_snapshot
 	if intent.get("kind", "") != "walk":
-		# Only `walk` mutates presentation state in this slice; inspect-*
-		# and focus-room intents are read-only and are handled by
-		# IntentSender directly against the loaded manifest.
+		# Only `walk` mutates presentation state in mock mode. `inspect-*` is
+		# read-only, and `travel-to-room` needs Lich's map database and `go2`,
+		# neither of which a mock board has: it is dropped here rather than
+		# teleporting the character, because a mock that can cross the town in
+		# one click is a mock that cannot show what the real one does.
 		return current_snapshot
 
 	var from_room: String = intent.get("fromRoomId", "")

@@ -241,7 +241,7 @@ type PresentationIntent =
   | { kind: 'walk'; fromRoomId: string; exitMove: string }
   | { kind: 'inspect-entity'; entityId: string }
   | { kind: 'inspect-ground-item'; itemId: string }
-  | { kind: 'focus-room'; roomId: string };
+  | { kind: 'travel-to-room'; roomId: string };
 ```
 
 Godot never decides whether an attack hits, whether an entity is hostile, how

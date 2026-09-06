@@ -6,7 +6,7 @@
  * a sentence: a movement key firing while the player is composing a command,
  * and Escape being the one key that must reach them anyway.
  */
-import { installKeybindings, isInteractionTarget, isTypingTarget, resolveKeybinding, codeToGenieKey } from '../src/lib/keybindings.ts'
+import { installKeybindings, isInteractionTarget, isTypingTarget, resolveKeybinding, codeToGenieKey, KEYBINDING_HELP } from '../src/lib/keybindings.ts'
 import { readFileSync } from 'node:fs'
 
 let checked = 0
@@ -40,6 +40,27 @@ console.log('\n-- NumPad movement, read off Dan\'s Genie config --')
   for (const [code, command] of cases) {
     ok(`${code} -> ${command}`, resolveKeybinding({ key: code, code }, false), { kind: 'game', command })
   }
+
+  // The denominator, and the reason it is here: issue #444 removed the
+  // viewer's exit markers, so the numpad is one of only three ways out of a
+  // room ("you travel by clicking on another tile or by clicking on the words
+  // in the interface or by hotkey" - Dan, 6 September 2026). Counting the
+  // resolutions rather than the table means a binding that stops resolving -
+  // shadowed by another map, or lost to a resolver change - takes this to
+  // fewer than 11 even though `MOVEMENT` still lists it.
+  const resolved = cases.filter(([code, command]) => {
+    const r = resolveKeybinding({ key: code, code }, false)
+    return r !== null && r.kind === 'game' && r.command === command
+  })
+  ok('every one of the eleven movement keys resolves to its move',
+    [resolved.length, cases.length], [11, 11])
+  // And a compass direction has to be *reachable*, not merely mapped: all
+  // eight bearings plus up, down and out, with no two keys sharing a move.
+  const moves = new Set(resolved.map(([, command]) => command))
+  ok('the eight bearings plus up, down and out are eleven distinct moves',
+    moves.size, 11)
+  ok('and the help text a player reads names the numpad',
+    KEYBINDING_HELP.some((line) => /NumPad 8\/2\/4\/6/.test(line)), true)
 }
 
 console.log('\n-- F-keys --')

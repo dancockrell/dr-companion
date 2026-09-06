@@ -36,9 +36,10 @@
  * beside this bridge's other pure decisions, so it stays testable without a
  * Tauri event loop. This file is only the wiring.
  */
-import { gameCommandForIntent } from './presentationBridge.ts'
+import { gameCommandForIntent, travelTargetForIntent } from './presentationBridge.ts'
 import type { PresentationIntentEvent } from './presentationTypes.ts'
 import { requestGameAction } from './gameActions.ts'
+import { bridge } from '../bridge/index.ts'
 import { listenTauri } from './tauri.ts'
 
 /**
@@ -52,7 +53,20 @@ import { listenTauri } from './tauri.ts'
  */
 export function subscribePresentationIntents(): () => void {
   return listenTauri<PresentationIntentEvent>('presentation:intent', (event) => {
-    const action = gameCommandForIntent(event ?? {})
+    const intent = event ?? {}
+
+    // A click on a distant tile. Not a game command - `map_walk` is a bridge
+    // intent, and the bridge script decides whether it can be honoured (Stop
+    // latched, no map database, no route, `go2` already running). Sent through
+    // the same `bridge.requestIntent` the map panel's own click uses rather
+    // than a second surface of its own.
+    const travelTo = travelTargetForIntent(intent)
+    if (travelTo !== null) {
+      bridge.requestIntent('map_walk', { to: travelTo })
+      return
+    }
+
+    const action = gameCommandForIntent(intent)
     if (!action) return
     requestGameAction(action.command, action.label, 'ui-action')
   })

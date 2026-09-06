@@ -22,7 +22,7 @@
  * one-line statement of what a player uses it for. A future
  * `show-panel`-shaped intent from Godot (the same `PresentationIntent`
  * family `presentation_bridge.rs` already validates - see that file's own
- * `focus-room`/`inspect-entity` cases for the existing pattern) would name
+ * `travel-to-room`/`inspect-entity` cases for the existing pattern) would name
  * a `PanelId`; this catalog is what the wrapper consults to know it can
  * actually satisfy that request and with what.
  *

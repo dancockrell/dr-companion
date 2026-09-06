@@ -475,12 +475,12 @@ export function justReconnected(connected: boolean, wasConnected: boolean): bool
  * event loop or a socket. `presentationIntents.ts` is the wiring that calls
  * it; see that file's doc comment for why sending a command here is safe.
  *
- * Only `walk` produces a command. The other three intents are read-only
- * presentation concerns Godot has already handled or that belong in a
- * wrapper panel (`focus-room` never even needs this app - Rust's own comment
- * notes Godot already has every cell position once it has a snapshot), so
- * they resolve to `null` rather than being quietly treated as walks. The
- * decision keys on `kind` alone, never on which fields happen to be present.
+ * Only `walk` produces a command. The inspect intents are read-only
+ * presentation concerns that belong in a wrapper panel, and `travel-to-room`
+ * is not a game command at all - it becomes a bridge intent, decided by
+ * `travelTargetForIntent` below - so all of them resolve to `null` here
+ * rather than being quietly treated as walks. The decision keys on `kind`
+ * alone, never on which fields happen to be present.
  */
 export function gameCommandForIntent(
   event: PresentationIntentEvent
@@ -495,6 +495,33 @@ export function gameCommandForIntent(
   if (!move) return null
 
   return { command: move, label: `Viewer walk “${move}”` }
+}
+
+/**
+ * Pure: the Lich room id a `travel-to-room` intent is asking for, or `null`.
+ *
+ * A click on a tile that is not a neighbour has no exit to send, so it travels
+ * instead: `bridge.requestIntent('map_walk', { to })`, the same call the map
+ * panel's own click already makes, which starts Lich's `go2`. One send
+ * surface, not a second one.
+ *
+ * The conversion is the whole of the decision, and it is the part that can be
+ * silently wrong. A presentation cell id is `` `${zoneId}-${roomId}` `` (see
+ * `cellId` above) while `map_walk` takes Lich's bare numeric room id, so the
+ * id is split at its *last* hyphen - a zone id may contain one, a room id
+ * never can. Anything that does not leave a whole positive number is refused
+ * rather than coerced: `Number('')` is 0 and `parseInt('12abc')` is 12, and
+ * either would send the character somewhere nobody asked for.
+ */
+export function travelTargetForIntent(event: PresentationIntentEvent): number | null {
+  if (event.kind !== 'travel-to-room') return null
+  const cell = (event.roomId ?? '').trim()
+  const at = cell.lastIndexOf('-')
+  if (at <= 0 || at === cell.length - 1) return null
+  const tail = cell.slice(at + 1)
+  if (!/^[0-9]+$/.test(tail)) return null
+  const room = Number(tail)
+  return Number.isSafeInteger(room) && room > 0 ? room : null
 }
 
 /**

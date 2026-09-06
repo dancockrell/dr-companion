@@ -127,7 +127,7 @@ type PresentationIntent =
   | { kind: 'walk'; fromRoomId: string; exitMove: string }
   | { kind: 'inspect-entity'; entityId: string }
   | { kind: 'inspect-ground-item'; itemId: string }
-  | { kind: 'focus-room'; roomId: string };
+  | { kind: 'travel-to-room'; roomId: string };
 ```
 
 Every click is only a request. Tauri validates the current room/entity/item or
