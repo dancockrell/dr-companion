@@ -400,6 +400,30 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### Shop furnishing integration checkpoint
+
+Shared environment revision `60ce6b4eea2585fd6c707db730d9880471940b75`
+provides 29 selected native models. Milgrym showroom now separates a table,
+counter, bench, rack and bin as its source description requires. Tembeg
+salesroom uses a counter and open display bin instead of a workshop bench and
+freight stack. The pine-specific finish, actual displayed inventory, baskets,
+leather-goods box, armored figure and interior shells remain explicit omissions.
+No static character or item population was invented. The rejected checkerboard
+picnic table is not selected for runtime use.
+
+804 checks across all 18 Godot scripts passed, including non-overlapping shop
+furniture envelopes and a clear central player area/south approach. This does
+not prove all entity spawn slots or source door bindings are solved. Actual
+weaponsmith and armory-interior captures were inspected: furnishings fit, but
+the large exposed floors are visually sparse and do not yet read as enclosed
+shops. The floor plank repetition is also conspicuous at this distance. These
+are partial compositions, not completed or visually approved rooms.
+
+Focused capture now accepts room IDs after `--`, for example
+`-- 1-191 1-192`; no arguments still capture all configured views and overview.
+The older optional shared-rock import warning remains; these native shop assets
+load from the separately pinned, packaged catalog.
+
 From the repository root, using a Godot 4.3+ executable:
 
 ```text

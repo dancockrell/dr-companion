@@ -11,7 +11,12 @@ func _run() -> void:
 	await create_timer(2).timeout
 	var camera = world.get_node("CameraDirector")
 	var output := ProjectSettings.globalize_path("res://../docs/verification")
-	for entry in [["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
+	var requested := OS.get_cmdline_user_args()
+	var captured: Array = []
+	for entry in [["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-192", "armory-interior"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
+		if not requested.is_empty() and not entry[0] in requested:
+			continue
+		captured.append(entry[0])
 		# The normal viewer's mock transport confirms the room; the same scene
 		# mounts through its normal detail-window path.
 		var bridge = root.get_node("BridgeClient")
@@ -20,8 +25,11 @@ func _run() -> void:
 		camera.size = 36.0
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(output.path_join("crossing-native-" + entry[1] + ".png"))
-	world.focus_world_view()
-	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png(output.path_join("crossing-native-world.png"))
-	print("Captured twelve actual viewer room views and full-zone overview")
+	for id in requested:
+		assert(id in captured, "Unknown capture room: " + id)
+	if requested.is_empty():
+		world.focus_world_view()
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(output.path_join("crossing-native-world.png"))
+	print("Captured actual viewer rooms: ", captured)
 	quit()

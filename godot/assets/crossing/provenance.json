@@ -1586,6 +1586,160 @@
 			"statusHook": "consumer-owned",
 			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
 			"triangles": 952.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.pine-shop-counter",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.29999995231628,
+					0.0,
+					-0.457500159740448
+				],
+				"size": [
+					2.59999990463257,
+					1.04999995231628,
+					0.915000319480896
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "pine-shop-counter.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"oak",
+				"wood11",
+				"wood6",
+				"wood5",
+				"wood8",
+				"wood2",
+				"wood0",
+				"wood3",
+				"wood7",
+				"wood4",
+				"oak_light"
+			],
+			"meshInstances": 24.0,
+			"nativeNode": "painted_pine_shop_counter",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "ac7e47622e21644150ee9b82f2fddf7ea8a137b7e34852695698fd44f5361397",
+			"sockets": {
+				"surface": [
+					0.0,
+					1.04999995231628,
+					-0.0125000178813934
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 672.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.wooden-display-bin",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-0.647500038146973,
+					0.0,
+					-0.46750009059906
+				],
+				"size": [
+					1.29500007629395,
+					0.699999988079071,
+					0.93500018119812
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "wooden-display-bin.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"wood2",
+				"wood11",
+				"wood10",
+				"wood3",
+				"wood5",
+				"wood1",
+				"wood8",
+				"wood9",
+				"wood6",
+				"wood7",
+				"oak"
+			],
+			"meshInstances": 22.0,
+			"nativeNode": "painted_wooden_display_bin",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "3009e83967e0e5fff4cdccef8ef187778c3629de4eb08544eb922df5dca97248",
+			"sockets": {
+				"surface": [
+					0.0,
+					0.119999997317791,
+					-0.00000002980232238
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 616.0
+		},
+		{
+			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.wooden-park-bench",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.10000002384186,
+					0.0,
+					-0.265500068664551
+				],
+				"size": [
+					2.20000004768372,
+					1.04500007629395,
+					0.531000196933746
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "wooden-park-bench.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"oak",
+				"wood6",
+				"wood9",
+				"wood2",
+				"wood5",
+				"wood4"
+			],
+			"meshInstances": 12.0,
+			"nativeNode": "painted_wooden_park_bench",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "508abeef7a05ae0580daa9f7297cbb903cf46cbf4646c11f4966cf93c8dd714a",
+			"sockets": {},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 336.0
 		}
 	],
 	"creditsConsumed": 0,
@@ -1635,8 +1789,8 @@
 		}
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
-	"revision": "688ecc25c7ba3f0dc34f048fbfa42f71874a1f49",
-	"runtimeSha256": "a133359f29ddf135b4a6321d605f0e2594268222a58554b2949bf649369e4a92",
-	"sourceSha256": "d469c1e1a4530ea2648769f8fc17fb400533ad3e051c7cfe1b52595a23711184",
+	"revision": "60ce6b4eea2585fd6c707db730d9880471940b75",
+	"runtimeSha256": "eb9687434b017819d31bc1a3935c8dd934bfbde0e7a6fd5696ab45a7bd19ab53",
+	"sourceSha256": "77ec81e341453189f598cc4d55ffc440fcaf42cc98e08e00af91f66c7f02dd03",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }

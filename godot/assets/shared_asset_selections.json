@@ -49,7 +49,7 @@
   ],
   "nativeCatalog": {
     "repository": "https://github.com/dancockrell/shared-game-environment-library",
-    "revision": "688ecc25c7ba3f0dc34f048fbfa42f71874a1f49",
+    "revision": "60ce6b4eea2585fd6c707db730d9880471940b75",
     "source": "docs/river-port-build/catalog/catalog-native.scn",
     "runtimePath": "res://assets/crossing/town-green.scn",
     "provenancePath": "res://assets/crossing/provenance.json",
@@ -79,7 +79,10 @@
       "painted-river-port.barn-stable",
       "painted-river-port.plain-weaponsmith",
       "painted-river-port.mud-court",
-      "painted-river-port.tattered-shelter"
+      "painted-river-port.tattered-shelter",
+      "painted-river-port.pine-shop-counter",
+      "painted-river-port.wooden-display-bin",
+      "painted-river-port.wooden-park-bench"
     ],
     "reviewState": "Crossing authoring pack; per-room omissions remain explicit",
     "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
@@ -784,8 +787,9 @@
       "placementPolicy": "normalized tabletop composition, not measured geography",
       "missing": [
         "weapon inventory meshes",
-        "pine bench",
-        "finished interior walls"
+        "basket",
+        "finished interior walls",
+        "pine-specific material finish"
       ],
       "pieces": [
         {
@@ -815,14 +819,53 @@
           "yawDegrees": 0
         },
         {
-          "assetId": "painted-river-port.workbench",
+          "assetId": "painted-river-port.pine-shop-counter",
           "center": [
             -0.32,
             0.04
           ],
           "envelope": [
-            0.25,
-            0.48
+            0.22,
+            0.22
+          ],
+          "lift": 0.02,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.trestle-table",
+          "center": [
+            0.3,
+            -0.25
+          ],
+          "envelope": [
+            0.22,
+            0.22
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.wooden-display-bin",
+          "center": [
+            0.32,
+            0.15
+          ],
+          "envelope": [
+            0.22,
+            0.22
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.wooden-park-bench",
+          "center": [
+            -0.3,
+            -0.25
+          ],
+          "envelope": [
+            0.22,
+            0.22
           ],
           "lift": 0.02,
           "yawDegrees": 90
@@ -838,6 +881,8 @@
       "missing": [
         "armor and shield meshes",
         "obsidian armored figure",
+        "leathergoods box",
+        "wall-mounted shield hooks after shell assembly",
         "finished interior walls"
       ],
       "pieces": [
@@ -868,27 +913,27 @@
           "yawDegrees": 0
         },
         {
-          "assetId": "painted-river-port.workbench",
+          "assetId": "painted-river-port.pine-shop-counter",
           "center": [
             -0.32,
             0.08
           ],
           "envelope": [
-            0.25,
-            0.45
+            0.22,
+            0.22
           ],
           "lift": 0.02,
           "yawDegrees": 90
         },
         {
-          "assetId": "painted-river-port.cargo-stack",
+          "assetId": "painted-river-port.wooden-display-bin",
           "center": [
             0.32,
             0.12
           ],
           "envelope": [
-            0.26,
-            0.3
+            0.22,
+            0.22
           ],
           "lift": 0.02,
           "yawDegrees": 0

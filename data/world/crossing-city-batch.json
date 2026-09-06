@@ -22652,13 +22652,17 @@
       "currentModels": [
         "painted-river-port.plank-approach",
         "painted-river-port.display-rack",
-        "painted-river-port.workbench"
+        "painted-river-port.pine-shop-counter",
+        "painted-river-port.trestle-table",
+        "painted-river-port.wooden-display-bin",
+        "painted-river-port.wooden-park-bench"
       ],
       "recipeStatus": "partial-authored",
       "remainingRecipeWork": [
         "weapon inventory meshes",
-        "pine bench",
-        "finished interior walls"
+        "basket",
+        "finished interior walls",
+        "pine-specific material finish"
       ],
       "connections": [
         {
@@ -22722,13 +22726,15 @@
       "currentModels": [
         "painted-river-port.plank-approach",
         "painted-river-port.display-rack",
-        "painted-river-port.workbench",
-        "painted-river-port.cargo-stack"
+        "painted-river-port.pine-shop-counter",
+        "painted-river-port.wooden-display-bin"
       ],
       "recipeStatus": "partial-authored",
       "remainingRecipeWork": [
         "armor and shield meshes",
         "obsidian armored figure",
+        "leathergoods box",
+        "wall-mounted shield hooks after shell assembly",
         "finished interior walls"
       ],
       "connections": [

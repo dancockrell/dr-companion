@@ -57,6 +57,20 @@ func _run() -> void:
 		changed.id = "unrelated-room"
 		check(content.build_room_composition(changed) == null, "Similar text cannot assign another room's geometry")
 	check(content.build_room_composition(cells["1-467"]) == null, "Pond without an authored composition refuses unrelated geometry")
+	for room_id in ["1-191", "1-192"]:
+		var shop: Node3D = content.build_room_composition(cells[room_id])
+		var ids: Array = []
+		for index in range(1, shop.get_child_count()):
+			var furniture: Node3D = shop.get_child(index)
+			ids.append(furniture.get_meta("asset_id"))
+			var box := _bounds(furniture, shop)
+			check(box.end.x < -2.0 or box.position.x > 2.0 or box.end.z < -2.0, "Shop furnishings preserve the central player area and south approach")
+			for other in range(1, index):
+				check(not box.intersects(_bounds(shop.get_child(other), shop)), "Shop furniture envelopes do not overlap")
+		check("painted-river-port.pine-shop-counter" in ids, "Showroom mounts a counter, not a generic workbench")
+		check("painted-river-port.wooden-display-bin" in ids, "Showroom mounts an open goods bin")
+		check(not "painted-river-port.cargo-stack" in ids, "Freight cargo does not substitute for shop display furniture")
+		shop.free()
 	for room_id in ["1-14", "1-225"]:
 		var approach_room: Node3D = content.build_room_composition(cells[room_id])
 		var building: Node3D = approach_room.get_child(1)
