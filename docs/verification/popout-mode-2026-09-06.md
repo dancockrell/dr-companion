@@ -186,6 +186,32 @@ than reasoned about. Restored from the pre-sabotage `md5sum` each time and the
 unmodified run re-run green afterwards — `no failures`, exit 0 — because a fix
 that passes only under sabotage is not a fix.
 
+## 6. A panel id from the URL reached `Object.prototype`
+
+CodeQL raised `js/unvalidated-dynamic-method-call` against
+`PanelWindow.tsx` on the first push of this branch — the id comes from the
+query string and `PANEL_CONTENT[id]` is a plain lookup. It was right, and it
+was demonstrated rather than argued about, with `stats` as the control:
+
+```
+stats        the stats panel                                        <- control
+toString     "[object Undefined]" rendered as the whole window
+constructor  "constructor panel window crashed - Objects are not valid as..."
+valueOf      "valueOf panel window crashed - Cannot convert undefined or..."
+nosuchpanel  "No panel called nosuchpanel."                         <- the honest answer
+```
+
+Only the last of the four unknown ids did the right thing. `Object.hasOwn`
+at the dispatch fixes it, and all four now read `No panel called <id>.`
+while `stats` still renders. The Rust side already refuses these
+(`valid_panel_id` gates `open_panel_window`), but the route is reachable by
+typing a URL into the window, so the check has to be on this side too.
+
+It is a case in `panel-controls-shots.mjs` now. Removing the `hasOwn` turns
+exactly three checks red — the three prototype keys — with the `stats`
+control and the ordinary unknown id still green, so the case cannot pass by
+the run having failed to render. Restored by `md5sum`.
+
 ## What was not tested
 
 - **A real Lich connection.** Everything here is the demo bridge.

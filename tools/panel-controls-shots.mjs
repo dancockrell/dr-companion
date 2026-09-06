@@ -146,6 +146,33 @@ try {
     )
   }
 
+  /*
+   * A panel id is whatever the query string says, so the routes above are not
+   * the only ones reachable - somebody can type one. `PANEL_CONTENT[id]` used
+   * to reach `Object.prototype`, and CodeQL was right about it: measured
+   * against the dev server, `?view=panel&id=toString` rendered the window as
+   * `[object Undefined]` and `constructor` and `valueOf` crashed it into the
+   * boundary. `No panel called <id>.` is the one honest answer and every
+   * unknown id has to get it.
+   *
+   * `stats` is here as the control. Without it a run where *nothing* rendered
+   * would report four clean refusals and look like a pass.
+   */
+  for (const [id, want] of [['stats', false], ['toString', true], ['constructor', true], ['valueOf', true], ['nosuchpanel', true]]) {
+    await b.goto(`${base}?view=panel&id=${id}`, { waitFor: 'body' })
+    // The React tree, not just a document. Without this every id reads as an
+    // empty string, which is neither "refused" nor "rendered" - and the
+    // control is what says so out loud rather than the run looking tidy.
+    await b.waitFor('#root > *', 15000).catch(() => {})
+    const text = await b.run('return (document.body.innerText || "").slice(0, 200);')
+    const refused = String(text).includes(`No panel called ${id}.`)
+    check(
+      want ? `?id=${id} is refused, not dispatched` : `?id=${id} still renders its panel (control)`,
+      refused === want,
+      `"${String(text).split('\n').join(' / ').slice(0, 90)}"`
+    )
+  }
+
   // Denominator 3. Without this, a stub that stopped working would take every
   // pop-out control off the page and the run would report a clean sweep of
   // controls that were never there - the exact shape of failure this file's
