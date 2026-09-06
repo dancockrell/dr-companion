@@ -1,5 +1,25 @@
 # Crossing native Town Green checkpoint — 6 September 2026
 
+## Bazaar furnishing continuation
+
+Mongers' Bazaar now has two canvas shelters with tables beneath them and two
+separate storage groups, replacing the single shelter and disconnected table.
+Seven pieces reuse five already-packaged models with no new binary asset payload
+or service credits. This is a partial interpretation of the existing hashed
+room description, not a change to room topology, shop inventory or population.
+
+The central 20 percent of room width is reserved as an unobstructed visual aisle.
+Tests measure full mesh bounds, including canopy overhangs, rather than trusting
+placement points. The first layout failed this check and was revised. Additional
+checks ensure both tables fit inside their shelter footprints. All 400 checks
+across 18 Godot scripts pass. The actual viewer capture was inspected: arrangement
+is coherent, but matching shelters are too pristine for the described tattered
+market, ground remains striped rather than muddy, and debug exit markers dominate.
+Those defects keep the recipe `partial-authored`; this is not final art approval
+or complete Crossing delivery. No live traversal or occlusion acceptance performed.
+
+![Two-stall bazaar arrangement](crossing-native-bazaar.png)
+
 ## Support-socket placement continuation
 
 Supply Stand supplies now sit on the trestle table's published `surface` socket,

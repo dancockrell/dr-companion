@@ -649,7 +649,7 @@
       "descriptionHash": "d67e61bfe6e92faa",
       "status": "partial-authored",
       "evidence": "Ramshackle market stalls and tattered tents on churned ground",
-      "placementPolicy": "normalized tabletop composition, not measured geography",
+      "placementPolicy": "normalized tabletop composition; central 20 percent X-width aisle reserved; visual only, not measured geography",
       "missing": [
         "tattered cloth variation",
         "mud surface"
@@ -671,12 +671,38 @@
         {
           "assetId": "painted-river-port.canvas-shelter",
           "center": [
-            -0.26,
-            -0.25
+            -0.3,
+            -0.24
           ],
           "envelope": [
-            0.43,
+            0.36,
             0.42
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        },
+        {
+          "assetId": "painted-river-port.canvas-shelter",
+          "center": [
+            0.3,
+            -0.24
+          ],
+          "envelope": [
+            0.36,
+            0.42
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        },
+        {
+          "assetId": "painted-river-port.trestle-table",
+          "center": [
+            -0.3,
+            -0.18
+          ],
+          "envelope": [
+            0.3,
+            0.2
           ],
           "lift": 0.02,
           "yawDegrees": 0
@@ -684,12 +710,12 @@
         {
           "assetId": "painted-river-port.trestle-table",
           "center": [
-            0.28,
-            -0.25
+            0.3,
+            -0.18
           ],
           "envelope": [
-            0.32,
-            0.3
+            0.3,
+            0.2
           ],
           "lift": 0.02,
           "yawDegrees": 0
@@ -697,12 +723,25 @@
         {
           "assetId": "painted-river-port.cargo-stack",
           "center": [
-            0.3,
-            0.25
+            -0.3,
+            0.28
           ],
           "envelope": [
-            0.26,
+            0.25,
             0.25
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.sack-stack",
+          "center": [
+            0.3,
+            0.28
+          ],
+          "envelope": [
+            0.23,
+            0.23
           ],
           "lift": 0.02,
           "yawDegrees": 0

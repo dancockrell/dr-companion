@@ -37,6 +37,16 @@ func _run() -> void:
 		changed.id = "unrelated-room"
 		check(content.build_room_composition(changed) == null, "Similar text cannot assign another room's geometry")
 	check(content.build_room_composition(cells["1-467"]) == null, "Unknown pond remains unresolved")
+	var bazaar: Node3D = content.build_room_composition(cells["1-379"])
+	var bazaar_width: float = registry.block_size_metres(cells["1-379"]).x
+	for index in range(1, bazaar.get_child_count()):
+		var box := _bounds(bazaar.get_child(index), bazaar)
+		check(box.end.x <= -bazaar_width * 0.1 or box.position.x >= bazaar_width * 0.1, "Bazaar scenery preserves central aisle")
+	for pair in [[1, 3], [2, 4]]:
+		var shelter := _bounds(bazaar.get_child(pair[0]), bazaar)
+		var table := _bounds(bazaar.get_child(pair[1]), bazaar)
+		check(table.position.x >= shelter.position.x and table.end.x <= shelter.end.x and table.position.z >= shelter.position.z and table.end.z <= shelter.end.z, "Stall table stays beneath its shelter envelope")
+	bazaar.free()
 	# A table-height change must carry its supplies with it, without a guessed lift.
 	for multiplier in [0.7, 1.0, 1.3]:
 		var supply: Dictionary = cells["1-371"].duplicate(true)

@@ -43,8 +43,9 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": "00577603 (support-socket checkpoint only; full Crossing slice remains unfinished)",
+    "commit": "Bazaar furnishing checkpoint: this commit; full Crossing slice remains unfinished",
     "checks": [
+      "Bazaar continuation: 400 Godot checks passed, including measured aisle clearance and table containment; actual viewer capture inspected",
       "Support-socket continuation: 389 Godot checks and 27 geometry drift checks passed; native Supply Stand capture inspected; pushed 00577603",
       "Godot full suite: 381 checks across 18 scripts passed after removal of inaccurate bench",
       "npm run build passed",
