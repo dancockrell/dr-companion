@@ -18,20 +18,29 @@ import { useAppStore } from '../../store/useAppStore.ts'
  *
  * `shrink-0` because it sits in the app's top-level flex column, above the
  * workspace row that owns the remaining height.
+ *
+ * `compact` is the popped-out window case (issue #400). Those windows are one
+ * panel tall, so the `DEMO` pill and some of the padding go. What does not go
+ * is the sentence or the way out: a band that no longer says the data is
+ * invented is the bug, not a tidier version of the fix.
  */
-export function DemoBanner() {
+export function DemoBanner({ compact = false }: { compact?: boolean }) {
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
 
   return (
     <div
-      className="flex shrink-0 items-center gap-3 border-b border-warn/40 bg-warn/15 px-3 py-1.5 text-xs text-warn"
+      className={`flex shrink-0 items-center border-b border-warn/40 bg-warn/15 text-xs text-warn ${
+        compact ? 'gap-2 px-2 py-1' : 'gap-3 px-3 py-1.5'
+      }`}
       role="status"
       aria-label="Demo mode"
     >
-      <span className="rounded bg-warn/25 px-1.5 py-0.5 font-semibold uppercase tracking-wider">
-        Demo
-      </span>
+      {!compact && (
+        <span className="rounded bg-warn/25 px-1.5 py-0.5 font-semibold uppercase tracking-wider">
+          Demo
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         Demo: this is invented data. Attach to Lich to see your character.
       </span>

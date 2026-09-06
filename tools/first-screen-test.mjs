@@ -45,12 +45,99 @@
  * Run: node --experimental-strip-types --experimental-test-module-mocks tools/first-screen-test.mjs
  */
 import { mock } from 'node:test'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (rel) => readFileSync(join(root, rel), 'utf8')
+
+/** Every .tsx under src/, so "nothing else mounts it" is a claim about the tree. */
+function sourceFiles(rel = 'src') {
+  const out = []
+  for (const entry of readdirSync(join(root, rel), { withFileTypes: true })) {
+    const next = `${rel}/${entry.name}`
+    if (entry.isDirectory()) out.push(...sourceFiles(next))
+    else if (entry.name.endsWith('.tsx')) out.push(next)
+  }
+  return out
+}
+
+/** Which components actually render `<DemoBanner …>`. */
+function mountsOfBanner() {
+  return sourceFiles().filter((f) => /<DemoBanner\b/.test(read(f)))
+}
+
+/**
+ * Top-level components of a module, by name.
+ *
+ * Line-addressed rather than brace-counted: a top-level function in this
+ * codebase opens on a line starting at column zero and closes on a line that
+ * is exactly `}`, and comments here are full of braces (`{ kind: 'app' }`)
+ * that a depth counter would trip over.
+ */
+function topLevelFunctions(source) {
+  const lines = source.split(/\r?\n/)
+  const found = []
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = /^(export default )?function ([A-Za-z_$][\w$]*)\s*\(/.exec(lines[i])
+    if (!m) continue
+    let end = i
+    while (end < lines.length && lines[end] !== '}') end += 1
+    found.push({ name: m[2], exported: Boolean(m[1]), body: lines.slice(i, end + 1).join('\n') })
+    i = end
+  }
+  return found
+}
+
+/**
+ * Is the demo banner mounted above the view switch, for every window kind?
+ *
+ * Returns a verdict rather than a boolean so a rejection says which of the
+ * links broke - and so the same function can be run over a deliberately
+ * sabotaged source and be seen to reject it.
+ */
+function bannerAboveRouteSwitch(appSource, shellSource) {
+  const parts = topLevelFunctions(appSource)
+  const rootComponent = parts.find((p) => p.exported)
+  if (!rootComponent) return { ok: false, why: 'no default-exported component in App.tsx', returns: 0 }
+
+  // Whatever the root wraps its content in. Named by its tag, not assumed.
+  const wrap = /<([A-Z][\w$]*)\b[^>]*>\s*<([A-Z][\w$]*)\s*\/>/.exec(rootComponent.body)
+  if (!wrap) {
+    return { ok: false, why: 'the root component does not wrap a single view component', returns: 0 }
+  }
+  const [, shellTag, viewTag] = wrap
+  const viewSwitch = parts.find((p) => p.name === viewTag)
+  if (!viewSwitch) return { ok: false, why: `${viewTag} is not defined in App.tsx`, returns: 0, shellTag }
+
+  const returns = (viewSwitch.body.match(/\breturn\s*\(/g) ?? []).length
+  const rootReturns = (rootComponent.body.match(/\breturn\s*\(/g) ?? []).length
+  const shellRendersBanner = /<DemoBanner\b/.test(shellSource)
+  const shellReturns = (shellSource.match(/\breturn\s*\(/g) ?? []).length
+  const shellGuarded = /bridgeMode === 'mock' && <DemoBanner /.test(shellSource)
+
+  // The property, in the order the links have to hold.
+  if (!shellRendersBanner) return { ok: false, why: `${shellTag} does not render the banner`, returns, shellTag }
+  if (!shellGuarded) return { ok: false, why: `${shellTag} does not guard it on the demo being on`, returns, shellTag }
+  if (shellReturns !== 1) {
+    return { ok: false, why: `${shellTag} has ${shellReturns} returns, so a window could skip the banner`, returns, shellTag }
+  }
+  if (rootReturns !== 1) {
+    return { ok: false, why: `the root component has ${rootReturns} returns, so a window could bypass ${shellTag}`, returns, shellTag }
+  }
+  if (/<DemoBanner\b/.test(viewSwitch.body)) {
+    return { ok: false, why: `the view switch ${viewTag} mounts the banner itself, so only that branch has it`, returns, shellTag }
+  }
+  if (returns < 2) return { ok: false, why: `${viewTag} does not look like a view switch`, returns, shellTag }
+  return {
+    ok: true,
+    why: `all ${returns} returns of ${viewTag} are reached through ${shellTag}`,
+    returns,
+    shellTag,
+    rootRendersShell: true,
+  }
+}
 
 let pass = 0
 let fail = 0
@@ -239,17 +326,106 @@ console.log('\n-- 5. while the demo is on, the window says so in a sentence --')
     'and leaving it switches to live',
     /setBridgeMode\('live'\)/.test(banner)
   )
-  ok('App renders the banner exactly once', (app.match(/<DemoBanner\s*\/>/g) ?? []).length === 1)
+  ok(
+    'exactly one component in src/ mounts it',
+    mountsOfBanner().length === 1,
+    mountsOfBanner().join(' ')
+  )
   ok(
     'and only when the demo is on',
-    /bridgeMode === 'mock' && <DemoBanner \/>/.test(app),
-    (app.match(/.{0,40}<DemoBanner \/>/) ?? [''])[0]
+    /bridgeMode === 'mock' && <DemoBanner /.test(read(mountsOfBanner()[0] ?? 'src/App.tsx')),
+    mountsOfBanner()[0] ?? 'nothing mounts it'
   )
+  ok('App.tsx does not mount it itself any more', !/<DemoBanner\b/.test(app))
   // Rendered nowhere else, unconditionally or otherwise: a second copy would
   // be a sentence that could appear over live data.
   const strayBanner = ['src/components/layout/TopBar.tsx', 'src/components/layout/AppControls.tsx']
     .filter((f) => read(f).includes(BANNER))
   ok('no other component prints it', strayBanner.length === 0, strayBanner.join(' '))
+}
+
+console.log('\n-- 5b. every window carries it, not only the main one (#400) --')
+{
+  /*
+   * The defect: `DemoBanner` was mounted inside the `v.kind === 'app'` return
+   * of App.tsx, and the map window and the popped-out panel windows returned
+   * *above* it. A player who popped out the stats panel while in the demo got
+   * a full invented stat block in its own window, with no banner, no MOCK
+   * badge and no way out.
+   *
+   * The property, stated as the thing that must be true rather than as the
+   * shape of today's code: **every return in the view switch is reached
+   * through the component that renders the banner.** Written so it does not
+   * depend on line numbers, or on which component happens to be called what:
+   * the file is parsed into its top-level components, the default export is
+   * found, the component it wraps in the shell is followed by name, and the
+   * returns are counted there.
+   */
+  const verdict = bannerAboveRouteSwitch(read('src/App.tsx'), read('src/components/layout/WindowShell.tsx'))
+  ok('the banner is mounted above the view switch', verdict.ok, verdict.why)
+  ok('the view switch holds every window kind', verdict.returns >= 3, `${verdict.returns} returns`)
+  ok('the shell it goes through is the default export', verdict.rootRendersShell, verdict.shellTag)
+  ok(
+    'the pop-out windows get a compact variant of the same band',
+    /compact/.test(read('src/components/layout/WindowShell.tsx')) &&
+      /compact/.test(read('src/components/layout/DemoBanner.tsx'))
+  )
+  ok(
+    'which still says the data is invented and still offers the exit',
+    /invented data/.test(read('src/components/layout/DemoBanner.tsx')) &&
+      /Leave the demo/.test(read('src/components/layout/DemoBanner.tsx'))
+  )
+
+  // Sabotage the *property*, not the file: the same function, run over a
+  // source that has the banner back inside one branch of the view switch,
+  // must reject it. Without this the check above could be one that cannot
+  // fail, which is the same as no check at all.
+  const sabotaged = bannerAboveRouteSwitch(
+    `import { DemoBanner } from './x.tsx'
+export default function App() {
+  const v = view()
+  return (
+    <Frame>
+      <AppViews />
+    </Frame>
+  )
+}
+
+function AppViews() {
+  if (v.kind === 'map') {
+    return (<MapWindow />)
+  }
+  if (v.kind === 'panel') {
+    return (<PanelWindow />)
+  }
+  return (
+    <div>
+      {bridgeMode === 'mock' && <DemoBanner />}
+    </div>
+  )
+}
+`,
+    // A shell that is otherwise correct, so the sabotage is rejected by the
+    // link it is aimed at rather than being intercepted by an earlier one.
+    `export function Frame({ aux, children }) {
+  return (
+    <div>
+      {setupComplete && bridgeMode === 'mock' && <DemoBanner compact={aux} />}
+      {children}
+    </div>
+  )
+}
+`
+  )
+  ok('sabotage: the banner back inside one branch is rejected', !sabotaged.ok, sabotaged.why)
+  ok(
+    'and the sabotage was rejected for the right reason',
+    /view switch/.test(sabotaged.why ?? ''),
+    sabotaged.why
+  )
+  // Control on the parser: a source it cannot read must not read as a pass.
+  const unparsable = bannerAboveRouteSwitch('const x = 1\n', 'const y = 2\n')
+  ok('control: a file with no components at all is not a pass', !unparsable.ok, unparsable.why)
 }
 
 console.log('\n-- 6. the empty state says what to do next --')
