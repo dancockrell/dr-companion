@@ -29,6 +29,7 @@ import { Bookmark, Search, ListTree } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { Button } from './Button.tsx'
 import { cn } from '../../lib/cn.ts'
+import { StaleNote, STALE_DIM, useStaleNote } from './StaleMark.tsx'
 
 export type ScriptCategoryLookup = (name: string) => string | undefined
 export type ScriptFilter = (name: string) => boolean
@@ -48,6 +49,8 @@ export function ScriptLibraryPanel({
 }) {
   const catalog = useAppStore((s) => s.scriptCatalog)
   const scriptStates = useAppStore((s) => s.scriptStates)
+  // Whether the Running badges below are a current fact. See StaleMark.tsx.
+  const stale = useStaleNote()
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
   const listScripts = useAppStore((s) => s.listScripts)
   const startScript = useAppStore((s) => s.startScript)
@@ -112,6 +115,12 @@ export function ScriptLibraryPanel({
         <span className="text-ink-faint normal-case font-normal">
           ({visible.length})
         </span>
+        {/* Which of these are running comes from the bridge's `scripts`
+            payload, so it goes stale with everything else on that payload:
+            after a drop this list still says Running beside a script that may
+            have finished. The catalogue of names does not go stale, which is
+            why only the note is added and nothing here is hidden. */}
+        <StaleNote className="ml-auto text-xs font-normal normal-case text-warn" />
       </h2>
 
       <div className="relative mb-2">
@@ -200,7 +209,12 @@ export function ScriptLibraryPanel({
                           variant={running ? 'ghost' : 'secondary'}
                           disabled={running}
                           onClick={() => startScript(name)}
-                          className="shrink-0 text-xs px-2 py-1"
+                          className={cn('shrink-0 text-xs px-2 py-1', running && stale && STALE_DIM)}
+                          title={
+                            running && stale
+                              ? `The bridge said this was ${status} when it last reported, ${stale}. It may have finished since.`
+                              : undefined
+                          }
                         >
                           {running ? 'Running' : 'Start'}
                         </Button>

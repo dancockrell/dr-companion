@@ -18,7 +18,14 @@
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Send, Search } from 'lucide-react'
-import { gameState, sendGame, subscribeGame } from '../../lib/gameLink.ts'
+import {
+  gameState,
+  linkHold,
+  linkPhase,
+  linkPhasePlaceholder,
+  sendGame,
+  subscribeGame,
+} from '../../lib/gameLink.ts'
 import { useAliases } from '../../lib/useAliases.ts'
 import { expandAlias } from '../../lib/aliases.ts'
 import { cn } from '../../lib/cn.ts'
@@ -37,6 +44,20 @@ export function GameCommandBar({
 }) {
   const link = useSyncExternalStore(subscribeGame, gameState, gameState)
   const { aliases, variables } = useAliases()
+
+  /**
+   * The link's state, read from the one place that decides it.
+   *
+   * This box used to test `link.connected` inline in three places while
+   * `GameConnectionBar` and `SafetyFooter` both read `linkPhase` - so during a
+   * reconnect the footer said "Reconnecting 3/6" and this box said "Not
+   * attached", about the same socket, a few hundred pixels apart. That is what
+   * `linkPhase` exists to make impossible, and this file was simply not part
+   * of the change that introduced it (issue #501). Every consumer, this one
+   * included, now reads the phase rather than the boolean.
+   */
+  const phase = linkPhase(link)
+  const hold = linkHold(link)
 
   const [command, setCommand] = useState('')
 
@@ -114,16 +135,39 @@ export function GameCommandBar({
     )
 
     setSendError('')
+
+    /**
+     * The one state this box refuses on its own, and it refuses to HOLD rather
+     * than to reject. Everything else goes to native so the lane's own words
+     * come back - see `linkHold` in gameLink.ts for why those two are
+     * different decisions and why only this one is made here.
+     *
+     * The text is left in the box and focus comes back, so a second Enter
+     * after the link returns sends exactly what was typed.
+     */
+    if (hold) {
+      setSendError(`Not sent — ${hold}`)
+      inputRef.current?.focus()
+      return
+    }
+
     setSending(true)
     try {
       // A line disappearing is the player's receipt that native accepted it,
-      // not merely that React began asking. The connected check improves the
-      // known-detached case; rejection still handles a mid-send socket loss.
-      if (!link.connected) throw new Error('Not attached to a game')
+      // not merely that React began asking. No `connected` pre-check: the lane
+      // answers "Not attached to a game." and "The connection is closed." for
+      // itself, in the one place those sentences are written, and a guard here
+      // could only repeat them worse or hide them (issue #501).
       await sendGame(outgoing, 'player')
     } catch (error) {
-      const detail = error instanceof Error && error.message ? error.message : String(error)
-      setSendError(`Not sent — ${detail || 'the game connection refused it'}. Your command is still here.`)
+      const raw = error instanceof Error && error.message ? error.message : String(error)
+      // The lane's sentences end in a full stop of their own, and this line
+      // used to add a second one: "The connection is closed.. Your command is
+      // still here." Trimmed here rather than in Rust, because the words
+      // belong to the lane and the punctuation of this line belongs to this
+      // line. Only a trailing stop goes; a sentence ending in ? or ! keeps it.
+      const detail = (raw || 'the game connection refused it').replace(/\.\s*$/, '')
+      setSendError(`Not sent — ${detail}. Your command is still here.`)
       inputRef.current?.focus()
       return
     } finally {
@@ -214,9 +258,7 @@ export function GameCommandBar({
           // announces the app's main command box as "Not attached", and the
           // name changes under the user when the socket comes up.
           aria-label={searchOpen ? 'Find in scrollback' : 'Game command'}
-          placeholder={
-            searchOpen ? 'Find in scrollback' : link.connected ? 'Command, then Enter' : 'Not attached'
-          }
+          placeholder={searchOpen ? 'Find in scrollback' : linkPhasePlaceholder(link)}
           title={
             searchOpen
               ? 'Filter the whole scrollback, including lines older than the rendered window. Plain text, not a pattern. Escape closes.'
@@ -243,16 +285,29 @@ export function GameCommandBar({
         <button
           type="button"
           onClick={send}
-          disabled={searchOpen || sending || !link.connected}
+          /*
+           * Not disabled on the link's state any more, deliberately.
+           *
+           * A disabled button was the same short-circuit as the removed
+           * pre-check, wearing a different hat: it made the refusal
+           * unreachable, so the one sentence that says what is actually wrong
+           * and what to do about it could not be got at. Pressing it while the
+           * link is down is now informative rather than forbidden - it holds
+           * during a reconnect and reports the lane's own words otherwise, and
+           * in neither case does anything reach the game. See issue #501.
+           */
+          disabled={searchOpen || sending}
           className="shrink-0 rounded border border-border p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
           title={
             searchOpen
               ? 'Close search to send a command'
-              : !link.connected
-                ? 'Connect to the game to send; your draft will stay here'
-                : sending
-                  ? 'Sending…'
-                  : 'Send'
+              : sending
+                ? 'Sending…'
+                : phase === 'connected'
+                  ? 'Send'
+                  : hold
+                    ? 'The link is reconnecting. Your draft stays here; press again when it is back.'
+                    : 'The link is down. Press to see what the game connection says.'
           }
           aria-label={searchOpen ? 'Close search to send a command' : 'Send'}
         >

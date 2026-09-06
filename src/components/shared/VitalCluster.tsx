@@ -1,5 +1,6 @@
 import { cn } from '../../lib/cn.ts'
 import { vitalsFor, type Vital } from '../../lib/vitals.ts'
+import { StaleNote, STALE_DIM, useStaleNote } from './StaleMark.tsx'
 
 export { vitalsFor, type Vital }
 
@@ -74,6 +75,17 @@ export function VitalCluster({
    */
   height?: number
 }) {
+  /*
+   * Read here rather than passed in by each caller, on purpose.
+   *
+   * Whether these five numbers are current is a fact about the numbers, not
+   * about the panel drawing them, and a prop would let one call site qualify
+   * them and the other forget - which is issue #506's own shape (two paths
+   * disagreeing about one payload) reproduced in the fix for it. Both callers
+   * render this from the same store, so both get the mark.
+   */
+  const stale = useStaleNote()
+
   return (
     /*
      * A floor, so this wraps instead of collapsing.
@@ -97,6 +109,11 @@ export function VitalCluster({
      * 2.5rem number, the gaps, and enough bar left to read as a bar.
      */
     <div className="flex min-w-[8.5rem] flex-1 flex-col gap-0.5">
+      {/* Above the bars, not below, because it changes what all of them mean
+          and a qualifier read after the thing it qualifies has already been
+          believed. Nothing is rendered at all while the feed is live. */}
+      <StaleNote />
+
       {vitals.map((v) => {
         const share = v.max > 0 ? Math.max(0, Math.min(1, v.value / v.max)) : 0
         const pct = Math.round(share * 100)
@@ -128,8 +145,15 @@ export function VitalCluster({
         return (
           <div
             key={v.key}
-            className="grid grid-cols-[3.5rem_1fr_2.5rem] items-center gap-1.5"
-            title={`${v.label}: ${v.value} of ${v.max}, ${b.why}. It ${MEANS[v.key] ?? 'is a pool'}.`}
+            className={cn(
+              'grid grid-cols-[3.5rem_1fr_2.5rem] items-center gap-1.5',
+              stale && STALE_DIM
+            )}
+            title={
+              stale
+                ? `${v.label}: ${v.value} of ${v.max} when the bridge last reported, ${stale}. Not a current reading.`
+                : `${v.label}: ${v.value} of ${v.max}, ${b.why}. It ${MEANS[v.key] ?? 'is a pool'}.`
+            }
           >
             <span className="truncate text-xs leading-none text-ink-muted">{v.label}</span>
 

@@ -15,6 +15,7 @@ import {
   type PinColor,
   type PinIcon,
 } from '../lib/mapPins.ts'
+import { clearedByFreshData } from './staleMark.ts'
 export function handleBridgeMessage(
   msg: BridgeServerMessage,
   set: (
@@ -118,7 +119,12 @@ export function handleBridgeMessage(
       // the bridge built the payload, so without knowing when that was the
       // only honest thing to render is a frozen number, which is the one thing
       // a countdown must not be. See AppState.characterAt.
-      set({ character: msg.payload, characterAt: Date.now() })
+      // And this is the moment the stale mark ends - a payload landing, not
+      // the socket coming back up. Lich's replay is up to ten seconds behind
+      // the reconnect in DragonRealms, and clearing the mark on `connected`
+      // would put full contrast back over pre-drop numbers for that whole
+      // window. See src/store/staleMark.ts and issue #506.
+      set({ character: msg.payload, characterAt: Date.now(), bridgeStaleSince: clearedByFreshData() })
       // Adopt this character's own settings the moment we learn who they are.
       const p = msg.payload
       if (p.name) get().syncProfile(p.name, p.instance, p.guild)
@@ -158,6 +164,7 @@ export function handleBridgeMessage(
       set({
         scriptStates: msg.payload,
         runningScripts: msg.payload.map((s) => s.name),
+        bridgeStaleSince: clearedByFreshData(),
       })
       break
     case 'script_catalog':

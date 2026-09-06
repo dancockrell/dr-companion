@@ -184,6 +184,66 @@ export function linkPhaseLabel(s: LinkState): string | null {
   }
 }
 
+/**
+ * What the command box says when it is empty, per phase.
+ *
+ * The third place the link's state reaches a player, after the connection bar
+ * and the safety footer, and the one they are looking at when they press
+ * Enter. It read `link.connected ? 'Command, then Enter' : 'Not attached'`,
+ * which during a reconnect put "Not attached" under a footer badge reading
+ * "Reconnecting 3/6" - two halves of one window disagreeing about one socket,
+ * with the more prominent half telling the player to connect, which is the one
+ * thing the UI deliberately does not offer during a reconnect (`game_attach`
+ * refuses with "Already reconnecting"). Issue #501.
+ *
+ * Short because it is a placeholder in a one-line box. The full sentence
+ * arrives when a key is pressed - see {@link linkHold} and `closed_reason` in
+ * `src-tauri/src/game_link.rs`.
+ */
+export function linkPhasePlaceholder(s: LinkState): string {
+  switch (linkPhase(s)) {
+    case 'connected':
+      return 'Command, then Enter'
+    case 'reconnecting':
+      return `Reconnecting ${s.attempt ?? 0}/${s.maxAttempts ?? 0}, type and wait`
+    case 'gave-up':
+      return 'Link lost, nothing will send'
+    default:
+      return 'Not attached'
+  }
+}
+
+/**
+ * Whether a typed command must be held here rather than handed to native, and
+ * what to tell the player if so.
+ *
+ * **Exactly one phase holds, and every other refusal is left to Rust.** The
+ * frontend used to pre-check `link.connected` and throw its own "Not attached
+ * to a game", which short-circuited before `game_send` was ever called - so
+ * `closed_reason()`, written for precisely this moment and the only place
+ * those words exist, could never reach the player from this box. A field
+ * nobody reads. Dropping the pre-check for `idle` and `gave-up` costs nothing
+ * (the lane refuses them, with better words than this file could invent) and
+ * makes the sentence reachable.
+ *
+ * `reconnecting` is the one that still holds locally, and not because the lane
+ * would accept it - it refuses that too. It holds because the lane's refusal
+ * and a successful send are separated by a race: the reconnect can complete
+ * between reading this state and native reading the socket, and then the
+ * command goes out. **A command typed against a room the player last saw
+ * before the drop is dangerous** - they may have been dragged, the creature
+ * may be dead, the exit may not be there - so it is not sent by the app on the
+ * player's behalf, and it is not queued to be sent later either. It stays in
+ * the box, the state is said out loud, and the player presses Enter again once
+ * they can see where they are. Holding it is the whole point; sending it
+ * quietly the moment the socket returns would be the failure wearing a
+ * convenience.
+ */
+export function linkHold(s: LinkState): string | null {
+  if (linkPhase(s) !== 'reconnecting') return null
+  return `Reconnecting, attempt ${s.attempt ?? 0} of ${s.maxAttempts ?? 0}. Nothing can be sent until it is back. Your command is still here - press Enter again once you can see the room.`
+}
+
 export function lichNote(lich: LichPresence | undefined): string | null {
   if (lich === 'gone') return 'Lich has exited — restart Lich, then Attach.'
   if (lich === 'alive') return 'Lich is still running — press Attach to reconnect.'
