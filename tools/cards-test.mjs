@@ -7,8 +7,10 @@
  */
 const m = await import('../src/lib/cards.ts')
 
+let checked = 0
 let fails = 0
 const check = (label, got, want) => {
+  checked++
   const ok = JSON.stringify(got) === JSON.stringify(want)
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(46)} ${JSON.stringify(got)}`)
@@ -28,6 +30,7 @@ console.log('\n-- the floor: a deck with cards never renders nothing --')
 for (const w of [0, 1, 12, 40, 95]) {
   const t = m.tierFor(w, 6)
   const ok = t === 'count'
+  checked++
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} width ${String(w).padEnd(4)} still shows the count  -> ${t}`)
 }
@@ -68,5 +71,21 @@ check('4 preceding, 2 cols: two full rows before it, lands alone', m.trailingCel
 check('3 preceding, 3 cols: exactly one full row before it, lands alone', m.trailingCellSpansRow(3, 3), true)
 check('2 preceding, 3 cols: shares the first row, which still has room', m.trailingCellSpansRow(2, 3), false)
 
-console.log(fails ? `\n${fails} failed` : '\nall passed')
-process.exit(fails ? 1 : 0)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 14
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
 
 const source = readFileSync('docs/CROSSING_GEOMETRIC_KIT.md', 'utf8')
-const fail = (message) => { console.error(`FAIL ${message}`); process.exitCode = 1 }
-const pass = (message) => console.log(`OK   ${message}`)
+let checked = 0
+let failed = 0
+const fail = (message) => { checked++; failed++; console.error(`FAIL ${message}`); process.exitCode = 1 }
+const pass = (message) => { checked++; console.log(`OK   ${message}`) }
 const range = (prefix, count) => Array.from({ length: count }, (_, index) => `${prefix}${String(index + 1).padStart(2, '0')}`)
 const assets = [
   ...range('G', 16), ...range('P', 18), ...range('H', 10), ...range('T', 10),
@@ -28,3 +30,21 @@ if (/no baked neighboring house, no readable text, no unique shop inventory/.tes
 else fail('building reuse boundary is missing')
 if (/Each set begins with a room\s+dossier/.test(source) && /does \*\*not\*\* support/.test(source)) pass('special sets keep an evidence and no-invention boundary')
 else fail('special-set evidence boundary is missing')
+
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 3
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failed} failed`)
+if (failed) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
