@@ -193,9 +193,23 @@ const refused = (p) => load(p).entries.length === 0
 
 // `ok` prints its third argument whether or not the check passed, so these
 // say what happened rather than what failure would have looked like.
-for (const p of ['(a+)+$', '(\\w+\\s?)+$', '(\\s*\\w+\\s*)+!', '([A-Za-z]+\\s*)+X', '(\\d+)+$']) {
+/*
+ * `(\\w+\\s+)+of the (\\w+\\s*)+$` moved up here from the list below, where it
+ * had been asserted as a pattern that must be allowed to load. It is not
+ * safe, and it was measured rather than argued: on a line reaching `of the`
+ * and then failing, a plain `RegExp` took 1.6ms at 40 trailing characters,
+ * 16.4ms at 50, and climbs about tenfold per ten characters after that. A
+ * room description is two hundred. The second group ends in the optional
+ * `\\s*`, so the same text divides between repetitions in more than one way,
+ * which is the property the guard now reads directly.
+ *
+ * The old probe set could not reach it - every probe was 22 characters, and
+ * the curve above is flat there - so this suite has been asserting since it
+ * was written that a pattern which freezes the game pane must load.
+ */
+for (const p of ['(a+)+$', '(\\w+\\s?)+$', '(\\s*\\w+\\s*)+!', '([A-Za-z]+\\s*)+X', '(\\d+)+$', '(\\w+\\s+)+of the (\\w+\\s*)+$']) {
   const { skipped } = load(p)
-  ok(`refuses /${p}/`, refused(p), skipped[0]?.match(/took \d+ms/)?.[0] ?? 'was loaded')
+  ok(`refuses /${p}/`, refused(p), (skipped[0] ?? 'was loaded').slice(-60))
 }
 
 // The floor, and it is the half that matters. A guard that refuses everything
@@ -204,7 +218,6 @@ for (const p of ['(a+)+$', '(\\w+\\s?)+$', '(\\s*\\w+\\s*)+!', '([A-Za-z]+\\s*)+
 for (const p of [
   '\\bkobold\\s+guard\\b',
   '([A-Za-z]+ )+\\.',
-  '(\\w+\\s+)+of the (\\w+\\s*)+$',
   '\\d+ silver',
   '^\\d+ of \\d+',
   'You feel \\w+',
@@ -215,8 +228,19 @@ for (const p of [
 
 // And the refusal has to say why, or the user sees a highlight quietly missing
 // with nothing to act on.
+/*
+ * The property is that a refusal is actionable, and this used to assert the
+ * mechanism instead: `/ms on a .*probe/`, which is true only while every
+ * refusal comes from a timing. The guard now reads the structure first and
+ * says which construct is wrong, which is strictly more actionable and would
+ * have reddened the old check - so the check was changed, deliberately, and
+ * this comment is the disclosure. A timing refusal is still asserted below,
+ * on a pattern the analyser does not model, so neither half can quietly stop
+ * working.
+ */
 const why = parseHighlights(cfg('(a+)+$')).skipped[0] ?? ''
-ok('the refusal explains itself', /ms on a .*probe/.test(why), why.slice(0, 80))
+ok('the refusal explains itself', /repeats|backtrack|ms on a/.test(why), why.slice(-80))
+ok('and names the construct rather than only a number', why.includes('(a+)+ repeats'), why.slice(-70))
 
 
 // --- Q2: the editor, the store behind it, and the preview -----------------
@@ -377,10 +401,24 @@ console.log('\n-- an invalid pattern is refused at save, and never reaches paint
   )
   const slow = hl.compilePattern('regexp', '(a+)+$')
   ok('a pattern that backtracks is refused', slow.ok === false)
+  // Was `with its measured time`, which named the mechanism. The structural
+  // half answers first now and quotes the construct instead of a duration.
   ok(
-    'with its measured time',
-    slow.ok === false && /took \d+ms on a .*probe/.test(slow.why),
+    'saying what about it is wrong',
+    slow.ok === false && slow.why.includes('(a+)+') && /repeats/.test(slow.why),
     slow.ok === false ? slow.why.slice(0, 60) : ''
+  )
+  /*
+   * And the timing half still works, on a pattern the analyser does not model.
+   * A backreference is real regexp syntax this parser returns null for, so the
+   * refusal below can only have come from a measurement - which is what makes
+   * it evidence that both halves are live rather than one carrying the other.
+   */
+  const timed = hl.compilePattern('regexp', '(a|\\1a)+$')
+  ok(
+    'and an unmodelled pattern is still refused on its measured time',
+    timed.ok === false && /took \d+ms on a .*probe/.test(timed.why),
+    timed.ok === false ? timed.why.slice(0, 60) : 'ACCEPTED'
   )
   // The floor again: a gate that refuses everything would pass both.
   ok('an ordinary pattern passes the gate', hl.compilePattern('regexp', '\\bkobold\\b').ok === true)

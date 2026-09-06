@@ -38,6 +38,8 @@
   "test:cdp-timeout",
   "test:backlog",
   "test:highlight",
+  "test:pattern-analyser",
+  "test:pattern-analyser-break",
   "test:alert-throttle",
   "test:audio-master",
   "test:ambient",

@@ -31,12 +31,29 @@ import {
   previewPlayerConfigImportText,
   readPlayerConfigFile,
   serializePlayerConfig,
+  orphanCount,
   PLAYER_CONFIG_LEAF,
+  type TransferOrphan,
   type TransferReport,
 } from '../../lib/playerConfigTransfer.ts'
 import { canUsePlayerFiles } from '../../lib/playerFiles.ts'
 
 const sum = (counts: Record<Domain, number>) => DOMAINS.reduce((n, d) => n + counts[d], 0)
+
+/**
+ * The one sentence, so the confirmation and the report cannot word it two
+ * ways. Names the rules rather than counting them, for the reason
+ * `refuseDeletingPreset` names them: "3 highlights use it" is a fact nobody
+ * can act on.
+ */
+function orphanSentence(orphans: readonly TransferOrphan[]): string {
+  const n = orphanCount(orphans)
+  return (
+    `${n} ${n === 1 ? 'highlight names a preset' : 'highlights name presets'} this document ` +
+    `does not carry; ${n === 1 ? 'it' : 'they'} will show in the default colour. ` +
+    orphans.map((o) => o.why).join(' ')
+  )
+}
 
 export function ExportImportTab({ config = loadPlayerConfig() }: { config?: PlayerConfig }) {
   const text = useMemo(() => serializePlayerConfig(exportPlayerConfig(config)), [config])
@@ -44,11 +61,24 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
   const [replaceAll, setReplaceAll] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [report, setReport] = useState<TransferReport | null>(null)
+  /** Computed at the confirmation step, so the warning arrives *before* the
+   *  only action here that can delete a preset. */
+  const [pendingOrphans, setPendingOrphans] = useState<TransferOrphan[]>([])
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   const mode: MergeMode = replaceAll ? 'replace-all' : 'update'
+
+  /**
+   * What a `replace-all` of this text would leave orphaned, for the
+   * confirmation step. A preview that cannot be read is not an error here:
+   * pressing Import reports the reason properly.
+   */
+  const orphansOf = (source: string): TransferOrphan[] => {
+    const preview = previewPlayerConfigImportText(source, 'replace-all')
+    return preview.ok ? preview.report.orphaned : []
+  }
 
   const runImport = (source: string, from: string) => {
     setError('')
@@ -61,6 +91,7 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
     }
     const written = applyPlayerConfigImport(preview.config)
     setReport(preview.report)
+    setPendingOrphans([])
     setNote(
       written.ok
         ? `Imported from ${from}.`
@@ -96,6 +127,7 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
       }
       if (mode === 'replace-all' && !confirming) {
         setPasted(file.text)
+        setPendingOrphans(orphansOf(file.text))
         setConfirming(true)
         return
       }
@@ -113,6 +145,7 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
       return
     }
     if (mode === 'replace-all' && !confirming) {
+      setPendingOrphans(orphansOf(pasted))
       setConfirming(true)
       return
     }
@@ -171,6 +204,7 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
         value={pasted}
         onChange={(e) => {
           setPasted(e.target.value)
+          setPendingOrphans([])
           setConfirming(false)
         }}
         placeholder="Paste an export here"
@@ -194,6 +228,7 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
             data-testid="config-import-replace-all"
             onChange={(e) => {
               setReplaceAll(e.target.checked)
+              setPendingOrphans([])
               setConfirming(false)
             }}
           />
@@ -204,6 +239,11 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
       {confirming && (
         <p className="mt-1 text-xs text-warn" data-testid="config-import-confirm">
           This will delete every rule the file does not carry. Press Import again to go ahead.
+        </p>
+      )}
+      {confirming && pendingOrphans.length > 0 && (
+        <p className="mt-1 text-xs text-warn" data-testid="config-import-orphans">
+          {orphanSentence(pendingOrphans)}
         </p>
       )}
       {error && (
@@ -256,6 +296,11 @@ export function ExportImportTab({ config = loadPlayerConfig() }: { config?: Play
                 <li key={`${r.domain}-${r.id ?? i}`}>{`${r.domain} ${r.id ?? '(unreadable)'}: ${r.why}`}</li>
               ))}
             </ul>
+          )}
+          {report.orphaned.length > 0 && (
+            <p className="mt-1 text-xs text-warn" data-testid="config-transfer-orphans">
+              {orphanSentence(report.orphaned)}
+            </p>
           )}
           {report.disabled.length > 0 && (
             <ul className="mt-1 list-disc pl-4 text-xs text-ink-muted" data-testid="config-transfer-disabled">

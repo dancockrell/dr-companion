@@ -33,7 +33,7 @@
  * an edit at a different rule.
  */
 import { useEffect, useState } from 'react'
-import { readJSON, writeJSON, type StorageWriteResult } from './storage.ts'
+import { readJSON, writeJSONVerified, type StorageWriteResult } from './storage.ts'
 
 /**
  * The schema version each domain key carries.
@@ -523,9 +523,26 @@ export function domainEntries<D extends Domain>(domain: D): Array<DomainRule[D]>
   return loadDomain(domain).entries as Array<DomainRule[D]>
 }
 
+/**
+ * The one write for all seven domains, and it checks the bytes came home.
+ *
+ * `writeJSONVerified` rather than `writeJSON`, which is the difference between
+ * reporting what `setItem` did and reporting what the store kept. A backing
+ * store that is full, that refuses without throwing, or that truncates returns
+ * from `setItem` with no complaint - #461 measured exactly that, which is why
+ * the verified writer exists, and #483 measured this module calling the
+ * unverified one anyway: `setDomain` returned `{ok:true}`, updated its cache,
+ * and the player was shown two aliases where the store held one.
+ *
+ * `setDomain` already refuses to update the cache on a failed write, so the
+ * `lost` kind needs nothing else to reach the editors: every tab renders
+ * `Could not save: <message>` from the result, and `StorageWarning` counts the
+ * pending write in the header. The guard was there; it was being handed an
+ * answer that could not say no.
+ */
 function persist(domain: Domain, entries: readonly Rule[]): StorageWriteResult {
   const key = storageKeyFor(domain)
-  return writeJSON(key, {
+  return writeJSONVerified(key, {
     version: PLAYER_CONFIG_VERSION,
     entries: [...entries],
   } satisfies StoredDomain)
