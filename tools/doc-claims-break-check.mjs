@@ -145,7 +145,13 @@ const CASES = [
     // this case ever goes green, the control has stopped controlling and every
     // green above it is worth less than it looks.
     file: 'tools/fixtures/retired-instructions.md',
-    from: '    ,companion_bridge\n',
+    // No trailing newline in the fragment. This repository checks out CRLF on
+    // Windows, so a `\n` here matches nothing, and after a rebase this case
+    // aborted rather than passing - the abort earning its keep, since a
+    // sabotage that edits nothing looks exactly like one the guard caught.
+    // Removing the text alone leaves the line blank, which is enough: the
+    // fixture then carries four needles and both control checks fall with it.
+    from: '    ,companion_bridge',
     to: '',
     expect: [
       'control: the scan catches a fixture that does instruct it',
