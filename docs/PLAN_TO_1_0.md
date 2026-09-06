@@ -2473,10 +2473,11 @@ them instead of writing new ones:
   `inFile` for every domain, with a control that the denominator is not zero.
   **The sabotage is a committed tool, not a paragraph.**
   `tools/player-config-transfer-break-check.mjs`, registered in both registries,
-  4 sabotages, 0 problems, every file restored byte for byte and verified by
-  md5 (`89674ee830cc64d9dc1dc15917496f1e` for `playerConfigTransfer.ts`,
-  `1d7df97ca860a7c4605066d2f40bf6c8` for `exportEnvelope.ts`, both before and
-  after every case). Dropping the per-domain validation reddens 4 checks naming
+  4 sabotages, 18 checks, 0 failed. It asserts the md5 of each file before and
+  after its own restore rather than this line quoting a value - a hash of a
+  working copy depends on the line endings git last handed out, so a number
+  written here would go stale on the next checkout and read as tampering.
+  Dropping the per-domain validation reddens 4 checks naming
   the bad highlight and the reserved variable; dropping `expectedPrevious`
   reddens 5, all of them the two-window case; accepting an unknown version
   reddens 2. Pointing a case's anchor at text that is not there aborts naming

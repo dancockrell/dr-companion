@@ -100,17 +100,27 @@ const CASES = [
   },
 ]
 
+/*
+ * Reported as OK/FAIL lines at the start of a line, because that is what
+ * `tools/run-tests.mjs` counts, and a suite it counts zero checks in is filed
+ * as NOT RUN rather than as a pass - correctly. The mutant runs' own output is
+ * indented under each case so the runner does not read another suite's
+ * failures as this one's.
+ */
 let bad = 0
+let checked = 0
 const note = (s) => console.log(s)
+const ok = (name, cond, detail = '') => {
+  checked += 1
+  if (!cond) bad += 1
+  console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(64)}${detail}`)
+}
 
 {
   const { code, reds, out } = run()
-  if (code !== 0 || reds.length > 0) {
-    console.log(out.slice(-2000))
-    console.log(`FAIL the suite is not green before any sabotage (exit ${code}, ${reds.length} red)`)
-    process.exit(1)
-  }
-  note(`baseline: ${SUITE} is green`)
+  if (code !== 0 || reds.length > 0) console.log(out.slice(-2000))
+  ok('the suite is green before any sabotage', code === 0 && reds.length === 0, `exit ${code}, ${reds.length} red`)
+  if (code !== 0 || reds.length > 0) process.exit(1)
 }
 
 for (const c of CASES) {
@@ -121,12 +131,10 @@ for (const c of CASES) {
   // session just wrote and stops matching the moment git has touched it.
   const lf = original.split(CR).join('')
   const hits = lf.split(c.find).length - 1
-  if (hits !== 1) {
-    note(`\n== ${c.label}`)
-    note(`   ABORT: the anchor matched ${hits} times in ${c.file}; nothing was changed`)
-    bad += 1
-    continue
-  }
+  note(`\n== ${c.label} (${c.file})`)
+  // A sabotage that changes nothing must abort naming the reason, never pass.
+  ok(`  its anchor is in ${c.file} exactly once`, hits === 1, `${hits} match(es); nothing was changed`)
+  if (hits !== 1) continue
   const mutated = lf.split(c.find).join(c.replace)
   const restore = () => writeFileSync(c.file, original)
   writeFileSync(c.file, original.includes(CR) ? mutated.split('\n').join(`${CR}\n`) : mutated)
@@ -137,34 +145,26 @@ for (const c of CASES) {
     restore()
   }
   const after = md5(c.file)
-  note(`\n== ${c.label} (${c.file})`)
-  note(`   md5 ${before} before, ${after} after restore: ${before === after ? 'same' : 'DIFFERENT'}`)
-  if (before !== after) bad += 1
-  if (result.reds.length === 0) {
-    // Non-zero with no FAIL line is a crash, and a crash is not a catch.
-    note(`   FAIL nothing reddened (exit ${result.code}); a sabotage that only crashes the suite proves nothing`)
-    bad += 1
-    continue
-  }
-  note(`   ${result.reds.length} check(s) reddened:`)
+  ok('  the file is restored byte for byte', before === after, `md5 ${before} before, ${after} after`)
   for (const r of result.reds) note(`     - ${r.slice(0, 96)}`)
+  // Non-zero with no FAIL line is a crash, and a crash is not a catch. The
+  // dropped-domain case was exactly that when this was written.
+  ok('  the suite went red rather than merely crashing', result.reds.length > 0, `exit ${result.code}, ${result.reds.length} reddened`)
+  if (result.reds.length === 0) continue
   const joined = result.reds.join(' | ').toLowerCase()
   const missing = c.expect.filter((w) => !joined.includes(w.toLowerCase()))
-  if (missing.length) {
-    note(`   FAIL it did not redden the check(s) naming: ${missing.join(', ')}`)
-    bad += 1
-  }
+  ok('  and it reddened the checks that name the property', missing.length === 0, missing.length ? `did not name: ${missing.join(', ')}` : `${result.reds.length} red`)
 }
 
+console.log('')
 {
   const { code, reds } = run()
-  note(`\nrestored: exit ${code}, ${reds.length} red`)
-  if (code !== 0 || reds.length > 0) bad += 1
+  ok('every file is back and the suite is green again', code === 0 && reds.length === 0, `exit ${code}, ${reds.length} red`)
 }
 
-note(`\n${CASES.length} sabotages, ${bad} problem(s)`)
-if (CASES.length < 4) {
-  note('FAIL fewer than four sabotage cases ran; this file has never had fewer')
+console.log(`\n${CASES.length} sabotages, ${checked} checked, ${bad} failed`)
+if (CASES.length < 4 || checked < 14) {
+  console.log(`FAIL ${CASES.length} sabotages and ${checked} checks; this file has never had fewer than 4 and 14`)
   process.exit(1)
 }
 process.exit(bad ? 1 : 0)
