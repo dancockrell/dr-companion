@@ -45,6 +45,16 @@ zip = { version = "8", default-features = false, features = ["deflate"] }
 # runtime itself; these are the pieces this crate names directly.
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 
+[target.'cfg(windows)'.dependencies]
+# One call: GetDiskFreeSpaceExW, so a multi-gigabyte music install refuses
+# before it starts rather than failing on a `write_all` some minutes in
+# (#402 item 2). There is no std API for free space, and `fs2`/`sysinfo`
+# would each be a new crate for one number. `windows-sys` is already in this
+# tree as a transitive dependency of tauri at this exact version, so naming
+# it directly adds no crate to the lock and no new licence - it is
+# MIT OR Apache-2.0, the same as the rest.
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+
 [profile.release]
 panic = "abort"
 codegen-units = 1

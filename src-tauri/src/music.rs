@@ -28,7 +28,9 @@
 //! file arrive together, already trusted as much as the app binary is.
 
 use crate::setup::app_data_dir;
-use crate::setup::downloads::{allowed_download_url, download_verified, emit_setup_progress};
+use crate::setup::downloads::{
+    allowed_by, download_verified_from, emit_setup_progress, ALLOWED_DOWNLOAD_PREFIXES,
+};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -66,6 +68,15 @@ pub struct MusicLibraryStatus {
     /// Manifest-relative paths, exactly as they arrived, for the entries whose
     /// file is present at its pinned size.
     pub installed_files: Vec<String>,
+    /// Manifest-relative paths whose `.part` is on disk: a download that was
+    /// interrupted and that the next install continues from.
+    ///
+    /// This is the same walk that finds the installed files, so it *is* the
+    /// sweep #402 asked for rather than a second timer nobody would run. A
+    /// path can be in one list or the other and never in both - the final
+    /// name only appears after a verified rename - so a partial download
+    /// reports as partial and can never be counted as installed.
+    pub partial_files: Vec<String>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -116,14 +127,24 @@ pub(crate) fn track_path(dir: &Path, file: &str) -> Result<PathBuf, String> {
 /// A sha that is the wrong shape is refused here rather than passed down:
 /// `download_verified` treats an empty expected hash as "do not check", which
 /// is right for the bundled Ruby it was written for and would be a hole here.
-pub(crate) fn check_track(dir: &Path, track: &MusicTrack) -> Result<PathBuf, String> {
+///
+/// The allowlist is a parameter rather than a call to
+/// `ALLOWED_DOWNLOAD_PREFIXES`, and for the reason `download_verified_from`
+/// gives about its own: one function, driven by a test against a loopback
+/// server, rather than a second copy of these checks that could drift from
+/// the one the app runs. Every shipping caller passes the real list.
+pub(crate) fn check_track(
+    dir: &Path,
+    track: &MusicTrack,
+    allowed: &[&str],
+) -> Result<PathBuf, String> {
     if track.sha256.len() != 64 || !track.sha256.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err(format!(
             "{}: refusing to install a track with no sha256 pin",
             track.file
         ));
     }
-    if !allowed_download_url(&track.download) {
+    if !allowed_by(&track.download, allowed) {
         return Err(format!(
             "{}: refusing to download from an unexpected host: {}",
             track.file, track.download
@@ -141,17 +162,23 @@ fn present(path: &Path, bytes: u64) -> bool {
 
 pub(crate) fn status_of(dir: &Path, tracks: &[MusicTrack]) -> MusicLibraryStatus {
     let mut installed_files = Vec::new();
+    let mut partial_files = Vec::new();
     for track in tracks {
         let Ok(path) = track_path(dir, &track.file) else {
             continue;
         };
         if present(&path, track.bytes) {
             installed_files.push(track.file.clone());
+        } else if std::fs::metadata(path.with_extension("part")).is_ok_and(|m| m.is_file()) {
+            // `else`, deliberately: installed wins, so a `.part` left beside a
+            // finished file cannot demote a track that is actually there.
+            partial_files.push(track.file.clone());
         }
     }
     MusicLibraryStatus {
         dir: dir.to_string_lossy().into_owned(),
         installed_files,
+        partial_files,
     }
 }
 
@@ -207,6 +234,102 @@ pub fn cancel_music_install() {
     CANCELLED.store(true, Ordering::SeqCst);
 }
 
+/// How much room to leave on the volume after an install.
+///
+/// A download that exactly fits leaves a machine with nothing, and Windows
+/// starts failing in ways nothing here can explain long before zero. Half a
+/// gigabyte is small against the 1.65 GB largest group and large enough that
+/// the disk is still usable afterwards.
+pub(crate) const FREE_SPACE_MARGIN: u64 = 500 * 1024 * 1024;
+
+/// Bytes free on the volume `dir` lives on, or `None` when that cannot be
+/// asked here.
+///
+/// `None` is a third answer and not a large number: it means the question was
+/// not answered, and `space_refusal` refuses nothing on it. Folding "could not
+/// check" into "there is plenty" would be the same lie in the safer-looking
+/// direction, and folding it into "there is none" would block every install on
+/// a platform this happens not to implement.
+///
+/// The directory may not exist yet on a first install, so the walk climbs to
+/// the nearest ancestor that does - a volume's free space is the same wherever
+/// on it you ask.
+pub(crate) fn free_space(dir: &Path) -> Option<u64> {
+    let mut probe = dir;
+    loop {
+        if probe.exists() {
+            return free_space_of_existing(probe);
+        }
+        probe = probe.parent()?;
+    }
+}
+
+#[cfg(windows)]
+fn free_space_of_existing(dir: &Path) -> Option<u64> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+
+    let mut wide: Vec<u16> = dir.as_os_str().encode_wide().collect();
+    wide.push(0);
+    let mut available: u64 = 0;
+    // SAFETY: `wide` is a null-terminated UTF-16 path that outlives the call,
+    // and the out-parameter is a live `u64` this frame owns. The two totals
+    // this function does not need are passed as null, which the API documents
+    // as permitted.
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut available,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    if ok == 0 {
+        return None;
+    }
+    Some(available)
+}
+
+#[cfg(not(windows))]
+fn free_space_of_existing(_dir: &Path) -> Option<u64> {
+    // The app ships for Windows. Rather than pull a crate to answer this on a
+    // platform nothing installs on, say plainly that it was not answered.
+    None
+}
+
+/// Bytes as a person reads them, for a message about a disk.
+fn human_bytes(bytes: u64) -> String {
+    const GB: u64 = 1024 * 1024 * 1024;
+    const MB: u64 = 1024 * 1024;
+    if bytes >= GB {
+        format!("{:.1} GB", bytes as f64 / GB as f64)
+    } else {
+        format!("{} MB", bytes / MB)
+    }
+}
+
+/// Whether this install should be refused for want of room, and what to say.
+///
+/// Split out from the install so both the numbers and the sentence can be
+/// asserted without a disk that happens to be nearly full - `free` is a
+/// parameter rather than a call, and rather than an environment variable,
+/// so the refusal can be reached deliberately and the shipping path cannot
+/// have it switched on at run time.
+pub(crate) fn space_refusal(needed: u64, free: Option<u64>) -> Option<String> {
+    let free = free?;
+    let usable = free.saturating_sub(FREE_SPACE_MARGIN);
+    if needed <= usable {
+        return None;
+    }
+    Some(format!(
+        "not enough free space: this needs {} and the disk has {} free, of which {} is usable after leaving a {} margin. Nothing was downloaded.",
+        human_bytes(needed),
+        human_bytes(free),
+        human_bytes(usable),
+        human_bytes(FREE_SPACE_MARGIN)
+    ))
+}
+
 /// Download every track that is not already there, verifying each one.
 ///
 /// Progress is reported across the whole set rather than per file, because
@@ -217,17 +340,47 @@ pub async fn install_music_library(
     app: AppHandle,
     tracks: Vec<MusicTrack>,
 ) -> Result<MusicInstallResult, String> {
+    let dir = music_dir();
+    let free = free_space(&dir);
+    let progress_app = app.clone();
+    install_into(
+        &dir,
+        &tracks,
+        free,
+        &ALLOWED_DOWNLOAD_PREFIXES,
+        move |received, total, phase| {
+            emit_setup_progress(&progress_app, "music", received, total, phase);
+        },
+    )
+    .await
+}
+
+/// The body of `install_music_library`, with the disk, the allowlist and the
+/// free-space answer as parameters.
+///
+/// Same reasoning as `download_verified_from`'s allowlist seam: the refusal
+/// and the resume are the two things #402 is about, and neither can be reached
+/// on demand against a real disk and a real host. Everything shipping goes
+/// through `install_music_library`, which supplies the real music directory,
+/// the real allowlist and a real `GetDiskFreeSpaceExW`; nothing here reads an
+/// environment variable, so the seam cannot be opened at run time.
+pub(crate) async fn install_into(
+    dir: &Path,
+    tracks: &[MusicTrack],
+    free: Option<u64>,
+    allowed: &[&str],
+    mut on_progress: impl FnMut(u64, u64, &str),
+) -> Result<MusicInstallResult, String> {
     if tracks.is_empty() {
         return Err("nothing to install: the track list was empty".into());
     }
     CANCELLED.store(false, Ordering::SeqCst);
-    let dir = music_dir();
 
     // Every check first, so a bad entry stops the run before any bytes move
     // rather than 140 tracks in.
     let mut planned = Vec::with_capacity(tracks.len());
-    for track in &tracks {
-        planned.push((track.clone(), check_track(&dir, track)?));
+    for track in tracks {
+        planned.push((track.clone(), check_track(dir, track, allowed)?));
     }
 
     let total_bytes: u64 = tracks.iter().map(|t| t.bytes).sum();
@@ -236,15 +389,23 @@ pub async fn install_music_library(
         .filter(|(t, p)| present(p, t.bytes))
         .map(|(t, _)| t.bytes)
         .sum();
-    let mut installed = 0;
 
+    // What this run would still have to fetch, not what the group weighs: a
+    // resumed install has most of it already and refusing on the full size
+    // would block the very case that needs the least room. Before any request,
+    // so a refusal costs the disk nothing and the network nothing.
+    if let Some(message) = space_refusal(total_bytes.saturating_sub(done_bytes), free) {
+        return Err(message);
+    }
+
+    let mut installed = 0;
     for (track, path) in &planned {
         if present(path, track.bytes) {
             installed += 1;
             continue;
         }
         if CANCELLED.load(Ordering::SeqCst) {
-            emit_setup_progress(&app, "music", done_bytes, total_bytes, "cancelled");
+            on_progress(done_bytes, total_bytes, "cancelled");
             return Ok(MusicInstallResult {
                 installed,
                 total: tracks.len(),
@@ -253,19 +414,13 @@ pub async fn install_music_library(
             });
         }
         let base = done_bytes;
-        let progress_app = app.clone();
-        download_verified(
+        download_verified_from(
             &track.download,
             &track.sha256,
             &path.to_string_lossy(),
-            move |received, _| {
-                emit_setup_progress(
-                    &progress_app,
-                    "music",
-                    base + received,
-                    total_bytes,
-                    "downloading",
-                );
+            allowed,
+            |received, _| {
+                on_progress(base + received, total_bytes, "downloading");
             },
         )
         .await
@@ -283,9 +438,7 @@ pub async fn install_music_library(
     // `download_verified` to take a cancellation token, which is #402's own
     // item and is not this change.
     let cancelled = CANCELLED.load(Ordering::SeqCst);
-    emit_setup_progress(
-        &app,
-        "music",
+    on_progress(
         done_bytes,
         total_bytes,
         if cancelled { "cancelled" } else { "verified" },
@@ -301,10 +454,17 @@ pub async fn install_music_library(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::setup::download_verified;
     use crate::setup::downloads::download_verified_from;
     use sha2::{Digest, Sha256};
     use std::io::{Read, Write};
     use std::net::TcpListener;
+    use std::sync::{Arc, Mutex};
+
+    /// The shipping host rule, asked the way the app asks it.
+    fn allowed(url: &str) -> bool {
+        allowed_by(url, &ALLOWED_DOWNLOAD_PREFIXES)
+    }
 
     fn track(file: &str, download: &str, sha: &str, bytes: u64) -> MusicTrack {
         MusicTrack {
@@ -320,8 +480,8 @@ mod tests {
 
     #[test]
     fn the_two_audio_hosts_are_allowed_and_lookalikes_are_not() {
-        assert!(allowed_download_url(WIKI));
-        assert!(allowed_download_url(
+        assert!(allowed(WIKI));
+        assert!(allowed(
             "https://opengameart.org/sites/default/files/forest_2_0.ogg"
         ));
         // The prefix includes the path, so the host cannot be smuggled in as
@@ -334,17 +494,17 @@ mod tests {
         // destination, and describing it there would be a lie in the one
         // document where that matters most.
         let smuggled = format!("https://{}/{WIKI}", "evil.example");
-        assert!(!allowed_download_url(&smuggled));
+        assert!(!allowed(&smuggled));
         let lookalike = format!(
             "https://{}/wikipedia/commons/x.ogg",
             "upload.wikimedia.org.evil.example"
         );
-        assert!(!allowed_download_url(&lookalike));
-        assert!(!allowed_download_url("http://127.0.0.1:9/x.ogg"));
+        assert!(!allowed(&lookalike));
+        assert!(!allowed("http://127.0.0.1:9/x.ogg"));
         // Positive control on the same function: the setup wizard's own hosts
         // still pass, so a false on the lines above means the URL and not a
         // broken allowlist.
-        assert!(allowed_download_url(
+        assert!(allowed(
             "https://github.com/elanthia-online/lich-5/releases/download/x"
         ));
     }
@@ -368,14 +528,29 @@ mod tests {
     #[test]
     fn a_track_with_no_sha_pin_is_refused_naming_the_file() {
         let dir = Path::new("C:\\base");
-        let e = check_track(dir, &track("radio/a.ogg", WIKI, "", 10)).unwrap_err();
+        let e = check_track(
+            dir,
+            &track("radio/a.ogg", WIKI, "", 10),
+            &ALLOWED_DOWNLOAD_PREFIXES,
+        )
+        .unwrap_err();
         assert!(e.contains("radio/a.ogg"), "{e}");
         assert!(e.contains("sha256"), "{e}");
-        let e = check_track(dir, &track("radio/b.ogg", WIKI, "not-hex-and-short", 10)).unwrap_err();
+        let e = check_track(
+            dir,
+            &track("radio/b.ogg", WIKI, "not-hex-and-short", 10),
+            &ALLOWED_DOWNLOAD_PREFIXES,
+        )
+        .unwrap_err();
         assert!(e.contains("radio/b.ogg"), "{e}");
         // Positive control: a well-formed pin on an allowed host is accepted,
         // so the failures above are the pin and not the whole function.
-        assert!(check_track(dir, &track("radio/c.ogg", WIKI, OK_SHA, 10)).is_ok());
+        assert!(check_track(
+            dir,
+            &track("radio/c.ogg", WIKI, OK_SHA, 10),
+            &ALLOWED_DOWNLOAD_PREFIXES
+        )
+        .is_ok());
     }
 
     #[test]
@@ -383,7 +558,12 @@ mod tests {
         let dir = Path::new("C:\\base");
         // Assembled, not a literal - see the comment in the allowlist test.
         let elsewhere = format!("https://{}/a.ogg", "evil.example");
-        let e = check_track(dir, &track("radio/a.ogg", &elsewhere, OK_SHA, 1)).unwrap_err();
+        let e = check_track(
+            dir,
+            &track("radio/a.ogg", &elsewhere, OK_SHA, 1),
+            &ALLOWED_DOWNLOAD_PREFIXES,
+        )
+        .unwrap_err();
         assert!(e.contains("radio/a.ogg"), "{e}");
         assert!(e.contains("evil.example"), "{e}");
     }
@@ -575,6 +755,408 @@ mod tests {
             .expect_err("loopback must not be reachable through the real allowlist");
         assert!(refused.contains("unexpected host"), "{refused}");
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ---------------------------------------------------------------- #402
+    //
+    // A loopback server that can be asked to behave the four ways a real one
+    // does, and that records every request it saw. The log is the denominator
+    // for most of what follows: "the file resumed" is only worth anything if
+    // the server can show it was asked to continue from the right byte, and
+    // "nothing was downloaded" is only worth anything against a server that
+    // could have answered.
+
+    #[derive(Clone, Copy)]
+    enum Mode {
+        /// Honours `Range`, answering 206 with `Accept-Ranges: bytes`.
+        Ranged,
+        /// Ignores `Range` and always sends the whole body with a 200.
+        NoRange,
+        /// Announces `announce` bytes and sends `send` of them, then hangs up.
+        Truncated { announce: usize, send: usize },
+    }
+
+    /// The first byte a request asked to continue from, if it asked at all.
+    fn range_start(head: &str) -> Option<u64> {
+        for line in head.lines() {
+            let lower = line.to_ascii_lowercase();
+            if let Some(rest) = lower.strip_prefix("range:") {
+                let rest = rest.trim();
+                let digits = rest.strip_prefix("bytes=")?.trim_end_matches('-');
+                return digits.parse().ok();
+            }
+        }
+        None
+    }
+
+    /// Serve `body` `connections` times, and hand back the URL and the log of
+    /// request heads the server actually received.
+    fn serve_mode(
+        mode: Mode,
+        body: Vec<u8>,
+        connections: usize,
+    ) -> (String, Arc<Mutex<Vec<String>>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().unwrap().port();
+        let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let sink = log.clone();
+        std::thread::spawn(move || {
+            for _ in 0..connections {
+                let Ok((mut stream, _)) = listener.accept() else {
+                    return;
+                };
+                let mut buffer = [0u8; 4096];
+                let read = stream.read(&mut buffer).unwrap_or(0);
+                let head = String::from_utf8_lossy(&buffer[..read]).into_owned();
+                let asked = range_start(&head);
+                sink.lock().unwrap().push(head);
+                match mode {
+                    Mode::Truncated { announce, send } => {
+                        let start = asked.unwrap_or(0) as usize;
+                        let _ = stream.write_all(
+                            format!("HTTP/1.1 200 OK\r\nContent-Length: {announce}\r\n\r\n")
+                                .as_bytes(),
+                        );
+                        let end = (start + send).min(body.len());
+                        let _ = stream.write_all(&body[start.min(body.len())..end]);
+                    }
+                    Mode::NoRange => {
+                        let _ = stream.write_all(
+                            format!(
+                                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nAccept-Ranges: none\r\n\r\n",
+                                body.len()
+                            )
+                            .as_bytes(),
+                        );
+                        let _ = stream.write_all(&body);
+                    }
+                    Mode::Ranged => match asked {
+                        Some(start) if (start as usize) < body.len() => {
+                            let start = start as usize;
+                            let rest = &body[start..];
+                            let _ = stream.write_all(
+                                format!(
+                                    "HTTP/1.1 206 Partial Content\r\nContent-Length: {}\r\nAccept-Ranges: bytes\r\nContent-Range: bytes {}-{}/{}\r\n\r\n",
+                                    rest.len(),
+                                    start,
+                                    body.len() - 1,
+                                    body.len()
+                                )
+                                .as_bytes(),
+                            );
+                            let _ = stream.write_all(rest);
+                        }
+                        Some(_) => {
+                            let _ = stream.write_all(
+                                b"HTTP/1.1 416 Range Not Satisfiable\r\nContent-Length: 0\r\n\r\n",
+                            );
+                        }
+                        None => {
+                            let _ = stream.write_all(
+                                format!(
+                                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nAccept-Ranges: bytes\r\n\r\n",
+                                    body.len()
+                                )
+                                .as_bytes(),
+                            );
+                            let _ = stream.write_all(&body);
+                        }
+                    },
+                }
+                let _ = stream.flush();
+            }
+        });
+        (format!("http://127.0.0.1:{port}/track.ogg"), log)
+    }
+
+    const LOOPBACK: [&str; 1] = ["http://127.0.0.1:"];
+
+    /// A body big enough that 4,096 bytes is a real prefix of it rather than
+    /// the whole thing.
+    fn body_of(len: usize) -> Vec<u8> {
+        (0..len).map(|i| (i % 251) as u8).collect()
+    }
+
+    fn ranges_asked(log: &Arc<Mutex<Vec<String>>>) -> Vec<Option<u64>> {
+        log.lock().unwrap().iter().map(|h| range_start(h)).collect()
+    }
+
+    #[tokio::test]
+    async fn an_interrupted_download_leaves_a_resumable_part_that_reads_as_partial() {
+        let dir = scratch("interrupted");
+        let body = body_of(20_000);
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), 20_000);
+        let dest = track_path(&dir, &t.file).unwrap();
+
+        let (url, log) = serve_mode(
+            Mode::Truncated {
+                announce: body.len(),
+                send: 4_096,
+            },
+            body.clone(),
+            1,
+        );
+        let error = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            |_, _| {},
+        )
+        .await
+        .expect_err("a body that stops short must not install");
+
+        let part = dest.with_extension("part");
+        assert_eq!(log.lock().unwrap().len(), 1, "the server saw one request");
+        assert!(
+            !dest.exists(),
+            "a truncated download was renamed into place"
+        );
+        let size = std::fs::metadata(&part)
+            .expect("the prefix was thrown away instead of kept")
+            .len();
+        assert_eq!(size, 4_096, "{error}");
+        // The property the whole design rests on: what is kept is strictly
+        // shorter than the file, so `present()` - which matches the final name
+        // at its pinned size - cannot ever mistake it for an installed track.
+        assert!(size < t.bytes);
+
+        // And the status walk says so in the two lists rather than in one.
+        let status = status_of(&dir, std::slice::from_ref(&t));
+        assert!(
+            status.installed_files.is_empty(),
+            "a partial read as installed"
+        );
+        assert_eq!(status.partial_files, vec![t.file.clone()]);
+
+        // Positive control on the same walk: the same track, whole, is
+        // installed and is not reported as partial. Without this an empty
+        // `installed_files` above would also be what a broken walk returns.
+        std::fs::write(&dest, &body).unwrap();
+        let status = status_of(&dir, std::slice::from_ref(&t));
+        assert_eq!(status.installed_files, vec![t.file.clone()]);
+        assert!(
+            status.partial_files.is_empty(),
+            "a finished file was demoted by the .part beside it"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn a_second_attempt_resumes_from_the_bytes_already_on_disk() {
+        let dir = scratch("resume");
+        let body = body_of(20_000);
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), 20_000);
+        let dest = track_path(&dir, &t.file).unwrap();
+        let part = dest.with_extension("part");
+        std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        std::fs::write(&part, &body[..4_096]).unwrap();
+
+        let (url, log) = serve_mode(Mode::Ranged, body.clone(), 1);
+        let mut first_progress = None;
+        let result = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            |received, total| {
+                if first_progress.is_none() {
+                    first_progress = Some((received, total));
+                }
+            },
+        )
+        .await
+        .expect("a resumed download verifies");
+
+        // The server saw the continuation, and saw it at the right byte. This
+        // is the assertion that separates a resume from a restart that
+        // happened to end with the same file.
+        assert_eq!(
+            ranges_asked(&log),
+            vec![Some(4_096)],
+            "the second attempt did not ask to continue"
+        );
+        assert_eq!(result.bytes, 20_000);
+        assert!(result.sha256.eq_ignore_ascii_case(&t.sha256));
+        assert_eq!(
+            std::fs::read(&dest).unwrap(),
+            body,
+            "the file is not the body"
+        );
+        assert!(!part.exists(), "the .part outlived a successful resume");
+        // Progress starts from what was already there rather than from zero,
+        // so a resumed install does not appear to lose its place.
+        assert_eq!(first_progress, Some((4_096, 20_000)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn a_server_that_ignores_range_restarts_and_still_verifies() {
+        let dir = scratch("norange");
+        let body = body_of(20_000);
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), 20_000);
+        let dest = track_path(&dir, &t.file).unwrap();
+        let part = dest.with_extension("part");
+        std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        // Deliberately *not* a prefix of the body. If the restart failed to
+        // discard it the hash would be wrong and this test would go red, which
+        // is the only way to tell a restart from an append.
+        std::fs::write(&part, vec![0xEEu8; 4_096]).unwrap();
+
+        let (url, log) = serve_mode(Mode::NoRange, body.clone(), 1);
+        let result = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            |_, _| {},
+        )
+        .await
+        .expect("a restart verifies");
+
+        // It did ask - the seam is not simply never sending a Range header -
+        // and the server declined, and the file is still right.
+        assert_eq!(ranges_asked(&log), vec![Some(4_096)]);
+        assert_eq!(result.bytes, 20_000);
+        assert_eq!(std::fs::read(&dest).unwrap(), body);
+        assert!(!part.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn a_resume_whose_sha_does_not_match_deletes_the_part_and_any_final() {
+        let dir = scratch("resume-mismatch");
+        let body = body_of(20_000);
+        let mut corrupted = body.clone();
+        corrupted[10_000] ^= 0xFF;
+        let t = track("radio/a.ogg", WIKI, &hex(Sha256::digest(&body)), 20_000);
+        let dest = track_path(&dir, &t.file).unwrap();
+        let part = dest.with_extension("part");
+        std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        std::fs::write(&part, &body[..4_096]).unwrap();
+        // A stale final from some earlier life, which a mismatch must also
+        // take: leaving it would be a wrong file sitting under the right name.
+        std::fs::write(&dest, b"stale").unwrap();
+
+        let (url, log) = serve_mode(Mode::Ranged, corrupted, 1);
+        let error = download_verified_from(
+            &url,
+            &t.sha256,
+            &dest.to_string_lossy(),
+            &LOOPBACK,
+            |_, _| {},
+        )
+        .await
+        .expect_err("a resumed body with the wrong hash must not install");
+
+        assert!(error.contains("checksum mismatch"), "{error}");
+        assert_eq!(
+            ranges_asked(&log),
+            vec![Some(4_096)],
+            "it did not resume at all"
+        );
+        assert!(!part.exists(), "a mismatched resume left its .part");
+        assert!(!dest.exists(), "a mismatched resume left a final file");
+        // And nothing is reported: neither installed nor partial, because
+        // there is nothing on disk to continue from.
+        let status = status_of(&dir, std::slice::from_ref(&t));
+        assert!(status.installed_files.is_empty());
+        assert!(status.partial_files.is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_space_refusal_names_what_is_needed_and_what_is_there() {
+        let gb = 1024u64 * 1024 * 1024;
+        // Could not ask is not a refusal, and is not "there is plenty" either -
+        // it is simply not a reason to stop.
+        assert!(space_refusal(4 * gb, None).is_none());
+        // Room to spare.
+        assert!(space_refusal(gb, Some(10 * gb)).is_none());
+        // Exactly the margin is the boundary, and it is not a refusal.
+        assert!(space_refusal(gb, Some(gb + FREE_SPACE_MARGIN)).is_none());
+        // One byte past it is.
+        let message = space_refusal(gb + 1, Some(gb + FREE_SPACE_MARGIN))
+            .expect("a request one byte past the margin must be refused");
+        assert!(message.contains("1.0 GB"), "{message}");
+        assert!(message.contains("1.5 GB"), "{message}");
+        assert!(message.contains("500 MB"), "{message}");
+        assert!(message.contains("Nothing was downloaded"), "{message}");
+    }
+
+    #[tokio::test]
+    async fn an_install_with_too_little_room_refuses_before_a_single_request() {
+        let dir = scratch("space");
+        let body = body_of(20_000);
+        let (url, log) = serve_mode(Mode::Ranged, body.clone(), 2);
+        let t = track(
+            "radio/a.ogg",
+            &url,
+            &hex(Sha256::digest(&body)),
+            body.len() as u64,
+        );
+
+        // Needed is 20,000 bytes; free is the margin exactly, so nothing at
+        // all is usable.
+        let error = install_into(
+            &dir,
+            std::slice::from_ref(&t),
+            Some(FREE_SPACE_MARGIN),
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect_err("an install with no room must refuse");
+        assert!(error.contains("not enough free space"), "{error}");
+        assert!(error.contains("500 MB"), "{error}");
+        assert!(error.contains("0 MB"), "{error}");
+        // The point of refusing before the request rather than after the first
+        // failed write. A server that could have answered saw nothing.
+        assert_eq!(log.lock().unwrap().len(), 0, "the refusal still downloaded");
+        assert!(status_of(&dir, std::slice::from_ref(&t))
+            .installed_files
+            .is_empty());
+        assert!(status_of(&dir, std::slice::from_ref(&t))
+            .partial_files
+            .is_empty());
+
+        // Positive control on the same call: with room, the identical install
+        // runs and the file lands. Without this the zero above would also be
+        // what a broken rig produces.
+        let result = install_into(
+            &dir,
+            std::slice::from_ref(&t),
+            Some(FREE_SPACE_MARGIN + 10 * 1024 * 1024),
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect("an install with room installs");
+        assert_eq!(result.installed, 1);
+        assert_eq!(log.lock().unwrap().len(), 1);
+        assert_eq!(
+            status_of(&dir, std::slice::from_ref(&t)).installed_files,
+            vec![t.file.clone()]
+        );
+
+        // And "could not ask" does not refuse: a platform that cannot answer
+        // must not block every install.
+        let again = install_into(
+            &dir,
+            std::slice::from_ref(&t),
+            None,
+            &LOOPBACK,
+            |_, _, _| {},
+        )
+        .await
+        .expect("an unanswerable free-space question does not refuse");
+        assert_eq!(again.installed, 1, "the already-present track was skipped");
+        assert_eq!(
+            log.lock().unwrap().len(),
+            1,
+            "a present track was refetched"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
