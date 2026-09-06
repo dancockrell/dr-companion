@@ -99,6 +99,130 @@ one of our releases would be a second, worse, staler answer.
 | `escape` | Emergency exit to safety |
 | `stow_all` | Stow loose items per rules |
 
+---
+
+## The outbound command lane (implemented)
+
+Everything above is the *bridge* — the companion-era plugin socket. This
+section is the other direction and the other transport: what happens to a
+command this client sends to the game, on the `--detachable-client` socket
+`game_link.rs` holds.
+
+`src-tauri/src/command_gate.rs` is one lane that every outbound command
+enters. `game_link::game_send` is its only entry point and
+`game_link::write_command` — crate-private, called from the lane's sender
+thread and nowhere else — is the only thing that writes to the socket. Before
+it, eight unrelated callers wrote to that socket directly and nothing
+arbitrated between them.
+
+### Every command carries a source
+
+`player`, `ui-action`, `keybind`, `macro`, `ai-suggestion`, `script`, in that
+priority order. Ties break by submission order.
+
+There is **no default**. Rust refuses an unknown source, because defaulting to
+`player` would let unlabelled automation jump the queue and defaulting to
+`script` would put a real player behind a walk loop — either guess breaks one
+of the two invariants. `tools/command-lane-test.mjs` checks that every caller
+in `src/` names one, and prints the list with its count.
+
+| Source | Who | Held by Pause | Flushed by Stop |
+|---|---|---|---|
+| `player` | the command bar | no | no |
+| `ui-action` | a room, inventory, combat or exit button; a tile-click walk | yes | yes |
+| `keybind` | a key the player bound | yes | yes |
+| `macro` | the quick-queue panel | yes | yes |
+| `ai-suggestion` | a model proposal, already confirmed through G11's gate | yes | yes |
+| `script` | anything on the script API socket | yes | yes |
+
+**A player-typed command is never dropped and never waits behind automation.**
+It jumps the queue, Pause does not hold it, Stop does not flush it, and the
+queue ceiling sheds the oldest automation entry rather than ever shedding it.
+
+### Roundtime
+
+DragonRealms answers a command sent during roundtime with `...wait N seconds`
+and discards it. The lane holds commands until the roundtime ends plus
+`RT_MARGIN_MS` (200 ms — the margin `python/drtask.py` uses, because the
+reported roundtime is an absolute second and a fast clock otherwise sends a
+moment early).
+
+Read in the reader thread of `game_link.rs`, which sees every chunk before the
+parser does:
+
+- `<roundTime value='<epoch>'/>` and `<castTime value='<epoch>'/>` — the
+  authoritative form. The value is an **absolute epoch second**, not a
+  duration; checked against Lich's `xmlparser.rb` by `python/drtask.py`. The
+  longer of the two wins when both are present.
+- `Roundtime: N sec.` and `...wait N seconds.` — text, a duration from now.
+  What appears when the frontend has not claimed the `xml` capability, or when
+  the game refuses a command outright.
+
+A roundtime only ever moves the hold forward; a late-arriving older value
+cannot shorten one already running.
+
+### Typeahead
+
+`TYPEAHEAD_DEPTH` (1) commands may be released *into* an active roundtime,
+because DragonRealms accepts that much and every other client spends it.
+The allowance resets when a new roundtime is reported, since a new roundtime
+is the game acknowledging the command that caused it.
+
+### Coalescing
+
+A held movement key produces forty `north`s. When a movement command is
+submitted and an identical movement command **from the same source** is
+already queued and not yet sent, the new one is dropped and counted.
+
+Movement is the twelve compass directions plus `in` and `out`, as a fixed set:
+`go` and `climb` take an argument and two `climb wall`s in a row are sometimes
+meant. Same source only — a script's `north` must never swallow the player's.
+Nothing else coalesces: two identical `appraise sword`s are two things
+somebody meant.
+
+### Stop and Pause
+
+Stop (`game_lane_flush`, wired through `flowStop.ts`'s signal from
+`src/lib/commandLane.ts`) drops every queued automation entry and leaves the
+player's. It already killed both task processes and rejected unconfirmed
+suggestions; what it could not reach was commands those producers had already
+handed over.
+
+Pause holds automation only, exactly as it did before, and a command held past
+`MAX_PAUSE_HOLD_MS` (300 s) is refused **and says so** rather than vanishing.
+The flag now lives in the lane, because the lane is what has to consult it on
+every pick; `pause.rs` is the two commands that set and read it.
+
+### What the lane deliberately does not do
+
+It does not rewrite commands. Aliases, macros and Lich's semicolon syntax are
+the frontend's business; the lane decides *when* and *in what order*, never
+*what*.
+
+It does not sit in front of the AI confirmation gate. G11's guards run first
+and are untouched: `aiSuggestions.ts` still has exactly one call to
+`requestGameAction`, asserted by both `tools/ai-suggestions-test.mjs` and
+`tools/command-lane-test.mjs`.
+
+### Reporting
+
+`game:lane` carries `{queued, holdingUntilMs, lastSent, lastSentAtMs, sent,
+coalesced, flushed, overflowed, paused}`, and `game_lane_status` answers the
+same on demand for a window that opened after a queue formed. `SafetyFooter`
+shows the queued count beside the roundtime badge: `RT 3s` says "you cannot
+act yet", and `2 queued` says "and two of your commands are waiting on that",
+which is the fact a player wants when a key press appears to have done
+nothing.
+
+### Checks
+
+| Command | What it establishes |
+|---|---|
+| `cargo test --lib command_gate` | 15 property tests against a pure scheduler with an explicit clock and a write log |
+| `npm run test:command-lane` | every caller in `src/` names a source, N of N, with the list printed |
+| `npm run test:command-lane-break` | six sabotages, each reddening exactly the tests it should; the file restored and verified by hash |
+
+
 ## Capability-aware rule (mandatory)
 
 For `go_healer`, `town_run`, travel, and hunting selection, Lich-side logic **must** evaluate:

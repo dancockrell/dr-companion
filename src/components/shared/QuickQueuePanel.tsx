@@ -35,7 +35,10 @@ export function QuickQueuePanel({ dense = false }: { dense?: boolean }) {
       // The same path the command line uses, per Dan's own wording — "cue
       // actions to send to the browser" — not the bridge's run_macro, which
       // is what Task Flows use. Different queue, different path on purpose.
-      sendCommand: sendGame,
+      // `macro`, not `player`: this panel is a recorded sequence the player
+      // set running, so the outbound lane must let anything they type now go
+      // in front of what they queued a minute ago.
+      sendCommand: (command) => sendGame(command, 'macro'),
       startScript,
       onChange: setState,
       log: addLog,

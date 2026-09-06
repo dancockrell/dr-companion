@@ -148,12 +148,27 @@ console.log('\n-- both application and native boundaries own the invariant --')
   const link = readFileSync('src/lib/gameLink.ts', 'utf8')
   const actions = readFileSync('src/lib/gameActions.ts', 'utf8')
   const native = readFileSync('src-tauri/src/game_link.rs', 'utf8')
+  // Both call sites now carry a `source` as well, for the outbound command
+  // lane (src-tauri/src/command_gate.rs). The property these three assert is
+  // unchanged - validation happens before the value leaves the layer - and the
+  // patterns are widened to the new argument list rather than loosened: a
+  // pattern that stopped naming `validateGameCommand` would pass a version
+  // that had dropped it.
   ok('the raw frontend transport validates before invoke',
-    /invokeTauri\('game_send', \{ command: validateGameCommand\(command\) \}\)/.test(link))
+    /invokeTauri\('game_send', \{ command: validateGameCommand\(command\), source \}\)/.test(link))
   ok('game-derived actions apply the stricter separator rule',
-    /sendGame\(validateGameActionCommand\(command\)\)/.test(actions))
+    /sendGame\(validateGameActionCommand\(command\), source\)/.test(actions))
+  // Twice in Rust now, and both matter. `game_send` is the lane's entry, so it
+  // refuses a framing violation at the call site where the caller can still be
+  // told; `write_command` is the only thing that touches the socket, and it
+  // validates again because a queue is a gap in time and the invariant has to
+  // hold at the write, not only at the submission.
+  ok('the native entry point validates before it queues anything',
+    native.indexOf('validate_game_command(&command)?;') <
+      native.indexOf('gate.submit(command, source)'))
   ok('the native command validates before locking or writing',
-    native.indexOf('validate_game_command(&command)?;') < native.indexOf('let mut guard = link.inner.lock().unwrap();'))
+    native.indexOf('validate_game_command(command)?;') <
+      native.indexOf('let mut guard = link.inner.lock().unwrap();'))
 }
 
 // Far below the real count on purpose: a tripwire for a truncated or

@@ -54,6 +54,6 @@ export function subscribePresentationIntents(): () => void {
   return listenTauri<PresentationIntentEvent>('presentation:intent', (event) => {
     const action = gameCommandForIntent(event ?? {})
     if (!action) return
-    requestGameAction(action.command, action.label)
+    requestGameAction(action.command, action.label, 'ui-action')
   })
 }

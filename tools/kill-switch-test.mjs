@@ -112,6 +112,13 @@ const EXPECTED_STOP_CONSUMERS = [
   // G11: rejects every suggestion the player has not confirmed, so a proposed
   // command on screen when Stop is pressed cannot be confirmed afterwards.
   'src/lib/aiSuggestions.ts',
+  // The outbound command lane: flushes every queued automation command. Stop
+  // could already kill both task processes and reject unconfirmed
+  // suggestions; what it could not reach was commands those producers had
+  // *already handed over* - a walk loop's next four steps, on their way to the
+  // socket with nothing able to call them back. Player-typed commands are
+  // deliberately not flushed. See src-tauri/src/command_gate.rs.
+  'src/lib/commandLane.ts',
 ]
 
 /* ------------------------------------------------------------------ */

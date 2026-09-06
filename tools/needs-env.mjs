@@ -50,6 +50,20 @@ const NEEDS_ENVIRONMENT = [
     requires: 'the app running, attached to a game so it has a room to publish',
   },
   {
+    script: 'test:command-lane-break',
+    // Not an environment in the usual sense - it needs a *writable, quiet*
+    // tree. It damages src-tauri/src/command_gate.rs on purpose six times,
+    // runs cargo between each, and restores it verified by sha256. Running
+    // that inside `node tools/run-tests.mjs` would mean any other session
+    // building this repo during those seconds compiles a deliberately broken
+    // file, and a concurrent `cargo test` would report a defect that is this
+    // harness's doing. Run it by hand, as the other *-break-check.mjs files
+    // in this directory are; docs/BRIDGE_CONTRACT.md and the B9 increment
+    // both name the command.
+    requires:
+      'a tree no other session is building: it damages command_gate.rs on purpose and restores it',
+  },
+  {
     script: 'test:protocol-harness',
     requires:
       'Ruby, and a second shell: the harness serves the real protocol on 7419 and tools/ws-client.mjs connects to it',

@@ -260,7 +260,7 @@ function AppViews() {
   useEffect(() => {
     if (!setupComplete) return
     return installKeybindings({
-      sendGame: (command) => requestGameAction(command, `Keyboard command “${command}”`),
+      sendGame: (command) => requestGameAction(command, `Keyboard command “${command}”`, 'keybind'),
       stopAll: () => {
         requestIntent('stop_all')
         requestStopAll()

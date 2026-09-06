@@ -558,8 +558,14 @@ console.log('\n-- inside the gate, one call site --')
   const src = readFileSync('src/lib/aiSuggestions.ts', 'utf8')
   const calls = src.match(/requestGameAction\(/g) ?? []
   ok('requestGameAction is called exactly once', calls.length === 1, `${calls.length} call(s)`)
-  ok('and that call is inside the wiring of the single store',
-    /send: \(command, label\) => requestGameAction\(command, label\)/.test(src))
+  // The source argument is pinned along with the call. The outbound command
+  // lane (src-tauri/src/command_gate.rs) orders by it, and 'ai-suggestion'
+  // sits below the player and below every UI source - so a confirmed model
+  // proposal can never leave ahead of something a person just typed. Widening
+  // this to ignore the third argument would let that label be changed to
+  // 'player' with nothing saying so.
+  ok('and that call is inside the wiring of the single store, labelled ai-suggestion',
+    /send: \(command, label\) => requestGameAction\(command, label, 'ai-suggestion'\)/.test(src))
   const sends = src.match(/this\.deps\.send\(/g) ?? []
   ok('the store hands the boundary a command in exactly one method',
     sends.length === 1, `${sends.length} site(s)`)

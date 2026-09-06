@@ -40,7 +40,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 /// One line off the wire, on its way to the pane.
 #[derive(Clone, Serialize)]
@@ -404,9 +404,30 @@ pub fn game_attach(
                         // before the pane has subscribed was lost outright -
                         // while the count in game:state kept climbing, so the
                         // header reported lines the pane could not show.
+                        let received_at = received_at_ms();
+
+                        // The outbound lane learns roundtime here, and only
+                        // here. This thread sees every chunk before anything
+                        // else does - before the parser, before the pane -
+                        // which is what lets a hold start on the same chunk
+                        // that announced it rather than a render later.
+                        //
+                        // Reading it in Rust also puts it on the same side as
+                        // the sender. `python/drtask.py` parses the identical
+                        // tag and paces against it, and covered only tasks
+                        // built on that library; a frontend copy would cover
+                        // only commands the frontend originated. See
+                        // command_gate.rs's header.
+                        if let Some(until) =
+                            crate::command_gate::roundtime_until_ms(&text, received_at)
+                        {
+                            app.state::<crate::command_gate::CommandGate>()
+                                .note_roundtime(until);
+                        }
+
                         let line = GameLine {
                             seq,
-                            received_at_ms: received_at_ms(),
+                            received_at_ms: received_at,
                             text,
                         };
                         {
@@ -508,16 +529,20 @@ fn validate_game_command(command: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Send one command, exactly as typed.
+/// The one thing in this app that writes to the game socket.
+///
+/// Crate-private on purpose, and its only caller is the command lane's sender
+/// thread (`command_gate::start`). Everything outbound reaches the wire
+/// through the lane, so ordering, roundtime pacing and Stop are properties of
+/// the transport rather than promises each of nine callers has to keep.
 ///
 /// No interpretation here. Aliases, macros and scripting are the frontend's
 /// job and Lich has its own ideas about lines beginning with a semicolon; a
 /// transport that rewrote what the player typed would make both impossible to
 /// reason about. The one invariant enforced here is framing: a request cannot
 /// contain a second line or any other control character.
-#[tauri::command]
-pub fn game_send(link: State<'_, GameLink>, command: String) -> Result<(), String> {
-    validate_game_command(&command)?;
+pub(crate) fn write_command(link: &GameLink, command: &str) -> Result<(), String> {
+    validate_game_command(command)?;
     let mut guard = link.inner.lock().unwrap();
     let h = guard.as_mut().ok_or("Not attached to a game.")?;
     if !h.running.load(Ordering::Relaxed) {
@@ -531,6 +556,50 @@ pub fn game_send(link: State<'_, GameLink>, command: String) -> Result<(), Strin
         .write_all(format!("{command}\r\n").as_bytes())
         .map_err(|e| format!("Could not send: {e}"))?;
     h.out.flush().map_err(|e| format!("Could not send: {e}"))?;
+    Ok(())
+}
+
+/// Whether the socket would take a command right now.
+///
+/// Asked before queueing so the two failures a caller can actually do
+/// something about — not attached, connection closed — still come back at the
+/// call site with the words they always had, instead of arriving later as an
+/// event nobody is listening for.
+pub(crate) fn attached(link: &GameLink) -> Result<(), String> {
+    let guard = link.inner.lock().unwrap();
+    let h = guard.as_ref().ok_or("Not attached to a game.")?;
+    if !h.running.load(Ordering::Relaxed) {
+        return Err("The connection is closed.".into());
+    }
+    Ok(())
+}
+
+/// Enter the outbound command lane. The one way in.
+///
+/// `source` says who asked — `player`, `ui-action`, `keybind`, `macro`,
+/// `ai-suggestion` or `script` — and there is deliberately no default: see
+/// `command_gate::Source::parse` for why guessing breaks one invariant or the
+/// other whichever way it guesses.
+///
+/// Returns when the command is *accepted*, not when it reaches the wire. One
+/// held for roundtime leaves a few seconds later, and `game:lane` reports the
+/// queue so that is a visible fact rather than a client that appears to have
+/// ignored a keypress. `script_api` waits on its ticket instead, because a
+/// task walking on to its next step believing it sent something is exactly the
+/// failure `pause.rs` was careful not to introduce.
+#[tauri::command]
+pub fn game_send(
+    app: AppHandle,
+    link: State<'_, GameLink>,
+    gate: State<'_, crate::command_gate::CommandGate>,
+    command: String,
+    source: String,
+) -> Result<(), String> {
+    let source = crate::command_gate::Source::parse(&source)?;
+    validate_game_command(&command)?;
+    attached(&link)?;
+    let _ticket = gate.submit(command, source);
+    let _ = app.emit("game:lane", gate.status());
     Ok(())
 }
 

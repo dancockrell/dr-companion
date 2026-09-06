@@ -578,7 +578,7 @@ let store: SuggestionStore | null = null
 export function suggestionStore(): SuggestionStore {
   if (store) return store
   store = new SuggestionStore({
-    send: (command, label) => requestGameAction(command, label),
+    send: (command, label) => requestGameAction(command, label, 'ai-suggestion'),
     now: () => Date.now(),
     stateVersion: () => currentStateVersion(),
     isPaused: () => isAutomationPaused(),
