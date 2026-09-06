@@ -744,6 +744,7 @@ dependencies = [
  "base64 0.23.1",
  "getrandom 0.4.3",
  "reqwest 0.12.28",
+ "rustls",
  "serde",
  "serde_json",
  "sha1",
@@ -751,6 +752,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tokio",
+ "webpki-roots",
  "windows-sys 0.61.2",
  "zip",
 ]
