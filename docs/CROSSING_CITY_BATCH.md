@@ -8,8 +8,8 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 
 - rooms: 1060
 - directedExits: 2389
-- descriptions: 838
-- missingDescriptions: 222
+- descriptions: 840
+- missingDescriptions: 220
 - partialRecipes: 22
 - complete: 0
 - compassMismatches: 493
@@ -22,9 +22,9 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 - riverine-and-maritime: 86 rooms
 - rock-cave-and-underground: 47 rooms
 - interior-shell-and-fittings: 121 rooms
-- building-frontage: 137 rooms
+- building-frontage: 139 rooms
 - vertical-connection: 38 rooms
-- workshop-and-commercial-display: 126 rooms
+- workshop-and-commercial-display: 127 rooms
 
 Families are evidence-backed work queues, not permission to fill every matching room with a generic model. The JSON retains the full bound description, excerpt, commands, geometry diagnostics and current recipe for every room. Shared-place descriptions and heuristic classifications need review.
 
@@ -67,8 +67,6 @@ Street continuations, intersections, waterfronts and building approaches must be
 - 1-218 — Ragge's Locksmithing, Salesroom
 - 1-219 — Mauriga's Botanicals, Salesroom
 - 1-223 — Herilo's Artifacts, Showroom
-- 1-226 — Chizili's Alchemical Goods, Salesroom
-- 1-227 — Chizili's Alchemical Goods, Workroom
 - 1-231 — First Provincial Bank, Lobby
 - 1-249 — Willow Walk, Garden Path
 - 1-250 — Willow Walk, Garden Path

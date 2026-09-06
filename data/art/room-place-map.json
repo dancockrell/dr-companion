@@ -202,11 +202,11 @@
   "1-192": "1::Tembeg's Armory, Salesroom",
   "1-218": "1::Salesroom",
   "1-219": "1::Salesroom",
-  "1-226": "1::Salesroom",
+  "1-226": "1::Chizili's Alchemical Goods, Salesroom",
   "1-436": "1::Salesroom",
   "1-870": "1::Salesroom",
   "1-193": "1::Workroom",
-  "1-227": "1::Workroom",
+  "1-227": "1::Chizili's Alchemical Goods, Workroom",
   "1-656": "1::Workroom",
   "1-917": "1::Workroom",
   "1-918": "1::Workroom",
@@ -17752,6 +17752,8 @@
   "TF990-9": "TF990::Dock Walk"
  },
  "representative": {
+  "1::Chizili's Alchemical Goods, Salesroom": "1-226",
+  "1::Chizili's Alchemical Goods, Workroom": "1-227",
   "1::Magen Road": "1-1",
   "1::Trothfang Street": "1-4",
   "1::Flamethorn Way": "1-7",

@@ -10,6 +10,12 @@ requires matching normalized title families (the establishment before the
 comma), retains rejected source IDs and reasons, and excludes rejected prose
 from prompts, classifications and runtime asset requirements. This rejects
 138 Crossing assignments: **838 compatible bindings, 222 unresolved rooms**.
+Subsequent independent research recovered Chizili's Salesroom and Workroom:
+the current count is **840 compatible bindings, 220 unresolved rooms**.
+Their separate full-title source records replace the unrelated grocery and
+armorer descriptions, using short paraphrases of
+[the shop's documented rooms](https://elanthipedia.play.net/Chizili%27s_Alchemical_Goods).
+No vendor inventory or NPC is instantiated as static scenery.
 These counts supersede the earlier 976/84 coverage claim below. Matching title
 families remain candidates needing room review, not proof of correct source
 prose or current game state. In particular, text mentioning Yalda under a
@@ -18,8 +24,10 @@ Forging Society source title still needs independent investigation.
 Regression coverage preserves Tembeg and Falken's own descriptions while
 rejecting their use for unrelated workrooms, plus Salesroom/Lobby collisions.
 No rooms, exits or source descriptions are deleted. The historical archive
-report below covers the earlier 84-room subset and has not yet been expanded
-to the newly rejected assignments. No new art is admitted by this correction.
+report now covers all 220 unresolved rooms: 66 strong historical neighborhood
+matches, 130 partial/ambiguous matches and 24 without a title match. No new
+art is admitted by this correction. The old 84-room figures below describe
+the earlier audit only, not current coverage.
 
 A pinned 2020 DragonRealms XML mapping archive is now audited against every
 missing Crossing room, using exact titles, exact plain-string commands, and

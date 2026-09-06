@@ -4,8 +4,8 @@
   "counts": {
     "rooms": 1060,
     "directedExits": 2389,
-    "descriptions": 838,
-    "missingDescriptions": 222,
+    "descriptions": 840,
+    "missingDescriptions": 220,
     "partialRecipes": 22,
     "complete": 0,
     "compassMismatches": 493,
@@ -621,6 +621,8 @@
         "1-191",
         "1-192",
         "1-196",
+        "1-226",
+        "1-227",
         "1-228",
         "1-264",
         "1-265",
@@ -762,6 +764,7 @@
         "1-217",
         "1-220",
         "1-222",
+        "1-226",
         "1-228",
         "1-229",
         "1-233",
@@ -23447,7 +23450,14 @@
       "rejectedSourceDescriptionId": "1::Entrance",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "958"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 47,
@@ -25526,7 +25536,14 @@
       "rejectedSourceDescriptionId": "1::Salesroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "19125"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -40,
@@ -25601,7 +25618,14 @@
       "rejectedSourceDescriptionId": "1::Salesroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "8259"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 190,
@@ -25936,7 +25960,14 @@
       "rejectedSourceDescriptionId": "1::Showroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "19152"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -170,
@@ -26237,13 +26268,14 @@
     {
       "id": "1-226",
       "title": "Chizili's Alchemical Goods, Salesroom",
-      "sourceDescriptionId": null,
-      "descriptionBindingStatus": "rejected-title-family-mismatch",
-      "rejectedSourceDescriptionId": "1::Salesroom",
-      "description": "",
-      "evidenceScope": "missing",
+      "sourceDescriptionId": "1::Chizili's Alchemical Goods, Salesroom",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
+      "descriptionHash": "139fe4a86a87c453",
+      "description": "A clean alchemy shop crowded with assorted jars, pots, barrels and large glass vessels. Overhead racks carry dried herbs; other glass containers preserve animal specimens. Furnishings include a wax-coated table, liquid vats, an acid-marked counter and a curtained doorway. The named shopkeeper and sale inventory require live-state confirmation.",
+      "evidenceScope": "representative-room",
       "descriptionResearch": null,
-      "sourceUrl": null,
+      "sourceUrl": "https://elanthipedia.play.net/Chizili%27s_Alchemical_Goods",
       "sourceGrid": {
         "x": 110,
         "y": -468,
@@ -26254,9 +26286,20 @@
         "y": 0,
         "z": 54
       },
-      "spatialClassification": "unresolved",
+      "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
-      "assetRequirements": [],
+      "assetRequirements": [
+        {
+          "family": "building-frontage",
+          "evidence": "A clean alchemy shop crowded with assorted jars, pots, barrels and large glass vessels. Overhead racks carry dried herbs",
+          "status": "requires-design-review"
+        },
+        {
+          "family": "workshop-and-commercial-display",
+          "evidence": "orted jars, pots, barrels and large glass vessels. Overhead racks carry dried herbs; other glass containers preserve animal specimens. Furnishings include a wax-coat",
+          "status": "requires-design-review"
+        }
+      ],
       "currentModels": [],
       "currentSurfaces": [],
       "recipeStatus": "unbuilt",
@@ -26307,18 +26350,19 @@
           ]
         }
       ],
-      "productionStatus": "needs-description"
+      "productionStatus": "incomplete"
     },
     {
       "id": "1-227",
       "title": "Chizili's Alchemical Goods, Workroom",
-      "sourceDescriptionId": null,
-      "descriptionBindingStatus": "rejected-title-family-mismatch",
-      "rejectedSourceDescriptionId": "1::Workroom",
-      "description": "",
-      "evidenceScope": "missing",
+      "sourceDescriptionId": "1::Chizili's Alchemical Goods, Workroom",
+      "descriptionBindingStatus": "compatible-title-family-needs-room-review",
+      "rejectedSourceDescriptionId": null,
+      "descriptionHash": "ca4d7dc191a7fc3c",
+      "description": "A cramped back room stores miscellaneous objects not offered in the main shop. Its long worktable carries unusual objects and several kinds of purported philosopher's stone.",
+      "evidenceScope": "representative-room",
       "descriptionResearch": null,
-      "sourceUrl": null,
+      "sourceUrl": "https://elanthipedia.play.net/Chizili%27s_Alchemical_Goods",
       "sourceGrid": {
         "x": 110,
         "y": -478,
@@ -26329,9 +26373,15 @@
         "y": 0,
         "z": 72
       },
-      "spatialClassification": "unresolved",
+      "spatialClassification": "interior-cutaway",
       "classificationStatus": "heuristic-needs-review",
-      "assetRequirements": [],
+      "assetRequirements": [
+        {
+          "family": "building-frontage",
+          "evidence": "k room stores miscellaneous objects not offered in the main shop. Its long worktable carries unusual objects and several kinds of purported philosopher's stone.",
+          "status": "requires-design-review"
+        }
+      ],
       "currentModels": [],
       "currentSurfaces": [],
       "recipeStatus": "unbuilt",
@@ -26360,7 +26410,7 @@
           ]
         }
       ],
-      "productionStatus": "needs-description"
+      "productionStatus": "incomplete"
     },
     {
       "id": "1-228",
@@ -26603,7 +26653,14 @@
       "rejectedSourceDescriptionId": "1::Lobby",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "1901"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 170,
@@ -35645,7 +35702,16 @@
       "rejectedSourceDescriptionId": "1::Library",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "5993",
+          "7862",
+          "15160"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 310,
@@ -36116,7 +36182,14 @@
       "rejectedSourceDescriptionId": "1::Second Floor Landing",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "9451"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 210,
@@ -36865,7 +36938,14 @@
       "rejectedSourceDescriptionId": "1::Lobby",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "19241"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 10,
@@ -38100,7 +38180,14 @@
       "rejectedSourceDescriptionId": "1::Main Hall",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "823"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -130,
@@ -38360,7 +38447,14 @@
       "rejectedSourceDescriptionId": "1::Banquet Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11984"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -120,
@@ -40254,7 +40348,14 @@
       "rejectedSourceDescriptionId": "1::Gallery",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11987"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -170,
@@ -44120,7 +44221,14 @@
       "rejectedSourceDescriptionId": "1::Office",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "19216"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -170,
@@ -44200,7 +44308,14 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "19217"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -160,
@@ -47304,7 +47419,14 @@
       "rejectedSourceDescriptionId": "1::Workshop",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "19386"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 290,
@@ -47357,7 +47479,14 @@
       "rejectedSourceDescriptionId": "1::Salesroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "19388"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -48887,7 +49016,14 @@
       "rejectedSourceDescriptionId": "1::Office",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6055"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 110,
@@ -49619,7 +49755,12 @@
       "rejectedSourceDescriptionId": "1::Kitchen",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 50,
@@ -50600,7 +50741,12 @@
       "rejectedSourceDescriptionId": "1::Balcony",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -94,
@@ -50690,7 +50836,12 @@
       "rejectedSourceDescriptionId": "1::Entrance",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -104,
@@ -51015,7 +51166,14 @@
       "rejectedSourceDescriptionId": "1::Kitchen",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "7128"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 250,
@@ -51068,7 +51226,14 @@
       "rejectedSourceDescriptionId": "1::Pantry",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "11779"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 260,
@@ -51921,7 +52086,14 @@
       "rejectedSourceDescriptionId": "1::Gathering Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "12227"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 270,
@@ -52518,7 +52690,14 @@
       "rejectedSourceDescriptionId": "1::Solarium",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "12236"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 350,
@@ -52603,7 +52782,14 @@
       "rejectedSourceDescriptionId": "1::Conservatory",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "12237"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 330,
@@ -56347,7 +56533,14 @@
       "rejectedSourceDescriptionId": "1::Landing",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6005"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -240,
@@ -57407,7 +57600,14 @@
       "rejectedSourceDescriptionId": "1::Herb Garden",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "6004"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -260,
@@ -58654,7 +58854,16 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "15463",
+          "15464",
+          "15465"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -220,
@@ -58766,7 +58975,16 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "15463",
+          "15464",
+          "15465"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -210,
@@ -58851,7 +59069,16 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "15463",
+          "15464",
+          "15465"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -230,
@@ -58990,7 +59217,14 @@
       "rejectedSourceDescriptionId": "1::Library",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "15460"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -210,
@@ -59867,7 +60101,15 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "9080",
+          "9081"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -280,
@@ -59996,7 +60238,15 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "9081",
+          "9080"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -280,
@@ -60142,7 +60392,14 @@
       "rejectedSourceDescriptionId": "1::Foyer",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "9077"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -280,
@@ -60266,7 +60523,14 @@
       "rejectedSourceDescriptionId": "1::Library",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "9078"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -270,
@@ -60416,7 +60680,15 @@
       "rejectedSourceDescriptionId": "1::Office",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "9082",
+          "12835"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -270,
@@ -60782,7 +61054,14 @@
       "rejectedSourceDescriptionId": "1::Training Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14720"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -280,
@@ -60835,7 +61114,14 @@
       "rejectedSourceDescriptionId": "1::Main Hall",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "7900"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -110,
@@ -60932,7 +61218,14 @@
       "rejectedSourceDescriptionId": "1::Storeroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "13213"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -110,
@@ -67799,7 +68092,14 @@
       "rejectedSourceDescriptionId": "1::Front Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "19077"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 220,
@@ -67874,7 +68174,12 @@
       "rejectedSourceDescriptionId": "1::Workroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 210,
@@ -68962,7 +69267,14 @@
       "rejectedSourceDescriptionId": "1::Balcony",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "13279"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 30,
@@ -69330,7 +69642,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14159",
+          "14178",
+          "14160",
+          "14176",
+          "14161",
+          "14162",
+          "14175",
+          "14177",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -212,
@@ -69415,7 +69743,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14160",
+          "14162",
+          "14175",
+          "14176",
+          "14159",
+          "14161",
+          "14177",
+          "14178",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -212,
@@ -69522,7 +69866,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14161",
+          "14175",
+          "14176",
+          "14159",
+          "14160",
+          "14162",
+          "14177",
+          "14178",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -202,
@@ -69602,7 +69962,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14175",
+          "14160",
+          "14161",
+          "14159",
+          "14162",
+          "14176",
+          "14177",
+          "14178",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -100,
@@ -69682,7 +70058,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14176",
+          "14160",
+          "14161",
+          "14159",
+          "14162",
+          "14175",
+          "14177",
+          "14178",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -90,
@@ -69794,7 +70186,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14177",
+          "14159",
+          "14160",
+          "14161",
+          "14162",
+          "14175",
+          "14176",
+          "14178",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -100,
@@ -69852,7 +70260,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14178",
+          "14159",
+          "14160",
+          "14161",
+          "14162",
+          "14175",
+          "14176",
+          "14177",
+          "14179",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -90,
@@ -69937,7 +70361,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14179",
+          "14162",
+          "14159",
+          "14160",
+          "14161",
+          "14175",
+          "14176",
+          "14177",
+          "14178",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -100,
@@ -70017,7 +70457,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14180",
+          "14159",
+          "14160",
+          "14161",
+          "14162",
+          "14175",
+          "14176",
+          "14177",
+          "14178",
+          "14179"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -110,
@@ -70406,7 +70862,15 @@
       "rejectedSourceDescriptionId": "1::First Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "13444",
+          "13445"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -215,
@@ -70486,7 +70950,15 @@
       "rejectedSourceDescriptionId": "1::First Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "13445",
+          "13444"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -215,
@@ -70767,7 +71239,15 @@
       "rejectedSourceDescriptionId": "1::First Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14655",
+          "14656"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -330,
@@ -70847,7 +71327,15 @@
       "rejectedSourceDescriptionId": "1::First Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14656",
+          "14655"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -330,
@@ -71461,7 +71949,12 @@
       "rejectedSourceDescriptionId": "1::Storage",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -330,
@@ -71688,7 +72181,14 @@
       "rejectedSourceDescriptionId": "1::Storage",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14029"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -90,
@@ -71746,7 +72246,14 @@
       "rejectedSourceDescriptionId": "1::Fitting Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14028"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -70,
@@ -71858,7 +72365,14 @@
       "rejectedSourceDescriptionId": "1::Courtyard",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14716"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -210,
@@ -72009,7 +72523,14 @@
       "rejectedSourceDescriptionId": "1::The Pit",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14717"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -210,
@@ -72198,7 +72719,14 @@
       "rejectedSourceDescriptionId": "1::Lobby",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "8270"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -10,
@@ -72327,7 +72855,14 @@
       "rejectedSourceDescriptionId": "1::Bar",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "8271"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -20,
@@ -72385,7 +72920,14 @@
       "rejectedSourceDescriptionId": "1::Dining Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "8272"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -10,
@@ -72671,7 +73213,15 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "8273",
+          "8274"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -10,
@@ -72817,7 +73367,15 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "8274",
+          "8273"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -10,
@@ -74192,7 +74750,14 @@
       "rejectedSourceDescriptionId": "1::Foyer",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6065"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 350,
@@ -74467,7 +75032,14 @@
       "rejectedSourceDescriptionId": "1::Barroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "6067"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 360,
@@ -74725,7 +75297,14 @@
       "rejectedSourceDescriptionId": "1::Dining Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "6068"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 350,
@@ -74837,7 +75416,17 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6071",
+          "6072",
+          "6073",
+          "6074"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -74966,7 +75555,17 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6072",
+          "6071",
+          "6074",
+          "6073"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 380,
@@ -75073,7 +75672,17 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6074",
+          "6072",
+          "6073",
+          "6071"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -75180,7 +75789,17 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6073",
+          "6071",
+          "6074",
+          "6072"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 400,
@@ -75503,7 +76122,14 @@
       "rejectedSourceDescriptionId": "1::Air Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "12183"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -75600,7 +76226,14 @@
       "rejectedSourceDescriptionId": "1::Water Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14667"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -75675,7 +76308,14 @@
       "rejectedSourceDescriptionId": "1::Fire Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14668"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -75750,7 +76390,14 @@
       "rejectedSourceDescriptionId": "1::Aether Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14669"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -75857,7 +76504,12 @@
       "rejectedSourceDescriptionId": "1::Guard House",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 390,
@@ -76307,7 +76959,12 @@
       "rejectedSourceDescriptionId": "1::Basement",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -30,
@@ -77684,7 +78341,14 @@
       "rejectedSourceDescriptionId": "1::Common Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "13212"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 310,
@@ -78024,7 +78688,14 @@
       "rejectedSourceDescriptionId": "1::Library",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11716"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 355,
@@ -78300,7 +78971,15 @@
       "rejectedSourceDescriptionId": "1::Armory",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "7889",
+          "6604"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 287,
@@ -78450,7 +79129,16 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11712",
+          "6608",
+          "13869"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 327,
@@ -78885,7 +79573,12 @@
       "rejectedSourceDescriptionId": "1::Basement",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 337,
@@ -78938,7 +79631,14 @@
       "rejectedSourceDescriptionId": "1::Balcony",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11715"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 347,
@@ -79013,7 +79713,15 @@
       "rejectedSourceDescriptionId": "1::Courtyard",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "6607",
+          "11718"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 327,
@@ -83578,7 +84286,14 @@
       "rejectedSourceDescriptionId": "1::Foyer",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "7906"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 309,
@@ -84300,7 +85015,14 @@
       "rejectedSourceDescriptionId": "1::Basement",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14357"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -280,
@@ -84407,7 +85129,14 @@
       "rejectedSourceDescriptionId": "1::Storeroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "13747"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 100,
@@ -85131,7 +85860,14 @@
       "rejectedSourceDescriptionId": "1::Kitchen",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "12115"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 110,
@@ -85189,7 +85925,14 @@
       "rejectedSourceDescriptionId": "1::Entry Hall",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "16657"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -15,
@@ -85437,7 +86180,23 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14162",
+          "14179",
+          "14159",
+          "14160",
+          "14161",
+          "14175",
+          "14176",
+          "14177",
+          "14178",
+          "14180"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -222,
@@ -86810,7 +87569,15 @@
       "rejectedSourceDescriptionId": "1::Second Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14657",
+          "14658"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -340,
@@ -86890,7 +87657,15 @@
       "rejectedSourceDescriptionId": "1::Second Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14658",
+          "14657"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -340,
@@ -86970,7 +87745,15 @@
       "rejectedSourceDescriptionId": "1::Third Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14659",
+          "14660"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -350,
@@ -87050,7 +87833,15 @@
       "rejectedSourceDescriptionId": "1::Third Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14660",
+          "14659"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -350,
@@ -87108,7 +87899,14 @@
       "rejectedSourceDescriptionId": "1::Earth Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14662"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 185,
@@ -87215,7 +88013,14 @@
       "rejectedSourceDescriptionId": "1::Entrance",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "8859"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -1,
@@ -88302,7 +89107,14 @@
       "rejectedSourceDescriptionId": "1::Office",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "16656"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -25,
@@ -89098,7 +89910,16 @@
       "rejectedSourceDescriptionId": "1::Workroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "9026",
+          "9027",
+          "15706"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 15,
@@ -89151,7 +89972,16 @@
       "rejectedSourceDescriptionId": "1::Workroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "9026",
+          "9027",
+          "15706"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 25,
@@ -89659,7 +90489,14 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "8867"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -41,
@@ -89848,7 +90685,16 @@
       "rejectedSourceDescriptionId": "1::Workshop",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "9056",
+          "9057",
+          "9058"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -51,
@@ -89901,7 +90747,16 @@
       "rejectedSourceDescriptionId": "1::Workshop",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "9057",
+          "9056",
+          "9058"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -41,
@@ -89954,7 +90809,16 @@
       "rejectedSourceDescriptionId": "1::Workshop",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "9058",
+          "9057",
+          "9056"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -31,
@@ -90007,7 +90871,14 @@
       "rejectedSourceDescriptionId": "1::Tool Shop",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "8860"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -1,
@@ -90092,7 +90963,14 @@
       "rejectedSourceDescriptionId": "1::Bookstore",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "8861"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -1,
@@ -90177,7 +91055,14 @@
       "rejectedSourceDescriptionId": "1::Supplies",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "8862"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -1,
@@ -90262,7 +91147,14 @@
       "rejectedSourceDescriptionId": "1::Office",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "8863"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -1,
@@ -90428,7 +91320,14 @@
       "rejectedSourceDescriptionId": "1::Foyer",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11757"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -241,
@@ -90884,7 +91783,14 @@
       "rejectedSourceDescriptionId": "1::Home Exchange Office",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "11760"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -272,
@@ -91045,7 +91951,14 @@
       "rejectedSourceDescriptionId": "1::Wine Cellar",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14247"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -94,
@@ -91162,7 +92075,12 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -230,
@@ -91247,7 +92165,12 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -220,
@@ -91332,7 +92255,12 @@
       "rejectedSourceDescriptionId": "1::Hallway",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -210,
@@ -93553,7 +94481,15 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14714",
+          "14715"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 260,
@@ -93682,7 +94618,15 @@
       "rejectedSourceDescriptionId": "1::Corridor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14714",
+          "14715"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 260,
@@ -93784,7 +94728,14 @@
       "rejectedSourceDescriptionId": "1::Lounge",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14713"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 270,
@@ -94368,7 +95319,12 @@
       "rejectedSourceDescriptionId": "1::Foyer",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 310,
@@ -94475,7 +95431,12 @@
       "rejectedSourceDescriptionId": "1::Showroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 320,
@@ -94555,7 +95516,12 @@
       "rejectedSourceDescriptionId": "1::Showroom",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 300,
@@ -94635,7 +95601,12 @@
       "rejectedSourceDescriptionId": "1::Alcove",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 320,
@@ -94813,7 +95784,14 @@
       "rejectedSourceDescriptionId": "1::Entrance",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14751"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 179,
@@ -95034,7 +96012,14 @@
       "rejectedSourceDescriptionId": "1::Supplies",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14753"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 189,
@@ -95119,7 +96104,14 @@
       "rejectedSourceDescriptionId": "1::Tool Store",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "14754"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 189,
@@ -95853,7 +96845,15 @@
       "rejectedSourceDescriptionId": "1::Second Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "13446",
+          "13447"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -225,
@@ -95933,7 +96933,15 @@
       "rejectedSourceDescriptionId": "1::Second Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "ambiguous-or-partial-needs-review",
+        "candidateIds": [
+          "13447",
+          "13446"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -225,
@@ -96013,7 +97021,12 @@
       "rejectedSourceDescriptionId": "1::Third Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -235,
@@ -96093,7 +97106,12 @@
       "rejectedSourceDescriptionId": "1::Third Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -235,
@@ -96151,7 +97169,15 @@
       "rejectedSourceDescriptionId": "1::Second Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14588",
+          "14589"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -195,
@@ -96231,7 +97257,15 @@
       "rejectedSourceDescriptionId": "1::Second Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14589",
+          "14588"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -195,
@@ -96311,7 +97345,15 @@
       "rejectedSourceDescriptionId": "1::Third Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14590",
+          "14591"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -185,
@@ -96391,7 +97433,15 @@
       "rejectedSourceDescriptionId": "1::Third Floor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "historical-neighborhood-match-needs-review",
+        "candidateIds": [
+          "14591",
+          "14590"
+        ],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": -185,
@@ -96792,7 +97842,12 @@
       "rejectedSourceDescriptionId": "1::Work Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 230,
@@ -98098,7 +99153,12 @@
       "rejectedSourceDescriptionId": "1::Dining Room",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 189,
@@ -98183,7 +99243,12 @@
       "rejectedSourceDescriptionId": "1::Scullery",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 199,
@@ -98263,7 +99328,12 @@
       "rejectedSourceDescriptionId": "1::Parlor",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 229,
@@ -99052,7 +100122,12 @@
       "rejectedSourceDescriptionId": "1::Attic",
       "description": "",
       "evidenceScope": "missing",
-      "descriptionResearch": null,
+      "descriptionResearch": {
+        "sourceRevision": "8fd4d49d90ce2af33c1b358fb7f95eb406b1fd16",
+        "status": "no-title-match",
+        "candidateIds": [],
+        "report": "data/world/crossing-archive-candidates.json"
+      },
       "sourceUrl": null,
       "sourceGrid": {
         "x": 229,

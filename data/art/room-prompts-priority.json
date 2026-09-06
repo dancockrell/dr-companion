@@ -1,4 +1,32 @@
 {
+  "1::Chizili's Alchemical Goods, Salesroom": {
+    "source": "description",
+    "zone": "1",
+    "zoneName": "Crossing",
+    "room": 226,
+    "title": "Chizili's Alchemical Goods, Salesroom",
+    "place": "Chizili's Alchemical Goods, Salesroom",
+    "roomCount": 1,
+    "lore": "A clean alchemy shop crowded with assorted jars, pots, barrels and large glass vessels. Overhead racks carry dried herbs; other glass containers preserve animal specimens. Furnishings include a wax-coated table, liquid vats, an acid-marked counter and a curtained doorway. The named shopkeeper and sale inventory require live-state confirmation.",
+    "sourceUrl": "https://elanthipedia.play.net/Chizili%27s_Alchemical_Goods",
+    "sourceNote": "Paraphrased visual facts checked 2026-09-06 against separate full-title room descriptions. Wiki room ID 19701 is not the client map ID. Preserve client topology; source objects do not establish live occupants or current inventory.",
+    "prompt": "",
+    "negative": ""
+  },
+  "1::Chizili's Alchemical Goods, Workroom": {
+    "source": "description",
+    "zone": "1",
+    "zoneName": "Crossing",
+    "room": 227,
+    "title": "Chizili's Alchemical Goods, Workroom",
+    "place": "Chizili's Alchemical Goods, Workroom",
+    "roomCount": 1,
+    "lore": "A cramped back room stores miscellaneous objects not offered in the main shop. Its long worktable carries unusual objects and several kinds of purported philosopher's stone.",
+    "sourceUrl": "https://elanthipedia.play.net/Chizili%27s_Alchemical_Goods",
+    "sourceNote": "Paraphrased visual facts checked 2026-09-06 against separate full-title room descriptions. Wiki room ID 19701 is not the client map ID. Preserve client topology; source objects do not establish live occupants or current inventory.",
+    "prompt": "",
+    "negative": ""
+  },
   "1::Town Green Pond": {
     "source": "description",
     "zone": "1",
