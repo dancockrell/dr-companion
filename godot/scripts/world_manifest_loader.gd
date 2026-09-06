@@ -27,6 +27,33 @@ var cells: Dictionary = {}
 var manifest: Dictionary = {}
 
 var _loaded: bool = false
+var _compiled_content: Dictionary = {}
+
+## A local content lookup is enrichment, never a replacement for live cells.
+## Matching requires world, exact ID and full title. A supplied hash must match.
+func _enrich_content(raw_cell: Dictionary, world_id: String) -> Dictionary:
+	var enriched := raw_cell.duplicate(true)
+	if world_id != "1":
+		return enriched
+	if _compiled_content.is_empty():
+		var path := "res://assets/crossing/world.json"
+		if not FileAccess.file_exists(path):
+			return enriched
+		var data = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if not data is Dictionary or not data.get("cells") is Array:
+			return enriched
+		for cell in data.cells:
+			_compiled_content[cell.id] = cell
+	var compiled: Dictionary = _compiled_content.get(raw_cell.get("id", ""), {})
+	if compiled.is_empty() or compiled.get("title") != raw_cell.get("title"):
+		return enriched
+	if raw_cell.has("sourceDescriptionHash") and raw_cell.sourceDescriptionHash != compiled.get("sourceDescriptionHash"):
+		return enriched
+	for key in ["sourceDescriptionHash", "sourceDescriptionId", "primitives", "palette", "tags", "spatialMode", "status"]:
+		if compiled.has(key):
+			enriched[key] = compiled[key]
+	enriched["contentEvidence"] = "compiled-reference-not-live-description"
+	return enriched
 
 func is_loaded() -> bool:
 	return _loaded
@@ -88,7 +115,7 @@ func load_from_snapshot(snapshot: Dictionary) -> bool:
 		if cell_id.is_empty() or next_cells.has(cell_id):
 			manifest_load_failed.emit("live snapshot contains a missing or duplicate cell id")
 			return false
-		next_cells[cell_id] = raw_cell
+		next_cells[cell_id] = _enrich_content(raw_cell, str(snapshot.get("worldId", "")))
 	var current_room_id := str(snapshot.get("currentRoomId", ""))
 	if current_room_id.is_empty() or not next_cells.has(current_room_id):
 		manifest_load_failed.emit("live snapshot current room is absent from its cells")

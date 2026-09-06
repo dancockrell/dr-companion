@@ -1,4 +1,32 @@
 {
+ "1::Milgrym's Weapons, Showroom": {
+  "source": "description",
+  "zone": "1",
+  "zoneName": "Crossing",
+  "room": 191,
+  "title": "Milgrym's Weapons, Showroom",
+  "place": "Milgrym's Weapons, Showroom",
+  "roomCount": 1,
+  "lore": "A plain, practical weapon shop. Pine display furniture separates weapon categories: a table for edged and blunt weapons, a counter for ranged equipment, a bench for accessories, a rack for two-handed weapons, and a bin and basket for other goods.",
+  "sourceUrl": "https://elanthipedia.play.net/Milgrym%27s_Weapons",
+  "sourceNote": "Paraphrased visual evidence checked 2026-09-06. Map ID 191 retained; wiki room number is a different identifier namespace.",
+  "prompt": "",
+  "negative": ""
+ },
+ "1::Tembeg's Armory, Salesroom": {
+  "source": "description",
+  "zone": "1",
+  "zoneName": "Crossing",
+  "room": 192,
+  "title": "Tembeg's Armory, Salesroom",
+  "place": "Tembeg's Armory, Salesroom",
+  "roomCount": 1,
+  "lore": "A practical armor shop with plain, sturdy goods. Displays include a dark stone armored figure, counter, chain-armor rack, leather-goods box, wooden cloth-armor bin and shield hooks. A narrow doorway leads toward the work area.",
+  "sourceUrl": "https://elanthipedia.play.net/Tembeg%27s_Armory",
+  "sourceNote": "Paraphrased visual evidence checked 2026-09-06; topology remains map-owned.",
+  "prompt": "",
+  "negative": ""
+ },
  "95::Pokekehekepi korgi": {
   "source": "description",
   "zone": "95",

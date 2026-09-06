@@ -163,6 +163,12 @@ const output = {
 
 mkdirSync(outputDir, { recursive: true })
 writeFileSync(outputPath, JSON.stringify(output, null, 2) + '\n')
+// The same compiled graph is the packaged authoring world and the live viewer's
+// content lookup. It is never substituted for authenticated live topology.
+if (zone === '1') {
+  mkdirSync('godot/assets/crossing', { recursive: true })
+  writeFileSync('godot/assets/crossing/world.json', JSON.stringify(output) + '\n')
+}
 
 const label = catalogue.briefs.find((brief) => brief.zone === zone)?.zoneName ?? `zone ${zone}`
 writeFileSync(reviewPath, [

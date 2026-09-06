@@ -1647,8 +1647,8 @@
         "z": 0
       },
       "status": "described",
-      "sourceDescriptionId": "1::Showroom",
-      "sourceDescriptionHash": "9d045d43a0bafff6",
+      "sourceDescriptionId": "1::Milgrym's Weapons, Showroom",
+      "sourceDescriptionHash": "43d9343196f8e1c9",
       "tier": "feature",
       "tags": [
         "interior"
@@ -1786,12 +1786,11 @@
         "z": 0
       },
       "status": "described",
-      "sourceDescriptionId": "1::Salesroom",
-      "sourceDescriptionHash": "686ebb40a5c30616",
-      "tier": "special",
+      "sourceDescriptionId": "1::Tembeg's Armory, Salesroom",
+      "sourceDescriptionHash": "9ad2393fa2da1b24",
+      "tier": "feature",
       "tags": [
-        "interior",
-        "landmark"
+        "interior"
       ],
       "spatialMode": "interior-cutaway",
       "palette": "warm-interior",
@@ -1900,10 +1899,6 @@
         {
           "kind": "cutaway-wall-kit",
           "role": "shell"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [

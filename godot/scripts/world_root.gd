@@ -9,6 +9,7 @@ extends Node3D
 ## whether a click is a legal walk (`IntentSender`/`BridgeClient`'s job).
 
 const MOCK_FIXTURE_PATH := "res://mock/crossing_mock_world.json"
+const CROSSING_WORLD_PATH := "res://assets/crossing/world.json"
 const MOCK_WORLD_ID := "crossing-mock"
 const MOCK_STARTING_ROOM := "1-14"  # Town Green North
 const CellVisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
@@ -78,8 +79,8 @@ func _ready() -> void:
 			_begin_live_retry()
 		return
 
-	if not WorldManifestLoader.load_from_path(MOCK_FIXTURE_PATH):
-		push_error("WorldRoot: failed to load mock fixture at %s" % MOCK_FIXTURE_PATH)
+	if not WorldManifestLoader.load_from_path(CROSSING_WORLD_PATH):
+		push_error("WorldRoot: failed to load Crossing authoring world at %s" % CROSSING_WORLD_PATH)
 		return
 	if not BridgeClient.start_mock(MOCK_WORLD_ID, MOCK_STARTING_ROOM):
 		push_error("WorldRoot: failed to start mock bridge at %s" % MOCK_STARTING_ROOM)
