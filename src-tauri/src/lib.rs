@@ -68,8 +68,22 @@ fn valid_panel_id(id: &str) -> bool {
 
 /// Focused rather than duplicated when it already exists, so pressing the
 /// button twice does not leave two of the same window open.
+///
+/// `async` is load-bearing, not style. A synchronous `#[tauri::command]` runs
+/// on the main thread, which is the event loop's thread; building a webview
+/// window dispatches the creation onto that loop and then blocks waiting for
+/// the answer, so the loop can never deliver it. Measured on the packaged
+/// build (issue #419): the window and its WebView2 were created, `build()`
+/// never returned, the navigation to `index.html?view=panel&id=…` was
+/// therefore never issued, and the pop-out sat on `about:blank` — a white
+/// window, forever, with the invoke promise still pending 67 seconds later and
+/// no error anywhere for the frontend to show. An `async` command runs on the
+/// async runtime instead, so the dispatch has a live event loop to answer it.
+///
+/// Every window operation below is dispatched the same way, `set_focus` and
+/// `close` included, so `close_panel_window` is `async` for the same reason.
 #[tauri::command]
-fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result<(), String> {
+async fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result<(), String> {
     if !valid_panel_id(&id) {
         return Err(format!("not a panel id: {id}"));
     }
@@ -119,8 +133,12 @@ fn open_panel_window(app: tauri::AppHandle, id: String, title: String) -> Result
 
 /// Put it back. Closing the window by hand is the same decision, so the panel
 /// returns to the stack either way.
+///
+/// `async` for the reason written out on `open_panel_window`: `close()` is
+/// dispatched to the event loop like every other window operation, and a
+/// synchronous command is already sitting on that loop.
 #[tauri::command]
-fn close_panel_window(app: tauri::AppHandle, id: String) -> Result<(), String> {
+async fn close_panel_window(app: tauri::AppHandle, id: String) -> Result<(), String> {
     if let Some(w) = app.get_webview_window(&panel_label(&id)) {
         let _ = app.emit(
             "panel-window:lifecycle",
