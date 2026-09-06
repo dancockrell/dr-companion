@@ -1,0 +1,676 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "tools/build-world-content.mjs",
+  "unknownCeilingPercent": 5,
+  "counts": {
+    "zones": 85,
+    "rooms": 17750,
+    "unknown": 86,
+    "unknownPercent": 0.485
+  },
+  "byRule": {
+    "colour": 1135,
+    "title": 13358,
+    "label": 36,
+    "zone": 418,
+    "neighbour": 2717,
+    "unknown": 86
+  },
+  "byGround": {
+    "street": 2795,
+    "path": 1437,
+    "interior": 5901,
+    "cave": 1550,
+    "water": 1375,
+    "snow": 204,
+    "swamp": 223,
+    "sand": 428,
+    "forest": 1064,
+    "farmland": 329,
+    "grass": 1320,
+    "rock": 1038,
+    "unknown": 86
+  },
+  "colourTable": [
+    {
+      "colour": "#00FFFF",
+      "rooms": 960,
+      "scored": 708,
+      "kind": "street",
+      "purity": 0.345,
+      "admitted": false
+    },
+    {
+      "colour": "#FF0000",
+      "rooms": 824,
+      "scored": 464,
+      "kind": "interior",
+      "purity": 0.851,
+      "admitted": true
+    },
+    {
+      "colour": "#0000FF",
+      "rooms": 783,
+      "scored": 634,
+      "kind": "water",
+      "purity": 0.637,
+      "admitted": false
+    },
+    {
+      "colour": "#00FF00",
+      "rooms": 514,
+      "scored": 402,
+      "kind": "interior",
+      "purity": 0.677,
+      "admitted": false
+    },
+    {
+      "colour": "#008000",
+      "rooms": 499,
+      "scored": 456,
+      "kind": "forest",
+      "purity": 0.493,
+      "admitted": false
+    },
+    {
+      "colour": "#993300",
+      "rooms": 165,
+      "scored": 143,
+      "kind": "cave",
+      "purity": 0.832,
+      "admitted": true
+    },
+    {
+      "colour": "#C2B280",
+      "rooms": 114,
+      "scored": 102,
+      "kind": "forest",
+      "purity": 0.216,
+      "admitted": false
+    },
+    {
+      "colour": "#FFBF00",
+      "rooms": 109,
+      "scored": 97,
+      "kind": "cave",
+      "purity": 0.268,
+      "admitted": false
+    },
+    {
+      "colour": "#FF8000",
+      "rooms": 85,
+      "scored": 76,
+      "kind": "interior",
+      "purity": 0.75,
+      "admitted": true
+    },
+    {
+      "colour": "#FF00FF",
+      "rooms": 83,
+      "scored": 71,
+      "kind": "water",
+      "purity": 0.296,
+      "admitted": false
+    },
+    {
+      "colour": "#FFFF00",
+      "rooms": 79,
+      "scored": 61,
+      "kind": "interior",
+      "purity": 0.541,
+      "admitted": false
+    },
+    {
+      "colour": "#A6A3D9",
+      "rooms": 79,
+      "scored": 66,
+      "kind": "interior",
+      "purity": 0.652,
+      "admitted": false
+    },
+    {
+      "colour": "#000080",
+      "rooms": 61,
+      "scored": 59,
+      "kind": "water",
+      "purity": 0.78,
+      "admitted": true
+    },
+    {
+      "colour": "#00BF80",
+      "rooms": 15,
+      "scored": 12,
+      "kind": "interior",
+      "purity": 0.917,
+      "admitted": false
+    },
+    {
+      "colour": "#400040",
+      "rooms": 14,
+      "scored": 13,
+      "kind": "interior",
+      "purity": 0.769,
+      "admitted": false
+    },
+    {
+      "colour": "#800080",
+      "rooms": 11,
+      "scored": 9,
+      "kind": "interior",
+      "purity": 0.667,
+      "admitted": false
+    }
+  ],
+  "zones": [
+    {
+      "id": "1",
+      "name": "Crossing",
+      "rooms": 1060,
+      "unknown": 0
+    },
+    {
+      "id": "1a",
+      "name": "Crossing Thief Passages",
+      "rooms": 43,
+      "unknown": 0
+    },
+    {
+      "id": "1j",
+      "name": "Crossing Market Plaza",
+      "rooms": 42,
+      "unknown": 0
+    },
+    {
+      "id": "1l",
+      "name": "Crossing Amusement Pier",
+      "rooms": 59,
+      "unknown": 0
+    },
+    {
+      "id": "1m",
+      "name": "Crossing Jadewater Mansion",
+      "rooms": 32,
+      "unknown": 0
+    },
+    {
+      "id": "1n",
+      "name": "The Seacaves of Peri'el",
+      "rooms": 28,
+      "unknown": 0
+    },
+    {
+      "id": "2",
+      "name": "Lake of Dreams",
+      "rooms": 63,
+      "unknown": 0
+    },
+    {
+      "id": "2a",
+      "name": "Crossing Temple",
+      "rooms": 190,
+      "unknown": 0
+    },
+    {
+      "id": "2d",
+      "name": "Crossing Escape Tunnels",
+      "rooms": 96,
+      "unknown": 0
+    },
+    {
+      "id": "4",
+      "name": "Crossing West Gate",
+      "rooms": 535,
+      "unknown": 0
+    },
+    {
+      "id": "4a",
+      "name": "Tiger Clan",
+      "rooms": 116,
+      "unknown": 0
+    },
+    {
+      "id": "6",
+      "name": "Crossing North Gate",
+      "rooms": 284,
+      "unknown": 0
+    },
+    {
+      "id": "7",
+      "name": "Northern Trade Road",
+      "rooms": 850,
+      "unknown": 0
+    },
+    {
+      "id": "7a",
+      "name": "Vineyard",
+      "rooms": 91,
+      "unknown": 0
+    },
+    {
+      "id": "7c",
+      "name": "DiSilveron",
+      "rooms": 26,
+      "unknown": 0
+    },
+    {
+      "id": "8",
+      "name": "Crossing East Gate",
+      "rooms": 176,
+      "unknown": 0
+    },
+    {
+      "id": "8a",
+      "name": "Lost Crossing",
+      "rooms": 98,
+      "unknown": 0
+    },
+    {
+      "id": "9b",
+      "name": "Sorrow's Reach",
+      "rooms": 144,
+      "unknown": 0
+    },
+    {
+      "id": "10",
+      "name": "Abandoned Mine and Lairocott Brach",
+      "rooms": 121,
+      "unknown": 0
+    },
+    {
+      "id": "11",
+      "name": "Leucros Vipers and Rock Guardians",
+      "rooms": 162,
+      "unknown": 0
+    },
+    {
+      "id": "12a",
+      "name": "Misenseor Abbey",
+      "rooms": 62,
+      "unknown": 0
+    },
+    {
+      "id": "13",
+      "name": "Dirge",
+      "rooms": 247,
+      "unknown": 0
+    },
+    {
+      "id": "14b",
+      "name": "Greater Fist",
+      "rooms": 217,
+      "unknown": 0
+    },
+    {
+      "id": "14c",
+      "name": "Faldesu River",
+      "rooms": 22,
+      "unknown": 0
+    },
+    {
+      "id": "14d",
+      "name": "Moon Mage Guild NTR",
+      "rooms": 57,
+      "unknown": 0
+    },
+    {
+      "id": "30",
+      "name": "Riverhaven",
+      "rooms": 568,
+      "unknown": 1
+    },
+    {
+      "id": "30a",
+      "name": "Dunshade Manor",
+      "rooms": 57,
+      "unknown": 0
+    },
+    {
+      "id": "30b",
+      "name": "Riverhaven Thief Passages",
+      "rooms": 14,
+      "unknown": 0
+    },
+    {
+      "id": "31",
+      "name": "Riverhaven East Gate",
+      "rooms": 188,
+      "unknown": 0
+    },
+    {
+      "id": "31b",
+      "name": "Maelshyve's Fortress",
+      "rooms": 123,
+      "unknown": 0
+    },
+    {
+      "id": "32",
+      "name": "Riverhaven North Gate",
+      "rooms": 152,
+      "unknown": 0
+    },
+    {
+      "id": "33a",
+      "name": "Road to Therenborough",
+      "rooms": 48,
+      "unknown": 0
+    },
+    {
+      "id": "35",
+      "name": "Throne City",
+      "rooms": 209,
+      "unknown": 0
+    },
+    {
+      "id": "35a",
+      "name": "Throne City Thief Passages",
+      "rooms": 16,
+      "unknown": 0
+    },
+    {
+      "id": "40",
+      "name": "Langenfirth to Therenborough",
+      "rooms": 405,
+      "unknown": 0
+    },
+    {
+      "id": "40a",
+      "name": "Langenfirth to Siksraja",
+      "rooms": 222,
+      "unknown": 0
+    },
+    {
+      "id": "41",
+      "name": "Ker'Leor Fornsted and Hraval",
+      "rooms": 246,
+      "unknown": 0
+    },
+    {
+      "id": "42",
+      "name": "Therenborough and Keep",
+      "rooms": 365,
+      "unknown": 0
+    },
+    {
+      "id": "47",
+      "name": "Muspar'i",
+      "rooms": 561,
+      "unknown": 1
+    },
+    {
+      "id": "47a",
+      "name": "Muspar'i Thief Passages",
+      "rooms": 30,
+      "unknown": 0
+    },
+    {
+      "id": "48",
+      "name": "Haizen Cugis",
+      "rooms": 129,
+      "unknown": 0
+    },
+    {
+      "id": "50",
+      "name": "Segoltha River",
+      "rooms": 46,
+      "unknown": 0
+    },
+    {
+      "id": "58",
+      "name": "Acenamacra Village",
+      "rooms": 56,
+      "unknown": 0
+    },
+    {
+      "id": "59",
+      "name": "Boggy Wood",
+      "rooms": 51,
+      "unknown": 0
+    },
+    {
+      "id": "60",
+      "name": "Southern Trade Route Part 1",
+      "rooms": 165,
+      "unknown": 0
+    },
+    {
+      "id": "61",
+      "name": "Leth Deriel",
+      "rooms": 274,
+      "unknown": 0
+    },
+    {
+      "id": "62",
+      "name": "Southern Trade Route Part 2",
+      "rooms": 217,
+      "unknown": 0
+    },
+    {
+      "id": "62b",
+      "name": "Tref Dinta",
+      "rooms": 20,
+      "unknown": 0
+    },
+    {
+      "id": "63",
+      "name": "Oshu'ehhrsk Manor",
+      "rooms": 118,
+      "unknown": 1
+    },
+    {
+      "id": "65",
+      "name": "Under the Gondola",
+      "rooms": 93,
+      "unknown": 0
+    },
+    {
+      "id": "66",
+      "name": "Shard to Gondola Area",
+      "rooms": 765,
+      "unknown": 3
+    },
+    {
+      "id": "67",
+      "name": "Shard",
+      "rooms": 807,
+      "unknown": 0
+    },
+    {
+      "id": "67a",
+      "name": "Shard Thief Passages",
+      "rooms": 23,
+      "unknown": 0
+    },
+    {
+      "id": "68",
+      "name": "Shard South Gate",
+      "rooms": 224,
+      "unknown": 0
+    },
+    {
+      "id": "68a",
+      "name": "Ice Caves",
+      "rooms": 49,
+      "unknown": 0
+    },
+    {
+      "id": "68b",
+      "name": "Blackthorn Canyon Lost Ground",
+      "rooms": 46,
+      "unknown": 0
+    },
+    {
+      "id": "69",
+      "name": "Shard West Gate",
+      "rooms": 647,
+      "unknown": 0
+    },
+    {
+      "id": "90",
+      "name": "Ratha",
+      "rooms": 880,
+      "unknown": 2
+    },
+    {
+      "id": "90a",
+      "name": "Sand Sprites and Ochre La'heke",
+      "rooms": 73,
+      "unknown": 0
+    },
+    {
+      "id": "90d",
+      "name": "Taisgath",
+      "rooms": 65,
+      "unknown": 0
+    },
+    {
+      "id": "90e",
+      "name": "Basalt Isle and Jeihrem's Barrow",
+      "rooms": 85,
+      "unknown": 0
+    },
+    {
+      "id": "92",
+      "name": "Reshalia Trade Road",
+      "rooms": 323,
+      "unknown": 0
+    },
+    {
+      "id": "95",
+      "name": "Pokekehekepi",
+      "rooms": 329,
+      "unknown": 51
+    },
+    {
+      "id": "98",
+      "name": "Road to Aesry Frostweavers Snow Gobs",
+      "rooms": 336,
+      "unknown": 0
+    },
+    {
+      "id": "98a",
+      "name": "Sea Caves",
+      "rooms": 111,
+      "unknown": 0
+    },
+    {
+      "id": "99",
+      "name": "Aesry Surlaenis'a",
+      "rooms": 506,
+      "unknown": 0
+    },
+    {
+      "id": "99a",
+      "name": "Tethloren Island",
+      "rooms": 41,
+      "unknown": 0
+    },
+    {
+      "id": "105",
+      "name": "Soul of Maelshyve",
+      "rooms": 53,
+      "unknown": 3
+    },
+    {
+      "id": "106",
+      "name": "Hara'jaal",
+      "rooms": 225,
+      "unknown": 0
+    },
+    {
+      "id": "107",
+      "name": "Mer'Kresh",
+      "rooms": 359,
+      "unknown": 2
+    },
+    {
+      "id": "107a",
+      "name": "Belarritaco Bay",
+      "rooms": 4,
+      "unknown": 0
+    },
+    {
+      "id": "108",
+      "name": "M'Riss",
+      "rooms": 442,
+      "unknown": 0
+    },
+    {
+      "id": "112",
+      "name": "Ilaya Taipa River Clan",
+      "rooms": 192,
+      "unknown": 0
+    },
+    {
+      "id": "113",
+      "name": "West Segoltha",
+      "rooms": 13,
+      "unknown": 0
+    },
+    {
+      "id": "116",
+      "name": "Hibarnhvidar",
+      "rooms": 513,
+      "unknown": 0
+    },
+    {
+      "id": "118e",
+      "name": "Cavern of Fire",
+      "rooms": 14,
+      "unknown": 0
+    },
+    {
+      "id": "123",
+      "name": "Himineldar Shel",
+      "rooms": 272,
+      "unknown": 0
+    },
+    {
+      "id": "126",
+      "name": "Hawstkaal Road",
+      "rooms": 103,
+      "unknown": 0
+    },
+    {
+      "id": "127",
+      "name": "Boar Clan",
+      "rooms": 666,
+      "unknown": 0
+    },
+    {
+      "id": "150",
+      "name": "Fang Cove",
+      "rooms": 272,
+      "unknown": 0
+    },
+    {
+      "id": "997",
+      "name": "Wyvern Arena",
+      "rooms": 8,
+      "unknown": 0
+    },
+    {
+      "id": "998",
+      "name": "Transports",
+      "rooms": 59,
+      "unknown": 6
+    },
+    {
+      "id": "999",
+      "name": "Microcosm",
+      "rooms": 16,
+      "unknown": 16
+    },
+    {
+      "id": "TF1",
+      "name": "The Arch (TF)",
+      "rooms": 26,
+      "unknown": 0
+    },
+    {
+      "id": "TF990",
+      "name": "The Extreme Shop (TF)",
+      "rooms": 9,
+      "unknown": 0
+    }
+  ]
+}

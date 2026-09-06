@@ -38,7 +38,23 @@ const PLAN = 'docs/PLAN_TO_1_0.md'
 const MIN_INCREMENTS = 80
 const MIN_PATHS = 60
 
-const ID = /\b([A-N]\d+[a-z]?)\b/g
+/**
+ * The lane letter is `A-Z`, not `A-L`.
+ *
+ * It was `A-L` — the lanes that existed when this was written — and that is a
+ * silent floor rather than a bound. Lane M was added on 6 Sep 2026 with three
+ * increments and a `touches:` list of seven paths, and the audit went on
+ * printing `plan ok: 120 increments, 338 paths checked` unchanged: every one of
+ * them was invisible, so none of their paths was checked, and a `touches:`
+ * naming a file that does not exist would have passed. Nothing in the output
+ * could show it, because the count it did not include is the same count it
+ * reports.
+ *
+ * Lane N's session hit the identical defect within the hour and widened it to
+ * `A-N`. This is that fix, taken to the end of the alphabet instead of to the
+ * next lane, so the lane after N does not have to rediscover it a third time.
+ */
+const ID = /\b([A-Z]\d+[a-z]?)\b/g
 const CHECKBOX = /^- \[([ ~x!-])\] (.*)$/
 
 export function parsePlan(text) {
@@ -49,7 +65,7 @@ export function parsePlan(text) {
     const line = lines[i]
     const m = CHECKBOX.exec(line)
     if (m) {
-      const ids = [...m[2].matchAll(/\*\*([A-N]\d+[a-z]?)\s/g)].map((x) => x[1])
+      const ids = [...m[2].matchAll(/\*\*([A-Z]\d+[a-z]?)\s/g)].map((x) => x[1])
       if (ids.length === 0) continue // a checkbox that is not an increment
       current = { ids, marker: m[1], line: i + 1, touches: [], dependsOn: [], minutes: null }
       increments.push(current)
@@ -103,7 +119,7 @@ export function audit(increments, exists) {
       if (inc.marker === 'x' && target.marker !== 'x') findings.push(`${label} is done but depends on ${dep}, which is ${describe(target.marker)}`)
     }
     for (const raw of inc.touches) {
-      const arrives = /^([A-N]\d+[a-z]?)>(.+)$/.exec(raw)
+      const arrives = /^([A-Z]\d+[a-z]?)>(.+)$/.exec(raw)
       if (arrives) {
         const [, via, p] = arrives
         const src = byId.get(via)
@@ -206,9 +222,9 @@ function describe(marker) {
  * hyphen and an em dash are accepted too so a typed edit does not vanish.
  */
 const GATE_HEADER = /^- \*\*Gate (\d+)\s*[–—-]\s*([^:*]+?)\s*:\*\*\s*(.*)$/
-const GATE_RANGE = /\b([A-N])(\d+)\s*[–—-]\s*([A-N])(\d+)\b/g
-const GATE_LANE = /\b([A-N]) complete\b/g
-const GATE_ID = /\b([A-N]\d+[a-z]?)\b/g
+const GATE_RANGE = /\b([A-Z])(\d+)\s*[–—-]\s*([A-Z])(\d+)\b/g
+const GATE_LANE = /\b([A-Z]) complete\b/g
+const GATE_ID = /\b([A-Z]\d+[a-z]?)\b/g
 
 export function parseGates(text, knownIds = []) {
   const lines = text.split(/\r?\n/)
@@ -554,7 +570,16 @@ function selfTest() {
   // directions are asserted here - a heading with no increments must fail, and
   // a heading with increments must not - because a check that always fires
   // carries exactly as little information as one that never does.
-  const laneText = ['### Lane A', '- [ ] **A1  a thing** (≈5)', '  touches: none', '', '### Lane Z', '- [ ] **Z1  invisible** (≈5)', '  touches: none'].join('\n')
+  // Lane Z's increment is written `**ZZ1`, not `**Z1`, and that is deliberate.
+  // The fixture has to contain an id the parser genuinely cannot match, and
+  // when this was written it got one for free: `ID` stopped at `A-N`, so a Z
+  // was unmatchable by accident. `ID` covers `A-Z` now — every lane letter
+  // parses, which is the point — and a `**Z1` fixture would have quietly
+  // stopped demonstrating the defect while still passing, since the check it
+  // exercises would simply have nothing to report. `ZZ1` is outside the
+  // pattern by construction rather than by where the alphabet happened to be
+  // truncated that week.
+  const laneText = ['### Lane A', '- [ ] **A1  a thing** (≈5)', '  touches: none', '', '### Lane Z', '- [ ] **ZZ1  invisible** (≈5)', '  touches: none'].join('\n')
   const laneIncrements = parsePlan(laneText)
   const laneResult = checkLaneHeadings(laneText, laneIncrements)
   const laneExpect = [

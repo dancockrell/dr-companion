@@ -1661,6 +1661,43 @@ the code increments. N8 is optional and human-gated and blocks nothing.
 
 ---
 
+### Lane M — World content pipeline (#436)
+
+Dan, 6 Sep 2026, looking at the hand-built 19-cell Crossing mock: *"wow are you
+going to do this for 17000 rooms? how many years? figure out how to batch."*
+The viewer's content came from authored prose — one description per place,
+1,067 of them against 17,750 rooms — so 95% of the game could never be
+classified at all, and the live compiler published an empty classification for
+every zone. This lane derives content for every room from the cartography
+already on disk.
+
+- [x] **M1  Batch every room's board content from the map** (≈90)
+  commit: (this PR) verified: 2026-09-06 minutes: 150
+  touches: new:src/lib/world-content-rules.mjs, new:tools/build-world-content.mjs, new:tools/world-content-test.mjs, new:src/data/world, new:tools/world-content-residue.csv, package.json, tools/test-suites.json
+  do: read `src/data/map/*.json` and derive per room a ground kind, a block kind, a landmark and the compass sides facing no walkable neighbour. Rules named and counted in order — colour, title, label, zone, neighbour — with the colour→kind table *derived* from the data rather than typed, and printed. Landmarks come from `src/lib/mapLandmarks.ts::landmarkFor`, imported, not restated. Output committed per zone the way `src/data/map` is; residue listed in a CSV short enough to review.
+  verify: `npm run world:build` under a 15,000-room floor; `npm run test:world-content`; `node tools/run-tests.mjs` ends `no failures`.
+  done-when: every one of the 17,750 rooms has a content entry, unknown is well under 5%, and re-running the builder is byte-identical to what is committed.
+  done: 17,750 rooms in 85 zones, 2.1 s. Decided by rule: colour 1,135 (6.4%) · title 13,358 (75.3%) · label 36 (0.2%) · zone 418 (2.4%) · neighbour 2,717 (15.3%) · unknown 86 (0.48%, ceiling 5%). 13 ground kinds; 4.61 MB committed across 87 files; residue 86 rooms, reviewable in one screen. Colour table derived and printed each run: 4 of 16 colours admitted (#FF0000 interior 85%, #993300 cave 83%, #000080 water 78%, #FF8000 interior 75%); the other 12 are demoted for incoherence, `#00FFFF` scoring 34% across hallways, garden paths and town squares.
+  note: **the 90%-agreement gate against the hand-made Crossing classification is not met, and chasing it would have made the pipeline worse.** Measured: 47.4% over all 975 described rooms, 50.9% over the 393 whose place covers exactly one room (the lore classifier's unit is a *place*, so all 24 rooms of Asemath Academy get one answer). The disagreement is 302 rooms it calls outdoors and this calls indoors. A third instrument that reads no keywords at all — the exit graph, where `dir: 'go'`/`'out'` is a doorway and deleting every threshold drops a town into one street component plus a few hundred building-sized islands — puts **283 of those 302 (93.7%) behind a door**. Of this pipeline's 608 Crossing interiors 96.5% are behind a door, against 93.9% of the lore classifier's 293. The older instrument is the coarser one: its interior vocabulary is 15 words and has no *refectory*, *classroom*, *library*, *pantry*, *booth*, *teller* or *storage*. The adjudication runs in `--control` and is printed, so the next session sees the evidence rather than the conclusion.
+  pitfalls: two rules were wrong on the first run and only the control could see it. Neighbour propagation crossing a doorway put 284 Crossing streets under a roof (Hodierna Way, Goodwhate Pike, Varlet's Run — ordinary streets ringed by shop doors); barring interiors from voting instead left 1,024 rooms unknown. It runs in two phases now, thresholds last. And the colour gate at a bare 60% majority admitted `#00FF00` at 65%, which is the mapper's marker for a service door as much as for the room behind it: a signal has to be *better* than the rule it pre-empts, not merely more often right than wrong, so the gate is 75%.
+  sabotage: four, each reddening a different named check, all restored by md5 (`bfa022afa6c1` rules, `37b7fe2a7bec` builder, `2af799a36eb9` content pack). Drop `neighbour` from the ladder → `FAIL the unknown share is under the ceiling  2803 of 17750 = 15.792%`. Rename `water-ribbon-5m` in `shared_asset_content.gd` → `FAIL every primitive the content asks for has a factory registered in Godot  36743 asked for; unregistered: water-ribbon-5m x1375`. Hand-edit one `"ground":"street"` in the committed `src/data/world/1.json` → `FAIL the committed content is byte-for-byte what the builder produces`. Drop `colour` from `GROUND_RULES` → red, but on `FAIL every rule a record names is one of the declared rules` rather than on coverage: the ladder is the *vocabulary*, and the rule kept firing under a name no longer declared. Worth recording because it is not the failure that was expected, and the check that caught it was written for a different reason.
+
+- [ ] **M2  The viewer reads the batch, and can load a zone nobody wrote about** (≈60)
+  touches: src/lib/presentationBridge.ts, tools/build-primitive-world-manifest.mjs, tools/build-godot-mock-fixture.mjs, godot/mock/crossing_mock_world.json, new:src/lib/worldContent.ts, new:tools/world-content-loader-test.mjs
+  depends-on: M1
+  do: `compileWorldSnapshot` publishes `boardLayoutFor({})` for every cell, so no live room has ever been an interior. Load the zone's content manifest and pass the classification through, so the live path and the Crossing art path take content from one place. Source `build-primitive-world-manifest.mjs`'s cells from `src/data/map` + `src/data/world` rather than from the place briefs, which is what limits it to the 1,060 described Crossing rooms today.
+  verify: the regenerated mock fixture still passes `test:godot-fixture-contract`; a forest zone and a cave zone compile to cells with the right block kinds.
+  done-when: the Crossing renders from the pipeline rather than from the hand-made classification, and a zone with no authored prose renders at all.
+
+- [ ] **M3  Capture a zone that has never been rendered** (≈20)
+  touches: new:docs/verification/world-content-2026-09-06.md
+  depends-on: M2
+  do: `tools/viewer-snapshot-server.mjs --room <id>` against a forest zone and a cave zone, per `docs/verification/token-height-2026-09-06.md`. Save the captures and say what is on screen.
+  verify: two captures in `docs/verification/`, each with a sentence about what it shows.
+  done-when: somebody who was not there can see that the batch produced a board.
+
+---
+
 ## 7. Dependency graph
 
 ```
@@ -1693,7 +1730,7 @@ against N3's code, so it runs concurrently with N3 and N4.
 
 ## 8. Estimate
 
-C 8 · A 8 · B 8 · D 7 · E 12 · F 14 · G 10 · H 8 · I 11 · J 2+ · K 6 · L 6 =
+C 8 · A 8 · B 8 · D 7 · E 12 · F 14 · G 10 · H 8 · I 11 · J 2+ · K 6 · L 6 · M 3 =
 **108 increments plus J's findings, ≈50 hours of unaided work**, plus waiting
 on CI, downloads and the VM. Three sessions: Gate 0 in a day, Gate 2 in about
 a week, Gate 6 in about three weeks. Gate 7 depends on beta weeks, not code.
