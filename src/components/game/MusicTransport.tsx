@@ -41,15 +41,8 @@ import {
   type Progress,
   type CrossfadeStyle,
 } from '../../lib/ambientSound.ts'
-import {
-  MUSIC_LIBRARY_BYTES,
-  MUSIC_TRACKS,
-  cancelMusicInstall,
-  formatLibrarySize,
-  installMusicLibrary,
-  refreshMusicLibrary,
-} from '../../lib/musicLibrary.ts'
-import { resetMusicLibraryVerdict, startMusic } from '../../lib/ambientSound.ts'
+import { refreshMusicLibrary } from '../../lib/musicLibrary.ts'
+import { MusicInstallAction } from './MusicInstall.tsx'
 import { savePrefs } from '../../lib/persistence.ts'
 import { isFavorited, toggleFavorite, onFavoritesChange } from '../../lib/favorites.ts'
 import { useEffect, useState } from 'react'
@@ -124,80 +117,6 @@ function ProgressBar() {
   )
 }
 
-
-/**
- * What to do about a library that is not installed.
- *
- * #383 made the missing library honest: one `Music not installed` state, no
- * track name, no Retry that could not work. Honest and a dead end - the
- * installer ships no audio at all (`public/audio/` is gitignored and no build
- * step fetches it), so every player saw that state and had nothing to press.
- *
- * This is the something to press. One action, not two: docs/SETUP-POLICY.md
- * says nothing is installed without the player choosing it and that the cost
- * is stated before the choice, so the size is on the button rather than in a
- * dialog behind it.
- *
- * Rendered by the transport itself so the state and its remedy cannot drift
- * apart into two components with different ideas of what is wrong.
- */
-function MusicInstallAction() {
-  const [phase, setPhase] = useState<'idle' | 'installing' | 'failed'>('idle')
-  const [done, setDone] = useState(0)
-  const [error, setError] = useState('')
-
-  const total = MUSIC_LIBRARY_BYTES
-  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
-
-  if (phase === 'installing') {
-    return (
-      <span className="flex shrink-0 items-center gap-1.5 text-xs text-ink-muted">
-        <span className="tabular-nums">
-          Installing music {percent}% ({formatLibrarySize(done)} of {formatLibrarySize(total)})
-        </span>
-        <button
-          type="button"
-          className="rounded border border-line px-1.5 py-0.5 text-xs text-ink-muted hover:text-ink"
-          onClick={() => void cancelMusicInstall()}
-        >
-          Cancel
-        </button>
-      </span>
-    )
-  }
-
-  return (
-    <span className="flex min-w-0 shrink-0 items-center gap-1.5">
-      <button
-        type="button"
-        className="shrink-0 rounded border border-accent/40 px-1.5 py-0.5 text-xs text-accent hover:bg-accent/10"
-        title={`Download the ${MUSIC_TRACKS.length}-track music library (${formatLibrarySize(total)}) into this app's data folder. Nothing is downloaded until you press this.`}
-        onClick={() => {
-          setError('')
-          setDone(0)
-          setPhase('installing')
-          void installMusicLibrary((p) => setDone(p.received))
-            .then(() => {
-              setPhase('idle')
-              resetMusicLibraryVerdict()
-              startMusic()
-            })
-            .catch((e: unknown) => {
-              setPhase('failed')
-              setError(e instanceof Error ? e.message : String(e))
-            })
-        }}
-      >
-        Install music ({formatLibrarySize(total)})
-      </button>
-      {phase === 'failed' && (
-        <span className="min-w-0 max-w-48 truncate text-xs text-warn" role="alert" title={error}>
-          {error}
-        </span>
-      )}
-    </span>
-  )
-}
 
 /**
  * Ask the machine once per app run where the library is, so a build with no
@@ -419,11 +338,14 @@ export function MusicTransport({
               {nowLabel}
             </span>
           ))}
-        {/* Exactly one action in the unavailable state, and it is the
-          * install. Not beside a Retry: `musicRetryable` is false here (see
-          * ambientSound.ts), so these two are mutually exclusive by
-          * construction rather than by both being asked to behave. */}
-        {unavailable && <MusicInstallAction />}
+        {/* Every action in the unavailable state is an install, and none of
+          * them is a Retry: `musicRetryable` is false here (see
+          * ambientSound.ts), so the two are mutually exclusive by construction
+          * rather than by both being asked to behave. `groupId` is the group
+          * the track that could not play belongs to, so what is offered first
+          * is the smallest thing that would fix what the listener just
+          * noticed - see MusicInstall.tsx. */}
+        {unavailable && <MusicInstallAction groupId={now?.groupId} />}
         {retryable && (
           <button
             type="button"

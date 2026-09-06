@@ -50,7 +50,7 @@ import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
 // repo) even though Vite accepts a bare JSON import without it. Without the
 // attribute this module fails to import outside a bundler at all.
 import manifest from '../../data/audio/manifest.json' with { type: 'json' }
-import { audioUrl, isLibraryUrl } from './musicLibrary.ts'
+import { audioUrl, groupIdForFile, isLibraryUrl, trackPresence } from './musicLibrary.ts'
 
 export interface RadioTrack {
   id: string
@@ -99,9 +99,68 @@ export const RADIO_STATIONS: RadioStation[] = (() => {
 const RADIO_FILE_NAMES: Record<string, string> = Object.fromEntries(
   (manifest.radio ?? []).map((r) => [r.id, r.file])
 )
+/**
+ * A playable URL for a track, or undefined when there is not one.
+ *
+ * Two ways to have no URL and they are deliberately the same answer here: an
+ * id the manifest no longer names, and a track whose group nobody installed.
+ * Both mean "this one cannot be played, move on"; the callers below step past
+ * either without touching the media element, which is what makes one installed
+ * station play while the other three are absent instead of one absent track
+ * silencing the zone. `trackPresence` answers `unknown` in a browser and in a
+ * build that ships its own audio, so this keeps its old behaviour there.
+ */
 function radioFileUrl(id: string): string | undefined {
   const file = RADIO_FILE_NAMES[id]
-  return file === undefined ? undefined : audioUrl(file)
+  if (file === undefined) return undefined
+  if (trackPresence(file) === 'absent') return undefined
+  return audioUrl(file)
+}
+
+/** Which installable group a track belongs to, for the install the transport
+ * offers when its group is the one that is missing. */
+function groupOfTrack(id: string): string | undefined {
+  const file = RADIO_FILE_NAMES[id]
+  return file === undefined ? undefined : groupIdForFile(file)
+}
+
+/**
+ * The first index at or after `from` whose track can actually be played.
+ *
+ * One walk for all three players. `RadioPlayer` had it and the other two did
+ * not, which was survivable while the only cause was a renamed id and is not
+ * now that a whole group can be absent: a zone playlist drawn from an
+ * uninstalled station would have stopped dead at its first track. Bounded by
+ * the queue length and iterative rather than recursive - a queue where every
+ * id was unplayable would otherwise recurse until the stack ran out.
+ */
+function firstPlayable(ids: string[], from: number): { index: number; url: string } | null {
+  for (let step = 0; step < ids.length; step++) {
+    const index = (from + step) % ids.length
+    const id = ids[index]
+    const url = id === undefined ? undefined : radioFileUrl(id)
+    if (url !== undefined) return { index, url }
+    if (id !== undefined && RADIO_FILE_NAMES[id] === undefined) {
+      console.warn(`Music: no file for track "${id}" - skipping it`)
+    }
+  }
+  return null
+}
+
+/**
+ * When nothing in a queue could be played, which group would fix it.
+ *
+ * Undefined when the queue is unplayable for some other reason - every id
+ * stale, say - because then no install is the remedy and offering one would be
+ * the dead button #383 was about, wearing new clothes.
+ */
+function absentGroupIn(ids: string[], from: number): string | undefined {
+  for (let step = 0; step < ids.length; step++) {
+    const id = ids[(from + step) % ids.length]
+    const file = id === undefined ? undefined : RADIO_FILE_NAMES[id]
+    if (file !== undefined && trackPresence(file) === 'absent') return groupIdForFile(file)
+  }
+  return undefined
 }
 
 /** Track id -> display metadata, for the "now playing" line - radio and zone
@@ -479,6 +538,13 @@ export interface NowPlaying {
   source: 'radio' | 'zone' | 'custom' | 'playlist'
   status: PlaybackStatus
   error?: string
+  /**
+   * The installable group this track belongs to, carried so the transport can
+   * offer *the group the listener was about to hear* rather than all 4.36 GB.
+   * Undefined for a custom stream, and for an `unavailable` state no install
+   * would fix.
+   */
+  groupId?: string
 }
 let nowPlayingState: NowPlaying | null = null
 const nowPlayingListeners = new Set<(np: NowPlaying | null) => void>()
@@ -575,14 +641,34 @@ export function resetMusicLibraryVerdict() {
  * The transport renders the button itself - see `MusicTransport` - so this
  * string and that control cannot describe different actions.
  */
-function libraryAbsentState(source: NowPlaying['source']): NowPlaying {
+function libraryAbsentState(source: NowPlaying['source'], groupId?: string): NowPlaying {
   return {
     title: 'Music not installed',
     composer: '',
     source,
     status: 'unavailable',
     error: 'The music library is not installed yet. Install it to play anything here.',
+    groupId,
   }
+}
+
+/**
+ * A queue in which nothing could be played, reported once instead of N times.
+ *
+ * Silence used to be the whole answer here, which was survivable when the only
+ * cause was a stale id and is not now that a listener can install one station
+ * and walk into a zone drawn from another: the music would simply stop with
+ * nothing said. When an install would fix it this names the group, so the
+ * transport offers that group rather than the whole library. When one would
+ * not - every id stale, say - it stays silent rather than offering a button
+ * that could not work, which is #383's rule and the reason `musicRetryable`
+ * exists.
+ */
+function reportNothingPlayable(ids: string[], from: number, source: NowPlaying['source']) {
+  const groupId = absentGroupIn(ids, from)
+  if (groupId === undefined) return
+  music.play(null)
+  setNowPlaying(libraryAbsentState(source, groupId))
 }
 
 /**
@@ -600,7 +686,7 @@ function playMusic(src: string, meta: PlayingMeta, opts?: LayerOptions) {
   // track is how N errors got made in the first place.
   if (libraryVerdict === 'absent' && isBundledTrack(src)) {
     music.play(null)
-    setNowPlaying(libraryAbsentState(meta.source))
+    setNowPlaying(libraryAbsentState(meta.source, meta.groupId))
     return
   }
   music.play(src, 0.22, {
@@ -626,7 +712,7 @@ function playMusic(src: string, meta: PlayingMeta, opts?: LayerOptions) {
         if (nowPlayingState?.title !== meta.title) return
         if (verdict === 'absent') {
           music.play(null)
-          setNowPlaying(libraryAbsentState(meta.source))
+          setNowPlaying(libraryAbsentState(meta.source, meta.groupId))
         } else {
           setNowPlaying({ ...meta, status: 'failed', error })
         }
@@ -775,24 +861,18 @@ class RadioPlayer {
   }
 
   private playCurrent() {
-    // A queued id the manifest no longer names has no file to play. Stepping
-    // past it here rather than handing `playMusic` an undefined URL keeps a
-    // renamed track from being reported as the whole library missing.
-    // Bounded by the queue length and iterative rather than recursive: a
-    // playlist where *every* id had gone stale would otherwise recurse
-    // through `advance` until the stack ran out.
-    let track = this.queue[this.pos]
-    let src = track ? radioFileUrl(track.id) : undefined
-    for (let skipped = 0; track && src === undefined && skipped < this.queue.length; skipped++) {
-      console.warn(`Music: no file for track "${track.id}" - skipping it`)
-      this.pos = (this.pos + 1) % this.queue.length
-      track = this.queue[this.pos]
-      src = track ? radioFileUrl(track.id) : undefined
+    const ids = this.queue.map((t) => t.id)
+    const found = firstPlayable(ids, this.pos)
+    if (!found) {
+      reportNothingPlayable(ids, this.pos, 'radio')
+      return
     }
-    if (!track || src === undefined) return
+    this.pos = found.index
+    const track = this.queue[this.pos]
+    if (!track) return
     playMusic(
-      src,
-      { title: track.title, composer: track.composer, source: 'radio' },
+      found.url,
+      { title: track.title, composer: track.composer, source: 'radio', groupId: groupOfTrack(track.id) },
       {
       loop: false,
       onEnded: () => this.advance(),
@@ -847,15 +927,19 @@ class ZoneMusicPlayer {
   }
 
   private playCurrent() {
+    const found = firstPlayable(this.queue, this.pos)
+    if (!found) {
+      reportNothingPlayable(this.queue, this.pos, 'zone')
+      return
+    }
+    this.pos = found.index
     const id = this.queue[this.pos]
-    const file = id ? radioFileUrl(id) : undefined
-    if (!file) return
     const meta = id ? TRACK_META[id] : undefined
-    if (!meta) return
-    playMusic(file, { ...meta, source: 'zone' }, {
+    if (!id || !meta) return
+    playMusic(found.url, { ...meta, source: 'zone', groupId: groupOfTrack(id) }, {
       loop: false,
       onEnded: () => this.advance(),
-      trackGain: id ? TRACK_GAIN[id] : undefined,
+      trackGain: TRACK_GAIN[id],
     })
   }
 
@@ -924,15 +1008,19 @@ class PlaylistPlayer {
   }
 
   private playCurrent() {
+    const found = firstPlayable(this.queue, this.pos)
+    if (!found) {
+      reportNothingPlayable(this.queue, this.pos, 'playlist')
+      return
+    }
+    this.pos = found.index
     const id = this.queue[this.pos]
-    const file = id ? radioFileUrl(id) : undefined
-    if (!file) return
     const meta = id ? TRACK_META[id] : undefined
-    if (!meta) return
-    playMusic(file, { ...meta, source: 'playlist' }, {
+    if (!id || !meta) return
+    playMusic(found.url, { ...meta, source: 'playlist', groupId: groupOfTrack(id) }, {
       loop: false,
       onEnded: () => this.advance(),
-      trackGain: id ? TRACK_GAIN[id] : undefined,
+      trackGain: TRACK_GAIN[id],
     })
   }
 

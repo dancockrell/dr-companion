@@ -88,6 +88,7 @@ import { cn } from '../../lib/cn.ts'
 import { masterMuted, onMasterMuteChange, setMasterMuted } from '../../lib/audioMaster.ts'
 import { alertPlaybackFailures, onAlertPlaybackFailuresChange } from '../../lib/alertPlaybackStatus.ts'
 import { MusicTransport } from './MusicTransport.tsx'
+import { MusicLibraryGroups } from './MusicInstall.tsx'
 
 /** Search results cap - the pool is 178 tracks (29 Aug 2026: down from 217
  * after killing Salt and Sail and Silk Road, see docs/AUDIO.md - both were
@@ -703,6 +704,13 @@ export function SoundControls() {
               * track they don't want, or actually pause it. Shared with
               * SafetyFooter's own copy - see MusicTransport's header. */}
             <MusicTransport className="mb-2" showProgress />
+
+            {/* Which stations are actually on this machine, and the install or
+              * remove for each. The transport above offers only the group it
+              * was about to play; this is the whole list, for a listener who
+              * wants to choose or to get 4 GB back. Same component, same one
+              * install call site - see MusicInstall.tsx. */}
+            <MusicLibraryGroups />
 
             {/* How transitions feel - a listener preference, not a
               * per-event tuning problem, so one style covers both
