@@ -8122,7 +8122,7 @@
     }
   },
   "compositionCompilation": {
-    "compiler": "rust-interior-v6",
+    "compiler": "rust-interior-v7.1",
     "generatedRooms": 59,
     "exceptions": [
       {

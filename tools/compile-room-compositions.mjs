@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const COMPILER_VERSION = 'rust-interior-v6'
+export const COMPILER_VERSION = 'rust-interior-v7.1'
 const prefix='painted-river-port.'
 // Literal supported nouns only. This is a candidate compiler, not a claim that
 // matching prose proves material, count, local position or artistic completion.
@@ -16,6 +16,43 @@ const rejectedContext=/\b(no|without|absent|removed|destroyed|beyond|distant|thr
 const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex')
 export function overlaps(a,b,gap=0) {
   return a.minX < b.maxX+gap && a.maxX+gap > b.minX && a.minZ < b.maxZ+gap && a.maxZ+gap > b.minZ
+}
+// Deterministic bounded repair over already hard-filtered candidate sets.
+// Greedy seeds the incumbent so a small search budget cannot make it worse.
+export function solvePlacements(domains, budget=4000) {
+  if (!Number.isInteger(budget) || budget<0 || budget>100000 || domains.length>64) throw new Error('Invalid placement search budget')
+  let best=[],bestCount=0,bestScore=0,visited=0
+  const compatible=(candidate,chosen)=>chosen.every(p=>!p || !overlaps(candidate.bounds,p.bounds,.35))
+  for (const domain of domains) {
+    const fit=domain.find(c=>compatible(c,best))??null
+    best.push(fit)
+    if (fit) { bestCount++; bestScore+=fit.score }
+  }
+  const chosen=[]
+  function search(index,count,score) {
+    if (visited>=budget) return
+    visited++
+    if (count+domains.length-index<bestCount) return
+    if (index===domains.length) {
+      if (count>bestCount || (count===bestCount && score>bestScore)) {
+        best=[...chosen]; bestCount=count; bestScore=score
+      }
+      return
+    }
+    for (const candidate of domains[index]) {
+      if (visited>=budget) break
+      if (!compatible(candidate,chosen)) { visited++; continue }
+      chosen.push(candidate)
+      search(index+1,count+1,score+candidate.score)
+      chosen.pop()
+    }
+    chosen.push(null)
+    search(index+1,count,score)
+    chosen.pop()
+  }
+  search(0,0,0)
+  return {placements:best,placed:bestCount,score:bestScore,visited,budget,
+    budgetExhausted:visited>=budget}
 }
 // Slab test against an expanded rectangle: the segment's full corridor is
 // reserved, not just its endpoint or a few sampled points.
@@ -98,6 +135,7 @@ export function compileRoomCompositions(world,sources,selections,provenance) {
     for (const spawn of cell.board.spawnPoints ?? []) occupied.push({minX:spawn.anchor.x-.7,maxX:spawn.anchor.x+.7,minZ:spawn.anchor.z-.7,maxZ:spawn.anchor.z+.7})
     const missing=['Room-specific shell, finishes, counts and landmark details require further compilation and review','Inferred furniture placement is not a recovered historical floor plan']
     if (shell) missing.push('Rust shell is provisional neutral construction geometry; roof, finishes and per-room visual acceptance remain unfinished')
+    const requirements=[],domains=[]
     for (const requirement of wanted) {
       const record=available.get(requirement.assetId)
       if (!record) { missing.push('Missing catalog asset: '+requirement.assetId); continue }
@@ -115,14 +153,19 @@ export function compileRoomCompositions(world,sources,selections,provenance) {
         candidates.push({x,z,yaw,bounds,score:Math.abs(x)+Math.abs(z)+facing*.2})
       }
       candidates.sort((a,b)=>b.score-a.score || a.yaw-b.yaw || a.x-b.x || a.z-b.z)
-      const fit=candidates[0]
-      if (!fit) { missing.push('No clear bounded placement: '+requirement.assetId); continue }
-      occupied.push(fit.bounds)
+      requirements.push(requirement)
+      domains.push(candidates)
+    }
+    const search=solvePlacements(domains)
+    for (let index=0;index<requirements.length;index++) {
+      const requirement=requirements[index],fit=search.placements[index]
+      if (!fit) { missing.push('No placement in bounded search result: '+requirement.assetId); continue }
       pieces.push({assetId:requirement.assetId,center:[fit.x/width,fit.z/depth],envelope:[(fit.bounds.maxX-fit.bounds.minX+.001)/width,(fit.bounds.maxZ-fit.bounds.minZ+.001)/depth],yawDegrees:fit.yaw,lift:0,role:'furnishing',evidence:requirement.evidence,compiledBounds:fit.bounds})
     }
+    if (search.budgetExhausted) missing.push('Placement search budget exhausted; result is valid but not certified optimal')
     if (shell) pieces.push(...shell.pieces)
     if (pieces.length===1) { exceptions.push({cellId:cell.id,reasons:missing}); continue }
-    generated.push({cellId:cell.id,descriptionHash:cell.sourceDescriptionHash,status:'partial-generated-review-required',generatedBy:COMPILER_VERSION,inputHash,requiredExits,requiredFootprint:cell.board.footprint,evidence:'Literal source phrases retained on each furnishing; source binding still requires per-room review.',placementPolicy:'Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.',missing,pieces})
+    generated.push({cellId:cell.id,descriptionHash:cell.sourceDescriptionHash,status:'partial-generated-review-required',generatedBy:COMPILER_VERSION,inputHash,placementSearch:{visited:search.visited,budget:search.budget,budgetExhausted:search.budgetExhausted,placed:search.placed,requirements:requirements.length},requiredExits,requiredFootprint:cell.board.footprint,evidence:'Literal source phrases retained on each furnishing; source binding still requires per-room review.',placementPolicy:'Measured native bounds; reserved central 4m space, spawn clearances and 2m-wide approach corridors. Unlocated exits reserve all four cardinal approaches without inventing endpoints. Authored compositions override generated results.',missing,pieces})
   }
   return {roomCompositions:[...authored,...generated],report:{compiler:COMPILER_VERSION,generatedRooms:generated.length,reusedRooms:reused,exceptions}}
 }

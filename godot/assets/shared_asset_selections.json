@@ -3260,8 +3260,15 @@
       "cellId": "1-1018",
       "descriptionHash": "ec8e5d2d9d44595a",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "5180d575237d871a6efbc287f1ee2f5e511efb2ab282ee9f2bbf21a2a56dd38a",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "58cd41bb5a100b775744bb66ab2a9647089683064b9c2800c10b89616b1d1e85",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -3349,8 +3356,15 @@
       "cellId": "1-1021",
       "descriptionHash": "8e190788f843bf8d",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "9a05724ffd3e3adece715c433a568f6c67c96790e8b58fe10b1e00a582746646",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "c6036927c10089c9955428368f79b09abffb40cdb87ad96ed74300b990ecb42e",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -3438,8 +3452,15 @@
       "cellId": "1-1027",
       "descriptionHash": "f20c288a5e843a39",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "c5579748ce3d72ba2cef613d60720de2a0b783ed7ee7b88e469cec52e7ceca5b",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "46cf0b80be5abe2e41219ed0565f145154ba2d1a27eba4875c7323b288d41b3e",
+      "placementSearch": {
+        "visited": 18,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go obsidian entryway",
@@ -3503,8 +3524,15 @@
       "cellId": "1-1048",
       "descriptionHash": "3c30c6863416231a",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "43beab3c2ffd9da9b0f733c0dbaf2d375930acd9a9d1531528c5b9d2aa7bd432",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "329da9206b090635297549d81e7f4a5f173ffdf742dd14d256ac9cb6df4d4b1e",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -3592,8 +3620,15 @@
       "cellId": "1-197",
       "descriptionHash": "bb97555409b81eac",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "f55887f6c4ee09cae6791141680a5c3059369aa47a33719f14ee5bd84c152a33",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "08f6660b483f53fb874c678dd91fb88320bf129da7d73d8a40c2826e4f75c81d",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -3681,8 +3716,15 @@
       "cellId": "1-198",
       "descriptionHash": "8f5400d55a28c9bf",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "873e763a641f4c410687bb4ad131997c576e44bcf3c680b063fd203ab2102ffe",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "0ab760c419c5f3c7a9ca9ec14022a397c967a34fb0b50e3f16dad82232891f7d",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -3770,8 +3812,15 @@
       "cellId": "1-202",
       "descriptionHash": "8be89d316d197d35",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "cde393686580594bb1ef96e39f8529f0526a55a9c7c9a2965819e8e5d7834aff",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "9a7c93a28a439ab14627048ed0755204c0f26afe7b040a4f6fd47bededea4db4",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -3928,8 +3977,15 @@
       "cellId": "1-204",
       "descriptionHash": "b005665fab2195c4",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "24d1d4feba722a76eb609476f4cbf93f06a160ae3b2ccc686d7cb29726db3f79",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "a2f4145778f0ed07477f52900498e7c890fd3fb588c5cd341d5c15ca48e10e44",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -4017,8 +4073,15 @@
       "cellId": "1-205",
       "descriptionHash": "8036c3b1cd05a654",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "45603e10f96e87eb9b202ff5e41b25681f88f123e9b22810608258d97e825246",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "8f6879ad877f5058fb0f2fa646fafe8b515cba32313dcd045cb9dd1b1fe01978",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -4106,8 +4169,15 @@
       "cellId": "1-209",
       "descriptionHash": "f9b4d50c74e58bcf",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "c6f78df60a28541a361e7d714f6c592bb2f84acb4abe1fcc2999f409fc5cde62",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "37060cb968693b673e871276fb9ca414e67fcbc206ec7cacbc506b625ae2a3f7",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -4195,8 +4265,15 @@
       "cellId": "1-221",
       "descriptionHash": "c8e65cd3525fb3ee",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "ac9f41d62cd29b4b92dbfb7711f037b2488e1985e0b9bd9b9ea27208c0eda6df",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "7b0057a2f8865a64673ae4dd64db86b64aaada7ea2ee22dc49f19c5942f6a861",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -4307,8 +4384,15 @@
       "cellId": "1-222",
       "descriptionHash": "d2f0a8c64c3aa0c6",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "d6f640f6ff66dda98f864671811117a0f2e78d66a08ee0f3cd70543f5abb36c2",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "c78eb6f6d65b8f03f581f2e716170f292a95052b52bebcea1d043ba2a77e5d47",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -4396,8 +4480,15 @@
       "cellId": "1-304",
       "descriptionHash": "ef09c06307f00d23",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "11828b3ab381f18b7479ed0d57ea59b1483d42e43fa6f5372329f85bd8109e61",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "45b337aa3c0a91eb101d7f06f98d0e68296bbe5750dc20a28337fff0a406aaeb",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -4485,8 +4576,15 @@
       "cellId": "1-315",
       "descriptionHash": "b56e456b9833b586",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "cdc2b5c392edfc1a975105bc4a17fd8c619272b72740f6d8aaf2684fc02d1395",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "8e69a66b2787e4dc21f1b4f49749f5b28d91f41a8636f316546ee541c6cea62c",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -4574,8 +4672,15 @@
       "cellId": "1-326",
       "descriptionHash": "c684a708fb52632a",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "f70efdf573055f6bfb189383354dee96402a98172c6108b1297e3ebfca484fb6",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "08187215fc6e3cb13731aa8a14ab400b2ce202ab3b19691df86de2f3ab98406a",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "out",
@@ -4639,8 +4744,15 @@
       "cellId": "1-334",
       "descriptionHash": "09bf4fcc1a14ad58",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "bb581dc4dc17fd82aa47b5ba7ce0104848f17e6d09d6c948adde7af2de914570",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "b2794cc5a42b6ae6ffa21ff77c4c53f3b253b1679a1a169b2ff612f890da1d8a",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go fros door",
@@ -4704,8 +4816,15 @@
       "cellId": "1-348",
       "descriptionHash": "172e3290cd189a44",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "9f6bca02201bd4b6f8bdb8b62778960f8d0d68e6ef2f4bf18dfc883efb8d40ba",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "b8275c23e5e711247f98a74d87bcb5e7e7a71cdce88e4adc1c31a11c3e921f5f",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go low building",
@@ -4790,8 +4909,15 @@
       "cellId": "1-350",
       "descriptionHash": "fd3fb1e9f20d52e5",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "d2f4be6d22f361d20636a38e32b369dad4e614544f90987db242d4cd9f7797d6",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "29c2eb6b7ad6ce2d58928f97a9e83c3e8d955d6860b8694d463952bf1d251a9d",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -4879,8 +5005,15 @@
       "cellId": "1-353",
       "descriptionHash": "034d0ba244cbc338",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "f81606ee7fa74ceb6cf6481cfa0a042bf0b80ea47f6b64ceba4f200414c4ee17",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "1d3d620ac6263b159e303aa9c09de5dfad7a6a8d1380a3f53b9b4030f05389a9",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -4991,8 +5124,15 @@
       "cellId": "1-358",
       "descriptionHash": "e1181554f403b08d",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "67e42fb32b5914227127bfd6459a98be18bfd82c88ae1833d4183c134989d129",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "7df429f8d773e9407d015cc6527cb353c5fbc8ad33affc21588d7a05f74d9d99",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -5080,8 +5220,15 @@
       "cellId": "1-361",
       "descriptionHash": "dfe3c2461498d35c",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "218a50d9ec8e6deb26d9b1570e2bad0c8f4ad408f9365e784c2ad2c4ed0f0071",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "e436eb6374d8767d9d45969bb3b8aaa11b0ccbaf1464510aff8e68074e9ccb4b",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -5192,8 +5339,15 @@
       "cellId": "1-378",
       "descriptionHash": "1753c37a7dc9be4e",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "851529cd55f24f56eab417b63ae018f95b6bf2fe144bbbceb4ea97a497625b12",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "e2da5db04988a9fb0501f2314db57f1e2c5f09a61b1231e14dad19696128e56e",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go archway",
@@ -5257,8 +5411,15 @@
       "cellId": "1-432",
       "descriptionHash": "16a2c2113d7358a2",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "36f2af25d0402abd4fb57ea94d89704ee9ec85341cc89e7e82c192e38ed6a0d0",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "a6c676ec6ded1f5ff98c39ca5904ea718154e423bc551775f414be9a06336643",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go wide arch",
@@ -5329,8 +5490,15 @@
       "cellId": "1-469",
       "descriptionHash": "22efbd94d5bbf7c2",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "0f0c01feb41811c443aa7058433b6b6442763114a11e40049233d32fe9c771cc",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "5fe9f17d521bc52fe45441925777ac2753c9f4d021992ab0844b8771d8e5863f",
+      "placementSearch": {
+        "visited": 30,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -5439,8 +5607,15 @@
       "cellId": "1-488",
       "descriptionHash": "487876ec995751fc",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "1b98f8e34debed2f19c99f8384dfc4d7285a4d2d1776a0697ff7a2e4c1f1422a",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "b7d3f8f56cda668ff872798b8c4c244eabffb5c1cfce40e07a768f36b69d7b76",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -5528,8 +5703,15 @@
       "cellId": "1-493",
       "descriptionHash": "fe5699b461ea2ff1",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "99d494c0ef8f7182c50c7d6091e0a2a20a720f4a524ed14a33adacbc28ae2397",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "e3356c2b1158eb2c49a3552085a71980223b1bda73c8a948755cf09818df382d",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -5617,8 +5799,15 @@
       "cellId": "1-526",
       "descriptionHash": "fe7324458ae0f2a7",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "c9fc9465502f2f39e096451a8a4dd9cc55c08e719a94ea7994bf3097609c9f89",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "c5f1315902e503b98d35196ca8ed98f340ae69585cbb8cdc7670ad49ea70b81c",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -5706,8 +5895,15 @@
       "cellId": "1-555",
       "descriptionHash": "f06e4518c0ef0031",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "e439d1e2ab79162f584776cc7b58aed2545886ed4f1968de1520b35409f09dce",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "80127be9ce0a2b619509ce08f5f11a455b229c1d921bf8614e9ca48f518c43cd",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -5818,8 +6014,15 @@
       "cellId": "1-578",
       "descriptionHash": "f3e53dacc5319694",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "4a69d64edf74f56f897a532c3ea3cfd5e6c1e3c8cacffe612716c34faaa19545",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "2a59f8ac50d4fcb95781a4b629a44d3c9d40c463bc6981e197a381cf6ba82e08",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -5907,8 +6110,15 @@
       "cellId": "1-620",
       "descriptionHash": "87f0d633c04b4258",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "b9a81bf2302945052666d4c931e9dde5e3baf22cb885a27c057eaecc9cc9fb84",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "ebfed9ef1d26a31f9c8bcc6ae6d2da35f9825263b5ce151e36d835543a0d11a7",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [],
       "requiredFootprint": {
         "width": 17.6,
@@ -5970,8 +6180,15 @@
       "cellId": "1-651",
       "descriptionHash": "091c7280cf668ec0",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "3c9702980ba9cd29528ec8d14e8efa69523cce4ff98b1aa46ad6f936355816e2",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "11740e45c701e32a89a61670b0474b4f4045f8bf2b9e806aa250f5c8c2cccd3a",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -6059,8 +6276,15 @@
       "cellId": "1-674",
       "descriptionHash": "13ffd991a88b5748",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "06e469f25b941bf546608b231762106bff98e9a324b58e2d28b1dcc09daabc91",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "d9f8b41718b700032df866a8732b716d44e101ae11534cba832136cf4a90a620",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -6148,8 +6372,15 @@
       "cellId": "1-687",
       "descriptionHash": "0d36136e0a0e760e",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "2a6ce6c2d182e9cc9650d0648dfbaecea569c8dd52743863240deebd38ab2cac",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "58ef98a39ed06d5e10754d3ae3552b80b87540bdb19b68b9c5dea1cbd83b7434",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go archway",
@@ -6213,8 +6444,15 @@
       "cellId": "1-690",
       "descriptionHash": "0c9c16adaba0e2ac",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "ebba584b58aaa88ee5661969b87f488bd77f1cf00e55ccd07ae78edef1ea2d33",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "b63103a2f599ba522f5754b6ce4cc69eac796b90a9314d6b3485c3702a87d143",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go archway",
@@ -6278,8 +6516,15 @@
       "cellId": "1-700",
       "descriptionHash": "24d71b5ea2ae85f5",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "281f13095e85bd285a19177c5a2603703e03e5e6fcb4671c2991369a3743972e",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "27e04c081aeeafb530c02022200417eb4e01f5800a20fa859b327d81fafc68a5",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go main bar",
@@ -6343,8 +6588,15 @@
       "cellId": "1-703",
       "descriptionHash": "a266d8b0f67e1439",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "1089fd56dfb28e9234deb62e7fa28f2b5aa179c65bbb2914052e926817a30bc8",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "c053533346b8813083403fd0c3d7e4cf36f75dff3dd6755b8b566ff63153d8fa",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "out",
@@ -6408,8 +6660,15 @@
       "cellId": "1-757",
       "descriptionHash": "d347654a688911ae",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "3f186ea0afa8c5e309dde7fe30038ce603d76e053be51d7914802c5e8f61abdc",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "45a61b40fafaadcdd80f19a66d82e2747313a7157077b400117526d3771fd3fe",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -6485,8 +6744,15 @@
       "cellId": "1-778",
       "descriptionHash": "987c14d5d12612ba",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "489dcc0cdc3b59f8c1ee326037c7f0b41fa927256f8afaf114b02e0cecc99881",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "ab297a714c858bdc084df71a95f81c6c0478dce96b4b56d20b034578505075bc",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -6597,8 +6863,15 @@
       "cellId": "1-786",
       "descriptionHash": "c962aa10b50e8bc6",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "4868bd06ac4a5538a67a9cca343596f2a629dc52cbc2de7ee2ac56ab9c3345b6",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "25e82e09f8cb4dc5b117d9e5bcfd088c748f3c2419994255a9791e238249d77d",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go flame-shaped opening",
@@ -6662,8 +6935,15 @@
       "cellId": "1-812",
       "descriptionHash": "22e50409781dc8a8",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "93f59761beddaddd284851db3ab4e065bdd068923a95a0ec421329eeabfd3b74",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "ae9bcaaff0092d62bdf25cd0ae30fa455f82c2b8727d40c3d81c61b931679f2d",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -6751,8 +7031,15 @@
       "cellId": "1-813",
       "descriptionHash": "37aea117bc85f696",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "07699d8dd183e2e9b09ead6e535476840cede7f0c53a48b169934655f06693ef",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "1841078a0322fc88590cec2df4e94480f4e4eda2ddced78f369ce013d7f67813",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -6840,8 +7127,15 @@
       "cellId": "1-816",
       "descriptionHash": "942b297329de824d",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "5366c28250e89ac99bff8de40c915d4cd7148f22970bf415958a9236a3719a10",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "824eb096775073424becb81af5425eca530184dfed40f977d0639d0964d5a185",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -6929,8 +7223,15 @@
       "cellId": "1-818",
       "descriptionHash": "94539a41129cce9b",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "09dd92ca379aee732d0019b5dd39bb0a65ad2b503852fa17e0b8cf82c7462b0c",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "175f0bbcc9683cf9d6775f21f41f2b3bad886b71ac890ed47de5b01b8dfb84ad",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -7018,8 +7319,15 @@
       "cellId": "1-838",
       "descriptionHash": "7f60ef6cdd1e0013",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "934b8bc7a292b1f5f9eee97ba97fdd1ed7381702a69817993b34d2a4e8f204ec",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "e7676316a2212f713842b34ee4e7bfad34ea9fbd2137dd6b9c8ea19043a331df",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -7107,8 +7415,15 @@
       "cellId": "1-871",
       "descriptionHash": "2dc14f6ae7a8f1ee",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "3e0d91a4c089cb89c0bd1427044507d2c49de4e2f5e67e2b449598aacd4438c4",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "e5bb61db16c64534fca1fea3af122b59fca26afb1604d944bd981586b05963e1",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -7196,8 +7511,15 @@
       "cellId": "1-897",
       "descriptionHash": "7552c8be7c279ff0",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "e8578baaec479dcb482212d15e3275cdb11fd387081017c8fdadbced9b046570",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "04af10f2eb4b061d570b9dcaf04fc24c49a83bf1b927a25fad9071e1db727463",
+      "placementSearch": {
+        "visited": 42,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "out",
@@ -7261,8 +7583,15 @@
       "cellId": "1-902",
       "descriptionHash": "44a46fdda3b4f1ae",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "0c5d78bee199b68bd02ca34aa718336d7e0e882fc2fa64b2b664f4e879075f61",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "b12e49c650114b55b154c0f81d2dbc83095a8947a0ca7018bf7be97531de9d5d",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -7419,8 +7748,15 @@
       "cellId": "1-905",
       "descriptionHash": "28d792d61a853fac",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "8e6211e3ac3e6f0c46490dae2c743c06a34fb2467ffcac8a4f924ba9ace9a1b0",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "41310af54d15dea7302a91154a012f10de3dfe180d8aed40de8e4826d368f876",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -7554,8 +7890,15 @@
       "cellId": "1-908",
       "descriptionHash": "0204653e25bdf82e",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "09ef75ac076526b138c1cb4a31cf2ceb2034aa3acf616654503bd4ac6875c50f",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "866d804bb6f38bcacc795ab8c5759f7d0c1f2a744f62f392a63f4778f510a428",
+      "placementSearch": {
+        "visited": 34,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go arch",
@@ -7619,8 +7962,15 @@
       "cellId": "1-912",
       "descriptionHash": "8ddc022a94dd09f8",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "543493a5acf707f874aff3435b016a5e0672db31ab3352ca0b71f0f2f1458e1b",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "f0991eca7bab0f1141884fece67fff31346c349a3f4566c1a7fda27bb2947d79",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -7731,8 +8081,15 @@
       "cellId": "1-913",
       "descriptionHash": "b638579a1516afd7",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "ea6c14b4ea07174fffff89366c69f8370bfe415511a6d9d0777603daef5406eb",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "99075fef71b8609bd62568e4b83cfd8cc36f8b17c43569c9239fb0ce96bb0c2e",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -7843,8 +8200,15 @@
       "cellId": "1-914",
       "descriptionHash": "c52c7b8f6b11d72d",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "87e9ca1ef6b2aa4ba2d1d951052f1160f837a367da8859414702844d7bc698a1",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "ea852dc5a70b449773e9765df91e2c001188ea9da91fb0e00a933b3e27a90afd",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -7932,8 +8296,15 @@
       "cellId": "1-922",
       "descriptionHash": "6aa6302c63b777a8",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "bfa4203f541871a78a7032c9a3b9e2686d724dd03876cca32a5f4525ae45d1ee",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "6542dc3578f20efcd7f648d29ba55c2a239dedfa2c7fa9cf4d6b13675c33e43d",
+      "placementSearch": {
+        "visited": 18,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "go oak door",
@@ -7997,8 +8368,15 @@
       "cellId": "1-925",
       "descriptionHash": "a8e7f4efdd9a61a1",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "dcede11ab38b50220878e4d5c5d48010d3b9022f636f5c6af1d436bbc5477901",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "d05cb04e65095a28f72afd141cc4d793998bf2190ff598a9ffdb97342a947943",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -8086,8 +8464,15 @@
       "cellId": "1-927",
       "descriptionHash": "ec0699bf97a49ae3",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "35af1cd265aa2740367e90f0e44be5f4f66980b25247b26e6ae74e54e0b230e3",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "ae5f3fa3c8f27847dc1cb72a3b6d2dcb7acdc4e52c951a289288d5be9120a4b5",
+      "placementSearch": {
+        "visited": 30,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 1,
+        "requirements": 1
+      },
       "requiredExits": [
         {
           "move": "south",
@@ -8196,8 +8581,15 @@
       "cellId": "1-946",
       "descriptionHash": "aa4bc01dc07d72f4",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "461b99b7e58d700a3024be32c1a14f3421c0cd4c6e6d1ee7b6512926e3f27a04",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "bded43dd7cf47055da11dfaaf8b04960b6807e048c5f7a1950b3c0127b55aa34",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "west",
@@ -8285,8 +8677,15 @@
       "cellId": "1-965",
       "descriptionHash": "c7769a421b78043f",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "cc98705a1f98d811beab97c287ea511805d974dfaba672b49381d01567ef2818",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "00505a1d5306f30e595a23b77e1c9d8cf1a1b2d3ce0a2f820a381a660f8590f4",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "east",
@@ -8397,8 +8796,15 @@
       "cellId": "1-993",
       "descriptionHash": "c513b328a2efd799",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "8d87340d735204c620aee37c1e4d4a91a61ffc08b897d4fe39053700299812f3",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "ca8d76c62a36847051f8f7683a55cf28d9eb080751cb59d63edb8746c3c466ad",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "north",
@@ -8486,8 +8892,15 @@
       "cellId": "1-999",
       "descriptionHash": "bb0c47780bcdd3c5",
       "status": "partial-generated-review-required",
-      "generatedBy": "rust-interior-v6",
-      "inputHash": "ce28a839ef9bff879595f61e455fdf43ac5a176351df25217e186991e45cc1e7",
+      "generatedBy": "rust-interior-v7.1",
+      "inputHash": "e3ce852cff2b2cad7eeda69f1eb093453fd0aab80d4abab5561f8f9834c76542",
+      "placementSearch": {
+        "visited": 1,
+        "budget": 4000,
+        "budgetExhausted": false,
+        "placed": 0,
+        "requirements": 0
+      },
       "requiredExits": [
         {
           "move": "south",

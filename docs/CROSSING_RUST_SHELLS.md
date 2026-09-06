@@ -8,6 +8,25 @@ owns shell geometry. The shared Godot adapter owns conversion into native meshes
 DR Companion consumes the resulting PackedScene through SharedAssetContent,
 its existing composition owner. No copied geometry implementation or server.
 
+## Bounded furnishing repair
+
+Compiler v7 replaces one-pass furnishing selection with bounded depth-first
+search over the same hard-filtered candidate domains. Bounds, central actor space,
+spawn clearances and exit corridors are filtered before search; pairwise furniture
+separation is checked during search. The previous greedy placement initializes
+the incumbent. Search maximizes the number of supported requirements placed,
+then their summed perimeter/facing score, with deterministic candidate order.
+It may revise an earlier placement to accommodate later furniture.
+
+The default limit is 4,000 visited search states or rejected candidate attempts.
+Budget exhaustion is recorded on the recipe and does not claim optimality.
+Missing placements remain explicitly listed; search never drops an actual graph
+edge or relaxes clearance to improve the score. This is a bounded discrete
+placement solver in the existing content compiler, not a general city solver
+or the full search method from a research paper. Geometry construction remains Rust.
+Tests include a greedy dead end repaired by relocating the first object, an
+unsatisfiable overlap, an empty domain, deterministic output and budget limits.
+
 ## Rebuild
 
 Run the normal `node tools/build-crossing-city-batch.mjs`.

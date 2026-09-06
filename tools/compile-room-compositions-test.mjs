@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { compileRoomCompositions, interiorShell, overlaps, blocksApproach } from './compile-room-compositions.mjs'
+import { compileRoomCompositions, interiorShell, overlaps, blocksApproach, solvePlacements } from './compile-room-compositions.mjs'
 const read=p=>JSON.parse(readFileSync(p,'utf8'))
+const fit=(x,score)=>({bounds:{minX:x,maxX:x+1,minZ:0,maxZ:1},score})
+const repairDomains=[[fit(0,10),fit(3,5)],[fit(0,9)]]
+const repaired=solvePlacements(repairDomains)
+assert.equal(repaired.placed,2,'Repair moves earlier preferred furniture to fit both requirements')
+assert.equal(repaired.placements[0].bounds.minX,3)
+assert.equal(solvePlacements(repairDomains,0).placed,1,'Zero-budget result retains valid greedy incumbent')
+assert.deepEqual(solvePlacements(repairDomains),repaired,'Search is deterministic')
+assert.equal(solvePlacements([[fit(0,1)],[fit(0,2)]]).placed,1,'Impossible overlap is never accepted')
+assert.equal(solvePlacements([[],[fit(0,1)]]).placed,1,'Unavailable first requirement does not suppress later objects')
+assert(solvePlacements(repairDomains,2).visited<=2,'Budget counts attempted search work')
+assert.throws(()=>solvePlacements(repairDomains,-1))
 const world=read('godot/assets/crossing/world.json'), sources=read('data/art/room-prompts-priority.json'), selections=read('godot/assets/shared_asset_selections.json'), provenance=read('godot/assets/crossing/provenance.json')
 const result=compileRoomCompositions(world,sources,selections,provenance)
 assert.deepEqual(result.roomCompositions,selections.roomCompositions)
@@ -12,6 +23,8 @@ assert.deepEqual(compileRoomCompositions({...world,cells:[...world.cells].revers
 for (const recipe of generated) {
   const cell=world.cells.find(c=>c.id===recipe.cellId)
   assert.equal(recipe.status,'partial-generated-review-required')
+  assert(recipe.placementSearch.visited<=recipe.placementSearch.budget)
+  assert.equal(recipe.placementSearch.placed,recipe.pieces.filter(p=>p.role==='furnishing').length)
   assert.deepEqual(recipe.requiredExits,cell.exits.map(e=>({move:e.move,targetCellId:e.targetCellId,boardAnchor:e.boardAnchor,tetherKind:e.tetherKind,direction:e.direction})))
   for (const p of recipe.pieces.filter(p=>p.proceduralMesh)) {
     assert.equal(p.definition.shape.kind,'room')
