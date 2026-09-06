@@ -253,27 +253,45 @@ fn dispatch(v: &Value, app: &AppHandle, out: &mut TcpStream) {
     match v.get("type").and_then(Value::as_str) {
         Some("send") => match v.get("command").and_then(Value::as_str) {
             Some(cmd) => {
-                // Pause is enforced here because this is the one line every
-                // automated command crosses - a Python flow, a hand-written
-                // script, anything holding a script-API socket. Pausing inside
-                // the driver instead, which is what the TypeScript flows did,
-                // only ever paused the flows this app happened to ship. The
-                // command is delayed, never dropped; see pause.rs.
-                if crate::pause::Gate::TimedOut
-                    == app.state::<crate::pause::Pause>().wait_while_paused()
-                {
-                    let _ = send_json(
-                        out,
-                        &json!({
-                            "type": "error",
-                            "message": "held by Pause too long; this command was not sent"
-                        }),
-                    );
+                // Into the lane as `script`, the lowest priority there is, so
+                // a walk loop can never sit in front of something a person
+                // typed. Pause, roundtime pacing and Stop are the lane's job
+                // now: it is the one line every command crosses, which is what
+                // `pause.rs` moved the pause gate to this function to be, one
+                // layer further out. See command_gate.rs.
+                //
+                // Waited on rather than fired and forgotten, and that is the
+                // whole reason a ticket exists. A script that walks on to its
+                // next step believing it sent something it did not is the
+                // failure pause.rs refused to introduce by queueing; blocking
+                // the script's own thread is what "paused" and "in roundtime"
+                // mean to the task on the other end of this socket.
+                let link = app.state::<GameLink>();
+                if let Err(e) = crate::game_link::attached(&link) {
+                    let _ = send_json(out, &json!({"type": "error", "message": e}));
                     return;
                 }
-                let link = app.state::<GameLink>();
-                if let Err(e) = crate::game_link::game_send(link, cmd.to_string()) {
-                    let _ = send_json(out, &json!({"type": "error", "message": e}));
+                let ticket = app
+                    .state::<crate::command_gate::CommandGate>()
+                    .submit(cmd.to_string(), crate::command_gate::Source::Script);
+                // Longer than the pause cap the lane enforces, so the wait
+                // ends on the lane's own verdict rather than on this side
+                // giving up first and reporting a timeout the lane never
+                // reached.
+                let verdict = ticket.wait(std::time::Duration::from_millis(
+                    crate::command_gate::MAX_PAUSE_HOLD_MS + 5_000,
+                ));
+                let message = match verdict {
+                    Some(o) => o.error(),
+                    // Three states, not two. Still queued after the cap is
+                    // neither sent nor refused, and calling it a failure would
+                    // be a claim the lane never made.
+                    None => Some(
+                        "still queued past the pause limit; this command may yet be sent".into(),
+                    ),
+                };
+                if let Some(message) = message {
+                    let _ = send_json(out, &json!({"type": "error", "message": message}));
                 }
             }
             None => {

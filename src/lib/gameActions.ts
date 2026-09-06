@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sendGame } from './gameLink.ts'
 import { validateGameActionCommand } from './gameCommand.ts'
+import type { CommandSource } from './commandLane.ts'
 
 export interface GameActionFailure {
   id: number
@@ -42,10 +43,20 @@ function publishFailure(command: string, label: string, error: unknown): GameAct
  * notice if its game-derived target is unsafe or native transport rejects it.
  * Raw player input uses `sendGame` directly so intentional Genie/Lich command
  * separators remain available there.
+ *
+ * `source` says who asked, and the outbound lane in Rust orders by it: a
+ * button click never sits behind a script, and nothing here ever sits in front
+ * of what the player typed. It is required rather than defaulted — see
+ * `commandLane.ts` for why guessing breaks one invariant or the other
+ * whichever way it guesses.
  */
-export async function sendGameAction(command: string, label = command): Promise<void> {
+export async function sendGameAction(
+  command: string,
+  label = command,
+  source: CommandSource = 'ui-action'
+): Promise<void> {
   try {
-    await sendGame(validateGameActionCommand(command))
+    await sendGame(validateGameActionCommand(command), source)
   } catch (error) {
     publishFailure(command, label, error)
     throw error
@@ -53,8 +64,12 @@ export async function sendGameAction(command: string, label = command): Promise<
 }
 
 /** Event-handler convenience: feedback is already published by sendGameAction. */
-export function requestGameAction(command: string, label = command): void {
-  void sendGameAction(command, label).catch(() => {})
+export function requestGameAction(
+  command: string,
+  label = command,
+  source: CommandSource = 'ui-action'
+): void {
+  void sendGameAction(command, label, source).catch(() => {})
 }
 
 export function useGameActionFailure(): GameActionFailure | null {

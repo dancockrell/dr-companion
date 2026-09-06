@@ -108,7 +108,7 @@ export function GameCommandBar({
       // not merely that React began asking. The connected check improves the
       // known-detached case; rejection still handles a mid-send socket loss.
       if (!link.connected) throw new Error('Not attached to a game')
-      await sendGame(outgoing)
+      await sendGame(outgoing, 'player')
     } catch (error) {
       const detail = error instanceof Error && error.message ? error.message : String(error)
       setSendError(`Not sent — ${detail || 'the game connection refused it'}. Your command is still here.`)

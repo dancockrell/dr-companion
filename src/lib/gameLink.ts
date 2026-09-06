@@ -18,6 +18,7 @@ import { listenTauri, invokeTauri, isTauri } from './tauri.ts'
 import { feed, newStreamState, looksTagged, characterState } from './gameStream.ts'
 import type { StreamCharacterState } from '../types/stream'
 import { validateGameCommand } from './gameCommand.ts'
+import type { CommandSource } from './commandLane.ts'
 
 export interface GameLine {
   seq: number
@@ -484,8 +485,8 @@ export async function detachGame(): Promise<LinkState> {
   return state
 }
 
-export async function sendGame(command: string): Promise<void> {
-  await invokeTauri('game_send', { command: validateGameCommand(command) })
+export async function sendGame(command: string, source: CommandSource): Promise<void> {
+  await invokeTauri('game_send', { command: validateGameCommand(command), source })
 }
 
 export async function refreshGameState(): Promise<LinkState> {

@@ -26,12 +26,12 @@ function ItemRow({ name, count = 1, onWiki }: { name: string; count?: number; on
   const target = itemTarget(name)
   return (
     <div className="group flex min-w-0 items-center gap-1 border-t border-border/50 px-2 py-1 first:border-t-0">
-      <button type="button" className="min-w-0 flex-1 truncate text-left text-xs text-ink hover:text-accent" onClick={() => requestGameAction(`look ${target}`, `Look at ${name}`)} title={`Look at ${name}`}>
+      <button type="button" className="min-w-0 flex-1 truncate text-left text-xs text-ink hover:text-accent" onClick={() => requestGameAction(`look ${target}`, `Look at ${name}`, 'ui-action')} title={`Look at ${name}`}>
         {name}{count > 1 ? ` (${count})` : ''}
       </button>
       <div className="flex shrink-0 items-center opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => requestGameAction(`appraise ${target} quick`, `Appraise ${name}`)} title="Quick appraisal" aria-label={`Quick-appraise ${name}`}><Scale className="h-3.5 w-3.5" /></button>
-        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => requestGameAction(`analyze ${target}`, `Analyze ${name}`)} title="Analyze crafting and special properties" aria-label={`Analyze ${name}`}><Sparkles className="h-3.5 w-3.5" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => requestGameAction(`appraise ${target} quick`, `Appraise ${name}`, 'ui-action')} title="Quick appraisal" aria-label={`Quick-appraise ${name}`}><Scale className="h-3.5 w-3.5" /></button>
+        <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => requestGameAction(`analyze ${target}`, `Analyze ${name}`, 'ui-action')} title="Analyze crafting and special properties" aria-label={`Analyze ${name}`}><Sparkles className="h-3.5 w-3.5" /></button>
         <button type="button" className="rounded px-1 py-0.5 text-ink-faint hover:bg-surface-overlay hover:text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" onClick={() => onWiki(name)} title={`Look up ${name} on Elanthipedia`} aria-label={`Elanthipedia information for ${name}`}><BookOpen className="h-3.5 w-3.5" /></button>
       </div>
     </div>
@@ -117,7 +117,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
       </div>
       <div {...scrollableRegionProps('Inventory searches', 'horizontal')} className="flex gap-1 overflow-x-auto pb-0.5">
         {FILTERS.map(([label, command]) => (
-          <button key={label} type="button" onClick={() => requestGameAction(`inventory ${command}`, `Inventory: ${label}`)} className="shrink-0 rounded border border-border px-1.5 py-0.5 text-xs text-ink-muted hover:border-accent hover:text-accent" title={`Ask the game for ${label.toLowerCase()} across all containers`}>
+          <button key={label} type="button" onClick={() => requestGameAction(`inventory ${command}`, `Inventory: ${label}`, 'ui-action')} className="shrink-0 rounded border border-border px-1.5 py-0.5 text-xs text-ink-muted hover:border-accent hover:text-accent" title={`Ask the game for ${label.toLowerCase()} across all containers`}>
             {label}
           </button>
         ))}
@@ -161,7 +161,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
               {expanded && (
                 <div className="border-t border-border/60 bg-surface/50">
                   {groupedItems((c.items ?? []).filter((item) => !needle || item.toLowerCase().includes(needle))).map(({ name, count }) => <ItemRow key={name} name={name} count={count} onWiki={showWiki} />)}
-                  {!c.items && <button type="button" className="w-full px-2 py-1.5 text-left text-xs text-info hover:bg-surface-overlay" onClick={() => requestGameAction(`inventory ${itemTarget(c.name)}`, `Scan ${c.name}`)}>Scan this container in game</button>}
+                  {!c.items && <button type="button" className="w-full px-2 py-1.5 text-left text-xs text-info hover:bg-surface-overlay" onClick={() => requestGameAction(`inventory ${itemTarget(c.name)}`, `Scan ${c.name}`, 'ui-action')}>Scan this container in game</button>}
                   {c.items && c.items.length === 0 && <div className="px-2 py-1.5 text-xs text-ink-faint">Empty</div>}
                 </div>
               )}

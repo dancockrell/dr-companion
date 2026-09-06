@@ -1,4 +1,5 @@
 pub mod bridge_token;
+pub mod command_gate;
 pub mod config_import;
 pub mod credentials;
 pub mod custom_portraits;
@@ -185,6 +186,8 @@ pub fn run() {
             game_link::game_send,
             game_link::game_detach,
             game_link::game_backlog,
+            command_gate::game_lane_status,
+            command_gate::game_lane_flush,
             lich::lich_status,
             lich::genie_status,
             lich::launch_lich,
@@ -231,7 +234,7 @@ pub fn run() {
             scripts::script_template
         ])
         .manage(game_link::GameLink::default())
-        .manage(pause::Pause::default())
+        .manage(command_gate::CommandGate::default())
         .manage(python::PythonTasks::default())
         .manage(node::NodeTasks::default())
         .manage(viewer::ViewerProcess::default())
@@ -252,6 +255,11 @@ pub fn run() {
             // first use, so a script waiting for the app to open does not
             // also have to guess whether it has finished starting - the token
             // and port files exist by the time the window does.
+            // The one thread that writes to the game socket. Started before
+            // the script API, so nothing can queue a command at a lane that
+            // has no sender yet.
+            command_gate::start(app.handle().clone());
+
             if let Err(e) = script_api::start(app.handle().clone()) {
                 // Not fatal: the rest of the app works without it, and a
                 // player who never scripts should not lose the client over a

@@ -36,7 +36,12 @@
  * made for living here rather than in a scrollable panel.
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import {
+  commandLaneStatus,
+  onCommandLane,
+  type CommandLaneStatus,
+} from '../../lib/commandLane.ts'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
 import { requestStopAll, requestPauseAll, requestResumeAll } from '../../lib/flowStop.ts'
 import { MusicTransport } from '../game/MusicTransport.tsx'
@@ -99,6 +104,20 @@ export function SafetyFooter() {
    * never could. This bar is part of the window, which is the promise the app
    * was built on and the reason Stop is here at all.
    */
+  /**
+   * What the outbound lane is holding, read from the lane rather than guessed.
+   *
+   * `RT` beside this comes from the bridge's view of the character and says
+   * "you cannot act yet". This says "and N of your commands are waiting on
+   * that", which is a different fact and the one a player wants when a key
+   * press appears to have done nothing. Without it, a command held for
+   * roundtime is indistinguishable from a client that dropped it — which is
+   * the same "an absent result looks like success" shape the rest of this app
+   * has paid for repeatedly.
+   */
+  const [lane, setLane] = useState<CommandLaneStatus>(() => commandLaneStatus())
+  useEffect(() => onCommandLane(setLane), [])
+
   const lowHealth = isLowHealth(character)
   const inCombat = character?.situation.includes('in_combat') ?? false
   const primaryLabel = lowHealth ? 'Healer' : inCombat ? 'Assist' : 'Start Training'
@@ -294,6 +313,19 @@ export function SafetyFooter() {
             }
           >
             {bridgeAuth === 'origin-only' ? 'No token' : 'Auth unknown'}
+          </span>
+        )}
+
+        {lane.queued > 0 && (
+          <span
+            className="shrink-0 tabular-nums text-info"
+            title={
+              lane.paused
+                ? 'Commands waiting in the outbound queue. Automation is paused; what you type still goes out.'
+                : 'Commands waiting in the outbound queue, ordered with yours first.'
+            }
+          >
+            {lane.queued} queued
           </span>
         )}
 
