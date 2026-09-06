@@ -173,6 +173,7 @@ pub fn run() {
             music::music_library_status,
             music::install_music_library,
             music::cancel_music_install,
+            music::remove_music_group,
             setup::install_bundled_ruby4lich5,
             setup::extract_archive,
             setup::bundles::install_bundle,

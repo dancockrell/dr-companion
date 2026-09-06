@@ -50,14 +50,22 @@ pub struct MusicTrack {
     pub bytes: u64,
 }
 
+/// What is on disk, and nothing about what it means.
+///
+/// This used to carry `installed`, `bytes_installed`, `bytes_total` and
+/// `complete` as well, all computed here. Per-group installs (#397) need the
+/// same counts per station, and a station is a frontend idea - the manifest's
+/// `station` field is what `ambientSound.ts` already builds `RADIO_STATIONS`
+/// from. Rather than teach this file about stations, or count once here and
+/// again per group over there, this reports the files it found and
+/// `musicLibrary.ts` derives every count from them. One walker, one grouping,
+/// one set of numbers.
 #[derive(Serialize, Clone, Debug)]
 pub struct MusicLibraryStatus {
     pub dir: String,
-    pub installed: usize,
-    pub total: usize,
-    pub bytes_installed: u64,
-    pub bytes_total: u64,
-    pub complete: bool,
+    /// Manifest-relative paths, exactly as they arrived, for the entries whose
+    /// file is present at its pinned size.
+    pub installed_files: Vec<String>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -132,30 +140,61 @@ fn present(path: &Path, bytes: u64) -> bool {
 }
 
 pub(crate) fn status_of(dir: &Path, tracks: &[MusicTrack]) -> MusicLibraryStatus {
-    let mut installed = 0;
-    let mut bytes_installed = 0;
-    let mut bytes_total = 0;
+    let mut installed_files = Vec::new();
     for track in tracks {
-        bytes_total += track.bytes;
         let Ok(path) = track_path(dir, &track.file) else {
             continue;
         };
         if present(&path, track.bytes) {
-            installed += 1;
-            bytes_installed += track.bytes;
+            installed_files.push(track.file.clone());
         }
     }
     MusicLibraryStatus {
         dir: dir.to_string_lossy().into_owned(),
-        installed,
-        total: tracks.len(),
-        bytes_installed,
-        bytes_total,
-        // An empty manifest is not a complete library. Without this an
-        // `installed == total` of 0 == 0 would report the library present and
-        // the app would go back to playing nothing while claiming otherwise.
-        complete: !tracks.is_empty() && installed == tracks.len(),
+        installed_files,
     }
+}
+
+/// Delete one group's files, and refuse to touch anything else.
+///
+/// One gate, deliberately: `track_path`, the same one the install goes through,
+/// which rejects the shape of any path that could leave the directory - `..`, a
+/// root, a drive letter, a backslash. A second `path.starts_with(dir)` check
+/// was written here and then removed, because given `track_path` it could not
+/// be made to fail: there is no input that reaches it and escapes, so nothing
+/// could ever prove it still worked, and an unreachable guard reads as
+/// protection while providing none. If `track_path` is ever loosened, its own
+/// test goes red first - `a_track_path_cannot_escape_the_audio_directory` and
+/// `removal_refuses_a_path_outside_the_music_directory` both fail on the same
+/// sabotage.
+///
+/// A file that is not there is not an error: removing a partly-installed group
+/// must not stop at the first track that was never downloaded.
+///
+/// The `.part` beside it goes too. `download_verified` writes there first, so a
+/// cancelled install can leave one, and a "removed" group that silently kept a
+/// gigabyte of half-files would be the worst kind of honest-looking.
+pub(crate) fn remove_tracks(dir: &Path, tracks: &[MusicTrack]) -> Result<usize, String> {
+    let mut removed = 0;
+    for track in tracks {
+        let path = track_path(dir, &track.file)?;
+        for candidate in [path.clone(), path.with_extension("part")] {
+            match std::fs::remove_file(&candidate) {
+                Ok(()) => removed += 1,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(format!("{}: {e}", track.file)),
+            }
+        }
+    }
+    Ok(removed)
+}
+
+#[tauri::command]
+pub fn remove_music_group(tracks: Vec<MusicTrack>) -> Result<usize, String> {
+    if tracks.is_empty() {
+        return Err("nothing to remove: the track list was empty".into());
+    }
+    remove_tracks(&music_dir(), &tracks)
 }
 
 #[tauri::command]
@@ -235,12 +274,27 @@ pub async fn install_music_library(
         installed += 1;
     }
 
-    emit_setup_progress(&app, "music", done_bytes, total_bytes, "verified");
+    // Read the flag once more rather than reporting `cancelled: false` from
+    // the fact that the loop ended. #402 (review pass over #396) found that a
+    // Cancel pressed during the *last* track was never seen: the loop checks
+    // before each download and there is no iteration after the final one, so
+    // the person pressed Cancel and the app said it had completed normally.
+    // Cancel still only takes effect between files - stopping mid-file needs
+    // `download_verified` to take a cancellation token, which is #402's own
+    // item and is not this change.
+    let cancelled = CANCELLED.load(Ordering::SeqCst);
+    emit_setup_progress(
+        &app,
+        "music",
+        done_bytes,
+        total_bytes,
+        if cancelled { "cancelled" } else { "verified" },
+    );
     Ok(MusicInstallResult {
         installed,
         total: tracks.len(),
         bytes: done_bytes,
-        cancelled: false,
+        cancelled,
     })
 }
 
@@ -334,11 +388,117 @@ mod tests {
         assert!(e.contains("evil.example"), "{e}");
     }
 
+    /// A temp directory of this test's own, named after the case so two of
+    /// them running at once cannot delete each other's fixtures - which is the
+    /// exact failure the removal cases below are about.
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("drc-music-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// Write `bytes` bytes at the track's path so `present` counts it.
+    fn place(dir: &Path, t: &MusicTrack) {
+        let path = track_path(dir, &t.file).unwrap();
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, vec![0u8; t.bytes as usize]).unwrap();
+    }
+
+    /// Two groups by directory, the way the manifest lays them out.
+    fn two_groups() -> (Vec<MusicTrack>, Vec<MusicTrack>) {
+        let a = vec![
+            track("radio/a1.ogg", WIKI, OK_SHA, 8),
+            track("radio/a2.ogg", WIKI, OK_SHA, 8),
+        ];
+        let b = vec![
+            track("biome/b1.ogg", WIKI, OK_SHA, 8),
+            track("biome/b2.ogg", WIKI, OK_SHA, 8),
+        ];
+        (a, b)
+    }
+
     #[test]
-    fn an_empty_library_is_not_a_complete_one() {
-        let s = status_of(Path::new("C:\\base"), &[]);
-        assert!(!s.complete);
-        assert_eq!(s.total, 0);
+    fn status_reports_the_files_that_are_there_and_nothing_else() {
+        let dir = scratch("status");
+        let (a, b) = two_groups();
+        place(&dir, &a[0]);
+        place(&dir, &b[1]);
+        // Present at the wrong size is not present: a truncated download must
+        // not read as an installed track.
+        let short = track("radio/short.ogg", WIKI, OK_SHA, 99);
+        place(&dir, &track("radio/short.ogg", WIKI, OK_SHA, 3));
+
+        let all: Vec<MusicTrack> = a
+            .iter()
+            .chain(b.iter())
+            .chain([short].iter())
+            .cloned()
+            .collect();
+        let s = status_of(&dir, &all);
+        assert_eq!(s.installed_files, vec!["radio/a1.ogg", "biome/b2.ogg"]);
+        // The denominator: the walk really did examine all five, so the two
+        // absences above are absences and not a walk that stopped early.
+        assert_eq!(all.len(), 5);
+        // An empty ask finds nothing rather than reporting a whole library.
+        assert!(status_of(&dir, &[]).installed_files.is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn removing_one_group_leaves_the_other_group_alone() {
+        let dir = scratch("remove");
+        let (a, b) = two_groups();
+        for t in a.iter().chain(b.iter()) {
+            place(&dir, t);
+        }
+        // A cancelled install's leftover, which removal must also take.
+        std::fs::write(dir.join("radio").join("a1.part"), b"half").unwrap();
+        assert_eq!(status_of(&dir, &a).installed_files.len(), 2);
+        assert_eq!(status_of(&dir, &b).installed_files.len(), 2);
+
+        let removed = remove_tracks(&dir, &a).expect("removing a present group");
+        assert_eq!(removed, 3, "two tracks and one .part");
+        // Count both sides. Counting only the removed one would stay true if
+        // the function had deleted everything.
+        assert_eq!(status_of(&dir, &a).installed_files.len(), 0);
+        assert_eq!(status_of(&dir, &b).installed_files.len(), 2);
+
+        // Removing again is not an error - a group half-installed and then
+        // removed must not stop at the first file that was never fetched.
+        assert_eq!(remove_tracks(&dir, &a).unwrap(), 0);
+        assert_eq!(status_of(&dir, &b).installed_files.len(), 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn removal_refuses_a_path_outside_the_music_directory() {
+        let dir = scratch("escape");
+        let victim = dir.join("victim.ogg");
+        std::fs::write(&victim, b"not yours").unwrap();
+        let inside = dir.join("radio");
+        std::fs::create_dir_all(&inside).unwrap();
+        std::fs::write(inside.join("keep.ogg"), b"mine").unwrap();
+
+        for bad in [
+            "../victim.ogg",
+            "radio/../victim.ogg",
+            "/etc/passwd",
+            "C:/Windows/System32/x.dll",
+        ] {
+            let e = remove_tracks(&dir.join("radio"), &[track(bad, WIKI, OK_SHA, 1)])
+                .expect_err("accepted an escaping path");
+            assert!(e.contains(bad), "{e}");
+        }
+        assert!(victim.exists(), "a refused removal deleted the file anyway");
+        // Positive control on the same function: a path that is inside really
+        // is removed, so the refusals above are the guard and not a removal
+        // that never works.
+        assert_eq!(
+            remove_tracks(&dir, &[track("radio/keep.ogg", WIKI, OK_SHA, 4)]).unwrap(),
+            1
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Serve one body once, on a loopback port, and hand back the URL.
