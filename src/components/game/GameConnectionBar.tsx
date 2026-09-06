@@ -88,7 +88,11 @@ export function GameConnectionBar() {
               ? 'text-warn'
               : 'text-ink-faint'
         )}
-        title={link.connected ? 'Attached' : link.note || `Not attached (${link.host}:${link.port})`}
+        title={
+          phase === 'connected'
+            ? 'Attached'
+            : link.note || `Not attached (${link.host}:${link.port})`
+        }
       >
         {/* The reconnecting icon is the *unplugged* one, deliberately, and
             the word beside it carries the difference. A third icon would be a
@@ -114,7 +118,7 @@ export function GameConnectionBar() {
         </span>
       )}
 
-      {!link.connected && lichNote(link.lich) && (
+      {phase !== 'connected' && lichNote(link.lich) && (
         <span
           className={cn(link.lich === 'gone' ? 'text-warn' : 'text-ink-faint')}
           title="Checked by probing the port, not inferred from the disconnect"
@@ -156,7 +160,7 @@ export function GameConnectionBar() {
             for that reason, so offering the button would only produce an
             error. Detach is what a player wants there anyway: it is how you
             stop a reconnect you have decided is not going to work. */}
-        {link.connected || phase === 'reconnecting' ? (
+        {phase === 'connected' || phase === 'reconnecting' ? (
           <button
             type="button"
             className="rounded border border-border p-1 text-ink-muted hover:text-ink"

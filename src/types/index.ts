@@ -672,6 +672,20 @@ export interface AppState {
   /** The bound, carried from the transport so the bar can say "3 of 8". */
   bridgeMaxAttempts: number
   /**
+   * When the bridge stopped feeding this store, or 0 while it still is.
+   *
+   * Everything on the bridge's status payload - `character`, its vitals,
+   * `scriptStates`, `runningScripts` - survives an unexpected drop rather than
+   * being cleared, because the last reading is the best answer anybody has
+   * while the socket is down. This is what stops it being drawn as the current
+   * one. Set once at the drop and NOT cleared when the socket returns: Lich's
+   * replay lands up to ten seconds later in DragonRealms, so "connected again"
+   * and "these numbers are current again" are two different moments. See
+   * `src/store/staleMark.ts` for both, and issue #506 for what it looked like
+   * without it.
+   */
+  bridgeStaleSince: number
+  /**
    * Which gates the bridge has up: both, origin only, or not reported.
    *
    * Three states on purpose. 'unknown' is a bridge too old to say, and it must
@@ -737,6 +751,25 @@ export interface AppState {
   connectBridge: () => void
   disconnectBridge: () => void
   setBridgeMode: (m: 'mock' | 'live') => void
+  /**
+   * Put the store through a bridge transport status without a bridge.
+   *
+   * A development and test seam, for the reason `bridge.setPauseLatchMode`
+   * exists (issue #487): an unexpected bridge drop is a state the mock cannot
+   * reach, because `onLiveStatus` is the real transport's event and the mock
+   * has no socket to lose. Without this the stale-mark path could only be seen
+   * against a live bridge that had failed, which is not a state anybody can
+   * arrange on demand - and a state the fixture cannot reach is a state nobody
+   * sees until a player does.
+   *
+   * It calls the same `applyLiveStatus` the real subscription calls, not a
+   * second copy of it, so what it shows is what a real drop does.
+   *
+   * `Exclude<..., 'mock'>` rather than importing `RealBridgeStatus`: the type
+   * layer deliberately does not depend on the transport layer, and 'mock' is
+   * the one member of this union that no transport can ever report.
+   */
+  simulateBridgeStatus: (status: Exclude<BridgeTransportStatus, 'mock'>) => void
   /** args carries a macro's literal commands; named intents build their own. */
   requestIntent: (
     intent: IntentName | `travel:${string}`,

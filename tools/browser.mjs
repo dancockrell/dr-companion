@@ -443,6 +443,57 @@ async function session(wsUrl, { target = 'new', cleanup = null, pick = null, req
       },
 
       /**
+       * Type into whatever has focus, and press a key, the way a person does.
+       *
+       * `Input.insertText` and `Input.dispatchKeyEvent` rather than setting
+       * `.value` and dispatching a synthetic event, for the same reason `click`
+       * dispatches real mouse events: the synthetic version cannot fail. It
+       * types into a disabled field, a field behind a modal, a field that is
+       * not focused, and a component whose handler never runs, and reports
+       * success for all four. This goes through the pipeline the keyboard uses,
+       * so a box a person could not type into is a box this cannot type into.
+       *
+       * Focus the target first (`click`). Nothing here focuses anything: what
+       * has focus is often exactly the thing under test.
+       */
+      async type(text) {
+        await call('Input.insertText', { text })
+        return true
+      },
+
+      /**
+       * One key, down and up.
+       *
+       * The virtual key code is not optional. Chrome routes Enter and the
+       * arrows by code, and an event carrying `key` with the code left at zero
+       * arrives in the page reading `key: 'Enter'` and moves nothing - a press
+       * that looks right in every log and does not happen.
+       */
+      async key(name) {
+        const KEYS = {
+          Enter: { code: 'Enter', keyCode: 13, text: '\r' },
+          Escape: { code: 'Escape', keyCode: 27 },
+          ArrowUp: { code: 'ArrowUp', keyCode: 38 },
+          ArrowDown: { code: 'ArrowDown', keyCode: 40 },
+          Tab: { code: 'Tab', keyCode: 9 },
+          Backspace: { code: 'Backspace', keyCode: 8 },
+        }
+        const k = KEYS[name]
+        if (!k) throw new Error(`no key mapping for ${name}; add one rather than guessing a code`)
+        for (const type of ['keyDown', 'keyUp']) {
+          await call('Input.dispatchKeyEvent', {
+            type,
+            key: name,
+            code: k.code,
+            windowsVirtualKeyCode: k.keyCode,
+            nativeVirtualKeyCode: k.keyCode,
+            ...(type === 'keyDown' && k.text ? { text: k.text } : {}),
+          })
+        }
+        return true
+      },
+
+      /**
        * Change the viewport the page is laid out in, mid-session.
        *
        * `--window-size` at launch fixes one size for the life of the browser,

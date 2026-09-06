@@ -321,6 +321,62 @@ everything the bridge holds. That is asserted rather than assumed —
 `tools/link-reconnect-break-check.mjs` removes the `get_status` and requires
 that check to go red.
 
+### The gap is marked, not hidden (issue #506)
+
+Those two steps leave a window, and it is about ten seconds wide. The tag
+parser's state has been dropped on purpose, so `vitals.ts` falls back to the
+bridge's copy for every pool the stream has not re-reported yet — and if the
+bridge dropped too, that copy is a reading from before the drop. The bridge and
+the game link drop independently; a reconnect of one says nothing about the
+other.
+
+So the store keeps a single field, `bridgeStaleSince` (`src/store/staleMark.ts`
+decides it, `src/store/bridgeLifecycle.ts` is the only place it is set):
+
+- An **unexpected** drop — `reconnecting`, `gave-up`, `error`, or any status
+  that is not feeding — marks `character`, its vitals, `scriptStates` and
+  `runningScripts` with the moment the feed stopped. It does **not** clear
+  them: the last reading is the best answer available while the socket is down,
+  and a blank cluster during a reconnect is strictly less than the truth. The
+  panels render the marked values dimmed, with their age.
+- A **deliberate** disconnect or mode switch still clears the data outright,
+  and clears the mark with it. A detach ends the session, so there is no "last
+  known" left to qualify.
+- The mark survives the socket coming back and ends when a **payload lands**.
+  Those are two different moments, and that is the whole point of the field:
+  clearing on `connected` would put full contrast back over pre-drop numbers
+  for the entire replay delay above.
+- The age never restarts. Six reconnect attempts must not redraw a
+  forty-second-old reading as four seconds old.
+
+**The mock bridge cannot produce this state** — `onLiveStatus` is the real
+transport's event and the mock has no socket to lose — so the store exposes
+`simulateBridgeStatus`, which calls the same `applyLiveStatus` the live
+subscription calls. Same rule as the implemented-intents section below: a state
+the fixture cannot reach is a state nobody sees until a live bridge is the
+first place it happens.
+
+### One reader of the link state (issue #501)
+
+Every component that renders or gates on the game link reads `linkPhase`
+(`src/lib/gameLink.ts`). None of them tests `connected` inline. That is not a
+convention, it is checked: `tools/link-reconnect-test.mjs` walks the component
+tree, takes the files that subscribe to the link as its denominator, and fails
+if any of them branches on the boolean.
+
+The rule exists because `GameCommandBar` was not part of the change that
+introduced `linkPhase`, and for months it read *Not attached* while the two
+bars either side of it read *Reconnecting 3/6* about the same socket. Every
+test passed throughout: each file was correct about itself.
+
+The command bar's refusals follow from the same reading. It holds a typed
+command only while the phase is `reconnecting` — the text stays in the box, the
+state is said out loud, and the player presses Enter again once they can see
+where they are; it is never queued and never sent on their behalf, because a
+command typed against the room they last saw before the drop is dangerous.
+Every other refusal is left to the lane, so `closed_reason()`'s sentences reach
+the box they were written for.
+
 ### Checks
 
 - `cargo test --lib game_link` — the schedule (read, not timed), the bound and
@@ -331,10 +387,19 @@ that check to go red.
 - `npm run test:link-reconnect` — the four `linkPhase` states, an older Rust
   binary's field-less state degrading rather than lying, the reconnect edge,
   the bridge's bound and its rising attempt count, a deliberate retry getting a
-  fresh budget, and the transport→store mapping being total.
-- `npm run test:link-reconnect-break` — eight sabotages across both files,
-  each asserting the **exact** set of checks that reddens. Restored and
-  verified by sha256.
+  fresh budget, and the transport→store mapping being total. Also the two
+  sections above: the consumer census, and the stale mark on a fake clock,
+  through `applyLiveStatus` rather than a restatement of its rule.
+- `npm run test:link-reconnect-break` — a sabotage per branch, across all four
+  subject files, each asserting the **exact** set of checks that reddens.
+  Restored and verified by sha256. (No count in this line on purpose: a number
+  in prose here goes stale the next time a case is added, and a stale number
+  teaches the reader the page is out of date.)
+- `node tools/reconnect-honesty-shots.mjs <dev-server-url>` — the same two
+  fixes asked of a rendered document in a real browser, because every check
+  above would pass with the functions correct and nothing on screen changed.
+  Not in the gate: it needs a dev server. See
+  `docs/verification/reconnect-2026-09-07.md`.
 
 ---
 

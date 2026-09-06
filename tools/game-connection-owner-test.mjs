@@ -22,8 +22,24 @@ check('the app reaches the game workspace through its current hierarchy', /<Game
 // reason; that is worth nothing if the bar renders a bare flag and leaves the
 // reason unread, which is the failure this repo has already paid for once - a
 // header offering Attach while game text poured into the pane behind it.
+//
+// Rewritten for issue #501, and deliberately: the old body matched the exact
+// expression `link.connected ? ... : link.note`, which is a mechanism, and the
+// name above is a property. Those came apart the moment this bar was made to
+// read `linkPhase` like every other consumer of the link - the reason is still
+// rendered, the flag is no longer tested inline, and the old regex went red at
+// the change that made its own name MORE true. A test whose name is right and
+// whose body pins the implementation defends the defect: the honest-looking
+// move when it reddens is to put the inline test back.
+//
+// So this asserts the property twice over: the reason reaches the screen, and
+// the bar does not decide "connected" for itself. The second half is what
+// #501 was actually about; the whole consumer census that enforces it lives in
+// tools/link-reconnect-test.mjs, and this is the one file's share of it.
 check('a disconnected bar reads the reason rather than only the flag',
-  /link\.connected \?[^\n]*: *link\.note/.test(bar) && /!link\.connected/.test(bar))
+  /link\.note/.test(bar) && /linkPhase\(/.test(bar))
+check('and reads the connection through linkPhase rather than testing the flag inline',
+  !/link\.connected/.test(bar.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1')))
 
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or

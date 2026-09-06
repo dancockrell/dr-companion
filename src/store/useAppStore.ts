@@ -23,10 +23,12 @@ import {
   syncProfile,
 } from './profilePersistence.ts'
 import {
+  applyLiveStatus,
   connectBridge,
   disconnectBridge,
   setBridgeMode,
 } from './bridgeLifecycle.ts'
+import { FRESH } from './staleMark.ts'
 import { requestIntent } from './bridgeIntentDispatcher.ts'
 import { handleBridgeMessage } from './bridgeMessageHandler.ts'
 
@@ -144,6 +146,8 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   bridgeStatus: 'disconnected' as BridgeTransportStatus,
   bridgeAttempt: 0,
   bridgeMaxAttempts: MAX_RECONNECT_ATTEMPTS,
+  // Nothing has arrived yet, so there is nothing to be stale. See staleMark.ts.
+  bridgeStaleSince: FRESH,
   // Unknown until a bridge says otherwise, never assumed good.
   bridgeAuth: 'unknown' as AuthMode,
   bridgeAuthNote: '',
@@ -292,6 +296,11 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   connectBridge: () => connectBridge(set, get, handleBridgeMessage),
 
   disconnectBridge: () => disconnectBridge(set),
+
+  // The same function the live subscription calls, so a simulated drop and a
+  // real one cannot diverge. See AppState.simulateBridgeStatus for why it
+  // exists at all.
+  simulateBridgeStatus: (status) => applyLiveStatus(status, set, get),
 
   requestIntent: (
     intent: IntentName | `travel:${string}`,

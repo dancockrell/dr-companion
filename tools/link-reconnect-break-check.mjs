@@ -44,12 +44,29 @@
 import { readFileSync, writeFileSync, utimesSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { sep } from 'node:path'
 
 const RUST = 'src-tauri/src/game_link.rs'
 const TS = 'src/bridge/realBridge.ts'
+/**
+ * Two more subjects, added with issues #501 and #506.
+ *
+ * The command bar because its defect was invisible to every existing test:
+ * each file passed about itself while two of them disagreed about one socket,
+ * and the only thing that could have caught it is a check over the whole
+ * consumer set. A census can fail silently in the direction that reads as
+ * clean - a broken matcher and a clean tree both print zero - so it needs a
+ * violation put back on purpose.
+ *
+ * The stale mark because "the numbers on screen are current" is a claim the
+ * app makes by saying nothing, and a guard against an unspoken claim is
+ * exactly the kind that can quietly stop working.
+ */
+const BAR = 'src/components/game/GameCommandBar.tsx'
+const STALE = 'src/store/staleMark.ts'
 
 const subjects = {}
-for (const path of [RUST, TS]) {
+for (const path of [RUST, TS, BAR, STALE]) {
   const original = readFileSync(path)
   const text = original.toString('utf8')
   subjects[path] = {
@@ -148,6 +165,48 @@ function runNode() {
 }
 
 /* ------------------------------------------------------------------ cases */
+
+/**
+ * The census prints the paths it walked, and those carry the platform's
+ * separator. Hardcoding a forward slash would make the command-bar case pass
+ * on CI and fail here, or worse, match nothing and look like the sabotage was
+ * caught by something else.
+ */
+const SEP = sep
+
+/**
+ * Measured, not predicted.
+ *
+ * Both of these lists were produced by applying the sabotage and reading which
+ * checks actually went red, then pasted back. Guessing them is how a case ends
+ * up expecting a check that never had anything to do with it - which reads as
+ * an entanglement bug in a suite that is fine, or hides a real one.
+ */
+const STALE_NEVER_SET = [
+  'an unexpected drop marks the data, with the time it stopped arriving',
+  'and the mark reads as stale',
+  "a bridge in 'reconnecting' is not feeding, so the numbers are marked",
+  "a bridge in 'gave-up' is not feeding, so the numbers are marked",
+  "a bridge in 'error' is not feeding, so the numbers are marked",
+  "a bridge in 'disconnected' is not feeding, so the numbers are marked",
+  "a bridge in 'connecting' is not feeding, so the numbers are marked",
+  'a later attempt does not reset the age: the mark is when the data stopped',
+  'an unexpected drop marks the store',
+  // These two are downstream of the same damage and are listed because the
+  // first run of this case found them and the predicted list did not. With no
+  // mark ever set there is nothing for a second status to preserve and nothing
+  // for a reconnect to leave alone, so both of the "does not change" checks
+  // have nothing to hold on to.
+  'a second status does not restart the age',
+  'and the socket returning does not clear it either',
+]
+
+const STALE_CLEARED_TOO_EARLY = [
+  'the socket coming back does not clear the mark on its own',
+  'so ten seconds into the replay window the reading is still marked, and its real age is shown',
+  'and the words say how old, not merely that something is wrong',
+  'and the socket returning does not clear it either',
+]
 
 /**
  * Each case names its subject, the splice, why it matters, and the exact set
@@ -295,18 +354,63 @@ const CASES = [
       'a fresh status is requested on every open, which is the bridge half of the replay',
     ],
   },
+  {
+    name: 'an inline connected test is put back in the command bar',
+    subject: BAR,
+    why:
+      'this is issue #501 exactly: the box the player is looking at when they ' +
+      'press Enter decides for itself what the link is doing, so it can read ' +
+      '"Not attached" under a footer reading "Reconnecting 3/6", and its own ' +
+      'guard short-circuits before the lane can say what is actually wrong',
+    from: '          disabled={searchOpen || sending}',
+    to: '          disabled={searchOpen || sending || !link.connected}',
+    expect: [
+      `${BAR.split('/').join(SEP)} has no inline connected test left`,
+      'no inline link.connected test survives in any of the',
+    ],
+  },
+  {
+    name: 'an unexpected drop stops marking the data',
+    subject: STALE,
+    why:
+      'issue #506: the character, vitals and script list left by a drop are ' +
+      'drawn at full contrast as current readings, and the panels then say ' +
+      'nothing at all about a health bar that has not been updated for a minute',
+    from: '  if (staleSince !== FRESH) return staleSince\n  return now',
+    to: '  return FRESH',
+    expect: STALE_NEVER_SET,
+  },
+  {
+    name: 'the mark is cleared when the socket returns',
+    subject: STALE,
+    why:
+      'the plausible wrong fix, and the reason the mark is not cleared on ' +
+      "'connected': Lich's replay lands up to ten seconds after the reconnect " +
+      'in DragonRealms, so full contrast comes back over pre-drop numbers for ' +
+      'that whole window and nothing on screen says which they are',
+    from: '  if (FEEDING[status] ?? false) return staleSince',
+    to: '  if (FEEDING[status] ?? false) return FRESH',
+    expect: STALE_CLEARED_TOO_EARLY,
+  },
 ]
 
 /* ------------------------------------------------------------------ run it */
 
-const RUNNERS = { [RUST]: runRust, [TS]: runNode }
+// The command bar and the stale mark are both asserted by the same node
+// suite, so they share its runner. They are separate subjects rather than
+// separate cases on one subject because each is restored and re-hashed on its
+// own, and a damaged file left behind is the one outcome worse than no
+// negative test at all.
+const RUNNERS = { [RUST]: runRust, [TS]: runNode, [BAR]: runNode, [STALE]: runNode }
 // Floors on what a green baseline must actually have executed. Well below the
 // real counts, so they never need touching and still catch a subject that
 // silently ran nothing.
-const FLOORS = { [RUST]: 15, [TS]: 40 }
+const FLOORS = { [RUST]: 15, [TS]: 40, [BAR]: 40, [STALE]: 40 }
 
-console.log('== both subjects are green before any damage ==')
-for (const path of [RUST, TS]) {
+const SUBJECTS = [RUST, TS, BAR, STALE]
+
+console.log('== every subject is green before any damage ==')
+for (const path of SUBJECTS) {
   const first = RUNNERS[path]()
   ok(first.ran >= FLOORS[path], `${path}: its tests ran (${first.ran}, floor ${FLOORS[path]})`)
   ok(first.failed.length === 0, `${path}: and every one passes`, first.failed.join(' | '))
@@ -385,7 +489,7 @@ for (const [path, s] of Object.entries(subjects)) {
   const now = createHash('sha256').update(readFileSync(path)).digest('hex')
   ok(now === s.hash, `${path} restored (sha256 ${now.slice(0, 12)})`)
 }
-for (const path of [RUST, TS]) {
+for (const path of SUBJECTS) {
   const after = RUNNERS[path]()
   ok(
     after.ran >= FLOORS[path] && after.failed.length === 0,
