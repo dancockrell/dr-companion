@@ -7,6 +7,11 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "docs/verification/crossing-native-trollferry-quay-no-ao.png",
+    "docs/verification/crossing-native-trollferry-quay-no-normal.png",
+    "docs/verification/crossing-native-trollferry-quay-no-textures.png",
+    "docs/verification/crossing-native-trollferry-quay-flat.png",
+    "docs/verification/crossing-native-trollferry-quay-aa.png",
     "docs/verification/crossing-native-trollferry-quay-unshadowed.png",
     "docs/verification/crossing-native-trollferry-quay.png",
     "docs/verification/crossing-native-armory-interior.png",

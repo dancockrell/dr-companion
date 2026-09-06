@@ -2,6 +2,26 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Gameplay-distance surface aliasing
+
+The Trollferry paving/deck diagnostic captures now isolate ambient occlusion,
+normal overrides, texture removal, flat unlit shading and anti-aliasing using
+the actual viewer. Disabling ambient occlusion and removing textures did not
+remove the repeated dotted pattern. Flat unlit shading is only a diagnostic,
+not a production proposal. Four-sample MSAA plus FXAA substantially reduces
+the pattern with full geometry, textures and shadows retained; these settings
+are now enabled in the project. See crossing-native-trollferry-quay-aa.png.
+No model simplification or texture-resolution reduction was made. Performance
+on lower-end hardware and temporal shimmer still require measurement.
+
+Reproduce the individual room experiments with capture-crossing-content.gd,
+room 1-32, and --no-ao, --no-normal, --no-textures, --flat or --aa. Diagnostic
+suffixes prevent overwriting normal captures. The --no-normal experiment
+was captured before anti-aliasing became the default; use --no-aa with the
+individual diagnostic flags to reproduce that baseline. The --no-normal mode
+affects mesh material overrides only; --no-textures inspects every active
+surface material. These are developer diagnostics, never production presets.
+
 ### Whole-city description recovery
 
 Current correction: generic legacy place keys such as Workroom, Workshop,

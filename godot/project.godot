@@ -36,4 +36,6 @@ window/stretch/mode="canvas_items"
 
 renderer/rendering_method="forward_plus"
 lights_and_shadows/directional_shadow/size=4096
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/screen_space_aa=1
 environment/defaults/default_clear_color=Color(0.06, 0.07, 0.09, 1)
