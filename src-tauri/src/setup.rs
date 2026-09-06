@@ -2057,7 +2057,6 @@ mod vendor_tests {
         let got = verify_vendor_bundle(&exe, &manifest).expect("should verify");
         assert_eq!(got.version, "5.20.1");
         assert_eq!(got.bytes, payload.len() as u64);
-
     }
 
     /// A dev checkout that never ran the fetch script. This is the common
@@ -2099,7 +2098,6 @@ mod vendor_tests {
             verify_vendor_bundle(&exe, &manifest_path).is_none(),
             "a hash mismatch must not verify"
         );
-
     }
 
     /// The declared size is checked before the hash is even computed - cheap

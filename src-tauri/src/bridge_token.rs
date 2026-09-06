@@ -132,6 +132,5 @@ mod tests {
             std::fs::write(&f, junk).unwrap();
             assert_eq!(read_token_from(d.path()), "", "accepted {junk:?}");
         }
-
     }
 }
