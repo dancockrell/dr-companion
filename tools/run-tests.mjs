@@ -44,7 +44,44 @@
  * another repo on this machine.
  */
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+
+/**
+ * Where to leave a machine-readable note that this run skipped something.
+ *
+ * The final line here already refuses to say "all passed" over a skip. Its
+ * *caller* could not see that: `tools/gate.mjs` spawns this with `stdio:
+ * 'inherit'` and reads only the exit status, which is 0 for a partial run on
+ * purpose (a declined rule is not a failure). So the honest sentence scrolled
+ * past mid-run and the gate's own summary went on to say "all passed" over it -
+ * the three-state discipline dying at the stage boundary, which is exactly the
+ * defect this file's header is about, one level out.
+ *
+ * A file rather than an exit code, because the exit code is a contract every
+ * other caller of `npm run test:all` shares and turning a partial into a
+ * non-zero would break all of them. Written only when there is something to
+ * say, and deleted by the gate before the run so a stale note from yesterday
+ * cannot be read as today's.
+ *
+ * Set the variable by hand to exercise it: the branch is otherwise reachable
+ * only when some suite happens to skip a rule.
+ */
+const PARTIAL_NOTE = process.env.DRC_TESTS_PARTIAL_FILE || ''
+
+/** Write the note, or say why it could not be written. Never silent: a caller
+ *  reading an absent file must not conclude the run was clean when the truth
+ *  is that this failed to tell it. */
+function reportPartial(count, names) {
+  if (!PARTIAL_NOTE) return
+  try {
+    writeFileSync(PARTIAL_NOTE, JSON.stringify({ count, suites: names }), 'utf8')
+  } catch (error) {
+    console.log(
+      `\ncould not write the partial-run note to ${PARTIAL_NOTE} (${error.message}); ` +
+        'whatever ran this will not learn that something was skipped'
+    )
+  }
+}
 
 /**
  * The lowest believable number of checks for a complete run.
@@ -263,6 +300,14 @@ if (notRun.length) {
 }
 
 if (partial.length) {
+  // Written here rather than only in the no-failures branch below, so a run
+  // that both failed something and skipped something still tells its caller
+  // about the skip. A failure that hides a skip is how the skip survives the
+  // fix that was made for the failure.
+  reportPartial(
+    partial.reduce((n, r) => n + r.skipped.length, 0),
+    partial.map((r) => r.name)
+  )
   console.log(`\n${partial.length} suite(s) passed but skipped part of their job:`)
   for (const r of partial) {
     console.log(`  ${r.name.padEnd(22)} ${r.checks.total} checks ran`)
