@@ -23,9 +23,11 @@ import { freePort } from './free-port.mjs'
 // suite at once on this machine, and two copies wanting one port produced a
 // failure that read as a bridge bug. See tools/free-port.mjs.
 const PORT = await freePort()
+let checked = 0
 let fails = 0
 
 function check(label, ok, detail = '') {
+  checked++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`)
   if (!ok) fails++
 }
@@ -285,5 +287,21 @@ check('and a reason the app can show', !!ack?.detail, ack?.detail?.slice(0, 60))
 client.disconnect()
 
 console.log('')
-console.log(fails === 0 ? 'all passed' : `${fails} FAILED`)
-process.exit(fails === 0 ? 0 : 1)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 6
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)

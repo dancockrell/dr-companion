@@ -31,8 +31,10 @@ writeFileSync(out, ts.transpileModule(readFileSync('src/lib/mapLandmarks.ts', 'u
 }).outputText.replace('./mapPlaceColors.js', './mapPlaceColors.mjs'))
 const { landmarkFor, landmarksFor } = await import(pathToFileURL(out).href)
 
+let checked = 0
 let failures = 0
 const check = (label, value) => {
+  checked++
   console.log(`${value ? 'OK  ' : 'FAIL'} ${label}`)
   if (!value) failures++
 }
@@ -82,5 +84,20 @@ check('room tooltips remain open while crossing into their controls', canvas.inc
 check('room tooltips grow inward from map edges', hoverCard.includes('containerWidth / 2') && hoverCard.includes('containerHeight / 2') && hoverCard.includes('max-h-[calc(100%-1rem)]'))
 check('room tooltips explain gateway and movement context', hoverCard.includes('Next map') && hoverCard.includes('Leaves by') && hoverCard.includes('Ways out'))
 
-if (failures) process.exit(1)
-console.log('\nall map landmark checks passed')
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 24
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failures} failed`)
+if (failures) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')

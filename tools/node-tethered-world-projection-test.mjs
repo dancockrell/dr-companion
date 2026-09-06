@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
-const fail = (message) => { console.error(`FAIL ${message}`); process.exitCode = 1 }
-const pass = (message) => console.log(`OK   ${message}`)
+let checked = 0
+let failed = 0
+const fail = (message) => { checked++; failed++; console.error(`FAIL ${message}`); process.exitCode = 1 }
+const pass = (message) => { checked++; console.log(`OK   ${message}`) }
 const outputPath = 'data/world/out/1-node-tethered-world.json'
 
 execFileSync(process.execPath, ['tools/build-node-tethered-world-projection.mjs', '1'], { stdio: 'inherit' })
@@ -31,3 +33,24 @@ else {
   if (north?.tetherKind === 'road' && portal?.tetherKind === 'portal' && ladder?.tetherKind === 'ladder') pass('representative graph edges compile to typed visual tethers')
   else fail('road, portal, or ladder tether classification drifted')
 }
+
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases. It also
+// catches the shape of failure this file is built around: every check but
+// the first lives inside `else { ... }`, so a projection that failed to
+// generate would otherwise report one FAIL and look like a small suite.
+const MIN_EXPECTED = 5
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${failed} failed`)
+if (failed) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
