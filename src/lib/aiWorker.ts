@@ -210,6 +210,26 @@ export interface WorkerDeps {
    */
   stateVersion?: number
   suggestionTtlMs?: number
+  /**
+   * The millisecond clock, for the one number that must be read after the
+   * model answers rather than before it is asked.
+   *
+   * `now` above is a snapshot taken when the turn starts, which is right for
+   * every scheduling decision in this file: a turn must reason about the world
+   * that made it start. It is wrong for a suggestion's expiry, and #403 is
+   * that. A card's life begins when the card exists, and it cannot exist until
+   * generation has returned - so measuring the TTL from `now` spent the whole
+   * latency before a player saw anything, and a card documented as offering 20
+   * seconds arrived offering 15. Bounded by the 5 s live-review budget and
+   * always short rather than long, which is the fail-safe direction and is
+   * exactly why it went unnoticed.
+   *
+   * `aiIngest.ts` defaults it to `Date.now`, so a host gets the corrected
+   * clock without wiring anything. It is a parameter rather than a hidden
+   * re-read so a test can advance it *during* the generation and watch the
+   * expiry follow.
+   */
+  clock?: () => number
   /** Resolves evidence refs for the tether validator. */
   evidence?: {
     resolve(refs: readonly string[]): {
@@ -828,7 +848,12 @@ export async function runWorkerOnce(
         // suggestion pinned to it is refused at confirmation, which is the
         // right answer rather than an accident.
         basedOnStateVersion: deps.stateVersion ?? 0,
-        expiresAt: deps.now + (deps.suggestionTtlMs ?? DEFAULT_SUGGESTION_TTL_MS),
+        // The clock read *here*, on the far side of the generation, and not
+        // `deps.now`, which was captured before the model was asked. See
+        // `clock` in `WorkerDeps`: the difference is the whole of the card's
+        // stated lifetime minus however long the model took.
+        expiresAt:
+          (deps.clock?.() ?? deps.now) + (deps.suggestionTtlMs ?? DEFAULT_SUGGESTION_TTL_MS),
         evidenceRefs: read.events.map((e) => `event:${e.seq}`),
       })
       if (proposed.ok) suggestionId = proposed.suggestion?.id ?? null

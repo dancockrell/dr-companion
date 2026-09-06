@@ -356,6 +356,96 @@ console.log('\n-- a proposed command becomes a record, and only a record --')
   ok('a review that proposed nothing records nothing', made.length === 0 && out3.suggestionId === null)
 }
 
+console.log('\n-- the card gets its whole lifetime, not what the model left of it --')
+{
+  // #403. `deps.now` is captured before the model is asked, and a suggestion's
+  // life begins when the card exists - so measuring the expiry from it spent
+  // the generation's latency before a player saw anything. Measured with a
+  // clock the provider itself advances: five seconds of "model" inside the
+  // await, against a twenty-second TTL.
+  const LATENCY = 5_000
+  const TTL = 20_000
+  const clock = { now: 100_000 }
+  const slow = {
+    describe: () => ({ available: true }),
+    generate: async () => {
+      clock.now += LATENCY
+      return {
+        ok: true,
+        text: JSON.stringify({
+          notable: ['a chest'],
+          suggestion: { command: 'look chest', commandType: 'look', why: 'it is there' },
+        }),
+      }
+    },
+  }
+  const made = []
+  const d = setup({
+    provider: slow,
+    now: clock.now,
+    suggestionTtlMs: TTL,
+    clock: () => clock.now,
+    stateVersion: 12,
+    suggestions: {
+      create: (p) => {
+        made.push(p)
+        return { ok: true, suggestion: { id: 'suggestion:1' } }
+      },
+    },
+  })
+  d.journal.append('room', { id: 1 }, 41)
+  const out = await runWorkerOnce(d)
+
+  // The denominator: if the turn did not review, or proposed nothing, the
+  // assertion below would be about an empty array and would read as a pass.
+  ok('the slow provider still produced a review', out.did === 'review', out.did)
+  ok('and a proposal to measure', made.length === 1, String(made.length))
+  // The clock genuinely moved during the await, or this measures nothing.
+  ok('the model really did take time', clock.now === 100_000 + LATENCY, String(clock.now))
+  const remaining = made[0]?.expiresAt - clock.now
+  ok('the card offers its full stated lifetime from the moment it exists',
+    remaining === TTL, `${remaining} ms of ${TTL}`)
+  ok('which is later than the pre-generation clock would have given it',
+    made[0]?.expiresAt > d.now + TTL - LATENCY, String(made[0]?.expiresAt))
+
+  // Without a clock the expiry falls back to the snapshot, which is the old
+  // behaviour and is what a caller that wires nothing gets. `aiIngest.ts`
+  // defaults it, and `tools/ai-worker-host-test.mjs` holds it to that, so no
+  // host reaches this branch.
+  const clock2 = { now: 100_000 }
+  const slow2 = {
+    describe: () => ({ available: true }),
+    generate: async () => {
+      clock2.now += LATENCY
+      return {
+        ok: true,
+        text: JSON.stringify({
+          notable: ['a chest'],
+          suggestion: { command: 'look chest', commandType: 'look', why: 'it is there' },
+        }),
+      }
+    },
+  }
+  const made2 = []
+  const bare = setup({
+    provider: slow2,
+    now: clock2.now,
+    suggestionTtlMs: TTL,
+    stateVersion: 12,
+    suggestions: {
+      create: (p) => {
+        made2.push(p)
+        return { ok: true, suggestion: { id: 'suggestion:2' } }
+      },
+    },
+  })
+  bare.journal.append('room', { id: 1 }, 41)
+  await runWorkerOnce(bare)
+  ok('with no clock wired the expiry is the snapshot, which is the case #403 was about',
+    made2.length === 1 && made2[0].expiresAt - clock2.now === TTL - LATENCY,
+    String(made2[0]?.expiresAt - clock2.now))
+}
+
 console.log('\n-- the validator is strict about the field that can become a command --')
 {
   const malformed = [

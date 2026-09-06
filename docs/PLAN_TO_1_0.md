@@ -1141,8 +1141,17 @@ whether it is embedded, docked or a separate window is D0.
   numbers are not.) Still true, and the thing a first live session should look
   at: the card has never been rendered with a real suggestion in it, because
   producing one needs a local model this machine does not have — the same wall
-  H5 is `[!]` behind.
-  touches: src/lib/aiSuggestions.ts, tools/ai-suggestions-test.mjs, src/lib/stateVersion.ts, src/lib/flowStop.ts, src/store/useAppStore.ts, src/types/index.ts, tools/kill-switch-test.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md, src/lib/aiWorker.ts, src/lib/aiIngest.ts, src/lib/aiWorkerHost.ts, src/components/shared/AiWorkerPanel.tsx, tools/ai-worker-test.mjs, package.json, tools/test-suites.json
+  H5 is `[!]` behind. Review pass 5 then filed three defects in the panel and
+  its wiring, fixed together on 6 Sep 2026 (#399, #403): the card hid the two
+  refusals that settle a suggestion and then showed one of them against the
+  *next* proposal, `suggestionRefused` had no reader anywhere in `src/`, and
+  the suggestion's TTL was measured from before the model was asked, so a card
+  documented as offering 20 s arrived offering 15. None of them touched the
+  gate. The card has now been rendered with a suggestion in it, by
+  `tools/ai-card-refusal-shots.mjs` against a dev server, which is the first
+  half of the wall above coming down — a real *model* still has not proposed
+  one.
+  touches: src/lib/aiSuggestions.ts, tools/ai-suggestions-test.mjs, src/lib/stateVersion.ts, src/lib/flowStop.ts, src/store/useAppStore.ts, src/types/index.ts, tools/kill-switch-test.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md, src/lib/aiWorker.ts, src/lib/aiIngest.ts, src/lib/aiWorkerHost.ts, src/components/shared/AiWorkerPanel.tsx, src/lib/suggestionCardView.ts, tools/ai-worker-test.mjs, tools/ai-worker-host-test.mjs, tools/ai-card-refusal-shots.mjs, package.json, tools/test-suites.json
   depends-on: H3, G0
   do: the handoff's §36, exactly. A suggestion is data: `{id, exactCommand, commandType, basedOnStateVersion, expiresAt, status:'pending'|'confirmed'|'expired'|'rejected'|'awaiting_result'|'resolved', evidenceRefs}`. `requestExecution(id, confirmation)` REQUIREs: status pending; not expired; `confirmation.commandText === exactCommand` (the player confirms the literal command, not a summary); the current state version equals `basedOnStateVersion` (that counter is `currentStateVersion()` in `src/lib/stateVersion.ts`, bumped by `versionedSetter`, which the store wraps its `set` in; it was also mirrored onto `AppState.stateVersion`, and #370 removed the mirror — one number, one owner, read from the module and never from the store); at most one suggestion in `awaiting_result`. Only then `requestGameAction` from `gameActions.ts` — the **only** import of it in any `ai*.ts`, and a source test asserts it is the only one. The authoritative result (next snapshot/state) resolves the suggestion; the model never marks its own proposal successful. Panel: one card with Confirm/Dismiss, the exact command in monospace, and the expiry.
   verify: tests — stale state version → refused; altered command → refused; expired → refused; second pending while one awaits → refused; happy path sends exactly `exactCommand` once (spy on `requestGameAction`).

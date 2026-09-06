@@ -335,6 +335,7 @@ console.log('\n-- status is published on a change, and otherwise on a slow sched
     lastFailure: 'timeout: too slow',
     lastFailureKind: 'timeout',
     lastReview: { notable: ['a door'], at: '2026-09-05T00:00:01.000Z' },
+    suggestionRefused: 'a “look” suggestion must begin with “look”',
     unreviewedWithoutModel: 42,
   }
   const fields = Object.keys(base).filter((k) => k !== 'ticks')
@@ -706,6 +707,131 @@ console.log('\n-- the live request carries neither the whisper nor its sequence 
   })
   ok('opted in, the sequence is there', JSON.parse(seen2.state).events.map((e) => e.seq).join(',') === '1,2,3', seen2 ? seen2.state : '')
   ok('and the words still are not', !seen2.state.includes('meet me'), seen2 ? seen2.state : '')
+}
+
+console.log('\n-- the status says why a proposed command never became a card --')
+{
+  // #403. `suggestionRefused` was produced by the worker and read by nobody,
+  // so "the model proposed nothing" and "the proposal was refused" reached a
+  // player as the same blank space - the exact pair the field was added to
+  // tell apart. The status is the only channel the panel has. (That a change
+  // to it re-publishes is covered by the sameStatus sweep above, which reads
+  // the status object's own keys.)
+  const proposing = {
+    describe: () => ({ available: true }),
+    generate: async () => ({
+      ok: true,
+      text: JSON.stringify({
+        notable: ['a chest'],
+        suggestion: { command: 'look chest', commandType: 'look', why: 'it is there' },
+      }),
+      tokens: 3,
+    }),
+  }
+  const quiet = {
+    describe: () => ({ available: true }),
+    generate: async () => ({ ok: true, text: '{"notable":[]}', tokens: 3 }),
+  }
+  const run = async (provider, suggestions, over = {}) => {
+    const journal = new EventJournal()
+    ingestLines(journal, [{ text: 'You see a chest.', stream: '', at: 1 }], 0)
+    return runHostTick({
+      journal,
+      alerts: new AlertBroker(),
+      jobs: (() => { const j = new JobStore(); j.load(); return j })(),
+      provider,
+      app: { situation: [], roundtime: 0, bridgeConnected: true, roomId: '1', roomCombatants: [], isTown: false },
+      memory: { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0, roomChangedAt: null, lastAppendAt: Date.now() },
+      now: Date.now(),
+      nowIso: '2026-09-06T12:00:00Z',
+      suggestions,
+      stateVersion: 3,
+      ...over,
+    })
+  }
+
+  const made = []
+  const accepting = {
+    create: (p) => {
+      made.push(p)
+      return { ok: true, suggestion: { id: 'suggestion:1' } }
+    },
+  }
+  const accepted = await run(proposing, accepting)
+  ok('the control: a proposal the store accepts reaches it', made.length === 1, String(made.length))
+  ok('and the status reports no refusal', accepted.suggestionRefused === null,
+    String(accepted.suggestionRefused))
+
+  const refused = await run(proposing, {
+    create: () => ({ ok: false, reason: 'a suggestion cannot be created already expired' }),
+  })
+  ok('a refused proposal is reported on the status rather than swallowed',
+    /already expired/.test(refused.suggestionRefused ?? ''), String(refused.suggestionRefused))
+
+  const nothing = await run(quiet, accepting)
+  ok('a review that proposed nothing clears it rather than repeating an older one',
+    nothing.suggestionRefused === null, String(nothing.suggestionRefused))
+}
+
+console.log('\n-- the host measures a card’s life from the moment the card exists --')
+{
+  // #403 again, from the host end. The worker takes the clock from `deps`;
+  // this is the wiring that hands it one. Without the default a host that
+  // wired nothing would silently go back to spending the model's latency out
+  // of the player's reading time.
+  const LATENCY = 5_000
+  const TTL = 20_000
+  const clock = { now: 500_000 }
+  const slow = {
+    describe: () => ({ available: true }),
+    generate: async () => {
+      clock.now += LATENCY
+      return {
+        ok: true,
+        text: JSON.stringify({
+          notable: ['a chest'],
+          suggestion: { command: 'look chest', commandType: 'look', why: 'it is there' },
+        }),
+        tokens: 3,
+      }
+    },
+  }
+  const made = []
+  const journal = new EventJournal()
+  ingestLines(journal, [{ text: 'You see a chest.', stream: '', at: 1 }], 0)
+  const status = await runHostTick({
+    journal,
+    alerts: new AlertBroker(),
+    jobs: (() => { const j = new JobStore(); j.load(); return j })(),
+    provider: slow,
+    app: { situation: [], roundtime: 0, bridgeConnected: true, roomId: '1', roomCombatants: [], isTown: false },
+    memory: { lastReviewAt: null, lastReviewedHash: null, ticks: 0, missedLines: 0, roomChangedAt: null, lastAppendAt: clock.now },
+    now: clock.now,
+    nowIso: '2026-09-06T12:00:00Z',
+    clock: () => clock.now,
+    suggestionTtlMs: TTL,
+    suggestions: {
+      create: (p) => {
+        made.push(p)
+        return { ok: true, suggestion: { id: 'suggestion:1' } }
+      },
+    },
+    stateVersion: 3,
+  })
+  ok('the turn reviewed', status.lastOutcome === 'review', String(status.lastOutcome))
+  ok('and proposed once', made.length === 1, String(made.length))
+  ok('the model really did take time inside the await', clock.now === 500_000 + LATENCY,
+    String(clock.now))
+  ok('the card gets its whole stated lifetime',
+    made[0]?.expiresAt - clock.now === TTL, `${made[0]?.expiresAt - clock.now} of ${TTL}`)
+
+  // The seam is optional, so the default is the thing that has to be right,
+  // and a host that wires nothing is the one case an injected clock cannot
+  // exercise.
+  const fs = await import('node:fs')
+  const ingest = fs.readFileSync('src/lib/aiIngest.ts', 'utf8')
+  ok('and a host that wires no clock still gets a live one',
+    /clock: input\.clock \?\? \(\(\) => Date\.now\(\)\)/.test(ingest))
 }
 
 

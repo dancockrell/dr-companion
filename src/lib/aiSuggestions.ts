@@ -255,6 +255,19 @@ export interface SuggestionDeps {
 export class SuggestionStore {
   private items = new Map<string, Suggestion>()
   private nextId = 1
+  /**
+   * The last suggestion that reached a terminal status.
+   *
+   * `live()` answers "what may still be acted on", which is the only question
+   * the gate has. It is not the only question a *panel* has: the two refusals
+   * a player most needs explained - expiry, and a state version that moved -
+   * settle the suggestion, so by the time there is a sentence to show,
+   * `live()` is already null and the card the sentence is about has stopped
+   * existing as far as the store is concerned. That is #399: the explanation
+   * outlived the thing it explained, and then attached itself to the next
+   * proposal. This is how a panel can still name what it is talking about.
+   */
+  private lastSettledId: string | null = null
   private revision = 0
   private readonly listeners = new Set<() => void>()
   private readonly deps: SuggestionDeps
@@ -300,6 +313,27 @@ export class SuggestionStore {
   live(): Suggestion | null {
     this.sweepExpired()
     return this.byStatus('pending')[0] ?? this.byStatus('awaiting_result')[0] ?? null
+  }
+
+  /**
+   * The most recently settled suggestion, or null.
+   *
+   * Reporting only. Nothing here can move a suggestion out of a terminal
+   * status - `ALLOWED` has no edge leaving one - so a panel holding this
+   * record can say why a card went and can do nothing else with it. Expiry is
+   * swept first for the same reason `live()` sweeps it: a deadline that has
+   * passed is a fact about the clock, not about whether anything looked.
+   *
+   * The status is filtered where it is written, in `settle`, and deliberately
+   * not again here: the first draft checked it in both places, and sabotaging
+   * the one in `settle` left every test green, because the second check was
+   * quietly covering for it. Two guards that cannot disagree are one guard and
+   * one branch nobody can prove.
+   */
+  lastSettled(): Suggestion | null {
+    this.sweepExpired()
+    if (this.lastSettledId === null) return null
+    return this.items.get(this.lastSettledId) ?? null
   }
 
   /**
@@ -371,6 +405,11 @@ export class SuggestionStore {
   private settle(suggestion: Suggestion, to: SuggestionStatus, reason: string): Suggestion {
     const next: Suggestion = { ...suggestion, status: to, reason }
     this.items.set(next.id, next)
+    // Recorded here rather than at each call site, so a status that becomes
+    // terminal by a route nobody has written yet is still remembered. `confirmed`
+    // and `awaiting_result` pass through this method too and are deliberately
+    // not recorded: they are stages of a suggestion that is still going.
+    if (TERMINAL_SUGGESTION_STATUSES.includes(to)) this.lastSettledId = next.id
     return next
   }
 

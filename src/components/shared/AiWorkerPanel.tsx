@@ -8,6 +8,7 @@ import {
 } from '../../lib/aiWorkerHost.ts'
 import { failureSentence } from '../../lib/aiModelProvider.ts'
 import { suggestionStore } from '../../lib/aiSuggestions.ts'
+import { suggestionCardView, type KeyedRefusal } from '../../lib/suggestionCardView.ts'
 
 /**
  * The one card a proposed command is offered on.
@@ -33,6 +34,15 @@ import { suggestionStore } from '../../lib/aiSuggestions.ts'
  * component has no opinion about whether a command may run, which is why
  * `tools/ai-suggestions-test.mjs` can exercise the whole boundary without
  * rendering anything at all.
+ *
+ * **A refusal belongs to a suggestion, and is shown with it.** The store
+ * settles a suggestion on expiry and on a state version that moved, so the two
+ * refusals a player most needs explained arrive at the moment `live()` starts
+ * returning null. The card therefore keeps drawing the settled record until
+ * the sentence has been read - and refuses to draw the sentence next to
+ * anything else, because a refusal that survives onto the next proposal is
+ * worse than no refusal at all. `suggestionCardView` decides which of those
+ * this is, so the rule can be tested without a DOM.
  */
 function SuggestionCard() {
   const store = useMemo(() => suggestionStore(), [])
@@ -49,8 +59,17 @@ function SuggestionCard() {
     return () => window.clearInterval(timer)
   }, [])
 
-  const [refusal, setRefusal] = useState<string | null>(null)
-  const suggestion = store.live()
+  // The refusal carries the id it belongs to. A bare string could not be
+  // checked against anything, which is how one card's red line ended up under
+  // another card's command; `suggestionCardView` refuses to draw it beside a
+  // suggestion it does not name.
+  const [refusal, setRefusal] = useState<KeyedRefusal | null>(null)
+  const view = suggestionCardView({
+    live: store.live(),
+    lastSettled: store.lastSettled(),
+    refusal,
+  })
+  const suggestion = view.kind === 'none' ? null : view.suggestion
 
   const confirm = useCallback(() => {
     if (!suggestion) return
@@ -61,7 +80,9 @@ function SuggestionCard() {
       suggestionId: suggestion.id,
       commandText: suggestion.exactCommand,
     })
-    setRefusal(result.ok ? null : (result.reason ?? 'it was refused'))
+    setRefusal(
+      result.ok ? null : { suggestionId: suggestion.id, reason: result.reason ?? 'it was refused' }
+    )
   }, [store, suggestion])
 
   const dismiss = useCallback(() => {
@@ -70,8 +91,14 @@ function SuggestionCard() {
     setRefusal(null)
   }, [store, suggestion])
 
-  if (!suggestion) return null
+  // A settled card has nothing left in the store to dismiss - it is already
+  // terminal, and no status leaves a terminal one. All that is left is the
+  // sentence, and the player saying they have read it.
+  const acknowledge = useCallback(() => setRefusal(null), [])
 
+  if (view.kind === 'none' || !suggestion) return null
+
+  const settled = view.kind === 'settled'
   const secondsLeft = Math.max(0, Math.ceil((suggestion.expiresAt - Date.now()) / 1000))
   const awaiting = suggestion.status === 'awaiting_result'
 
@@ -80,7 +107,7 @@ function SuggestionCard() {
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-xs text-ink-faint">Suggested command</span>
         <span className="text-xs tabular-nums text-ink-faint">
-          {awaiting ? 'sent' : `${secondsLeft}s`}
+          {settled ? 'not sent' : awaiting ? 'sent' : `${secondsLeft}s`}
         </span>
       </div>
 
@@ -93,7 +120,20 @@ function SuggestionCard() {
         </code>
       </div>
 
-      {awaiting ? (
+      {settled ? (
+        // No Confirm: there is nothing left to confirm, and offering a button
+        // that could only refuse again is the confusing half of the pair this
+        // card is here to keep honest.
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            className="rounded border border-border px-2 py-1 text-xs text-ink-muted hover:text-ink"
+            onClick={acknowledge}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : awaiting ? (
         <p className="text-xs text-ink-muted leading-snug">
           Sent. It is resolved by what the game says next, not by the model.
         </p>
@@ -116,7 +156,11 @@ function SuggestionCard() {
         </div>
       )}
 
-      {refusal && <p className="text-xs text-danger leading-snug">Not sent: {refusal}</p>}
+      {/* `view.refusal` and not the raw state: the view has already checked
+          that this sentence names the suggestion above it. */}
+      {view.refusal && (
+        <p className="text-xs text-danger leading-snug">Not sent: {view.refusal}</p>
+      )}
 
       <p className="text-xs text-ink-faint leading-snug">
         Nothing is sent unless you confirm this exact text, and only while the game state
@@ -190,6 +234,18 @@ export function AiWorkerPanel() {
       {/* Above the counters on purpose: it is the only thing on this panel a
           player is asked to act on, and it expires. */}
       <SuggestionCard />
+
+      {/* In the slot a card would have used, because it is the answer to the
+          question an empty slot raises. The worker has always known why a
+          proposal did not become a card; until #403 it told nobody, so a
+          refused proposal and a model with nothing to say looked identical
+          from here - which is the one thing the field's own comment said it
+          existed to prevent. */}
+      {status.suggestionRefused && (
+        <p className="text-xs text-ink-muted leading-snug">
+          The model proposed a command that was not admitted: {status.suggestionRefused}
+        </p>
+      )}
 
       {status.pendingAlerts > 0 && (
         <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
