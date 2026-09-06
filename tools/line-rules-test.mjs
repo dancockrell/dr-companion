@@ -38,8 +38,8 @@
  */
 import { mock } from 'node:test'
 import { createHash } from 'node:crypto'
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, readdirSync, statSync } from 'node:fs'
+import { join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 // --------------------------------------------------------------- the harness
@@ -336,6 +336,154 @@ console.log('\n-- a highlight paints the substituted text, not the original --')
   )
 }
 
+// ------------------------------------------------------- the ear, not the eye
+//
+// Issue #484. A gag is a display preference, so it hides the line from the
+// pane; it must not also silence the chime somebody bound to that line. The
+// property is about *which reading* an alert consumer takes, so both halves
+// are checked: the behaviour (the sound is still there to be played off the
+// raw reading) and the source (the consumers that play it read raw).
+console.log('\n-- a gag hides a line from the eye, not from the ear --')
+
+/** A danger highlight on the combat line, carrying a sound. */
+const DANGER_HL = [
+  {
+    type: 'string',
+    colour: '#FF6666',
+    pattern: 'swings a scimitar',
+    cls: 'danger',
+    sound: 'Growl.wav',
+    sourceLine: 0,
+  },
+]
+/** What GameSignals' effect would play over a given reading of the buffer. */
+const soundsOver = (lines) =>
+  lines.flatMap((l) => paint(l.text, DANGER_HL).matched.map((h) => h.sound).filter(Boolean))
+
+{
+  // The control first: with no rules at all, this rig can produce a sound.
+  // Without it, every "the sound survived" below is also what a rig that
+  // cannot paint anything would print.
+  setRules({})
+  ok(
+    'control: the combat line carries a sound with no rules in play',
+    soundsOver(hook.currentRawGameLines()).join('|') === 'Growl.wav',
+    JSON.stringify(soundsOver(hook.currentRawGameLines()))
+  )
+
+  setRules({ gags: [gag({ pattern: 'kobold' })] })
+  const shown = hook.currentGameLines()
+  const raw = hook.currentRawGameLines()
+  ok('the gag is doing something: the pane is a line shorter', shown.length === SENT.length - 1, `${shown.length} of ${SENT.length}`)
+  ok('the raw reading still has every line', raw.length === SENT.length, `${raw.length} of ${SENT.length}`)
+  ok(
+    'a display-reading alert effect would play nothing',
+    soundsOver(shown).length === 0,
+    JSON.stringify(soundsOver(shown))
+  )
+  ok(
+    'the raw-reading one still plays the chime',
+    soundsOver(raw).join('|') === 'Growl.wav',
+    JSON.stringify(soundsOver(raw))
+  )
+
+  // And with no gag at all: a substitute that removes the words the highlight
+  // matched silences it just as completely off the display reading.
+  setRules({ substitutes: [sub({ find: 'swings a scimitar', replace: 'attacks' })] })
+  const subbed = hook.currentGameLines()
+  ok(
+    'the substitute is doing something: the matched words are gone from the pane',
+    subbed.some((l) => l.text === 'A kobold guard attacks at you!'),
+    JSON.stringify(subbed.map((l) => l.text))
+  )
+  ok(
+    'a display-reading alert effect would play nothing after a substitute',
+    soundsOver(subbed).length === 0,
+    JSON.stringify(soundsOver(subbed))
+  )
+  ok(
+    'the raw-reading one still plays it',
+    soundsOver(hook.currentRawGameLines()).join('|') === 'Growl.wav'
+  )
+  ok('the raw buffer is byte identical through all of that', bufferPrint() === PRISTINE)
+}
+
+// --------------------------------------- every alert consumer reads the raw
+//
+// The behaviour above is only worth anything if the components that actually
+// call the sound API take that reading. Derived rather than listed: the API
+// names come out of `alertSound.ts`'s own exports, so a new `playX` is
+// covered without anybody remembering to add it here.
+console.log('\n-- every component that plays a sound reads the raw buffer --')
+
+const SOUND_MODULE = 'src/lib/alertSound.ts'
+
+/** The play-a-sound entry points, from the module that owns them. */
+function soundApis() {
+  const src = readFileSync(SOUND_MODULE, 'utf8')
+  return [...src.matchAll(/export function (play[A-Za-z0-9]*)\s*\(/g)].map((m) => m[1])
+}
+
+function walkComponents(dir) {
+  const out = []
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name)
+    if (statSync(full).isDirectory()) out.push(...walkComponents(full))
+    else if (/\.tsx?$/.test(full)) out.push(full)
+  }
+  return out
+}
+
+/**
+ * Classify one component's source. Takes the text, not the path, so the
+ * sabotage below can hand it a mutant without writing to the tree.
+ *
+ * Matches the *import*, not the bare identifier, for the reason
+ * `tools/gamelines-test.mjs` gives: a check that fires on the word "playAlert"
+ * in a comment cries wolf, and a check that cries wolf gets suppressed.
+ */
+function classifyAlertConsumer(code, apis) {
+  const imports = [...code.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/gs)].map((m) => ({
+    named: m[1].split(',').map((s) => s.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0].trim()),
+    from: m[2],
+  }))
+  const playsSound = imports.some((i) => /alertSound/.test(i.from) && i.named.some((n) => apis.includes(n)))
+  const lineImports = imports.filter((i) => /useGameLines/.test(i.from)).flatMap((i) => i.named)
+  return {
+    playsSound,
+    readsDisplay: lineImports.includes('useGameLines'),
+    readsRaw: lineImports.includes('useRawGameLines'),
+  }
+}
+
+{
+  const apis = soundApis()
+  ok('the sound API list was derived, not empty', apis.length > 0, apis.join(', '))
+  ok('and it contains the one the alert effect calls', apis.includes('playAlert'), apis.join(', '))
+
+  const files = walkComponents(join(process.cwd(), 'src', 'components'))
+  ok('control: the component scan found a tree', files.length >= 20, `${files.length} files`)
+
+  const consumers = files
+    .map((f) => ({ file: f.split(sep).join('/').replace(/^.*\/src\//, 'src/'), ...classifyAlertConsumer(readFileSync(f, 'utf8'), apis) }))
+    .filter((c) => c.playsSound)
+  ok('control: something in this app plays a sound', consumers.length > 0, `${consumers.length} components`)
+
+  const lineDriven = consumers.filter((c) => c.readsDisplay || c.readsRaw)
+  ok(
+    'control: at least one of them is driven by the game text',
+    lineDriven.length > 0,
+    lineDriven.map((c) => c.file).join(', ')
+  )
+
+  const onRaw = lineDriven.filter((c) => c.readsRaw && !c.readsDisplay)
+  ok(
+    `${onRaw.length} of ${lineDriven.length} sound-playing consumers read the raw buffer`,
+    onRaw.length === lineDriven.length,
+    lineDriven.map((c) => `${c.file}${c.readsRaw ? '' : ' READS THE DISPLAY LIST'}`).join(', ')
+  )
+}
+
 ok('the buffer survived every case above byte for byte', bufferPrint() === PRISTINE)
 
 // ------------------------------------------------------------------ sabotage
@@ -472,6 +620,37 @@ const MUTATED_SOURCES = Object.fromEntries(
       stillOff.text === SENT[0],
       stillOff.text
     )
+  }
+
+  // (4) The alert consumer reads the display list again - issue #484 as it
+  //     stood. Done on the text rather than on disk, because the classifier
+  //     takes source and not a path: nothing is written, and the check that
+  //     the real file is untouched at the end still means something.
+  {
+    const file = 'src/components/shared/GameSignals.tsx'
+    const real = readFileSync(file, 'utf8')
+    const mutant = real.split('useRawGameLines').join('useGameLines')
+    if (mutant === real) {
+      throw new Error(`sabotage "alert-consumer-reads-the-display-list" did not change ${file} - the target text was not found`)
+    }
+    const apis = soundApis()
+    const before = classifyAlertConsumer(real, apis)
+    const after = classifyAlertConsumer(mutant, apis)
+    ok(
+      'control: the classifier sees the real file as a raw-reading sound player',
+      before.playsSound && before.readsRaw && !before.readsDisplay,
+      JSON.stringify(before)
+    )
+    ok(
+      'sabotage caught: the same classifier reddens on the display-reading mutant',
+      after.playsSound && after.readsDisplay && !after.readsRaw,
+      JSON.stringify(after)
+    )
+    // Scoped: it is the reading that changed, not whether the file plays a
+    // sound at all. A mutant that stopped importing the sound API would drop
+    // out of the population instead of failing, which is the check reporting
+    // nothing rather than reporting a defect.
+    ok('sabotage is scoped: the mutant still plays a sound', after.playsSound === true)
   }
 }
 

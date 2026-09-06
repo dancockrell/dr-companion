@@ -63,7 +63,9 @@ export function AliasesTab() {
       // A scripted expansion is stored switched off for the same reason the
       // import stores one that way, rather than being refused outright: the
       // text is the player's and is worth keeping where they can see it.
-      enabled: aliasEnableRefusal({ name: trimmedName, expansion: trimmedExpansion }) === null,
+      enabled:
+        aliasEnableRefusal({ name: trimmedName, expansion: trimmedExpansion }, { variables }) ===
+        null,
       source: 'player',
       name: trimmedName,
       expansion: trimmedExpansion,
@@ -121,7 +123,7 @@ export function AliasesTab() {
 
       <ul className="flex flex-col gap-1" data-testid="alias-list">
         {config.aliases.map((rule) => {
-          const refusal = aliasEnableRefusal(rule)
+          const refusal = aliasEnableRefusal(rule, { variables })
           const missing = unknownVariablesIn(rule.expansion, known)
           return (
             <li

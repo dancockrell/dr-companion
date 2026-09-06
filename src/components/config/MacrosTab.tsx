@@ -20,6 +20,13 @@
  * throws, so a dry run that ever reached the send path would fail loudly here
  * rather than quietly putting a command on the wire.
  *
+ * Since #485 the plan carries `planRefusals` beside it, so what is shown is
+ * what the outbound lane would *accept*. Same code path, one step longer: the
+ * real fire ends at `requestGameAction` → `validateGameActionCommand`, which
+ * refuses `;` and control characters, and a variable is expanded before that
+ * happens. `$shop = "bank;withdraw 5000 coins"` planned as one command and was
+ * thrown away by the lane, and this listed it as though it would go.
+ *
  * # The chord
  *
  * Captured with `chordOf`, the same translation `resolveKeybinding` uses, so
@@ -55,7 +62,11 @@ export function MacrosTab() {
   const [capturing, setCapturing] = useState(false)
   const [commands, setCommands] = useState('')
   const [problem, setProblem] = useState('')
-  const [plan, setPlan] = useState<{ id: string; commands: string[] } | null>(null)
+  const [plan, setPlan] = useState<{
+    id: string
+    commands: string[]
+    refusals: Array<string | null>
+  } | null>(null)
 
   const { entries: aliases } = resolveAliases(config)
   const { variables } = resolveVariables(config)
@@ -94,7 +105,7 @@ export function MacrosTab() {
     }
     const rule: MacroRule = {
       id: newId('macros'),
-      enabled: macroEnableRefusal({ key: chord.key, commands: list }) === null,
+      enabled: macroEnableRefusal({ key: chord.key, commands: list }, { variables }) === null,
       source: 'player',
       key: chord.key,
       modifiers: chord.modifiers,
@@ -111,6 +122,7 @@ export function MacrosTab() {
   const dryRun = (rule: MacroRule) => {
     const result = runMacroCommands(rule.commands, {
       expand,
+      variables,
       dryRun: true,
       // Reached only if the dry run ever stopped being one. Loud on purpose:
       // a dry run that sent a command quietly is the one failure this whole
@@ -119,7 +131,7 @@ export function MacrosTab() {
         throw new Error('a dry run must not send anything')
       },
     })
-    setPlan({ id: rule.id, commands: result.plan })
+    setPlan({ id: rule.id, commands: result.plan, refusals: result.planRefusals })
   }
 
   const pendingLabel = chord ? chordLabel(chord.key, chord.modifiers) : null
@@ -177,7 +189,7 @@ export function MacrosTab() {
       <ul className="flex flex-col gap-1" data-testid="macro-list">
         {config.macros.map((rule) => {
           const label = chordLabel(rule.key, rule.modifiers)
-          const refusal = macroEnableRefusal(rule)
+          const refusal = macroEnableRefusal(rule, { variables })
           const builtin = builtinForChord(rule.key, rule.modifiers)
           return (
             <li
@@ -240,12 +252,30 @@ export function MacrosTab() {
               {plan?.id === rule.id && (
                 <div className="mt-1" data-testid={`macro-plan-${label}`}>
                   <p className="text-xs text-ink-faint">
-                    Would send {plan.commands.length} commands, in this order. Nothing was sent.
+                    {(() => {
+                      const refused = plan.refusals.filter(Boolean).length
+                      const sendable = plan.commands.length - refused
+                      // The count the lane would accept, not the count that
+                      // was planned - #485. A dry run reporting "would send 2"
+                      // for two commands the lane throws away is the defect,
+                      // and the denominator is what makes it visible.
+                      return refused === 0
+                        ? `Would send ${sendable} commands, in this order. Nothing was sent.`
+                        : `Would send ${sendable} of ${plan.commands.length}: ${refused} would be refused, and one refusal refuses the whole macro. Nothing was sent.`
+                    })()}
                   </p>
                   <ol className="list-decimal pl-5 text-xs text-ink">
                     {plan.commands.map((command, i) => (
                       <li key={`${command}-${i}`}>
                         <code>{command}</code>
+                        {plan.refusals[i] && (
+                          <span
+                            className="ml-1 text-warn"
+                            data-testid={`macro-plan-refusal-${label}-${i}`}
+                          >
+                            {plan.refusals[i]}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ol>
