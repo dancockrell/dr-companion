@@ -158,6 +158,10 @@ const PROBES = PROBE_BODIES.flatMap((body) => PROBE_TAILS.map((tail) => body + t
 function slowestProbeMs(re: RegExp): number {
   let worst = 0
   for (const probe of PROBES) {
+    // A `g` pattern carries `lastIndex` from one exec to the next, so without
+    // this the later probes start part-way in and measure less work than they
+    // appear to.
+    re.lastIndex = 0
     const t0 = performance.now()
     try {
       re.exec(probe)
@@ -167,6 +171,7 @@ function slowestProbeMs(re: RegExp): number {
     worst = Math.max(worst, performance.now() - t0)
     if (worst > PATTERN_BUDGET_MS) break
   }
+  re.lastIndex = 0
   return worst
 }
 
@@ -182,10 +187,16 @@ function slowestProbeMs(re: RegExp): number {
  * Two states, and the second is the point: a pattern that compiles is not a
  * pattern that is safe to run, so a refusal carries the measured time rather
  * than a category. See PATTERN_BUDGET_MS.
+ *
+ * `lineRules.ts` is the fourth caller and the reason for `flags`: a substitute
+ * replaces every occurrence, so it needs the same pattern with `g`. A second
+ * compile there would be a second opinion about which patterns a player is
+ * allowed to write, and two of them would eventually disagree.
  */
 export function compilePattern(
   type: HighlightType,
-  pattern: string
+  pattern: string,
+  flags = ''
 ): { ok: true; re?: RegExp } | { ok: false; why: string } {
   if (!pattern) return { ok: false, why: 'empty pattern' }
   if (type !== 'regexp') return { ok: true }
@@ -196,7 +207,7 @@ export function compilePattern(
     // rather than failing silently on every line forever. Genie is .NET and
     // this is JavaScript; close enough for what these use, and a pattern that
     // fails to compile in either is certainly wrong.
-    re = new RegExp(pattern)
+    re = new RegExp(pattern, flags)
   } catch (e) {
     return { ok: false, why: (e as Error).message }
   }

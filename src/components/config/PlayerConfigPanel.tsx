@@ -33,6 +33,8 @@ import { HighlightsTab } from './HighlightsTab.tsx'
 import { MacrosTab } from './MacrosTab.tsx'
 import { PresetsTab } from './PresetsTab.tsx'
 import { VariablesTab } from './VariablesTab.tsx'
+import { SubstitutesTab } from './SubstitutesTab.tsx'
+import { GagsTab } from './GagsTab.tsx'
 
 const TAB_LABEL: Record<Domain, string> = {
   presets: 'Presets',
@@ -53,8 +55,9 @@ const TAB_PLACEHOLDER: Record<Domain, string> = {
   highlights: 'Colour and sound rules for game text.',
   aliases: 'Short words that expand into commands.',
   macros: 'Keys that send a list of commands.',
-  substitutes: 'Text rewritten before it is shown. The editor arrives with Q4.',
-  gags: 'Lines hidden from the game pane. The editor arrives with Q4.',
+  substitutes:
+    'Text rewritten before a line is shown. The line is kept as the game sent it, so this changes what you read and not what is recorded.',
+  gags: 'Lines hidden from the game pane. The line is still there: it stays in the buffer and in anything you export, and the switch below puts it back on screen.',
   variables: 'Values an alias or a macro can use as $name.',
 }
 
@@ -71,6 +74,8 @@ const TAB_EDITOR: Partial<Record<Domain, () => ReactElement>> = {
   aliases: AliasesTab,
   macros: MacrosTab,
   variables: VariablesTab,
+  substitutes: SubstitutesTab,
+  gags: GagsTab,
 }
 
 interface Loaded {
@@ -169,7 +174,7 @@ export function PlayerConfigPanel() {
       </div>
 
       <div
-        className="flex min-h-0 flex-col rounded border border-border p-2"
+        className="flex min-h-0 flex-col overflow-y-auto rounded border border-border p-2"
         data-testid={`config-body-${tab}`}
       >
         <p className="text-ink-muted">{TAB_PLACEHOLDER[tab]}</p>

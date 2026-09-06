@@ -42,7 +42,7 @@
  * accessors instead — because a rule that only lives in this comment is the
  * thing that already failed three times.
  */
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   gameLines,
   gameStreams,
@@ -50,6 +50,93 @@ import {
   subscribeGame,
   type GameLine,
 } from './gameLink.ts'
+import { applyLineRules } from './lineRules.ts'
+import { loadPlayerConfig, subscribePlayerConfig } from './playerConfig.ts'
+import { readJSON, writeJSON } from './storage.ts'
+
+/**
+ * A line as it is shown, which is not always a line as it arrived.
+ *
+ * Extends `GameLine` rather than replacing it, so every consumer that types
+ * its own state as `GameLine[]` keeps compiling and gains the two extra
+ * fields only if it asks for them.
+ */
+export interface DisplayLine extends GameLine {
+  /** A gag matched this line. Only ever `true` on a line that is being shown
+   *  because "show gagged lines" is on - otherwise it is filtered out. */
+  gagged?: boolean
+  /** Ids of the substitute and gag rules that fired. */
+  matched?: string[]
+}
+
+/**
+ * Whether hidden lines are shown anyway.
+ *
+ * A per-listener display preference, in its own key rather than in the rule
+ * itself, for the same reason `offClasses.ts` keeps muted classes out of the
+ * shared highlight file: someone peeking at what a gag is hiding should not
+ * change the config they might later share.
+ *
+ * This exists because a gag is otherwise the one feature in this client that
+ * can make a line the player needed disappear with no way back. The line is
+ * always in the buffer; this is the switch that puts it on screen.
+ */
+const SHOW_GAGGED_KEY = 'drc.show-gagged-lines.v1'
+let showGagged: boolean | null = null
+const gaggedListeners = new Set<() => void>()
+
+export function showGaggedLines(): boolean {
+  if (showGagged === null) showGagged = readJSON<boolean>(SHOW_GAGGED_KEY, false) === true
+  return showGagged
+}
+
+export function setShowGaggedLines(next: boolean) {
+  showGagged = next
+  writeJSON(SHOW_GAGGED_KEY, next)
+  for (const l of gaggedListeners) l()
+}
+
+export function useShowGaggedLines(): boolean {
+  const [, bump] = useState(0)
+  useEffect(() => {
+    const fn = () => bump((n) => n + 1)
+    gaggedListeners.add(fn)
+    return () => {
+      gaggedListeners.delete(fn)
+    }
+  }, [])
+  return showGaggedLines()
+}
+
+/**
+ * What `useGameLines()` returns, without being a hook.
+ *
+ * Exported so a check can push real lines into the buffer, write real rules
+ * into the store, and observe what the game pane would draw - rather than
+ * calling `applyLineRules` itself and calling that the same thing. The hook
+ * below is this function plus its subscriptions, so there is nothing the two
+ * can disagree about.
+ */
+export function currentGameLines(): DisplayLine[] {
+  const { substitutes, gags } = loadPlayerConfig()
+  // The empty case is the common one and it must be a genuine no-op: a player
+  // with no rules gets the buffer's own objects back, not copies that differ
+  // from it in some field nobody thought about.
+  if (substitutes.length === 0 && gags.length === 0) return gameLines().slice()
+
+  const show = showGaggedLines()
+  const out: DisplayLine[] = []
+  for (const line of gameLines()) {
+    const result = applyLineRules(line.text, { substitutes, gags })
+    if (result.gagged && !show) continue
+    if (!result.gagged && result.matched.length === 0) {
+      out.push(line)
+      continue
+    }
+    out.push({ ...line, text: result.text, gagged: result.gagged, matched: result.matched })
+  }
+  return out
+}
 
 /**
  * The whole buffer, newest last, with an identity that changes when it does.
@@ -57,10 +144,34 @@ import {
  * Subscribes on your behalf — there is no way to get the array from here
  * without also being subscribed to it, which is the half that kept going
  * wrong.
+ *
+ * **The one place substitutes and gags are applied.** The buffer underneath
+ * is untouched; see `lineRules.ts`. Three subscriptions, not one, because a
+ * rule change and a toggle change have to re-apply to lines that arrived
+ * before them - which is the whole reason the rewrite happens on read.
  */
-export function useGameLines(): GameLine[] {
+export function useGameLines(): DisplayLine[] {
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
+  const [rulesVersion, bumpRules] = useState(0)
+  useEffect(() => subscribePlayerConfig(() => bumpRules((n) => n + 1)), [])
+  const show = useShowGaggedLines()
   // Keyed on the version counter, not on the array: see this file's header.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => currentGameLines(), [version, rulesVersion, show])
+}
+
+/**
+ * The buffer with no rules applied, for the config panel's preview.
+ *
+ * The preview's whole job is to show before and after, so it needs the
+ * before - and the sanctioned hook now hands back the after. Subscribed
+ * exactly like the others, and here rather than in the panel because
+ * `tools/gamelines-test.mjs` says the raw accessors are this file's business
+ * and only this file's, which is the rule that stopped the same bug three
+ * times.
+ */
+export function useRawGameLines(): GameLine[] {
+  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => gameLines().slice(), [version])
 }

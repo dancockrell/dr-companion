@@ -125,14 +125,28 @@ export interface MacroRule extends RuleBase {
 }
 
 export interface SubstituteRule extends RuleBase {
-  /** Literal substring, not a regexp. */
+  /** A literal substring by default; a regular expression when `regex` is set. */
   find: string
   replace: string
+  /**
+   * Treat `find` as a regular expression.
+   *
+   * Optional and absent by default, so every rule Q1's import wrote and every
+   * rule already in a player's storage keeps meaning what it meant:
+   * `#substitute {find} {replace}` is a literal in Genie, and reinterpreting
+   * stored text under a new meaning is the quiet bug this field is shaped to
+   * avoid. `$1` and friends work in `replace` when this is on.
+   */
+  regex?: boolean
 }
 
 export interface GagRule extends RuleBase {
-  /** Literal substring; matching hides the whole line. */
+  /** A literal substring by default; a regular expression when `regex` is set.
+   *  Matching hides the whole line. */
   pattern: string
+  /** Treat `pattern` as a regular expression. Same default, same reason as
+   *  `SubstituteRule.regex`. */
+  regex?: boolean
 }
 
 export interface VariableRule extends RuleBase {
@@ -374,11 +388,28 @@ function readEntry(domain: Domain, raw: unknown): { entry: Rule } | { why: strin
     }
     case 'substitutes': {
       if (!isString(r.find) || !r.find) return { why: 'a substitute with nothing to find' }
-      return { entry: { ...base, find: r.find, replace: isString(r.replace) ? r.replace : '' } satisfies SubstituteRule }
+      return {
+        entry: {
+          ...base,
+          find: r.find,
+          replace: isString(r.replace) ? r.replace : '',
+          // Only carried when true. Written as `regex: false` on every literal
+          // rule it would double the size of a Genie import for no meaning,
+          // and `identityOf` would then have to care about a field that says
+          // "the default".
+          ...(r.regex === true ? { regex: true } : {}),
+        } satisfies SubstituteRule,
+      }
     }
     case 'gags': {
       if (!isString(r.pattern) || !r.pattern) return { why: 'a gag with no pattern' }
-      return { entry: { ...base, pattern: r.pattern } satisfies GagRule }
+      return {
+        entry: {
+          ...base,
+          pattern: r.pattern,
+          ...(r.regex === true ? { regex: true } : {}),
+        } satisfies GagRule,
+      }
     }
     case 'variables': {
       if (!isString(r.name) || !r.name) return { why: 'a variable with no name' }

@@ -30,8 +30,14 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Info } from 'lucide-react'
-import { type GameLine } from '../../lib/gameLink.ts'
-import { useGameLines, useGameStreams } from '../../lib/useGameLines.ts'
+import {
+  setShowGaggedLines,
+  useGameLines,
+  useGameStreams,
+  useShowGaggedLines,
+  type DisplayLine,
+} from '../../lib/useGameLines.ts'
+import { usePlayerConfig } from '../../lib/playerConfig.ts'
 import { GameLineRow } from './GameLineRow.tsx'
 import type { Highlight } from '../../lib/highlights'
 import { useAppStore } from '../../store/useAppStore.ts'
@@ -70,8 +76,12 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
   // buffer changes - see useGameLines.ts. Reading the raw buffer instead is
   // the arrangement that left this component showing "no channels yet" while
   // 924 lines of labelled game text sat behind it.
+  // Substitutes and gags are already applied here - the hook is the one place
+  // that happens, and the buffer behind it is untouched. See lib/lineRules.ts.
   const allLines = useGameLines()
   const streams = useGameStreams()
+  const showGagged = useShowGaggedLines()
+  const gagCount = usePlayerConfig().gags.filter((g) => g.enabled).length
   const logLines = useAppStore((s) => s.logLines)
   const [tab, setTab] = useState<string>(LOG_PREFIX + 'all')
 
@@ -95,7 +105,7 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
     if (!isLogTab(tab) && !streams.includes(tab)) setTab(LOG_PREFIX + 'all')
   }, [streams, tab])
 
-  const shown: GameLine[] = useMemo(
+  const shown: DisplayLine[] = useMemo(
     () => (isLogTab(tab) ? [] : allLines.filter((l) => l.stream === tab)),
     [tab, allLines]
   )
@@ -236,6 +246,27 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
             </button>
           )
         })}
+
+        {/* Only when the player has a gag switched on. A switch for a feature
+          * nobody is using is furniture, and this row is already short of
+          * width - but a gag is the one rule in this client that can make a
+          * line vanish, so the moment there is one there has to be a way back
+          * that is not "go and edit the config". The lines were never gone;
+          * this is what says so. */}
+        {gagCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowGaggedLines(!showGagged)}
+            data-testid="show-gagged-toggle"
+            className={cn(
+              'ml-auto shrink-0 rounded px-1.5 py-0.5',
+              showGagged ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:text-ink'
+            )}
+            title={`${gagCount} gag${gagCount === 1 ? '' : 's'} on. A hidden line is still in the buffer; this puts it back on screen.`}
+          >
+            {showGagged ? 'Hiding off' : 'Show hidden'}
+          </button>
+        )}
       </div>
 
       <div
@@ -259,9 +290,19 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
             </div>
           ))
         ) : (
-          shown.map((l) => (
-            <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} showTime />
-          ))
+          shown.map((l) =>
+            /* A line only reaches here gagged when "Show hidden" is on, and
+             * then it has to look different from a line that was never
+             * hidden - otherwise the switch appears to do nothing and the
+             * player cannot tell which rule to go and change. */
+            l.gagged ? (
+              <div key={l.seq} className="opacity-50" data-testid={`gagged-line-${l.seq}`}>
+                <GameLineRow line={l} highlights={highlights} offClasses={offClasses} showTime />
+              </div>
+            ) : (
+              <GameLineRow key={l.seq} line={l} highlights={highlights} offClasses={offClasses} showTime />
+            )
+          )
         )}
 
         {needle && searchResults.length === 0 && (

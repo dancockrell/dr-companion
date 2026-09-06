@@ -36,8 +36,8 @@ password in a settings file, obfuscated or not, is a plaintext password with a
 decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
-37 keys, owned by 27 files, found by scanning
-318 source files.
+38 keys, owned by 28 files, found by scanning
+322 source files.
 
 ## Files you asked for
 
@@ -95,6 +95,7 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.right-rail-width.v1` | How wide the context side is, as a fraction of the window. Replaces `drc.experience-width.v2`; the experience strip moved to the console row and this rail holds alerts, actions and the AI worker. | `src/App.tsx` |
 | `drc.scene.v1` | Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. Bounded: 1,048,576 characters in total, 4,096 for any one room and 64 placed primitives in one cell, checked on every write and on every import (`SCENE_LIMITS` in `src/lib/sceneOverrides.ts`). An import past the total is refused room by room, naming each - unbounded, this one key could take the whole origin to its quota and every other key on this list would start failing to save. | `src/lib/sceneOverrides.ts` |
 | `drc.script-icons.v1` | Icon overrides for scripts, one entry per script rather than one per profile. | `src/lib/scriptIconOverrides.ts` |
+| `drc.show-gagged-lines.v1` | Whether the game pane draws lines a gag is hiding, marked as hidden. A per-listener display preference rather than part of the gag rule, so looking at what a gag hides cannot change a config the player might share. The lines are never removed from the buffer; this only decides whether they are drawn. | `src/lib/useGameLines.ts` |
 | `drc.watched-rooms.v1` | Rooms the player is watching, per profile. | `src/lib/watchedRooms.ts` |
 
 ## When a write fails
