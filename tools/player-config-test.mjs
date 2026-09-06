@@ -265,8 +265,22 @@ console.log('\n-- sabotage: each break reddens the case that names it, and only 
   SABOTAGE_DIR = dir
   const abs = (rel) => pathToFileURL(join(process.cwd(), rel)).href
 
+  /*
+   * Line endings are normalised before the anchor is matched.
+   *
+   * This repo checks out CRLF on Windows, so an anchor written with plain
+   * newlines matches on the working copy a session just wrote and stops
+   * matching the moment git has touched the file - which is exactly what
+   * happened here, one commit after these sabotages were first proved. The
+   * guard below turned it into a hard abort rather than a pass, which is the
+   * only reason it was a five-minute fix instead of a suite quietly asserting
+   * nothing. `String.fromCharCode(13)` rather than an escape, because a
+   * backslash written through a shell tool is its own trap.
+   */
+  const CR = String.fromCharCode(13)
+
   async function loadMutant(label, file, transform, rewrite = []) {
-    const src = readFileSync(file, 'utf8')
+    const src = readFileSync(file, 'utf8').split(CR).join('')
     let mutated = transform(src)
     if (mutated === src) {
       throw new Error(`sabotage "${label}" did not change ${file} - the target text was not found`)
