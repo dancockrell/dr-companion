@@ -264,8 +264,18 @@ console.log('\n-- an unrunnable pattern is refused at save and never reaches the
    * asserted now. Changed deliberately, and disclosed here, because editing a
    * test to make one's own change pass is otherwise indistinguishable from this.
    *
-   * Both halves stay covered: the second case is a backreference, which the
-   * analyser does not model, so its refusal can only have come from a timing.
+   * The second case changed the same way and for the same reason, in #500. It
+   * was `(a|\\1a)+$` refused "on its measured time", and the sentence above it
+   * said a backreference's refusal "can only have come from a timing" - which
+   * was true, and was the bug. An unmodelled pattern reached the probe loop
+   * having derived no probes from itself, so for an *anchored* one the timing
+   * was no evidence at all and it was admitted: measured through the real
+   * `resolveHighlights` + `paint`, one 45-character line took 103 seconds.
+   * `(a|\\1a)+$` is self-referential and cannot be widened into anything this
+   * parser reads, so it is now refused by name instead, which is the property
+   * that was wanted. The timing half is still proven live, by
+   * `tools/pattern-analyser-break-check.mjs`: with the analyser switched off,
+   * the probes alone still refuse #482's pattern.
    */
   const slow = rules.ruleRefusal('(a+)+$', true)
   ok(
@@ -275,8 +285,8 @@ console.log('\n-- an unrunnable pattern is refused at save and never reaches the
   )
   const timed = rules.ruleRefusal('(a|\\1a)+$', true)
   ok(
-    'and one the analyser cannot read is still refused on its measured time',
-    /took \d+ms/.test(timed ?? ''),
+    'and one the analyser cannot read is refused, naming what it cannot read',
+    /cannot check for safety/.test(timed ?? '') && /\\1/.test(timed ?? ''),
     String(timed).slice(0, 70)
   )
 
