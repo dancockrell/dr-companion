@@ -608,6 +608,53 @@ is a claim, and the code is the check.
   change, and editing it to satisfy a `touches:` line would have been a change
   with nothing to fix.
 
+## 12. What Q4 landed: substitutes, gags, and the way back
+
+- **`applyLineRules` is in `src/lib/lineRules.ts` with the signature §5
+  publishes**, and `useGameLines()` is its only call site. The raw buffer is
+  never rewritten; `tools/line-rules-test.mjs` compares `gameLines()` as a
+  whole string before and after every case, because a filter that rewrote a
+  line in place and left the count alone would pass a count.
+- **Order is substitutes then gags**, so a gag matches the text the player is
+  actually looking at. The test asserts it both ways: a gag written against
+  the substituted text fires, and a gag written against the original does not.
+  One direction alone would be a statement about gags rather than about order.
+- **Q2's `compilePattern()` gained a `flags` argument rather than gaining a
+  twin.** Q4 and Q2 ran at the same time and both extracted the
+  compile-and-probe guard out of `highlights.ts`; Q2's landed first, so Q4's
+  was deleted on rebase and `lineRules.ts` is its fourth caller. A substitute
+  replaces every occurrence and so needs the same pattern with `g`, which is
+  the whole of the difference. Two answers to "is this pattern safe to run
+  once per rendered line" is how a rule refused at load gets accepted at save
+  and freezes the game pane anyway - §11's own reason, one increment later.
+- **`SubstituteRule` and `GagRule` gained an optional `regex`**, absent by
+  default. §4's "literal substring, not a regexp" is still what an imported
+  rule means, which is the point: reinterpreting stored text under a new
+  meaning is the quiet bug that default avoids. A pattern that will not
+  compile, or that fails the backtracking probe, is refused at save by
+  `ruleRefusal()` and refused again at read - a rule can also arrive from an
+  import or from a key another build wrote, and a `catch` in the render path
+  is the wrong place to find that out.
+- **A gag is reversible on screen.** `drc.show-gagged-lines.v1` is a
+  per-listener display preference, the same shape as `offClasses.ts` and for
+  the same reason. The switch is in the game pane's tab row, appears only when
+  a gag is enabled, and a shown-gagged line is drawn dimmed so the switch
+  visibly does something rather than appearing to do nothing.
+- **`useRawGameLines()`** is a second hook in `useGameLines.ts`: the preview
+  needs the before, and the sanctioned hook now returns the after. It lives
+  there rather than in the panel because `tools/gamelines-test.mjs` says the
+  raw accessors are that file's business, and that rule is what stopped the
+  same subscription defect three times.
+- **The preview calls `applyLineRules`, not a matcher of its own.**
+  `tools/line-rules-test.mjs` strips comments from the two tabs, the preview
+  and the panel and refuses any of `new RegExp`, `indexOf`, `.split(` or
+  `.replace(` in what is left, with a positive control proving the scan can
+  see a matcher when there is one.
+- **The formats are still inferred.** `substitutes.cfg` and `gags.cfg` were
+  empty on this machine and nothing in Q4 changed that. Both tabs say so on
+  screen under their rule list, rather than leaving the caveat in this
+  document where the person meeting a mis-parsed import is not looking.
+
 Where this document and a check disagree, **the check is right and this page
 is stale.** The checks are the `verify:` lines of Q1–Q6 in
 `docs/PLAN_TO_1_0.md`.

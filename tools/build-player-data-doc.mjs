@@ -219,6 +219,7 @@ const DESCRIBES = {
   'drc.player-config.substitutes.v1': 'Text rewritten before a line is shown. A display rule: the raw transcript keeps the original.',
   'drc.player-config.gags.v1': 'Lines hidden from the game pane. Also a display rule, for the same reason.',
   'drc.player-config.variables.v1': 'Values an alias or a macro can use as $name. Genie bookkeeping (room ids, its clock) is deliberately not imported here.',
+  'drc.show-gagged-lines.v1': 'Whether the game pane draws lines a gag is hiding, marked as hidden. A per-listener display preference rather than part of the gag rule, so looking at what a gag hides cannot change a config the player might share. The lines are never removed from the buffer; this only decides whether they are drawn.',
   'drc.nudge.v1': 'Visit counts behind the "you keep coming back here, pin it?" nudge, per profile.',
 }
 
