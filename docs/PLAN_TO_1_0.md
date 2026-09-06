@@ -192,14 +192,24 @@ Each has already been hit in this repository. None is hypothetical.
     `.../rulesets` → `[]`), so `gh pr merge --auto` merges on the spot and
     always did. That used to be a race against a job that would have caught
     you; now there is no job. **Run `npm run gate`, read its last line, and
-    only then merge.** It prints its own denominator (`6 of 6 stages ran`) and
+    only then merge.** It prints its own denominator (`7 of 7 stages ran`) and
     refuses to call a stage it could not run a pass, so a partial verification
-    cannot read as a whole one.
+    cannot read as a whole one. The seven are `tsc`, `lint`, `test:all`, `cargo
+    fmt`, `clippy`, `cargo test`, and `node tools/godot-tests.mjs`.
 
-    What this does not cover, and nothing else does either: `npm run
-    test:godot` (eleven scripts, 131 checks) needs a Godot 4.3 binary, and the
-    gate names it as not covered on every run rather than letting its absence
-    go unnoticed.
+    The Godot scripts were the one thing the gate shipped without, and they
+    landed there on 6 September 2026 — measured at 14 scripts, 274 checks. The
+    stage obeys the machine rule mechanically rather than by promise: headless,
+    one script at a time, and a count of running Godot processes taken *before*
+    it starts, so a machine already carrying two engines gets NOT RUN naming the
+    count instead of a third. A missing engine is a separate NOT RUN naming the
+    paths searched and `GODOT4`; both exit non-zero, and both are reachable on
+    purpose through `DRC_GATE_GODOT` and `DRC_GATE_GODOT_RUNNING`.
+
+    Still not covered, and nothing else covers it either: `npm run tauri:build`,
+    a 217 MB installer build that belongs to release work (`docs/RELEASE.md`).
+    The gate names it in its own summary every run rather than letting its
+    absence go unnoticed.
 22. **This tree checks out CRLF, so a multi-line fragment built with `\n`
     matches nothing.** It bites hardest in the tools that edit tracked files
     on purpose — a sabotage harness, a codemod — because it fails silently in

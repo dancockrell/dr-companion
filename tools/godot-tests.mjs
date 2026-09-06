@@ -32,10 +32,21 @@
  * the entire bug this tool was written after. So a run must produce a
  * recognisable result line, and a run that produces none fails with its
  * output attached.
+ *
+ * # This file is also a module
+ *
+ * `tools/gate.mjs` needs to answer "is there an engine here?" *before* it
+ * spawns anything, so a missing one reads as NOT RUN rather than as a stage
+ * that failed. The engine discovery below is exported for it — imported, not
+ * copied, because two lists of where Godot might live would drift and then
+ * both would be wrong. Everything that actually runs tests is inside `main()`,
+ * which fires only when this file is the process entry point, so importing it
+ * costs an import and nothing else.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 
 const TESTS = 'godot/tests'
 const PROJECT = 'godot'
@@ -83,18 +94,26 @@ const MIN_CHECKS = Number(process.env.DRC_GODOT_MIN_CHECKS ?? 60)
  * fail.
  *
  * So: set it and it must work. Leave it unset and the convenience list applies.
+ *
+ * Exported as a function of the explicit override rather than as a bare array,
+ * because `gate.mjs` has an override of its own (`DRC_GATE_GODOT`) and needs
+ * to ask this same question about a different name.
  */
-const EXPLICIT = process.env.GODOT4 || ''
-const CANDIDATES = EXPLICIT
-  ? [EXPLICIT]
-  : [
-      'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64_console.exe',
-      'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64.exe',
-      'godot',
-    ]
+export function godotCandidates(explicit = process.env.GODOT4 || '') {
+  return explicit
+    ? [explicit]
+    : [
+        'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64_console.exe',
+        'C:/Users/Admin/dev/tools/godot/bin/Godot_v4.3-stable_win64.exe',
+        'godot',
+      ]
+}
 
-function findGodot() {
-  for (const candidate of CANDIDATES) {
+/** The first candidate that runs, with the version string it printed, or
+ * `null`. `--version` rather than a filesystem check: a path that exists and
+ * cannot execute is the same absence with more steps. */
+export function findGodot(candidates = godotCandidates()) {
+  for (const candidate of candidates) {
     try {
       const out = execFileSync(candidate, ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
       return { path: candidate, version: out.trim().split('\n')[0] }
@@ -105,109 +124,123 @@ function findGodot() {
   return null
 }
 
-const godot = findGodot()
-if (!godot && EXPLICIT) {
-  console.error(`FAILED: GODOT4 is set to ${EXPLICIT}, and that does not run.`)
-  console.error('  An engine that was named explicitly and is missing is a broken setup,')
-  console.error('  not an absent one. Reporting "nothing checked" here would let a CI job')
-  console.error('  whose Godot install failed finish green having asserted nothing.')
-  process.exit(1)
-}
-if (!godot) {
-  console.log('NOT CHECKED: no Godot binary found.')
-  console.log(`  Looked at: ${CANDIDATES.join(', ')}`)
-  console.log('  Set GODOT4 to a Godot 4.3 executable to run these.')
-  console.log('\nno failures, but 0 of the Godot tests ran: there is no engine to run them with')
-  // Deliberately 0: an absent engine is not a broken repository. The summary
-  // above is what stops that reading as a pass.
-  process.exit(0)
-}
+function main() {
+  const explicit = process.env.GODOT4 || ''
+  const candidates = godotCandidates(explicit)
+  const godot = findGodot(candidates)
 
-const files = readdirSync(TESTS)
-  .filter((f) => f.endsWith('.gd'))
-  .sort()
-
-if (files.length < MIN_TESTS) {
-  console.error(`FAILED: found only ${files.length} test scripts in ${TESTS} (floor ${MIN_TESTS}); the walk is broken`)
-  process.exit(1)
-}
-
-console.log(`${godot.version}`)
-console.log(`running ${files.length} Godot tests from ${TESTS}\n`)
-
-let failed = 0
-let checks = 0
-
-for (const file of files) {
-  const script = `tests/${file}`
-  let output = ''
-  try {
-    output = execFileSync(godot.path, ['--headless', '--script', script, '--path', '.'], {
-      cwd: PROJECT,
-      encoding: 'utf8',
-      timeout: 120_000,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-  } catch (error) {
-    output = `${error.stdout ?? ''}${error.stderr ?? ''}`
-    if (error.killed) output += '\n(timed out)'
+  if (!godot && explicit) {
+    console.error(`FAILED: GODOT4 is set to ${explicit}, and that does not run.`)
+    console.error('  An engine that was named explicitly and is missing is a broken setup,')
+    console.error('  not an absent one. Reporting "nothing checked" here would let a CI job')
+    console.error('  whose Godot install failed finish green having asserted nothing.')
+    process.exit(1)
+  }
+  if (!godot) {
+    console.log('NOT CHECKED: no Godot binary found.')
+    console.log(`  Looked at: ${candidates.join(', ')}`)
+    console.log('  Set GODOT4 to a Godot 4.3 executable to run these.')
+    console.log('\nno failures, but 0 of the Godot tests ran: there is no engine to run them with')
+    // Deliberately 0: an absent engine is not a broken repository. The summary
+    // above is what stops that reading as a pass. `gate.mjs` does not lean on
+    // this exit code — it asks `findGodot` itself, and refuses to run the
+    // stage at all when there is nothing to run it with.
+    process.exit(0)
   }
 
-  // A result line, in either of the two shapes these scripts use.
-  const counted = /(\d+)\s+check(?:ed|s)?,\s*(\d+)\s+failed/.exec(output)
-  const allPassed = /^all passed$/m.test(output)
-  const parseError = /Parse Error|Failed to load script|Can't load script/i.test(output)
-  const scriptFails = [...output.matchAll(/^FAIL\b.*$/gm)].map((m) => m[0])
+  const files = readdirSync(TESTS)
+    .filter((f) => f.endsWith('.gd'))
+    .sort()
 
-  if (parseError) {
-    failed++
-    const detail = /Parse Error: [^\n]*/.exec(output)?.[0] ?? 'script would not load'
-    console.log(`FAIL ${file} — ${detail}`)
-    continue
+  if (files.length < MIN_TESTS) {
+    console.error(`FAILED: found only ${files.length} test scripts in ${TESTS} (floor ${MIN_TESTS}); the walk is broken`)
+    process.exit(1)
   }
 
-  if (!counted && !allPassed) {
-    failed++
-    console.log(`FAIL ${file} — produced no result line; a run that says nothing is not a pass`)
-    console.log(output.split('\n').slice(-4).map((l) => `       ${l}`).join('\n'))
-    continue
-  }
+  console.log(`${godot.version}`)
+  console.log(`running ${files.length} Godot tests from ${TESTS}\n`)
 
-  if (counted) {
-    checks += Number(counted[1])
-    const bad = Number(counted[2])
-    if (bad > 0) {
+  let failed = 0
+  let checks = 0
+
+  for (const file of files) {
+    const script = `tests/${file}`
+    let output = ''
+    try {
+      output = execFileSync(godot.path, ['--headless', '--script', script, '--path', '.'], {
+        cwd: PROJECT,
+        encoding: 'utf8',
+        timeout: 120_000,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    } catch (error) {
+      output = `${error.stdout ?? ''}${error.stderr ?? ''}`
+      if (error.killed) output += '\n(timed out)'
+    }
+
+    // A result line, in either of the two shapes these scripts use.
+    const counted = /(\d+)\s+check(?:ed|s)?,\s*(\d+)\s+failed/.exec(output)
+    const allPassed = /^all passed$/m.test(output)
+    const parseError = /Parse Error|Failed to load script|Can't load script/i.test(output)
+    const scriptFails = [...output.matchAll(/^FAIL\b.*$/gm)].map((m) => m[0])
+
+    if (parseError) {
       failed++
-      console.log(`FAIL ${file} — ${bad} of ${counted[1]} checks failed`)
-      for (const line of scriptFails.slice(0, 5)) console.log(`       ${line}`)
+      const detail = /Parse Error: [^\n]*/.exec(output)?.[0] ?? 'script would not load'
+      console.log(`FAIL ${file} — ${detail}`)
       continue
     }
-    console.log(`OK   ${file} — ${counted[1]} checks`)
-  } else {
-    // `all passed` with no count. Trust it, but count its OK lines so the
-    // total below is not silently short.
-    const oks = [...output.matchAll(/^OK\b/gm)].length
-    checks += oks
-    console.log(`OK   ${file} — ${oks} checks`)
+
+    if (!counted && !allPassed) {
+      failed++
+      console.log(`FAIL ${file} — produced no result line; a run that says nothing is not a pass`)
+      console.log(output.split('\n').slice(-4).map((l) => `       ${l}`).join('\n'))
+      continue
+    }
+
+    if (counted) {
+      checks += Number(counted[1])
+      const bad = Number(counted[2])
+      if (bad > 0) {
+        failed++
+        console.log(`FAIL ${file} — ${bad} of ${counted[1]} checks failed`)
+        for (const line of scriptFails.slice(0, 5)) console.log(`       ${line}`)
+        continue
+      }
+      console.log(`OK   ${file} — ${counted[1]} checks`)
+    } else {
+      // `all passed` with no count. Trust it, but count its OK lines so the
+      // total below is not silently short.
+      const oks = [...output.matchAll(/^OK\b/gm)].length
+      checks += oks
+      console.log(`OK   ${file} — ${oks} checks`)
+    }
   }
+
+  console.log(`\n${files.length - failed} of ${files.length} Godot test scripts passed, ${checks} checks`)
+  if (failed) {
+    console.error(`FAILED: ${failed} Godot test script(s)`)
+    process.exit(1)
+  }
+
+  // The denominator, asserted rather than displayed, and checked before the
+  // verdict so a run that asserted nothing cannot reach the words "all passed".
+  if (checks < MIN_CHECKS) {
+    console.error(
+      `FAILED: ${files.length} script(s) ran and asserted only ${checks} checks (floor ${MIN_CHECKS}).`
+    )
+    console.error(
+      '  Every script can be found, parse and exit clean while checking nothing; that is not a pass.'
+    )
+    process.exit(1)
+  }
+
+  console.log('all passed')
 }
 
-console.log(`\n${files.length - failed} of ${files.length} Godot test scripts passed, ${checks} checks`)
-if (failed) {
-  console.error(`FAILED: ${failed} Godot test script(s)`)
-  process.exit(1)
+// Only when this file *is* the command. `gate.mjs` imports the two functions
+// above; an import that ran sixteen headless Godot processes as a side effect
+// would be a trap of its own.
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+  main()
 }
-
-// The denominator, asserted rather than displayed, and checked before the
-// verdict so a run that asserted nothing cannot reach the words "all passed".
-if (checks < MIN_CHECKS) {
-  console.error(
-    `FAILED: ${files.length} script(s) ran and asserted only ${checks} checks (floor ${MIN_CHECKS}).`
-  )
-  console.error(
-    '  Every script can be found, parse and exit clean while checking nothing; that is not a pass.'
-  )
-  process.exit(1)
-}
-
-console.log('all passed')
