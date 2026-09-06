@@ -31,6 +31,7 @@ import { useAppStore } from '../../store/useAppStore.ts'
 import { PlaceSearch } from './PlaceSearch.tsx'
 import { ScenePrimitivePicker } from './ScenePrimitivePicker.tsx'
 import { loadWorldContent, type RoomContent } from '../../lib/worldContent.ts'
+import { loadZone } from '../../lib/mapData.ts'
 import {
   exportSceneOverrides,
   importSceneOverrides,
@@ -38,12 +39,15 @@ import {
   resolveScene,
   saveSceneOverrides,
   sceneOptions,
+  sceneOverrideDiagnostics,
+  sceneStoreRefusals,
   setSceneField,
   resetSceneField,
   subscribeSceneOverrides,
   type PlacedPrimitive,
   type SceneField,
   type SceneImportResult,
+  type SceneRefusal,
   type ResolvedScene,
 } from '../../lib/sceneOverrides.ts'
 
@@ -229,6 +233,7 @@ export function ScenePanel() {
             content={contentZone === target.zone ? content : null}
             zone={target.zone}
             current={target.room}
+            overrides={overrides}
             onPick={(room) =>
               setPicked({
                 zone: target.zone,
@@ -268,17 +273,35 @@ function Coverage({
   content,
   zone,
   current,
+  overrides,
   onPick,
 }: {
   content: Map<number, RoomContent> | null
   zone: string
   current: number
+  overrides: ReturnType<typeof loadSceneOverrides>
   onPick: (room: { id: number }) => void
 }) {
   const rooms = useMemo(
     () => (content ? [...content.values()].filter((room) => room.rule === 'unknown').sort((a, b) => a.id - b.id) : []),
     [content]
   )
+
+  // What this zone's compile could not apply, from the same function
+  // `compileWorldSnapshot` calls, over the same room set the content file
+  // covers (it holds every room in the zone). An override naming a room that is
+  // not here used to be stored, dropped at compile, and reported nowhere.
+  const diagnostics = useMemo(
+    () =>
+      content
+        ? sceneOverrideDiagnostics({ id: zone, roomIds: new Set([...content.keys()].map((id) => `${zone}-${id}`)) }, overrides)
+        : [],
+    [content, zone, overrides]
+  )
+  // Separate from the above and a different fault: what the store itself would
+  // not load, which is about the shape of the saved value rather than about
+  // this zone.
+  const refusedByStore = sceneStoreRefusals()
 
   if (!content) return null
 
@@ -287,7 +310,14 @@ function Coverage({
       <summary className="cursor-pointer">
         Unclassified in this zone: <span data-testid="scene-coverage-count">{rooms.length}</span>
         {rooms.length === 0 ? ' — the batch has an answer for every room here.' : ''}
+        {diagnostics.length + refusedByStore.length > 0 ? (
+          <span className="text-danger">
+            {' '}
+            · <span data-testid="scene-diagnostics-count">{diagnostics.length + refusedByStore.length}</span> not applied
+          </span>
+        ) : null}
       </summary>
+      <Refusals items={[...diagnostics, ...refusedByStore]} testId="scene-diagnostics" />
       {rooms.length > 0 && (
         <ul className="mt-1 space-y-0.5">
           {rooms.map((room) => (
@@ -333,7 +363,29 @@ function Transfer() {
   const text = useMemo(() => JSON.stringify(exportSceneOverrides(overrides), null, 2), [overrides])
   const rooms = Object.keys(overrides).length
 
-  const doImport = () => {
+  /**
+   * The rooms the file names, checked against the cartography before anything
+   * is stored.
+   *
+   * The zones are loaded here rather than inside `sceneOverrides.ts` because
+   * the map is 85 files fetched a zone at a time and that module is imported by
+   * the compiler, the panel and the Node suites alike. Only the zones the file
+   * actually names are loaded, and `loadZone` caches, so an import of one zone
+   * costs one fetch. A zone this build has no cartography for loads as null and
+   * contributes no rooms, so every room in it is refused by name - which is the
+   * honest answer for a file written against another map.
+   */
+  const knownRoomsFor = async (rooms: string[]): Promise<Set<string>> => {
+    const zones = new Set(rooms.map((id) => id.slice(0, id.lastIndexOf('-'))).filter(Boolean))
+    const known = new Set<string>()
+    for (const zoneId of zones) {
+      const zone = await loadZone(zoneId)
+      for (const room of zone?.rooms ?? []) if (room.id != null) known.add(`${zoneId}-${room.id}`)
+    }
+    return known
+  }
+
+  const doImport = async () => {
     let parsed: unknown
     try {
       parsed = JSON.parse(incoming)
@@ -342,10 +394,24 @@ function Transfer() {
       setError(`That is not JSON: ${(e as Error).message}`)
       return
     }
-    const { result: outcome, merged } = importSceneOverrides(parsed, overrides)
-    saveSceneOverrides(merged)
+    const named =
+      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? Object.keys((parsed as { overrides?: unknown }).overrides ?? {})
+        : []
+    const outcome = importSceneOverrides(parsed, overrides, { knownRooms: await knownRoomsFor(named) })
+    if (!outcome.ok) {
+      setResult(null)
+      setError(outcome.reason)
+      return
+    }
+    const written = saveSceneOverrides(outcome.merged)
+    if (!written.ok) {
+      setResult(null)
+      setError(`This device would not save that import: ${written.message} Nothing was kept.`)
+      return
+    }
     setError(null)
-    setResult(outcome)
+    setResult(outcome.result)
   }
 
   return (
@@ -371,7 +437,7 @@ function Transfer() {
       />
       <button
         type="button"
-        onClick={doImport}
+        onClick={() => void doImport()}
         data-testid="scene-import"
         className="mt-1 rounded border border-border px-2 py-1 text-ink-muted hover:border-accent/60 hover:text-accent"
       >
@@ -383,12 +449,38 @@ function Transfer() {
         </p>
       )}
       {result && (
-        <p className="mt-1" data-testid="scene-import-result">
-          Took {result.added}, already had {result.unchanged}, kept mine over {result.conflicts.length}
-          {result.undrawable > 0 ? `, refused ${result.undrawable} this build cannot draw` : ''}.
-        </p>
+        <>
+          <p className="mt-1" data-testid="scene-import-result">
+            Took {result.added}, already had {result.unchanged}, kept mine over {result.conflicts.length}
+            {result.refusals.length > 0 ? `, refused ${result.refusals.length}` : ''}.
+            {result.roomsChecked ? '' : ' Rooms were not checked against the map.'}
+          </p>
+          <Refusals items={result.refusals} testId="scene-import-refusals" />
+        </>
       )}
     </details>
+  )
+}
+
+/**
+ * Everything a parse or a compile would not keep, one line each.
+ *
+ * A count is not a report. "Refused 3" out of a 200-room import names nothing a
+ * person can go and fix, and an override dropped at compile named nothing at
+ * all - which is issue #461's third finding from the player's side. The list is
+ * capped at twelve lines with the remainder counted, because a file that fails
+ * everywhere would otherwise push the editor off the screen.
+ */
+function Refusals({ items, testId }: { items: SceneRefusal[]; testId: string }) {
+  if (items.length === 0) return null
+  const shown = items.slice(0, 12)
+  return (
+    <ul className="mt-1 space-y-0.5 text-danger" data-testid={testId}>
+      {shown.map((item, i) => (
+        <li key={`${item.roomId ?? ''}:${item.field ?? ''}:${i}`}>{item.reason}</li>
+      ))}
+      {items.length > shown.length && <li>and {items.length - shown.length} more.</li>}
+    </ul>
   )
 }
 

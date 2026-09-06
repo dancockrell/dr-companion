@@ -82,10 +82,10 @@ const cases = [
   {
     name: '3. setSceneField stops refusing what the viewer cannot draw',
     file: 'src/lib/sceneOverrides.ts',
-    // First occurrence, which is `setSceneField`'s. Single-line, because the
-    // working tree is CRLF and a two-line anchor would silently never match.
-    from: 'if (!isDrawable(field, value)) {',
-    to: 'if (Boolean(0)) {',
+    // Single-line, because the working tree is CRLF and a two-line anchor
+    // would silently never match.
+    from: 'if (!isDrawable(field, value)) return { ok: false, reason: undrawable(field, value) }',
+    to: '',
     runner: 'scene',
     expect: 'FAIL an undrawable ground kind is refused',
   },
@@ -144,18 +144,14 @@ const cases = [
   {
     // Not the same case as 9. This one keeps the read and drops the guard, so
     // the builder honours a ground kind Godot has no factory for and bakes a
-    // placeholder box into content every player receives.
-    // `if (true)` and not a bare assignment: the next line is this `if`'s
-    // `else`, so removing the condition leaves a dangling `else` and the module
-    // stops parsing. The first version did exactly that, and the run it
-    // produced reddened the *baseline* case - a builder that cannot be imported
-    // fails every check equally, which is a sabotage that never reached the one
-    // it was aimed at and would have read as a pass if the harness had only
-    // asked whether something went red.
+    // placeholder box into content every player receives. Since #461 the guard
+    // is one word - the flag the shared schema is asked with - which is what
+    // that consolidation was for: there is one place left where this can be got
+    // wrong, and this is it.
     name: '10. the builder stops refusing a correction this build cannot draw',
     file: 'tools/build-world-content.mjs',
-    from: 'if (isDrawable(field, override[field])) kept[field] = override[field]',
-    to: 'if (true) kept[field] = override[field]',
+    from: 'const parsed = parseSceneOverrideSet(incoming, { requireDrawable: true })',
+    to: 'const parsed = parseSceneOverrideSet(incoming, { requireDrawable: false })',
     runner: 'scene',
     expect: 'FAIL a field this build cannot draw is dropped and counted, never baked in',
   },
@@ -208,6 +204,42 @@ const cases = [
     deleteLine: '105-47,',
     runner: 'scene',
     expect: 'FAIL and the coverage list names nothing the residue CSV does not',
+  },
+  {
+    // #461: `version` and `provenance` sat in the type and nothing read them,
+    // so a file written by a future format imported as version 1. Aimed at the
+    // version check alone - the provenance check is a separate line and a
+    // separate case would be needed to prove it, which is the point of naming
+    // the check each case expects.
+    name: '13. the importer stops reading the format version',
+    file: 'src/lib/sceneOverrides.ts',
+    from: 'if (envelope.version !== SCENE_LIMITS.formatVersion)',
+    to: 'if (false)',
+    runner: 'scene',
+    expect: 'FAIL a future version is refused and named',
+  },
+  {
+    // The read-back, which is the only thing that can tell a healthy write from
+    // a store that accepts a value and keeps nothing. Removing it leaves
+    // `writeJSON`'s own result, which is what the code did before #461 and
+    // which reports success for a write that was never kept.
+    name: '14. the store stops reading a write back',
+    file: 'src/lib/storage.ts',
+    from: 'if (readBack === serialized) return { ok: true }',
+    to: 'if (true) return { ok: true }',
+    runner: 'scene',
+    expect: 'FAIL a write that is accepted and not kept is reported too',
+  },
+  {
+    // The compiler stops reporting what it could not place, which is exactly
+    // the state #461 found: the override is dropped and the snapshot carries no
+    // field that could say so.
+    name: '15. the compiler stops reporting the overrides it could not apply',
+    file: 'src/lib/presentationBridge.ts',
+    from: 'diagnostics: sceneOverrideDiagnostics(',
+    to: 'diagnostics: [] ?? sceneOverrideDiagnostics(',
+    runner: 'scene',
+    expect: 'FAIL a compile names an override for a room this zone does not have',
   },
 ]
 

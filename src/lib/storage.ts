@@ -22,7 +22,7 @@ export function readJSON<T>(key: string, fallback: T): T {
   }
 }
 
-export type StorageFailureKind = 'quota' | 'security' | 'serialization' | 'unavailable' | 'unknown'
+export type StorageFailureKind = 'quota' | 'security' | 'serialization' | 'unavailable' | 'lost' | 'unknown'
 export type StorageWriteResult = { ok: true } | { ok: false; kind: StorageFailureKind; message: string }
 
 interface PendingWrite { key: string; value: string; retryable: boolean; failure: Exclude<StorageWriteResult, { ok: true }> }
@@ -68,6 +68,49 @@ export function writeJSON(key: string, value: unknown): StorageWriteResult {
     return recordFailure(key, '', 'serialization', error, false)
   }
   return writeText(key, serialized)
+}
+
+/**
+ * Write, then read the same key back and check the bytes came home.
+ *
+ * `writeJSON` above reports what `setItem` did, which is not the same claim as
+ * "the value is in the store". A backing store that is full, that refuses
+ * without throwing, or that truncates what it keeps returns from `setItem`
+ * with no complaint, and a caller returning `{ok: true}` on that has told the
+ * player their edit is saved while the next reload will disagree. Issue #461
+ * measured exactly that path for the scene editor: `{ok:true}` with the write
+ * absent from disk and present only in an in-memory cache.
+ *
+ * So the outcome is checked rather than the call - the same rule as anywhere
+ * else that reports success. A mismatch is recorded as `lost`, which is its own
+ * failure kind because "setItem threw" and "setItem said nothing and kept
+ * nothing" are different faults and a reader has to be able to tell them apart.
+ * Retry treats it like any other pending write.
+ */
+export function writeJSONVerified(key: string, value: unknown): StorageWriteResult {
+  let serialized: string
+  try {
+    serialized = JSON.stringify(value)
+  } catch (error) {
+    return recordFailure(key, '', 'serialization', error, false)
+  }
+  const written = writeText(key, serialized)
+  if (!written.ok) return written
+  let readBack: string | null
+  try {
+    readBack = localStorage.getItem(key)
+  } catch (error) {
+    return recordFailure(key, serialized, failureKind(error), error)
+  }
+  if (readBack === serialized) return { ok: true }
+  return recordFailure(
+    key,
+    serialized,
+    'lost',
+    new Error(
+      `The store accepted ${serialized.length} characters for ${key} and handed back ${readBack === null ? 'nothing' : `${readBack.length}`}.`
+    )
+  )
 }
 
 export interface StorageHealth { revision: number; failedWrites: number; failures: StorageFailureKind[] }
