@@ -636,8 +636,16 @@ if (checkOnly) {
   console.log(`OK   ${files.size} generated files match a fresh generation`)
 } else {
   mkdirSync(OUT_DIR, { recursive: true })
-  for (const [path, contents] of files) writeFileSync(path, contents)
+  let changedFiles = 0
+  for (const [path, contents] of files) {
+    // Repeated Crossing builds must not rewrite 85 unchanged zone files or
+    // churn Windows line endings and file watchers on every invocation.
+    const existing = existsSync(path) ? readFileSync(path, 'utf8').replaceAll('\r\n', '\n') : null
+    if (existing === contents) continue
+    writeFileSync(path, contents)
+    changedFiles += 1
+  }
   const bytes = [...files.values()].reduce((n, text) => n + Buffer.byteLength(text), 0)
   console.log('')
-  console.log(`wrote ${files.size} files, ${(bytes / 1024 / 1024).toFixed(2)} MB, into ${OUT_DIR} and ${RESIDUE_PATH}`)
+  console.log(`updated ${changedFiles} of ${files.size} files, ${(bytes / 1024 / 1024).toFixed(2)} MB total, in ${OUT_DIR} and ${RESIDUE_PATH}`)
 }
