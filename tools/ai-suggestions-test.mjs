@@ -43,6 +43,7 @@ import {
   TERMINAL_SUGGESTION_STATUSES,
 } from '../src/lib/aiSuggestions.ts'
 import { validateGameActionCommand } from '../src/lib/gameCommand.ts'
+import { suggestionCardView } from '../src/lib/suggestionCardView.ts'
 import {
   bumpStateVersion,
   currentStateVersion,
@@ -654,6 +655,26 @@ console.log('\n-- the card confirms the record, not what is on the screen --')
   ok('and a refusal is shown rather than swallowed',
     /Not sent:/.test(panel) && /result\.ok \? null : /.test(panel))
 
+  // #399. This used to read `{refusal && ...}` against a bare string in local
+  // state, which is how one suggestion's refusal came to be rendered under the
+  // next one's command. The property is that the panel cannot draw a refusal
+  // it has not checked the id of, and the only way to keep that true is for it
+  // to have no unchecked string to draw: the state is keyed, and what reaches
+  // the paragraph is the view's answer.
+  ok('the refusal the panel holds is keyed to a suggestion',
+    /useState<KeyedRefusal \| null>/.test(panel) &&
+    /\{ suggestionId: suggestion\.id, reason: /.test(panel))
+  ok('and what it renders is the checked one, not the raw state',
+    /\{view\.refusal && /.test(panel) && !/\{refusal && /.test(panel))
+  ok('the card asks the view what to draw rather than deciding itself',
+    /suggestionCardView\(\{/.test(panel) && /lastSettled: store\.lastSettled\(\)/.test(panel))
+
+  // #403. The worker has always known why a proposal did not become a card.
+  // A field with no reader says nothing, so the reader is the property.
+  ok('the panel says why a proposed command never appeared',
+    /status\.suggestionRefused/.test(panel) &&
+    /The model proposed a command that was not admitted/.test(panel))
+
   // The panel must not decide anything the gate decides. If it compared the
   // state version or the clock itself, a green panel would stop meaning the
   // gate agreed - and the checks in this file, which render nothing, would
@@ -762,6 +783,174 @@ console.log('\n-- Stop reaches the gate without the kill switch importing it --'
   ok('the gate subscribes to Stop', /onStopAll\(\(\) => \{[\s\S]{0,80}cancelAll\(\)/.test(gate))
   ok('and asks flowStop whether automation is paused',
     /isPaused: \(\) => isAutomationPaused\(\)/.test(gate))
+}
+
+/* ------------------------------------------------------------------ */
+/* 5 - a refusal is shown with the suggestion it is about (#399)       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The card's rendering decision, run without a DOM.
+ *
+ * These are properties of what a player sees, asserted against the real store
+ * rather than a fixture: "after an expired confirm the card explains THAT
+ * suggestion", "a fresh proposal carries no older refusal". The panel is a
+ * renderer of `suggestionCardView`'s answer, which is why the answer is what
+ * gets tested here - and the browser check recorded in `docs/verification/` is
+ * what holds the panel to drawing it.
+ *
+ * Before #399 the first two of these were false in the shipped app: the two
+ * refusals that matter settle the suggestion, `live()` went null in the same
+ * commit as the sentence, and the card's `if (!suggestion) return null` fired
+ * before the sentence painted - which then showed up under the next proposal.
+ */
+console.log('\n-- a refusal is shown with the suggestion it refers to --')
+{
+  // The instrument first: a refusal keyed to the live suggestion must be
+  // drawn, or every "it is not shown" case below passes against a view that
+  // never shows anything.
+  const control = suggestionCardView({
+    live: { id: 'suggestion:1', exactCommand: 'look chest', status: 'pending' },
+    lastSettled: null,
+    refusal: { suggestionId: 'suggestion:1', reason: 'automation is paused' },
+  })
+  ok('positive control: a refusal naming the live suggestion is drawn',
+    control.kind === 'offer' && control.refusal === 'automation is paused',
+    JSON.stringify(control))
+
+  // a. expiry - the refusal a player most needs, and the one that used to
+  // vanish because the store settles the suggestion that produced it.
+  const h = harness()
+  const created = propose(h)
+  h.clock.now += 31_000
+  const refused = h.store.requestExecution(created.suggestion.id, {
+    suggestionId: created.suggestion.id,
+    commandText: COMMAND,
+  })
+  ok('an expired confirmation is refused', refused.ok === false, refused.reason)
+  ok('and the store no longer offers it', h.store.live() === null)
+  const expiredView = suggestionCardView({
+    live: h.store.live(),
+    lastSettled: h.store.lastSettled(),
+    refusal: { suggestionId: created.suggestion.id, reason: refused.reason },
+  })
+  ok('the card still draws something rather than vanishing',
+    expiredView.kind === 'settled', expiredView.kind)
+  ok('and it is the suggestion the refusal is about',
+    expiredView.suggestion?.id === created.suggestion.id, expiredView.suggestion?.id)
+  ok('with the reason on it', expiredView.refusal === refused.reason, expiredView.refusal)
+
+  // b. the state moved - the other settling refusal, same property.
+  const h2 = harness()
+  const created2 = propose(h2)
+  h2.state.version += 1
+  const stale = h2.store.requestExecution(created2.suggestion.id, {
+    suggestionId: created2.suggestion.id,
+    commandText: COMMAND,
+  })
+  ok('a stale-version confirmation is refused', stale.ok === false, stale.reason)
+  ok('and nothing was sent', h2.sent.length === 0, JSON.stringify(h2.sent))
+  const staleView = suggestionCardView({
+    live: h2.store.live(),
+    lastSettled: h2.store.lastSettled(),
+    refusal: { suggestionId: created2.suggestion.id, reason: stale.reason },
+  })
+  ok('the card explains that one too',
+    staleView.kind === 'settled' && staleView.suggestion?.id === created2.suggestion.id &&
+    staleView.refusal === stale.reason,
+    JSON.stringify(staleView))
+
+  // c. a new proposal wears no older refusal. This is the measured half of
+  // #399: a valid card with 60 seconds on the clock and another suggestion's
+  // red line underneath it.
+  h2.state.version += 1
+  const fresh = h2.store.create({
+    exactCommand: 'look table',
+    commandType: 'look',
+    basedOnStateVersion: h2.state.version,
+    expiresAt: h2.clock.now + 60_000,
+    evidenceRefs: ['event:42'],
+  })
+  ok('a second suggestion can be proposed once the first is settled',
+    fresh.ok === true, fresh.reason)
+  ok('the two are different records', fresh.suggestion.id !== created2.suggestion.id)
+  const freshView = suggestionCardView({
+    live: h2.store.live(),
+    lastSettled: h2.store.lastSettled(),
+    refusal: { suggestionId: created2.suggestion.id, reason: stale.reason },
+  })
+  ok('the new card is offered', freshView.kind === 'offer', freshView.kind)
+  ok('it is the new suggestion', freshView.suggestion?.id === fresh.suggestion.id)
+  ok('and it carries no refusal at all', freshView.refusal === null, freshView.refusal)
+
+  // d. the general property, stated without a store: a refusal never renders
+  // beside a suggestion it does not name, whichever slot that suggestion is in.
+  const mismatchedOffer = suggestionCardView({
+    live: { id: 'suggestion:9', exactCommand: 'look table', status: 'pending' },
+    lastSettled: { id: 'suggestion:8', exactCommand: 'look chest', status: 'rejected' },
+    refusal: { suggestionId: 'suggestion:8', reason: 'the state it was based on is no longer current' },
+  })
+  ok('a refusal for another suggestion is not drawn on a live one',
+    mismatchedOffer.kind === 'offer' && mismatchedOffer.refusal === null,
+    JSON.stringify(mismatchedOffer))
+  const mismatchedSettled = suggestionCardView({
+    live: null,
+    lastSettled: { id: 'suggestion:9', exactCommand: 'look table', status: 'rejected' },
+    refusal: { suggestionId: 'suggestion:8', reason: 'the state it was based on is no longer current' },
+  })
+  ok('nor on a settled one it does not name',
+    mismatchedSettled.kind === 'none', JSON.stringify(mismatchedSettled))
+  ok('and with nothing anywhere, there is no card',
+    suggestionCardView({ live: null, lastSettled: null, refusal: null }).kind === 'none')
+
+  // e. dismissed means dismissed: clearing the refusal takes the card away
+  // rather than leaving a permanent record of an old failure on screen.
+  ok('a settled card with its refusal cleared shows nothing',
+    suggestionCardView({
+      live: null,
+      lastSettled: h2.store.lastSettled(),
+      refusal: null,
+    }).kind === 'none')
+}
+
+console.log('\n-- lastSettled names the record a refusal can be shown against --')
+{
+  const h = harness()
+  ok('a store that has settled nothing has no settled record', h.store.lastSettled() === null)
+  const created = propose(h)
+  ok('a pending suggestion is not a settled one', h.store.lastSettled() === null,
+    JSON.stringify(h.store.lastSettled()))
+
+  const sent = h.store.requestExecution(created.suggestion.id, {
+    suggestionId: created.suggestion.id,
+    commandText: COMMAND,
+  })
+  ok('the happy path is still the happy path', sent.ok === true, sent.reason)
+  ok('and a command awaiting its result is not settled either',
+    h.store.lastSettled() === null, JSON.stringify(h.store.lastSettled()))
+
+  h.store.onStateVersion(h.state.version + 1)
+  ok('the game answering settles it', h.store.lastSettled()?.status === 'resolved',
+    h.store.lastSettled()?.status)
+  ok('and it is the record that was sent',
+    h.store.lastSettled()?.id === created.suggestion.id)
+
+  // The most recent one, not the first: a panel showing an older settled
+  // record beside a newer refusal would be #399 again by another route.
+  const second = h.store.create({
+    exactCommand: 'look table',
+    commandType: 'look',
+    basedOnStateVersion: h.state.version,
+    expiresAt: h.clock.now + 30_000,
+    evidenceRefs: ['event:42'],
+  })
+  h.store.dismiss(second.suggestion.id, 'dismissed by the player')
+  ok('a later settlement replaces an earlier one',
+    h.store.lastSettled()?.id === second.suggestion.id, h.store.lastSettled()?.id)
+  ok('carrying the reason it ended with',
+    h.store.lastSettled()?.reason === 'dismissed by the player', h.store.lastSettled()?.reason)
+  ok('and it is terminal, so there is nothing left to do with it',
+    TERMINAL_SUGGESTION_STATUSES.includes(h.store.lastSettled()?.status))
 }
 
 console.log('\n-- the suite is registered where a suite has to be registered --')

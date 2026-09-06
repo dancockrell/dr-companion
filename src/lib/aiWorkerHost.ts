@@ -92,6 +92,7 @@ const INITIAL_STATUS: AiWorkerStatus = {
   available: false,
   lastFailureKind: null,
   lastReview: null,
+  suggestionRefused: null,
   journalPending: 0,
   journalLost: 0,
   missedLines: 0,

@@ -270,6 +270,21 @@ export interface AiWorkerStatus {
    * until one arrives, which on an install with no model is forever. */
   lastReview: { notable: string[]; question?: string; at: string } | null
   /**
+   * Why the last review's proposed command never became a card.
+   *
+   * `aiWorker.ts` has carried this out of the turn since G11, with a comment
+   * saying a host could use it to say why nothing appeared - and until #403
+   * nothing read it, so "the model proposed nothing" and "the proposal was
+   * refused" stayed exactly as indistinguishable as before. This field is the
+   * reader, and the panel's line is what it is for.
+   *
+   * It describes the most recent review turn and no earlier one: a review that
+   * proposed nothing, or proposed something the gate accepted, clears it.
+   * Turns that did not review at all hold it, so the sentence is readable
+   * rather than blinking off on the next idle tick.
+   */
+  suggestionRefused: string | null
+  /**
    * Turns taken since the app started.
    *
    * The only field that proves the host is alive. Every other number here can
@@ -314,6 +329,7 @@ export function sameStatus(a: AiWorkerStatus, b: AiWorkerStatus): boolean {
     a.lastFailure !== b.lastFailure ||
     a.lastFailureKind !== b.lastFailureKind ||
     a.lastReview?.at !== b.lastReview?.at ||
+    a.suggestionRefused !== b.suggestionRefused ||
     a.unreviewedWithoutModel !== b.unreviewedWithoutModel
   ) {
     return false
@@ -493,6 +509,9 @@ export interface HostTickInput {
   /** ISO timestamp for job records, kept separate from the millisecond clock
    * so both stay deterministic in tests. */
   nowIso: string
+  /** The live millisecond clock, defaulted to `Date.now`. Only a suggestion's
+   * expiry reads it, and only after the model has answered. */
+  clock?: () => number
   signal?: AbortSignal
   /** The status this turn is replacing. Only `lastReview` is read from it: a
    * turn that produced no review must keep showing the last one rather than
@@ -550,6 +569,12 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
       knownRoom: input.knownRoom,
       suggestions: input.suggestions,
       stateVersion: input.stateVersion,
+      // Defaulted here rather than left to each host: a suggestion's expiry
+      // has to be measured from the moment the card exists, and a host that
+      // forgot to wire a clock would silently go back to measuring it from
+      // before the model was asked (#403). `clock` on the input is the seam a
+      // test uses to advance time during the generation.
+      clock: input.clock ?? (() => Date.now()),
     },
     signal
   )
@@ -600,6 +625,12 @@ export async function runHostTick(input: HostTickInput): Promise<AiWorkerStatus>
     // model said stays on screen until it says something else. A field that
     // blanked on every idle tick would flicker once a second and be unreadable.
     lastReview: review ?? previous?.lastReview ?? null,
+    // Replaced by every review turn, held by every other kind. A review that
+    // proposed nothing is a review that has nothing to explain, so it clears
+    // the sentence rather than leaving an older turn's refusal on screen
+    // wearing the present tense.
+    suggestionRefused:
+      outcome.did === 'review' ? outcome.suggestionRefused : (previous?.suggestionRefused ?? null),
     ticks: memory.ticks,
     // Only meaningful while there is no model. With one available these
     // same events are a backlog being worked through, and journalLost is
