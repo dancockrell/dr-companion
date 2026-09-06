@@ -298,8 +298,10 @@ PRs per lane, squash-merged.
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
 | N | N3, N4 | `lane-n/n3-sal-launch` | `dev/wt-n3` | 2026-09-06 |
+| N | N5, N6 | `lane-n/n5-sign-in` | `dev/wt-n5` | 2026-09-06 |
 
-No lane is currently held. G's row was deleted on 6 Sep 2026 when G11's second
+N1 and N2 have merged (#441, #438). N7 is unheld and needs Dan rather than a
+session. G's row was deleted on 6 Sep 2026 when G11's second
 PR (#359) merged, and **Lane N's design row went the same day** when PR #432
 merged — that row covered the design PR only, the one that wrote the lane into
 this document and `docs/LICH_NATIVE_LOGIN.md` while implementing none of it.
@@ -1647,14 +1649,44 @@ the code increments. N8 is optional and human-gated and blocks nothing.
   note: `tools/fake-lich.mjs` defaults to **11124**, not 11024, on purpose. Do not "fix" that.
   done-when: the verification doc exists with a date and states the streams answer as measured, not inferred.
 
-- [ ] **N5  The sign-in screen, replacing the Genie instructions** (≈120)
-  touches: new:src/components/shared/SignIn.tsx, src/components/shared/LichLauncher.tsx, src/components/shared/WaitingForCharacter.tsx, src/components/first-run/ConnectGuide.tsx
-  depends-on: N1
-  do: build against the interface in `LICH_NATIVE_LOGIN.md` §8 and `DRC_LICH_DRY_RUN=1`; this does **not** wait for N3 or N4. Account, password, game (DR / DRX / DRF / DRT), then `lich_login_characters` and a real character picker from the `C` reply — the player types no character name. On pick, `lich_login_launch`, then the existing `game_attach` with the port the command returns. The "remember my password" checkbox does **not** appear until N8 exists; shipping it disabled would be a placeholder that reads as finished work. Delete, in this increment, the three passages that are now false: the `#config lichpath` / `--genie --dragonrealms` / `#lichconnect` block (`WaitingForCharacter.tsx:138-160`), the same block in `LichLauncher.tsx:263-285`, and the "Lich's own login window cannot sign in on this machine… Genie is not one it can offer" panel (`LichLauncher.tsx:227-233`). Replace the password claim at `LichLauncher.tsx:304-307` with the truth: the password goes to Simutronics and nowhere else, and is not kept.
-  verify: `npx tsc -b` exit 0; `node tools/tauri-command-callers-test.mjs` green (both new commands now have callers, so no `DEFERRED` entry is needed and any that N1/N3 added must be removed in this increment — a stale entry is itself a failure at `:46-51`); `git grep -c "lichconnect\|licharguments" src/` → `0`; the app run with `DRC_LICH_DRY_RUN=1` reaches the character picker against a mock and the sign-in screen fits the 1024x768 default window without clipping (§1, and defect #418 was exactly this).
-  sabotage: return an empty character list from the mock → the screen says the account has no DragonRealms characters and offers a way back, rather than showing an empty list.
-  pitfalls: 5, 6, 16.
-  done-when: no Genie instruction is reachable in the UI and a mock sign-in completes end to end.
+- [x] **N5  The sign-in screen, replacing the Genie instructions** (≈120)
+  done: 2026-09-06 — `dev/wt-n5` off `origin/main` at `0dd67658`.
+  `src/components/shared/SignIn.tsx` takes an account, a password and a game,
+  calls `lich_login_characters`, builds the picker from the `C` reply, calls
+  `lich_login_launch`, and hands the port that command returns to the existing
+  `attachGame`. The player types no character name. The four false passages are
+  deleted rather than kept beside it: the walkthrough in
+  `WaitingForCharacter.tsx`, the same block in `Dashboard.tsx`, the "cannot sign
+  in on this machine" panel in `LichLauncher.tsx`, and the whole retired branch
+  of `ConnectGuide.tsx`. `git grep -c "lich" + "connect|arguments" over src/` is
+  zero; the two verbs are named in `docs/LICH_NATIVE_LOGIN.md` §6 and nowhere a
+  player can read them.
+  **N1 and N3 had not merged** — `git ls-tree origin/main` had no
+  `src-tauri/src/eaccess.rs` — so the flow was built and driven against a
+  TS-side stand-in, `src/lib/lichLoginFake.ts`, reachable only outside the
+  desktop app and only with `?lichDryRun=1`. That file carries its own deletion
+  instructions: when N1 and N3 land it is one file to delete and two
+  `usingFakeBackend()` branches to remove, deliberately, so it cannot become a
+  second login path. `tools/tauri-command-callers-test.mjs` grew
+  `AWAITING_BACKEND`, the mirror of its `DEFERRED` list, carrying both command
+  names with the increment that owes them — plus a sabotage proving an entry
+  that later gets registered is reported rather than silently tolerated.
+  Evidence, all re-runnable: `npm run test:sign-in` — 37 assertions, 0 failed,
+  **1 NOT CHECKED**, that being the cross-check of the error set against N1's
+  `EAccessError` enum, which cannot run until that file exists and so is printed
+  as a skip rather than folded into the pass. `node tools/sign-in-shots.mjs
+  http://127.0.0.1:5247/` — 23 of 23 in a real browser at 1024x768, writing
+  `docs/verification/sign-in-2026-09-06-{form,picker,launched,error,no-characters}.png`,
+  including that no control falls outside the window (defect #418's shape) and
+  that the stored preferences carry the account name and not the password.
+  `python tools/sign-in-break-check.py` — four sabotages, each caught by the
+  check it names, each file restored by md5, with the suite green before the
+  first and after the last. Case 1 is worth reading: its first version was
+  caught by the *wrong* check, because `SignIn` never hands `rememberSignIn` a
+  password, so it now damages the call path a real "remember me" regression
+  would. The password is not stored, no "remember my password" control is
+  rendered while N8 is `[!]`, and the false claim is replaced by the true
+  sentence: "Your password is used once to sign in and is not stored."
 
 - [ ] **N6  Delete Genie from the connection path, everywhere** (≈90)
   touches: src-tauri/src/lich.rs, src-tauri/src/lib.rs, src/lib/frontends.ts, tools/frontend-test.mjs, src/types/index.ts, src/store/useAppStore.ts, docs/BRIDGE_CONTRACT.md, lich-scripts/companion_bridge.lic, src/components/game/GameConnectionBar.tsx, src/components/dashboard/Dashboard.tsx, src/data/instances.ts

@@ -74,6 +74,7 @@
   "test:columns",
   "test:location-line",
   "test:first-screen",
+  "test:sign-in",
   "test:freelayout",
   "test:dock",
   "test:mapdock",

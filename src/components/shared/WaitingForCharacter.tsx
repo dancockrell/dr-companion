@@ -1,4 +1,5 @@
 import { LichLauncher } from './LichLauncher.tsx'
+import { SignIn } from './SignIn.tsx'
 import { useAppStore } from '../../store/useAppStore.ts'
 
 /**
@@ -132,39 +133,23 @@ export function WaitingForCharacter() {
             </p>
             {actions}
             {/*
-             * The likeliest state here is not "not started yet". It is
-             * playing already, through Genie, with Lich not in the loop at
-             * all — because Genie connects straight to the game and Lich is
-             * a separate thing you have to point it at.
+             * What used to be here: four config lines and a connect command,
+             * telling the player to go and set another program up so that it
+             * would start Lich. That was the app admitting it could not sign
+             * anybody in, plus a warning that the route it recommended left the
+             * channel tabs empty.
+             *
+             * It can sign somebody in now. `SignIn` performs the account login
+             * itself and starts Lich with the result, so the instructions are
+             * deleted rather than kept beside it as a second route - there is
+             * no second, legacy sign-in route anywhere in this app.
              */}
             <p className="mt-1 text-xs text-ink-muted">
-              If you are already playing, this is the usual reason: Genie connects
-              straight to the game, and Lich is a separate step. Nothing is broken,
-              the companion just has nothing to read yet.
-            </p>
-            <p className="mt-2 text-xs text-ink-muted">In Genie, once per profile:</p>
-            <pre className="mt-1 overflow-x-auto rounded border border-border bg-surface p-2 text-xs leading-relaxed text-ink-muted">
-{`#config lichpath C:\\Ruby4Lich5\\Lich5\\lich.rbw
-#config lichport 11024
-#config licharguments --genie --dragonrealms
-#lichconnect YourCharacterDR`}
-            </pre>
-            <p className="mt-2 text-xs text-ink-muted">
-              Then <code className="text-ink">,companion_bridge</code> in the game.
-              This panel fills in on its own.
-            </p>
-            {/*
-             * `--genie` and the channel tabs are mutually exclusive: Lich
-             * gates every pushStream tag behind a capability the real Genie
-             * plugin never asked for.
-             */}
-            <p className="mt-2 text-xs text-warn">
-              This keeps Genie as your window, and it means the channel tabs
-              below stay empty - Lich only sends the game's channel labels to
-              a frontend that asks for them, and Genie's own config does not.
-              Use "Open Lich to sign in" instead if you want those.
+              Sign in below and the app starts Lich for you. There is nothing
+              else to open and nothing to set up first.
             </p>
 
+            <SignIn />
             <LichLauncher />
           </>
         )}

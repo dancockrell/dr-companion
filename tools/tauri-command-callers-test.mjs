@@ -52,6 +52,28 @@ const ok = (name, cond, detail = '') => {
  */
 const DEFERRED = Object.create(null)
 
+/**
+ * The mirror of `DEFERRED`: commands the webview calls whose Rust side has not
+ * landed yet.
+ *
+ * The two lists exist for the same reason in opposite directions, and this one
+ * was missing until increment N5 needed it. Lane N publishes its interface in
+ * `docs/LICH_NATIVE_LOGIN.md` section 8 precisely so the webview half and the
+ * Rust half can be built by different sessions in parallel, which means one of
+ * them is temporarily calling something the other has not registered.
+ *
+ * An entry is a promise that somebody is coming back, so it carries the reason
+ * and the increment that owns it - and it is itself checked below: an entry
+ * whose command Rust now *does* register fails, because a stale exemption is
+ * how the next genuinely broken invoke hides.
+ */
+const AWAITING_BACKEND = {
+  lich_login_characters:
+    'the sign-in screen (N5) shipped before eaccess.rs (N1) registers this; remove when N1 merges',
+  lich_login_launch:
+    'the sign-in screen (N5) shipped before sal.rs/lich.rs (N3) register this; remove when N3 merges',
+}
+
 const LIB_RS = 'src-tauri/src/lib.rs'
 
 /** The registered command names, or a thrown error. Never a quiet empty list. */
@@ -109,8 +131,11 @@ function analyse(libRsText, files) {
 
   const callerless = commands.filter((c) => !mentions(blob, c) && !(c in DEFERRED))
   const staleDeferrals = Object.keys(DEFERRED).filter((c) => mentions(blob, c))
-  const unregistered = [...invoked.keys()].filter((c) => !commands.includes(c))
-  return { commands, invoked, callerless, staleDeferrals, unregistered }
+  const unregistered = [...invoked.keys()].filter(
+    (c) => !commands.includes(c) && !(c in AWAITING_BACKEND)
+  )
+  const staleAwaits = Object.keys(AWAITING_BACKEND).filter((c) => commands.includes(c))
+  return { commands, invoked, callerless, staleDeferrals, unregistered, staleAwaits }
 }
 
 const libRs = readFileSync(LIB_RS, 'utf8')
@@ -122,7 +147,8 @@ console.log(`-- denominators --`)
 console.log(`   ${r.commands.length} commands registered in ${LIB_RS}`)
 console.log(`   ${files.length} .ts/.tsx files under src/`)
 console.log(`   ${r.invoked.size} distinct command names invoked by literal`)
-console.log(`   ${Object.keys(DEFERRED).length} deferred exemptions\n`)
+console.log(`   ${Object.keys(DEFERRED).length} deferred exemptions`)
+console.log(`   ${Object.keys(AWAITING_BACKEND).length} invokes awaiting a backend\n`)
 
 // A floor well below the real count, so a parser that returns a truncated or
 // empty list reports itself instead of reporting a clean tree. It is not a
@@ -164,6 +190,13 @@ ok(
     ? r.unregistered.map((c) => `${c} (${r.invoked.get(c)})`).join(', ')
     : `${r.invoked.size} checked`
 )
+ok(
+  'no awaiting-backend exemption has quietly been registered',
+  r.staleAwaits.length === 0,
+  r.staleAwaits.length
+    ? `remove from AWAITING_BACKEND: ${r.staleAwaits.join(', ')}`
+    : `${Object.keys(AWAITING_BACKEND).length} still awaiting`
+)
 
 console.log('\n-- sabotage: the checks above must be able to fail --')
 {
@@ -185,6 +218,20 @@ console.log('\n-- sabotage: the checks above must be able to fail --')
   const s = analyse(libRs, [...files, fake])
   ok('sabotage lands: an unregistered invoke is reported', s.unregistered.includes('zz_unregistered_command'), s.unregistered.join(', '))
   ok('sabotage is scoped: no command lost its caller', s.callerless.length === 0)
+}
+{
+  // And the exemption itself must be able to expire. Registering one of the
+  // awaited commands has to be reported, or AWAITING_BACKEND is a hole that
+  // silently swallows a real invoke for as long as anybody leaves it there.
+  const name = Object.keys(AWAITING_BACKEND)[0]
+  ok('there is an awaiting-backend entry to test', Boolean(name), name ?? 'none')
+  if (name) {
+    const mutated = libRs.replace('setup::plan_setup,', `setup::plan_setup,\n            login::${name},`)
+    if (mutated === libRs) throw new Error('sabotage "register an awaited command" did not change the text')
+    const s = analyse(mutated, files)
+    ok('sabotage lands: a now-registered exemption is reported', s.staleAwaits.includes(name), s.staleAwaits.join(', '))
+    ok('sabotage is scoped: nothing else went stale', s.staleAwaits.length === 1)
+  }
 }
 {
   // And the parser itself: a lib.rs with no handler block must abort, not

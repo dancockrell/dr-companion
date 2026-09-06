@@ -7,6 +7,13 @@
  * app with a manual step in front of it, and the manual step is where everyone
  * stopped.
  *
+ * # This panel is for a character Lich already knows
+ *
+ * Signing in is `SignIn.tsx`'s job now, and it is the route a new player takes:
+ * account, password, pick a character, done. This panel starts a character out
+ * of Lich's own saved entries, which is faster when one exists and needs no
+ * password at all.
+ *
  * # The password never goes on a command line
  *
  * Lich will accept an account and password as command-line arguments. This app
@@ -47,9 +54,9 @@ interface LichStatus {
   runningKnown: boolean
   /**
    * Whether Lich's own login window can actually complete here. False on a
-   * machine whose only frontend is Genie - Lich's GUI can only offer Wrayth,
-   * Wizard, Avalon and Saga, and refuses with "No supported frontend is
-   * available." otherwise. See `gui_login_usable` in lich.rs.
+   * machine whose only installed frontend is one Lich's GUI cannot offer: it
+   * lists Wrayth, Wizard, Avalon and Saga only, and refuses with "No supported
+   * frontend is available." otherwise. See `gui_login_usable` in lich.rs.
    */
   guiLoginUsable: boolean
   note: string
@@ -195,7 +202,7 @@ export function LichLauncher() {
                   disabled={busy}
                   onClick={() => void start(c)}
                   className="flex items-center gap-1.5 rounded border border-accent/40 bg-accent/15 px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25 disabled:opacity-50"
-                  title={`Start Lich for ${c}, connect DragonRealms for Genie, and start the bridge`}
+                  title={`Start Lich for ${c} and start the bridge`}
                 >
                   <Play className="h-3 w-3" />
                   {c}
@@ -204,15 +211,18 @@ export function LichLauncher() {
             </div>
           )}
 
-          {/* Offered only when Lich's own window can actually complete.
+          {/* Offered only when Lich's own window can actually complete,
+            * and it is now the secondary route rather than the only one.
             *
-            * Otherwise it is a dead end, and the app was walking people into
-            * it: Lich's GUI login can only offer Wrayth, Wizard, Avalon and
-            * Saga, so on a Genie-only machine every tab refuses with "No
-            * supported frontend is available." A saved character makes the
-            * question moot - that path never touches the GUI - which is why
-            * this stays available once one exists. */}
-          {status.guiLoginUsable ? (
+            * What used to be in the other arm of this branch: a warning
+            * panel saying Lich's login window cannot sign in on this
+            * machine, followed by three `#config` lines telling the player to
+            * set up another program and sign in through that instead. Both are
+            * gone. The app signs in itself now (`SignIn.tsx`), so there is
+            * nothing to warn about and nowhere else to send anybody - and
+            * an else-arm here would be a second sign-in route beside the
+            * real one. */}
+          {status.guiLoginUsable && (
             <button
               type="button"
               disabled={busy}
@@ -224,71 +234,6 @@ export function LichLauncher() {
                 ? 'Open Lich to add another character'
                 : 'Open Lich to sign in'}
             </button>
-          ) : (
-            <div className="min-w-0 space-y-1 rounded border border-warn/40 bg-warn/5 p-2">
-              <p className="text-xs font-medium text-warn">
-                Lich&apos;s own login window cannot sign in on this machine.
-              </p>
-              <p className="text-xs leading-snug text-ink-muted">
-                It only offers Wrayth, Wizard, Avalon and Saga, and none of those
-                are installed here. Genie is not one it can offer, so every tab
-                in that window refuses with &ldquo;No supported frontend is
-                available.&rdquo;
-              </p>
-              {/* This used to print a `--account/--password/--save` command
-                * to run in a terminal. It was wrong and it was worse than
-                * useless, so the retraction is recorded here rather than
-                * quietly deleted.
-                *
-                * Those flags parse, which is what made them look like a
-                * supported path. They are not one. Lich dispatches on
-                * `if ARGV.include?('--login')` with exactly one `elsif` for
-                * the GUI (`main.rb:112`/`:195`); a command with credentials
-                * and no `--login` matches neither. `argv_options[:save]` is
-                * assigned at `argv_options.rb:103` and read nowhere in the
-                * tree, and `[:account]` is read only under `--login NEW`,
-                * the character generator.
-                *
-                * Run for real with junk credentials, it did not fail
-                * cleanly: it fell into a proxy mode, printed "pretending to
-                * be dr.simutronics.net", bound port 11024 - the exact port a
-                * real Lich needs - and hung until killed, creating no entry
-                * file. Anyone following that instruction would have ended up
-                * in the state this panel exists to explain.
-                *
-                * The honest answer is that there is no CLI route to a saved
-                * entry, so the way forward is a frontend that can actually
-                * launch Lich. Genie is already installed and already
-                * configured to do it. */}
-              <p className="text-xs leading-snug text-ink-muted">
-                There is no command-line way to save a character either - Lich
-                only creates entries through that window. What does work is
-                launching <span className="text-ink">Genie</span>, which starts
-                Lich itself using the settings it already has:
-              </p>
-              {/* whitespace-pre-wrap/break-all used to be here, which is what
-                * a Windows path deserves least: it wrapped `c:\ruby4lich5\...`
-                * mid-token onto two lines rather than scrolling it, the exact
-                * shape ConnectGuide.tsx's Line component already solved.
-                * Scrolling is right for a line meant to be copied verbatim -
-                * wrapping it invites someone to retype what they see, split
-                * exactly where the browser happened to break it. */}
-              <pre className="overflow-x-auto whitespace-pre rounded bg-surface p-1.5 text-xs leading-relaxed text-ink-faint">
-{`#config {lichpath} {c:\\ruby4lich5\\lich5\\lich.rbw}
-#config {licharguments} {--genie --dragonrealms}
-#config {lichport} {11024}`}
-              </pre>
-              <p className="text-xs leading-snug text-ink-muted">
-                Sign in through Genie as usual. It brings Lich up with those
-                arguments, and the bridge connects on its own.
-              </p>
-              <p className="text-xs leading-snug text-ink-faint">
-                One trade-off, so it is not a surprise later: that route uses{' '}
-                <code>--genie</code>, which Lich does not give the streams
-                capability, so the channel tabs stay empty. Everything else
-                works.
-              </p>
-            </div>
           )}
 
           {!status.charactersKnown && (
