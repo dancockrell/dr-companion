@@ -16,7 +16,7 @@ import { AiWorkerPanel } from './components/shared/AiWorkerPanel.tsx'
 import { AppControls } from './components/layout/AppControls.tsx'
 import { SafetyFooter } from './components/layout/SafetyFooter.tsx'
 import { SituationBanner } from './components/layout/SituationBanner.tsx'
-import { DemoBanner } from './components/layout/DemoBanner.tsx'
+import { WindowShell } from './components/layout/WindowShell.tsx'
 import { Console } from './components/layout/Console.tsx'
 import { QuickSwitchBar } from './components/layout/QuickSwitchBar.tsx'
 import { MapWindow } from './components/MapWindow.tsx'
@@ -194,7 +194,29 @@ const MIN_BATTLE_H = 240
 /** The map is watched continuously; game/chat remains open below it. */
 const DEFAULT_MAP_SHARE = 0.58
 
+/**
+ * Every window of this app, rendered inside one frame.
+ *
+ * The frame is not decoration: `WindowShell` owns the demo banner, and it is
+ * mounted here, above the view switch, so that *every* window carries it -
+ * main, map, and each popped-out panel. Issue #400 was the other shape, where
+ * the banner sat inside the `v.kind === 'app'` return and the two auxiliary
+ * returns above it showed an invented world with nothing saying so.
+ *
+ * `AppViews` therefore has no `return` a person can reach without passing
+ * through the shell, which is the property `tools/first-screen-test.mjs`
+ * asserts. Adding a fourth window kind cannot reintroduce the bug.
+ */
 export default function App() {
+  const v = view()
+  return (
+    <WindowShell aux={v.kind !== 'app'}>
+      <AppViews />
+    </WindowShell>
+  )
+}
+
+function AppViews() {
   // Read once, up front - `view()` is a pure read of location.search, and
   // every hook below that needs to know which window this is (the
   // presentation-bridge publisher chief among them) has to have it before
@@ -377,7 +399,6 @@ export default function App() {
   }
 
   const character = useAppStore((s) => s.character)
-  const bridgeMode = useAppStore((s) => s.bridgeMode)
   const battleActive = character?.situation.includes('in_combat') ?? false
   const leftRailWantVisible = leftRailW
   /* In combat the board becomes the primary surface and the rails pay for it
@@ -549,10 +570,9 @@ export default function App() {
       <AppControls />
       <StorageWarning />
       {setupComplete && <SituationBanner />}
-      {/* Across the whole window, not a badge in a corner - see DemoBanner.tsx
-          and issue #382. Above the workspace row so it is present in the empty
-          state and the populated one alike. */}
-      {setupComplete && bridgeMode === 'mock' && <DemoBanner />}
+      {/* The demo banner is not here. It is in `WindowShell`, above the view
+          switch, so that the map window and the popped-out panels carry it
+          too - see WindowShell.tsx and issue #400. */}
       {/* Runs regardless of what is on screen - see GameSignals.tsx's own
           header on why this cannot live inside a panel that might not
           mount. */}

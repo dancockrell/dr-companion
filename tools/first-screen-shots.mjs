@@ -10,7 +10,10 @@
  *      state with its call to action;
  *   b. after pressing "Start the demo" - the banner and the mock world;
  *   c. after pressing "Leave the demo" - back to the empty state, with no
- *      invented character left behind.
+ *      invented character left behind;
+ *   d. each window this app can open, with the demo on - the popped-out panel
+ *      windows and the map route - because the banner has to be in every one
+ *      of them and not only the main window (issue #400).
  *
  * # What this cannot tell you
  *
@@ -77,6 +80,73 @@ try {
   check('c. the banner is gone', !c.includes(BANNER))
   check('c. the invented character is gone', !/Dan the Bold/.test(c))
   check('c. the empty state is back', /Nothing is connected yet/.test(c))
+
+  /*
+   * d. the windows this app can open, each one visited with the demo on.
+   *
+   * Issue #400: the banner was mounted inside the main window's return, so a
+   * popped-out panel showed a full invented stat block with nothing saying
+   * so. The checks above could not see it, because they only ever visited the
+   * main window - which is why this loop exists rather than one more
+   * assertion about the main screen.
+   *
+   * What each route actually renders, said plainly rather than implied:
+   * `?view=panel&id=...` is the popped-out panel window, the one the defect
+   * was demonstrated in. `?view=map` is currently NOT the map window -
+   * App.tsx's `MAP_WINDOW_ENABLED` is false, so it falls through to the app
+   * view - so that row checks the fall-through, not `MapWindow`. It is here
+   * because the route is what a person would type and the fall-through is
+   * what they get; if the flag comes back, the case starts covering the map
+   * window with no edit.
+   */
+  await b.goto(base)
+  await b.run(`
+    localStorage.setItem('dr-companion-prefs-v1', JSON.stringify({ setupComplete: true, bridgeMode: 'mock' }));
+    return true;
+  `)
+  const windows = [
+    ['?view=panel&id=stats', 'stats pop-out'],
+    ['?view=panel&id=map', 'map pop-out'],
+    ['?view=map', 'map route (falls through to the app view today)'],
+  ]
+  const missing = []
+  const seen = []
+  for (const [query, label] of windows) {
+    await b.goto(base + query, { waitFor: '#root > *' })
+    // The mock publishes on a timer, so wait for the thing being asserted
+    // rather than for a fixed sleep.
+    let text = ''
+    for (let i = 0; i < 60; i += 1) {
+      text = await b.eval('document.body.innerText')
+      if (text.includes(BANNER)) break
+      await new Promise((r) => setTimeout(r, 250))
+    }
+    seen.push(`${label}: ${JSON.stringify(text.slice(0, 50))}`)
+    if (!text.includes(BANNER)) missing.push(label)
+    if (query.includes('id=stats')) await b.screenshot(out('demo-banner-popouts-2026-09-06-panel.png'))
+    if (query === '?view=map') await b.screenshot(out('demo-banner-popouts-2026-09-06-map.png'))
+  }
+  check(
+    `d. every window kind carries the banner (${windows.length} visited)`,
+    missing.length === 0 && seen.length === windows.length,
+    missing.length ? `missing in ${missing.join(', ')}` : seen.join(' | ')
+  )
+  check('d. and every one of them rendered something', seen.every((s) => s.length > 25), seen.join(' | '))
+
+  // The control that makes the row above mean something: the same route with
+  // the demo off must not show it, so a pass is not a banner welded on.
+  await b.goto(base)
+  await b.run(`
+    localStorage.setItem('dr-companion-prefs-v1', JSON.stringify({ setupComplete: true, bridgeMode: 'live' }));
+    return true;
+  `)
+  await b.goto(base + '?view=panel&id=stats', { waitFor: '#root > *' })
+  const live = await b.eval('document.body.innerText')
+  check(
+    'd. control: with the demo off the pop-out has no banner',
+    !live.includes(BANNER),
+    JSON.stringify(live.slice(0, 50))
+  )
 
   const errors = b.consoleErrors()
   check('no page exceptions', errors.length === 0, errors.join(' | '))
