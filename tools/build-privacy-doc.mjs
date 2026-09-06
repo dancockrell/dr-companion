@@ -179,7 +179,7 @@ const DESTINATIONS = [
     what: 'Simutronics\' own account server, and the only place this app sends anything you typed as a credential. It is what signs you in to DragonRealms, and it is the same server every other DragonRealms client - Lich, Genie, the official one - talks to for the same reason.',
     sends: 'Your account name, your password (obscured by the XOR the protocol specifies, which is not encryption - the TLS around it is), the game you chose, and the character you picked from the list it sends back. Nothing else: no game text, no map, no settings, and nothing about this app.',
     where: '`src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910.',
-    note: 'Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.',
+    note: 'Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. That box is off every time the screen opens, it says what ticking it means - "Stored in Windows Credential Manager. Anyone signed in to this Windows account can use it." - and Settings carries a Forget control that removes the entry again (`src-tauri/src/credential_store.rs`, `src/lib/rememberPassword.ts`). This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.',
   },
   {
     host: 'elanthipedia.play.net',
@@ -277,7 +277,9 @@ const md = `# What DR Companion sends, and where
   server, the same one every other DragonRealms client uses - and nowhere else.
   It is never written to a settings file, never put on a command line, and
   never logged. If you do ask for it to be remembered, it is kept in Windows
-  Credential Manager rather than in any file this app writes.
+  Credential Manager rather than in any file this app writes - the box that
+  asks is off every time until you tick it, and Settings has a control that
+  forgets it again.
 - **Everything the app stores, it stores on your machine.** \`docs/PLAYER_DATA.md\`
   is the generated inventory of that.
 - **A local AI model, if you install one, runs on loopback.** It is a process

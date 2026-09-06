@@ -5,21 +5,39 @@
 > the tree has a key this document does not, or the other way round.
 
 Everything below lives in this window's `localStorage`, on this computer, in
-this app. None of it is sent anywhere. Nothing here is a password, a
-credential or a game session secret.
+this app. None of it is sent anywhere, and **none of it is a password, a
+credential or a game session secret** - that is checked rather than promised,
+by `tools/doc-claims-test.mjs` section K, which fails if any persisted
+preference is named like one.
 
 The password is the one worth being exact about, and the exact statement
-changed on 6 September 2026. The app signs the player in itself now
+changed twice on 6 September 2026. The app signs the player in itself now
 (`src/components/shared/SignIn.tsx`), so it does handle a password: for the
-length of one call, sent over TLS to Play.net and to nowhere else. It is
-**not stored** - not here, not in any file this app writes. The account name
-is stored, in plain text, like every other preference. See
-`docs/LICH_NATIVE_LOGIN.md` section 5, and
-`tools/sign-in-test.mjs`, which drives a whole sign-in and then reads these
-preferences back to prove it.
+length of one call, sent over TLS to Play.net and to nowhere else. The account
+name is stored, in plain text, like every other preference. See
+`docs/LICH_NATIVE_LOGIN.md` section 5, and `tools/sign-in-test.mjs`, which
+drives a whole sign-in and then reads these preferences back to prove it.
+
+## The one thing that is not in this list
+
+The second change is that the password can now be **remembered, if you ask**.
+That is the only thing this app stores anywhere but `localStorage`, and the
+difference is deliberate:
+
+| | `localStorage` | the remembered password |
+|---|---|---|
+| Where | this window's storage, in the app's own data directory | Windows Credential Manager |
+| Written | whenever you change a setting | only when you tick "Remember password on this computer", which is off every time until you do |
+| Removed by | clearing site data, or uninstalling | the Forget control in Settings, which deletes the Credential Manager entry |
+| Readable by | this app | anything running as your Windows user - which is what the app tells you before you tick the box |
+
+Nothing in the table below is that password, and there is no third place: a
+password in a settings file, obfuscated or not, is a plaintext password with a
+decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
+`src-tauri/src/credential_store.rs`.
 
 29 keys, owned by 25 files, found by scanning
-322 source files.
+324 source files.
 
 ## The keys
 

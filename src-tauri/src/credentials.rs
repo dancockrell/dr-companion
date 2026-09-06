@@ -282,6 +282,20 @@ mod tests {
             "found only {macro_sites} output-macro sites in {} files; the matcher is broken",
             files.len()
         );
+        // Named coverage, not only a count. The two modules a password can
+        // actually be inside are this one and `credential_store.rs` (N8), and
+        // a walker that stopped before either would still clear the floors
+        // above on the strength of the other twenty-odd files. So the
+        // denominator that matters here is "was *this* file read", asserted by
+        // name rather than inferred from a total.
+        for required in ["credentials.rs", "credential_store.rs"] {
+            assert!(
+                files.iter().any(|p| p.ends_with(required)),
+                "the scan never reached {required}, which is a file a password passes through; \
+                 {} files were walked",
+                files.len()
+            );
+        }
 
         // Positive control: the same two matchers, on a line that must be
         // caught. Without this, a matcher that matches nothing passes.

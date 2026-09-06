@@ -10,6 +10,7 @@
   "test:appearance",
   "test:privacy",
   "test:doc-claims",
+  "test:credential-store",
   "test:bug-bundle",
   "test:plan",
   "test:plan-self",

@@ -20,10 +20,19 @@
  *
  * It lives in one `useState` below, for the length of one call, and is cleared
  * the moment the call returns - success or failure. It is never persisted, never
- * put in a URL, and never comes back from Rust in any result or error. There is
- * no "remember my password" control because there is nowhere safe to remember it
- * yet: that is increment N8, which needs a new Rust dependency and Dan's yes, and
- * a disabled checkbox now would read as a feature that merely does nothing.
+ * put in a URL, and never comes back from Rust in any result or error.
+ *
+ * There is now one exception, and it is opt-in: N8 landed the day after this
+ * screen did, so there *is* somewhere safe to remember a password - Windows
+ * Credential Manager, through `credential_store`. The box is off every time
+ * this form opens, it is never seeded from anything stored, and the password
+ * is handed to the store only after `lich_login_characters` has proved it
+ * works. A password that failed to sign in is not one worth remembering, and
+ * storing before the call would remember typing mistakes.
+ *
+ * The box itself is `RememberPasswordCheckbox`, imported rather than written
+ * here: the sentence beside it and the default it starts at have one owner,
+ * `src/lib/rememberPassword.ts`, and a second copy of either would drift.
  *
  * # Three states, laid out in order
  *
@@ -45,6 +54,12 @@ import {
   usingFakeBackend,
   type CharacterEntry,
 } from '../../lib/lichLogin.ts'
+import {
+  REMEMBER_PASSWORD_DEFAULT,
+  rememberIfAsked,
+  tauriCredentials,
+} from '../../lib/rememberPassword.ts'
+import { RememberPasswordCheckbox } from './RememberPassword.tsx'
 import { attachGame } from '../../lib/gameLink.ts'
 import { isTauri } from '../../lib/tauri.ts'
 
@@ -57,6 +72,10 @@ export function SignIn() {
   // Never read anywhere but the two calls below, never written anywhere else.
   const [password, setPassword] = useState('')
   const [gameCode, setGameCode] = useState(remembered.gameCode || DEFAULT_GAME_CODE)
+  // Off, every time, from a constant rather than from anything persisted. A
+  // ticked box restored from storage would tell a player their password is
+  // being kept without their having said so this session.
+  const [remember, setRemember] = useState(REMEMBER_PASSWORD_DEFAULT)
 
   const [stage, setStage] = useState<Stage>('form')
   const [characters, setCharacters] = useState<CharacterEntry[]>([])
@@ -75,6 +94,20 @@ export function SignIn() {
     try {
       const result = await listCharacters({ account: account.trim(), password, gameCode })
       rememberSignIn({ account: account.trim(), gameCode })
+      // Only now, and only if asked: the account server has just accepted this
+      // password, so it is one worth keeping. `rememberIfAsked` does nothing at
+      // all when the box is unticked - not a no-op write, no call.
+      if (remember) {
+        try {
+          await rememberIfAsked(tauriCredentials, account.trim(), password, remember)
+        } catch (storeError) {
+          // Signing in worked; only remembering failed. Say so rather than
+          // failing the sign-in, and rather than saying nothing - a player who
+          // ticked the box would otherwise be typing it again next time with
+          // no idea why.
+          setError(`Signed in, but the password could not be remembered: ${String(storeError)}`)
+        }
+      }
       setCharacters(result.characters)
       setStage('picker')
     } catch (e) {
@@ -189,6 +222,12 @@ export function SignIn() {
             </select>
           </label>
 
+          <RememberPasswordCheckbox
+            checked={remember}
+            onChange={setRemember}
+            disabled={busy || !workable}
+          />
+
           <button
             type="button"
             disabled={busy || !workable || !account.trim() || !password}
@@ -211,10 +250,11 @@ export function SignIn() {
             * fact. That test pins this string in three files at once, which is
             * what stops the four of them drifting apart.
             *
-            * "unless you later ask for it" describes N8, which is not built:
-            * there is no control anywhere in this app that stores a password
-            * today. Flagged rather than reworded here, because this sentence
-            * has one owner and it is the privacy document. */}
+            * "unless you later ask for it" now describes something real: N8
+            * built the box above, and the sentence is true in both directions
+            * rather than being a promise about a feature nothing could ask
+            * for. It is still not reworded here - it has one owner and that is
+            * the privacy document. */}
           <p className="text-xs leading-snug text-ink-faint">
             Your password is typed into this app, used once to sign in to
             Simutronics, held only in memory, and not stored unless you later

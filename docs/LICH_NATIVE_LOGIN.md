@@ -430,19 +430,46 @@ already give at this scale.
 ### 5.2 The optional store
 
 If a player ticks "remember my password", it goes to **Windows Credential
-Manager** through the `keyring` crate — MIT OR Apache-2.0, and **not** currently
-in `src-tauri/Cargo.lock`:
+Manager** through the `keyring` crate — MIT OR Apache-2.0. **Built, N8, merged
+6 Sep 2026** on Dan's answer to the plan's §10 question N-b: *yes, opt-in,
+default off*. The paragraph that stood here recorded the crate as absent and
+the increment as `[!]` awaiting that yes; both are now the opposite, and a
+stale claim of that shape is worse than none because a reader cannot tell it
+from a current one. The check, rather than the claim:
 
 ```
-$ grep -in "keyring\|credential\|secret\|keychain" src-tauri/Cargo.toml   -> no match
-$ grep -in "^name = \"keyring\"" src-tauri/Cargo.lock                     -> no match
+$ grep -in "^keyring" src-tauri/Cargo.toml                      -> the dependency, cfg(windows)
+$ grep -A1 '^name = "keyring"' src-tauri/Cargo.lock          -> version = "4.2.0"
+$ grep -c "keyring" THIRD_PARTY.md                              -> 3 (crate, core, backend)
+$ cargo test credential_store                                   -> 6 passed
 ```
 
-`docs/SETUP-POLICY.md` is ask-before-install, and a new Rust dependency is an
-ask. So the optional store is its own increment (**N8**), it is `[!]` until Dan
-says yes, and the checkbox does not appear in the UI until it exists. **Not
-storing the password is the shipped default and the entire feature works without
-N8** — this is not a stub, it is a feature that is genuinely optional.
+What shipped, and the parts worth knowing before building on it:
+
+- `src-tauri/src/credential_store.rs` is the module. `store`, `has`, `forget`,
+  `load` and `unavailable_reason` all take the **service name as an argument**;
+  only the three `#[tauri::command]` wrappers call `service_name()`. So a test
+  names its own service and cannot reach a player's, which is a stronger
+  guarantee than a test that promises to clean up after itself.
+- **`load` is not a command.** It returns a `Secret`, and §5.1's `Secret`
+  cannot be serialised, so a `#[tauri::command]` could not return one if
+  somebody tried. That is the mechanism by which a stored password reaches the
+  EAccess client and nothing else. N1's `lich_login_characters` and N3's
+  `lich_login_launch` are its intended callers: when the webview passes no
+  password and `has` is true, read one with `load` and use it once.
+- The Credential Manager **target name** is `{account}.{service}`, service
+  `dr-companion.play.net` — `windows-native-keyring-store`'s default divider is
+  `.`. So `cmdkey /list | findstr dr-companion.play.net` is the manual check,
+  and `the_entry_is_in_windows_credential_manager` is the automated one, which
+  asserts 0 → 1 → 0 through `cmdkey` rather than through the code under test.
+- The checkbox defaults to **off** (`REMEMBER_PASSWORD_DEFAULT` in
+  `src/lib/rememberPassword.ts`), and the sentence beside it says who else can
+  read the entry: *"Stored in Windows Credential Manager. Anyone signed in to
+  this Windows account can use it."* Settings carries the Forget control.
+
+**Not storing the password is still the shipped default and the rest of the
+lane works without any of this** — it is a feature that is genuinely optional,
+not a stub.
 
 There is no third option. A password in a JSON settings file, obfuscated or
 not, is a plaintext password with a decoding step, and this design does not

@@ -67,6 +67,28 @@ webpki-roots = "1"
 # it directly adds no crate to the lock and no new licence - it is
 # MIT OR Apache-2.0, the same as the rest.
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+# N8: the optional "remember my password" store, which is Windows Credential
+# Manager and nothing else (`docs/LICH_NATIVE_LOGIN.md` §5.2 - there is no
+# third option). MIT OR Apache-2.0, the same as everything else here.
+#
+# `default-features = false` on purpose. keyring's defaults switch on the
+# secret-service backend as well, which drags zbus and a D-Bus stack into a
+# Windows-only application for a store it will never open. The one feature
+# named below is the Windows Credential Manager backend, which is the whole
+# reason the crate is here.
+#
+# Target-gated for the same reason `windows-sys` above is: this app ships for
+# Windows, `credential_store.rs` has a `#[cfg(not(windows))]` half that says
+# plainly it cannot store anything, and a platform nothing installs on should
+# not pull a credential crate to be told so.
+# `v1` is the all-in-one `Entry` API and is not optional: without it (or `cli`)
+# the crate is a `compile_error!`. It is also what supplies
+# `Entry::store_status()`, which is how `credential_store.rs` can say *why* the
+# store is unavailable rather than reporting an empty one.
+keyring = { version = "4", default-features = false, features = [
+  "v1",
+  "windows-native-keyring-store",
+] }
 
 [profile.release]
 panic = "abort"
