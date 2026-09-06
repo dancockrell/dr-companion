@@ -30,8 +30,28 @@ import { useHighlights } from '../../lib/useHighlights.ts'
 import { useAliases } from '../../lib/useAliases.ts'
 import { cn } from '../../lib/cn.ts'
 import { writeText } from '../../lib/storage.ts'
+import { INSTANCES } from '../../data/instances.ts'
 
-const DEFAULT_PORT = '11024'
+/**
+ * The port the attach box starts on, taken from the instance table rather than
+ * retyped. (N6.)
+ *
+ * `instances.ts` says of itself that "a second copy of four port numbers is a
+ * second thing to forget to update", and `lich.rs:82`'s `DETACHABLE_PORT`
+ * claims to be "one number in one place". This line was the counter-example to
+ * both: a fifth copy of 11024, in the one control whose whole job is to be
+ * checkable against a real Lich.
+ *
+ * Prime by id, not `INSTANCES[0]`: a reordered table must not silently change
+ * which game this box defaults to.
+ */
+const DEFAULT_PORT = String(
+  INSTANCES.find((i) => i.id === 'Prime')?.port ??
+    // Unreachable while Prime is in the table, and a thrown error in a render
+    // is worse than a wrong default, so this degrades rather than crashes -
+    // `instanceForPort` will label whatever it gets.
+    INSTANCES[0]!.port,
+)
 const PORT_KEY = 'drc.attach-port.v2'
 
 function validPort(v: string): boolean {

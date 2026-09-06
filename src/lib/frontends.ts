@@ -1,23 +1,33 @@
 /**
  * Frontends, and the prefix each one uses to start a Lich script.
  *
- * This exists because of one line in the Lich help channel:
+ * # Why this is a list, and why it is one shorter
+ *
+ * DR Companion is a GUI for Lich, and Lich is frontend-agnostic. This file
+ * exists so that every place the app tells somebody to run a Lich script spells
+ * the command for the frontend they actually use, rather than hardcoding a
+ * punctuation mark.
+ *
+ * One entry is gone as of 6 September 2026, and it was the one that made the
+ * file necessary in the first place. From the Lich help channel:
  *
  *     "genie uses commas to start lich scripts, every other FE uses semicolon"
  *
- * Every instruction this app gave said `;companion_bridge`. For a Genie user
- * that is simply wrong, and the failure is silent: Genie treats it as a game
- * command, the game says it does not understand, and the bridge never starts.
- * A first-run instruction that does not work for the most common frontend is
- * about as bad as a first-run instruction gets.
+ * That client was the app's route to a logged-in Lich, and it was the only
+ * frontend that used a comma. The app signs players in itself now
+ * (`src/components/shared/SignIn.tsx`), which starts Lich with no frontend at
+ * all - `--headless`, `--without-frontend` - so `Frontend.client` comes from
+ * the launch file's `GAME=` line and `$clean_lich_char` is `;`
+ * (`main.rb:58`). There is no route left through this app on which a comma is
+ * the right answer, so the comma branch went with the route rather than being
+ * left behind as a thing somebody could still select.
  *
- * The wider point, and the reason this file is a list rather than a boolean:
- * **DR Companion is a GUI for Lich, and Lich is frontend-agnostic.** Genie is
- * the most common one, not the only one, and the community is actively using
- * several others. Treating Genie as required would narrow the audience for no
- * reason.
+ * The prefix type is still `';' | ','` rather than the string `';'`. That is
+ * deliberate and it is not a leftover: the fact it models - that a frontend
+ * decides the script prefix - is Lich's, not this app's, and narrowing the type
+ * would make re-adding any comma-prefixed frontend a type change rather than a
+ * row. `bridgeCommand` is still the one place that answer is computed.
  */
-
 export interface Frontend {
   id: string
   label: string
@@ -49,16 +59,6 @@ export interface Frontend {
 }
 
 export const FRONTENDS: Frontend[] = [
-  {
-    id: 'genie',
-    label: 'Genie',
-    // The one that is different, and the most widely used.
-    prefix: ',',
-    lichFlag: '--genie',
-    executables: ['Genie.exe', 'Genie4.exe', 'Genie5.exe', 'GenieClient.exe'],
-    folders: ['Genie', 'Genie4', 'Genie5', 'GenieClient', 'Genie Client'],
-    note: 'Genie starts Lich scripts with a comma, not a semicolon.',
-  },
   {
     id: 'wrayth',
     label: 'Wrayth',
@@ -115,11 +115,17 @@ export const FRONTENDS: Frontend[] = [
     lichFlag: null,
     executables: [],
     folders: [],
-    note: 'Every frontend except Genie uses a semicolon.',
+    note: 'Every frontend this app knows about uses a semicolon.',
   },
 ]
 
-export const DEFAULT_FRONTEND = 'genie'
+/**
+ * What the app assumes when nobody has said. `wrayth` rather than the client
+ * this file used to default to: it is the one Lich's own window can offer, and
+ * every remaining entry uses the same prefix anyway, so the default now only
+ * decides a label.
+ */
+export const DEFAULT_FRONTEND = 'wrayth'
 
 /**
  * The identity **Lich gives itself** when DR Companion starts it, which is a
@@ -175,7 +181,17 @@ export function frontendById(id: string): Frontend {
   return FRONTENDS.find((f) => f.id === id) ?? FRONTENDS[0]!
 }
 
-/** The prefix for a frontend, defaulting to the safe majority case. */
+/**
+ * The prefix for a frontend.
+ *
+ * `null` is not "we could not tell". It means **no frontend in the path at
+ * all**, which is this app's own route: `SignIn` starts Lich `--headless` /
+ * `--without-frontend`, nothing is there to decide the character, and Lich's
+ * `$clean_lich_char` is `;` (`main.rb:58`). Passing `null` deliberately is how
+ * the three panels describing *this app's* Lich get their answer, instead of
+ * each hardcoding a punctuation mark - which is what they did until N6, and
+ * all three had it wrong: they said `,`, for a route the app no longer takes.
+ */
 export function prefixFor(id: string | null | undefined): string {
   if (!id) return ';'
   return frontendById(id).prefix

@@ -115,6 +115,54 @@ const CASES = [
     to: 'src-tauri/target/release/bundle/msi/*.msi',
     expect: 'documented build artefacts name a declared bundle target',
   },
+
+  // N6. Section L: no shipped string or document instructs the route the app
+  // no longer takes. Three cases, because the check has parts that can fail
+  // independently - the scan over the real tree (a document and a component),
+  // and the fixture control that proves the scan can catch anything at all.
+  {
+    // A document. The sentence N6 deleted from TESTING.md, put back rather
+    // than an invented one, so the case demonstrates the regression that would
+    // actually happen: somebody restoring "helpful" advice for a dead route.
+    file: 'docs/TESTING.md',
+    from: '3. In game: `;companion_bridge`. The app starts Lich headless',
+    to: '3. In game: `;companion_bridge` — or `,companion_bridge` if you use Genie. The app starts Lich headless',
+    expect: 'no shipped string or document instructs the retired route',
+  },
+  {
+    // A component string, which is the half a player actually reads. Aimed at
+    // LichLauncher because it renders whenever Lich is up, so a wrong command
+    // there is seen by everybody rather than by a documentation reader.
+    file: 'src/components/shared/LichLauncher.tsx',
+    from: '<code className="text-ink">{bridgeCommand(null)}</code> in the game.',
+    to: '<code className="text-ink">,companion_bridge</code> in the game.',
+    expect: 'no shipped string or document instructs the retired route',
+  },
+  {
+    // Sabotage the checker, not only the thing checked. Cutting one needle out
+    // of the fixture must take down both control checks and nothing else: the
+    // count falls to 4 of 5 and so does the set of distinct line numbers. If
+    // this case ever goes green, the control has stopped controlling and every
+    // green above it is worth less than it looks.
+    file: 'tools/fixtures/retired-instructions.md',
+    from: '    ,companion_bridge\n',
+    to: '',
+    expect: [
+      'control: the scan catches a fixture that does instruct it',
+      'control: and reports distinct line numbers',
+    ],
+  },
+  {
+    // A second module reaching for the Genie writer is how the deleted editor
+    // comes back - not as one commit called "restore the editor", but as one
+    // save somewhere that looked harmless. `mapPins.ts` because it is the
+    // nearest neighbour of the one legitimate caller and so the likeliest place
+    // for it to happen by accident.
+    file: 'src/lib/mapPins.ts',
+    from: 'export',
+    to: '// saveGenieConfig\nexport',
+    expect: 'only the pin export writes into a Genie install',
+  },
 ]
 
 const md5 = (s) => createHash('md5').update(s).digest('hex')

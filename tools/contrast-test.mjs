@@ -184,7 +184,11 @@ const retiredBlackScrims = componentSources.filter(({ text }) =>
 )
 check(
   'modal backdrops use one semantic scrim token',
-  css.includes('--color-scrim: rgb(0 0 0 / 0.5)') && modalScrims.length === 9 && retiredBlackScrims.length === 0,
+  // 8, not 9, since N6: `config/ConfigManagerSheet.tsx` was one of them and it
+  // is deleted. Kept exact rather than loosened to `>=` - the point of the
+  // number is that a new modal has to come here and say so, and a floor would
+  // let one arrive with a raw scrim as long as the semantic ones outnumbered it.
+  css.includes('--color-scrim: rgb(0 0 0 / 0.5)') && modalScrims.length === 8 && retiredBlackScrims.length === 0,
   `${modalScrims.length} semantic modal scrims; ${retiredBlackScrims.length} raw black scrims`
 )
 
@@ -353,24 +357,16 @@ if (headerRow) {
 }
 
 console.log('')
-console.log('-- loading motion is shared, announced and policy-safe --')
-const loadingNotice = readFileSync('src/components/shared/LoadingNotice.tsx', 'utf8')
-check('the shared loading notice announces asynchronous work',
-  loadingNotice.includes('role="status"') && loadingNotice.includes('aria-live="polite"'))
-check('the shared loading spinner respects reduced motion',
-  loadingNotice.includes('animate-spin motion-reduce:animate-none'))
-const configEditors = [
-  'AliasesEditor.tsx',
-  'GagsEditor.tsx',
-  'HighlightsEditor.tsx',
-  'MacrosEditor.tsx',
-  'PresetsEditor.tsx',
-  'SubstitutesEditor.tsx',
-]
-for (const file of configEditors) {
-  const source = readFileSync(join('src', 'components', 'config', file), 'utf8')
-  check(`${file} uses the shared loading notice`, source.includes('<LoadingNotice />'))
-}
+// The shared loading notice and its six consumers stood here until N6.
+//
+// `LoadingNotice` had exactly one class of caller - the Genie config editors -
+// and when they went it had none, so it was deleted rather than left as a
+// component nothing mounts (`tools/mounted-test.mjs` would have called it out,
+// and correctly). Its two properties, `role="status"`/`aria-live="polite"` and
+// `animate-spin motion-reduce:animate-none`, are the contract any replacement
+// owes: whatever announces the next long wait in this app must assert them
+// here again rather than rediscover them.
+
 const radar = readFileSync('src/components/shared/CombatRadar.tsx', 'utf8')
 check('CombatRadar has no dormant looping attention pulse',
   !radar.includes('animate-pulse') && !radar.includes('pulse?: boolean'))

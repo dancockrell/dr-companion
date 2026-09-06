@@ -35,9 +35,10 @@ const prefs = loadPrefs()
 
 const defaultSetup: SetupComponent[] = [
   {
-    id: 'genie',
-    label: 'Genie',
-    description: 'Your game client (the window you read the game in).',
+    id: 'config-import',
+    label: 'Your old game client',
+    description:
+      'Optional. If you already play through another client, this app can read its highlights, macros and aliases.',
     status: 'checking',
   },
   {

@@ -37,7 +37,11 @@ export type AccountTier = 'f2p' | 'basic' | 'premium' | 'platinum' | 'fallen' | 
 export type UiMode = 'basic' | 'power'
 
 export type SetupComponentId =
-  | 'genie'
+  // Was `'genie'`. The step is still here and still detects an installed
+  // client, because the config importer reads that client's highlights,
+  // macros and aliases - but it is no longer the app's way into the game, so
+  // it is named for what it is now rather than for one product.
+  | 'config-import'
   | 'ruby'
   | 'lich'
   | 'bridge'
@@ -70,7 +74,7 @@ export interface Vitals {
    *
    * The bridge has been sending this since the beginning and the client had
    * no field for it, so every update arrived with mana and threw it away.
-   * Genie puts it on the status bar beside health.
+   * Other clients put it on the status bar beside health.
    */
   mana?: number
   manaMax?: number
@@ -281,7 +285,7 @@ export interface CharacterStatus {
    * What is in each hand.
    *
    * In a fight this is the question: whether you are holding your weapon, a
-   * lockpick, or nothing at all. Genie keeps it on the status bar permanently.
+   * lockpick, or nothing at all. Some clients keep it on the status bar.
    * The bridge already reads both hands and was only counting them.
    */
   hands?: { left: string | null; right: string | null }
@@ -642,9 +646,10 @@ export interface AppState {
   huntMode: 'suggest' | 'favorites_only' | 'manual'
   preferredHealCity: string | null
   /**
-   * Which frontend the player uses. Genie starts Lich scripts with a comma;
-   * everything else uses a semicolon, so this changes what we tell them to
-   * type. See lib/frontends.ts.
+   * Which frontend the player uses, for anybody still running one alongside
+   * this app. It decides the prefix we tell them to type before a Lich script.
+   * See lib/frontends.ts, whose header says why every remaining entry agrees.
+   * Signing in through this app needs no frontend at all.
    */
   frontend: string
   /** Settings per character, keyed by instance and name. */

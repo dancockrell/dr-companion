@@ -532,7 +532,7 @@ does not delete 146 files, and saying so up front is the point of this section.
 - the `genie` branch in `src/lib/frontends.ts` and its case in
   `tools/frontend-test.mjs`, and the `'genie'` member of the frontend union at
   `src/types/index.ts:40` plus `src/store/useAppStore.ts:37-38`;
-- `genie_status` (`lich.rs:412-425`) and its registration (`lib.rs:153`);
+- `genie_status` (`lich.rs:412-425`) and its registration (`lib.rs:153`) — done as a rename to `frontend_conflict_status`, not a deletion: two clients cannot both hold the detachable port, and that hazard outlives the client that named it;
 - the Genie mentions in `lich-scripts/companion_bridge.lic`'s comments and in
   the connection docs `docs/BRIDGE_CONTRACT.md:8-10, :117-121` — the first of
   which ("It must not parse the game stream itself") is already false today.
@@ -542,17 +542,24 @@ does not delete 146 files, and saying so up front is the point of this section.
 - **`genie_pos` / `genie_id` / `genie_zone` in `src/bridge/types.ts:185-218`.**
   These are Lich map-node fields (`lib/common/map/map_dr.rb`) that happen to
   carry Genie's name. Deleting them deletes map coordinates.
-- **The whole Genie config-editor subsystem** — `src/lib/genieConfigEdit.ts`,
-  `genieConfigWrite.ts`, `useGenieConfigEditor.ts`, the highlights / aliases /
-  macros / variables / presets / substitutes / gags / keybindings modules and
-  their editors, `src-tauri/src/config_import.rs`, and the Genie install
-  detection in `src-tauri/src/setup.rs` and `sounds.rs`. This is a large shipped
-  feature that reads a player's existing Genie files, and whether it survives
-  "we aren't using genie anymore" is a **product** decision, not a connection
-  one. It is filed as a decision for Dan in §10 of the plan. Lane N does not
-  touch it, does not fork around it, and does not silently leave it half-wired:
-  N6 states in one sentence in the UI that the config importer reads Genie's
-  files and is unrelated to signing in.
+- ~~**The whole Genie config-editor subsystem.**~~ **Struck 6 September 2026.**
+  This entry said the editor's fate was a product decision rather than a
+  connection one, filed for Dan in §10 of the plan, and that N6 would state in
+  the UI that the importer is unrelated to signing in. Dan made the decision -
+  "we aren't using genie anymore … you have to implement correctly using lich" -
+  and N6 carried it out: `src/components/config/` (the sheet and seven
+  editors), `src/lib/useGenieConfigEditor.ts`, `genieConfigEdit.ts`, the macros
+  / presets / substitutes / gags / variables modules and hooks,
+  `config_import.rs`'s `restore_genie_config`, `sounds.rs`'s `list_sounds` and
+  six `test:` scripts are gone. The reasoning above was not wrong about the
+  kind of question it was; it was answered.
+  What is **still** out of scope, and is the read-only half: `read_genie_config`
+  and the Genie install detection in `setup.rs`/`sounds.rs`, which is what lets
+  a player bring their highlights and aliases across, plus `highlights.ts` /
+  `aliases.ts` and their hooks, which the game pane reads and the editor never
+  owned. `write_genie_config` survives for one caller, `pinsFile.ts`'s pin
+  export; `tools/doc-claims-test.mjs` asserts it has exactly that one, and
+  whether the pin file should live there at all is filed as plan question N-c.
 - **`genie-plugin/`** — the C# NDJSON plugin on port 7416. Same decision, same
   place.
 

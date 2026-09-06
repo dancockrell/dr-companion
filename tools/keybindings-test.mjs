@@ -196,7 +196,12 @@ console.log('\n-- Every modal uses the shared accessible focus contract --')
   const modalHook = readFileSync(new URL('../src/lib/useModalDialog.ts', import.meta.url), 'utf8')
   for (const contract of ['role="dialog"', 'aria-modal="true"', 'aria-labelledby']) {
     const files = [
-      'layout/SettingsSheet.tsx', 'layout/ReportDialog.tsx', 'config/ConfigManagerSheet.tsx',
+      // `config/ConfigManagerSheet.tsx` was here until N6 deleted it with the
+      // rest of the Genie config editor. Removed rather than left to throw:
+      // `readFileSync` on a missing path aborts the whole suite, so a stale
+      // entry here reads as the suite being broken rather than as a file
+      // being gone.
+      'layout/SettingsSheet.tsx', 'layout/ReportDialog.tsx',
       'dashboard/ScriptIconPicker.tsx', 'shared/PinEditor.tsx', 'shared/PlayerMarkerEditor.tsx',
     ]
     for (const file of files) {
@@ -216,7 +221,7 @@ console.log('\n-- Every modal uses the shared accessible focus contract --')
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or
 // half-loaded run, not a regression test on the number of cases.
-const MIN_EXPECTED = 74
+const MIN_EXPECTED = 68
 if (checked < MIN_EXPECTED) {
   console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

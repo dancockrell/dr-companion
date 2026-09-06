@@ -870,6 +870,18 @@ the licence permissive.
 
 ## 22. Connecting Genie to Lich, and why people lose days to it
 
+> **History, as of 6 September 2026. The app no longer takes this route and no
+> longer shows this procedure.** It signs in to DragonRealms itself and starts
+> Lich with the result — `docs/LICH_NATIVE_LOGIN.md`. This section is kept
+> because it is a record of what the community said and why the app was shaped
+> the way it was, and because the *problem* it describes is the one the native
+> login exists to remove. Read every "the app now …" below as "the app used
+> to". Nothing here is instructions for anybody.
+>
+> This document is research notes and is deliberately outside the population
+> `tools/doc-claims-test.mjs` guards, which is what a player reads: `src/`, the
+> shipped documents, and `docs/BRIDGE_CONTRACT.md`.
+
 More community traffic, from the Lich help channel. The single clearest
 finding: installing both pieces is not the hard part. Making them talk is.
 
@@ -1009,8 +1021,14 @@ is wrong, and it fails **silently**: Genie passes it to the game as a command,
 the game says it does not understand, and the bridge never starts. The most
 common frontend, the first instruction, no error worth reading.
 
-That is now in `lib/frontends.ts` with the prefix per frontend, and nothing
-in the app hardcodes a punctuation mark any more.
+That went into `lib/frontends.ts` as a prefix per frontend. **Superseded
+6 September 2026 (N6):** the app starts Lich headless with no frontend at all,
+so its command character is a semicolon (`main.rb:58`) and the comma row is
+gone from that file. The claim "nothing in the app hardcodes a punctuation
+mark" was also false when it was written — three panels still spelled a comma
+by hand, and N6 is what made the sentence true. `prefixFor(null)` is the answer
+for this app's own route, and `bridgeCommand` is still the one place it is
+computed.
 
 ### Which way round the connection goes
 

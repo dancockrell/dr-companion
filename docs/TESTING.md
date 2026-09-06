@@ -18,12 +18,15 @@ a tester who knows where to push finds things faster than one who wanders.
 
 ## Setting up
 
-1. Get Lich running with your usual frontend.
+1. Get Lich running. Sign in on the app's first screen and it starts Lich for
+   you — that is the route to test, and it needs no other program open. If you
+   would rather keep your own frontend, start Lich your usual way instead.
 2. Copy `lich-scripts/companion_bridge.lic` into Lich's `scripts` folder. The
    app will do this for you from the setup screen if it can find Lich.
-3. In game: `;companion_bridge` — or `,companion_bridge` if you use Genie.
-   Genie starts Lich scripts with a comma; every other frontend uses a
-   semicolon. The app shows the right one for the frontend you pick.
+3. In game: `;companion_bridge`. The app starts Lich headless, so Lich's
+   command character is a semicolon (`main.rb:58`), and the app prints the
+   command rather than making you remember it. A frontend of your own may use
+   a different one — check its own documentation.
 4. In the app: Settings → Bridge → **Live Lich**
 5. Open the **Console** at the bottom and turn **trace** on.
 

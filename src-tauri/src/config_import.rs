@@ -21,8 +21,11 @@
 //!   written through this module, whatever was on disk before that write is
 //!   copied to `<leaf>.bak` - and only if `.bak` does not already exist, so
 //!   it always holds the file as it stood before this app touched it, never
-//!   a more recent "oops" that itself needs undoing. `restore_genie_config`
-//!   is the other half.
+//!   a more recent "oops" that itself needs undoing. The `.bak` is the whole
+//!   of the undo now: N6 deleted the config editor and with it
+//!   `restore_genie_config`, so nothing in the app restores it for you - the
+//!   file is there to be copied back by hand, which is the honest thing to
+//!   say about a backup nobody has a button for.
 //! - **Atomic write.** Same temp-file-then-rename shape as
 //!   `scripts.rs::write_script` - an interrupted save cannot leave a
 //!   half-written config where a whole one was.
@@ -203,19 +206,6 @@ fn matches_on_disk(path: &Path, expected: &str) -> bool {
     std::fs::read_to_string(path).unwrap_or_default() == expected
 }
 
-/// Restore `path` from its `.bak`, atomically. Same reasoning as
-/// `save_atomically` for being pure and separately testable.
-fn restore_atomically(path: &Path) -> std::io::Result<()> {
-    let backup = sibling(path, ".bak");
-    let tmp = sibling(path, ".tmp-restore");
-    std::fs::copy(&backup, &tmp)?;
-    if let Err(e) = std::fs::rename(&tmp, path) {
-        let _ = std::fs::remove_file(&tmp);
-        return Err(e);
-    }
-    Ok(())
-}
-
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct WriteResult {
@@ -243,15 +233,18 @@ pub struct WriteResult {
 /// it afterward - the read-modify-write race every one of this project's
 /// shared-checkout git incidents turned out to be, here in miniature, and
 /// with a real player's config on the losing end instead of a commit. So this
-/// refuses instead, the same way `restore_genie_config` refuses rather than
-/// silently no-op-ing when there is nothing to restore: a caller that only
-/// checks for an error being absent needs the failure to actually surface as
-/// one.
+/// refuses instead: a caller that only checks for an error being absent needs
+/// the failure to actually surface as one.
 ///
-/// Every caller in this app passes it - see `genieConfigWrite.ts` - so this
-/// is only `Option` for the sake of not being a breaking change to the
-/// command's shape; there is no legitimate reason for a real caller to omit
-/// it.
+/// **No caller passes it as of N6**, and that is a downgrade worth stating
+/// rather than leaving to be discovered. The config editor did pass it on
+/// every save and the editor is gone; the one remaining caller is
+/// `pinsFile.ts`'s export, which dumps the whole pin store rather than
+/// patching text it previously read, so it has no "previous" to offer and a
+/// hand-edit to that YAML is silently overwritten. The parameter stays
+/// because the guarantee is the file's, not the editor's: the next caller
+/// that reads-then-writes must pass it, and deleting it would make that a
+/// change to this command's shape rather than one argument.
 #[tauri::command]
 pub fn write_genie_config(
     leaf: String,
@@ -288,32 +281,6 @@ pub fn write_genie_config(
     })
 }
 
-/// Undo every change this app has made to a leaf, by restoring its `.bak`.
-///
-/// Refuses when there is no backup rather than silently doing nothing - a
-/// player pressing "restore original" needs to know whether it happened, and
-/// "nothing to restore" and "restored" read identically to a caller that only
-/// checks for an error being absent.
-#[tauri::command]
-pub fn restore_genie_config(leaf: String) -> Result<WriteResult, String> {
-    if !crate::sounds::valid_plain_filename(&leaf, 64) {
-        return Err(format!("{leaf:?} is not a config file name"));
-    }
-
-    let path = writable_target(&leaf)?;
-    if !sibling(&path, ".bak").is_file() {
-        return Err(format!(
-            "No backup of {leaf} exists - nothing has been saved through this editor yet."
-        ));
-    }
-    restore_atomically(&path).map_err(|e| format!("Could not restore {leaf}: {e}"))?;
-
-    Ok(WriteResult {
-        path: path.to_string_lossy().into_owned(),
-        backed_up: true,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,7 +289,7 @@ mod tests {
     /// anywhere near a real Genie install. `writable_target`/`candidates`
     /// (the part of this module that resolves *where* Genie lives) are
     /// deliberately not exercised by these tests at all; `save_atomically`
-    /// and `restore_atomically` take a path directly; that's what's tested.
+    /// takes a path directly; that's what's tested.
     fn temp_path(unique: &str) -> PathBuf {
         std::env::temp_dir().join(format!(
             "drc-config-write-test-{unique}-{}",
@@ -522,29 +489,6 @@ mod tests {
             !sibling(&path, ".tmp-save").exists(),
             "the atomic rename should leave no .tmp-save behind"
         );
-        cleanup(&path);
-    }
-
-    #[test]
-    fn restore_puts_the_backup_content_back_and_leaves_no_leftover_temp_file() {
-        let path = temp_path("restore-roundtrip");
-        cleanup(&path);
-        std::fs::write(&path, b"original").unwrap();
-        save_atomically(&path, b"edited").unwrap();
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "edited");
-
-        restore_atomically(&path).unwrap();
-
-        assert_eq!(
-            std::fs::read_to_string(&path).unwrap(),
-            "original",
-            "restore must put the pre-edit content back"
-        );
-        assert!(!sibling(&path, ".tmp-restore").exists());
-        // The backup itself survives a restore - restoring twice, or editing
-        // again after restoring, must still have something to roll back to.
-        assert!(sibling(&path, ".bak").is_file());
-
         cleanup(&path);
     }
 

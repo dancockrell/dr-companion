@@ -275,8 +275,8 @@ Then `gh pr checks <n>`; merge when green with `gh pr merge <n> --squash
 | `package.json`, `tools/test-suites.json` | everyone adding a test | Append beside related entries; rebase on conflict; both must still parse. |
 | `src/lib/portraits.ts`, `playerArt.ts`, `creatureArt.ts`, `Portrait.tsx`, `RoomBackdrop.tsx`, `RoomScene.tsx` | `rewrite/remove-2d` | **Nobody touches these** until C7 is decided. |
 | `docs/PLAN_TO_1_0.md` | everyone | Marker lines only, per 0.2. Structural edits to this file are their own PR titled `docs(plan): ...`. |
-| `src-tauri/src/lich.rs` | N3, N6 | N3 replaces `launch_args`; N6 removes `genie_status` and the note field. N3 first. Nobody outside Lane N edits it while either is `[~]`. |
-| `src/components/shared/LichLauncher.tsx`, `WaitingForCharacter.tsx` | N5, N6, D2–D6 | N5 rewrites both, N6 sweeps what is left. Lane D waits for N6 `[x]` — its own increments only move these components, N's rewrites them. |
+| `src-tauri/src/lich.rs` | N3 | N3 replaces `launch_args`. N6 is `[x]` (it renamed `genie_status` to `frontend_conflict_status` and rewrote the note). Nobody outside Lane N edits it while N3 is `[~]`. |
+| `src/components/shared/LichLauncher.tsx`, `WaitingForCharacter.tsx` | D2–D6 | N5 rewrote both and N6 swept what was left; both are `[x]`, so Lane D's hold on these is released. |
 | `tools/build-privacy-doc.mjs`, `docs/PRIVACY.md` | N2 | N2 alone. The generated doc is never hand-edited; change the generator. |
 
 **Recommended concurrency, three sessions:** S1 = C0, C1, C2, C3 → A1…A8 → G.
@@ -298,7 +298,6 @@ PRs per lane, squash-merged.
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
-| N | N5, N6 | `lane-n/n5-sign-in` | `dev/wt-n5` | 2026-09-06 |
 | S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
 
 N1 and N2 have merged (#441, #438). N7 is unheld and needs Dan rather than a
@@ -1846,15 +1845,75 @@ the code increments. N8 was optional and human-gated and blocked nothing; the ga
   not distinguish "no box" from "a form that stores a password without
   asking".
 
-- [ ] **N6  Delete Genie from the connection path, everywhere** (≈90)
+- [x] **N6  Delete Genie from the connection path, everywhere** (≈90)
+  done: 2026-09-06 — `dev/wt-n5`, branch `lane-n/n6-genie-sweep`, off `origin/main` at `d0884bba`.
+  The connection path is gone as written: `genie_status` is now
+  `frontend_conflict_status` (the hazard is two clients fighting for the
+  detachable port, which outlives the client that named it, so it was renamed
+  rather than deleted); the `genie` row and its `,` prefix are out of
+  `frontends.ts` and `frontend-test.mjs`, with `DEFAULT_FRONTEND` moved to
+  `wrayth`; the `'genie'` setup-component id became `'config-import'`; the four
+  retyped copies of `11024` are down to one, read from `INSTANCES`; and three
+  panels that hardcoded `,companion_bridge` now call `bridgeCommand(null)`,
+  which is the one place the prefix is computed.
+  **Scope changed, on Dan's instruction, and this is the part that differs from
+  the `do:` line below.** "We aren't using genie anymore … you have to implement
+  correctly using lich" retired the config editor too, so N-a is decided and
+  this increment carried it: `src/components/config/` (the sheet and seven
+  editors), `useGenieConfigEditor.ts`, `genieConfigEdit.ts`, and the
+  macros / presets / substitutes / gags / variables modules and hooks are
+  deleted, with `restore_genie_config` and `list_sounds` deregistered and
+  removed on the Rust side and six `test:` scripts retired with the code they
+  tested. Highlight rendering and alias expansion survive — they have runtime
+  consumers that are not the editor — as does the read-only importer.
+  `saveGenieConfig` survives for exactly one caller, `pinsFile.ts`, and the
+  guard below is what keeps that from becoming two.
+  **The `verify:` line's `git grep -ic genie … → 0` was not achievable and was
+  the wrong property.** 708 hits remain across 89 files and nearly all are
+  comparisons a player benefits from ("the depth Genie never had"), Lich's own
+  `genie_pos` map field, or Lich's `--genie` flag being described. Naming the
+  program is not instructing anybody to use it. The property that matters is
+  the one section L of `tools/doc-claims-test.mjs` now asserts, over `src/`
+  plus the shipped documents: no string a player can read carries
+  `#lichconnect`, `licharguments`, `#config lichpath`, `--genie` or
+  `,companion_bridge`. It has a fixture control that must produce one hit per
+  needle on distinct lines, and three sabotage cases in
+  `tools/doc-claims-break-check.mjs` — a document, a component, and the fixture
+  itself — all of which redden exactly the checks they name and restore byte
+  for byte. Building it found a real defect in the guard's own reporting: a
+  check name of 58 characters or more padded to nothing, welded its detail
+  column onto its name, and made a landed sabotage read as a broken guard.
+  Fixed in `ok()` so the separator is unconditional.
+  Evidence, re-runnable: `node tools/doc-claims-test.mjs` 46 checked 0 failed;
+  `node tools/doc-claims-break-check.mjs` 16 sabotages across 9 files, 0
+  misfired; `node tools/frontend-test.mjs` 10 checked 0 failed;
+  `node tools/tauri-command-callers-test.mjs` all passed.
   touches: src-tauri/src/lich.rs, src-tauri/src/lib.rs, src/lib/frontends.ts, tools/frontend-test.mjs, src/types/index.ts, src/store/useAppStore.ts, docs/BRIDGE_CONTRACT.md, lich-scripts/companion_bridge.lic, src/components/game/GameConnectionBar.tsx, src/components/dashboard/Dashboard.tsx, src/data/instances.ts
-  depends-on: N4, N5
+  depends-on: N5
+  (was `N4, N5`. N4 owed this increment a measurement — which of two
+  frontend identities decides `Frontend.supports_streams?` — and the
+  answer changes what the channel tabs can show, not whether the `genie`
+  row belongs in `frontends.ts`. That row is gone because the route is
+  gone, and it would be gone whichever way N4 lands. Carrying a
+  dependency the work did not actually have would have blocked the sweep
+  on an unrelated measurement; N4 is still open and still owns that
+  question.)
   do: remove `genie_status` (`lich.rs:412-425`) and its registration (`lib.rs:153`); the Genie sentence in the `LichStatus` note (`lich.rs:490-497`); the `genie` branch of `frontends.ts` and its case in `frontend-test.mjs`; `'genie'` from the frontend union (`types/index.ts:40`) and from `useAppStore.ts:37-38`; the Genie comments in `companion_bridge.lic`; and the two topology claims in `BRIDGE_CONTRACT.md:8-10, :117-121`, the first of which ("It must not parse the game stream itself") has been false since `gameStream.ts` shipped. Also retire the four extra places the frontend retypes `11024` (`GameConnectionBar.tsx:34`, `Dashboard.tsx:150`, `instances.ts:41`, and whatever survives in `WaitingForCharacter.tsx`) in favour of the port `lich_login_launch` returns — `lich.rs:107` already claims to be "one number in one place" and is not.
-  **Out of scope, deliberately, and each for a reason stated in `LICH_NATIVE_LOGIN.md` §6:** `genie_pos`/`genie_id`/`genie_zone` in `src/bridge/types.ts` are Lich map fields that carry Genie's name and deleting them deletes map coordinates; the whole Genie config-editor subsystem (`genieConfigEdit.ts`, `config_import.rs`, the highlights/aliases/macros/variables/presets/substitutes/gags/keybindings modules and editors, the Genie detection in `setup.rs` and `sounds.rs`) and `genie-plugin/` are a shipped feature whose retirement is a product decision, filed in §10. This increment adds one sentence in the config importer's UI saying it reads Genie's own files and has nothing to do with signing in — so a player is not left wondering why Genie is half-present.
-  verify: `git grep -ic genie -- src/components src-tauri/src/lich.rs src/lib/frontends.ts src/types/index.ts src/store/useAppStore.ts` → `0`; `node tools/tauri-command-callers-test.mjs` green; `node tools/frontend-test.mjs` green with a lower check count and the new count stated in the claim; `npm run test:bridge`-family suites green; full suite `all passed`.
-  sabotage: none — this is a deletion. Its guard is the `git grep -ic genie` in Gate 1's check, which fails the moment any of it comes back.
+  **Out of scope, and still out:** `genie_pos`/`genie_id`/`genie_zone` in
+  `src/bridge/types.ts` are Lich map fields that carry Genie's name, and
+  deleting them deletes map coordinates. The read-only config importer
+  (`config_import.rs`'s `read_genie_config`, the Genie detection in `setup.rs`
+  and `sounds.rs`) stays: a player moving across still wants their highlights
+  and aliases to come with them, and it never writes. `genie-plugin/` is
+  untouched. The pin export writes `dr-companion-pins.yaml` into that same
+  `Config` folder (Dan's ask, 30 Aug 2026) and keeps doing so; moving it to the
+  app's own data directory is a separate question, filed as N-c.
+  ~~The editor subsystem was listed here as out of scope.~~ It is not: see the
+  `done:` block above.
+  verify: `node tools/doc-claims-test.mjs` green including section L (the grep-to-zero this line used to demand is refuted in the `done:` block); `node tools/tauri-command-callers-test.mjs` green; `node tools/frontend-test.mjs` green with a lower check count and the new count stated in the claim; `npm run test:bridge`-family suites green; full suite `all passed`.
+  sabotage: `node tools/doc-claims-break-check.mjs` — three cases for section L (a document, a component, the fixture) plus one proving a second caller of `saveGenieConfig` is caught. Each must redden exactly the checks it names and restore byte for byte.
   pitfalls: 10 (stage by path; this touches eleven files and `git add -A` would sweep another lane), 17 (do not leave a "legacy Genie sign-in" anywhere), 20.
-  done-when: the grep is zero and nothing in the app mentions Genie except the config importer, which says what it is.
+  done-when: no shipped string instructs the retired route, the guard proving it has a control and a sabotage, and the config editor is deleted rather than relabelled.
 
 - [!] **N7  Live sign-in with Dan's real account** (≈30 of his time)
   blocked-on: a human. This increment cannot be done by any session: it needs Dan's real Play.net account and password typed into the running app, and no fixture on this machine can substitute for the one thing being proved — that the protocol in §2 of `docs/LICH_NATIVE_LOGIN.md` is right against the real server. No session may ask for the credential, hold it, or type it.
@@ -2080,20 +2139,47 @@ the decision; a later session may reopen one by writing why here.
   (2D art out, `removed2d.tsx` throwing sites as the to-do list); keep
   `src/domain/*` + `docs/ADAPTERS.md` as a separate proposal PR reviewed on
   its own. *Decided:* **as recommended**, 5 Sep 2026; the rebase is the branch owner's work, C7 only records the question.
-- **N-a — does the Genie config editor survive?** Genie is gone from the
-  connection path (Lane N). It is *not* gone from the app: `genieConfigEdit.ts`,
-  `genieConfigWrite.ts`, `useGenieConfigEditor.ts`, the highlights / aliases /
-  macros / variables / presets / substitutes / gags / keybindings modules and
-  their editors, `src-tauri/src/config_import.rs`, the Genie install detection in
-  `setup.rs` and `sounds.rs`, and the C# `genie-plugin/` are a shipped feature
-  that reads a player's *existing* Genie files. Whether "we aren't using genie
-  anymore" retires that too is a product call, not a connection one, so Lane N
-  deliberately leaves it alone rather than half-deleting it. Recommend: **keep
-  it, relabelled as an importer** — a player moving off Genie wants their
-  twenty highlights and forty macros to come with them, and the code already
-  works; retire it once nothing has read a Genie file for a release or two.
-  *Undecided as of 6 Sep 2026.* If the answer is "delete it", that is its own
-  lane and its own PR, not an appendix to N6.
+- **N-a — does the Genie config editor survive?** *Decided:* **no**, 6 Sep
+  2026, by Dan: "we aren't using genie anymore … you have to implement
+  correctly using lich." Carried out inside N6 rather than as its own lane,
+  because leaving a sheet that edits another program's files beside a sign-in
+  that no longer uses that program is the half-present state this question
+  existed to avoid. Deleted: `src/components/config/` (the sheet and the
+  highlights / aliases / macros / presets / substitutes / gags / variables
+  editors), `useGenieConfigEditor.ts`, `genieConfigEdit.ts`, the macros,
+  presets, substitutes, gags and variables modules and their hooks,
+  `restore_genie_config` and `list_sounds` on the Rust side, and six `test:`
+  scripts. Kept, and each for a reason that is not sentiment: **highlight
+  rendering** (`highlights.ts` + `useHighlights`, read by `GameLineRow`,
+  `HighlightedText` and `GameSignals`) and **alias expansion** (`aliases.ts` +
+  `useAliases`, read by `GameCommandBar`) have runtime consumers that were
+  never the editor; the **read-only importer** is what makes the move off
+  Genie survivable and it does not write. Everything else in that subsystem
+  had exactly one consumer and it was the sheet, so keeping it would have been
+  a noodle to nowhere.
+  The earlier recommendation on this line was "keep it, relabelled as an
+  importer", and the previous attempt at N6 did relabel it and wrote a defence
+  of the relabelling into the component. That is recorded rather than removed:
+  it was a reasonable call on the evidence then available, and it was
+  overruled by the person whose product it is.
+  What this loses, stated plainly rather than left to be discovered: there is
+  no in-app editing of macros, presets, substitutes, gags or variables at all
+  any more, and no in-app editing of highlights or aliases. Re-implementing
+  any of it **against Lich** — Lich has its own settings store and its own
+  script surface — is a new increment nobody has written, not a regression to
+  be quietly restored by re-adding the deleted files.
+- **N-c — should the pin file live in a Genie folder?** `pinsFile.ts` writes
+  `dr-companion-pins.yaml` into a Genie install's `Config` directory, which was
+  the right call when a player certainly had one (Dan, 30 Aug 2026: pins
+  "with the rest of their configurations"). After N6 a player may have no Genie
+  install at all, in which case `write_genie_config` refuses and the export
+  silently has nowhere to go. `saveGenieConfig` is now the app's only write
+  into a Genie install, and `tools/doc-claims-test.mjs` asserts it has exactly
+  one caller so a second cannot appear unnoticed. Recommend: **move it to the
+  app's own data directory and offer the Genie folder as a second location for
+  anyone who wants the shared-config behaviour.** *Undecided as of 6 Sep 2026.*
+  Not folded into N6: N6 deleted a route, and moving a player's saved file is a
+  migration with its own failure modes.
 - **N-b — may the app store the player's password?** Lane N ships with the
   password **not stored** and typed each session, which needs no dependency and
   no decision. N8 would add an opt-in "remember me" using Windows Credential

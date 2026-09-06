@@ -6,6 +6,7 @@
 import type { UiMode } from '../types'
 import { readJSON, writeJSON } from './storage.ts'
 import { DEFAULT_AUDIO_VOLUMES } from './audioDefaults.ts'
+import { DEFAULT_FRONTEND } from './frontends.ts'
 
 /**
  * The localStorage key these preferences live under.
@@ -225,7 +226,7 @@ const defaults: PersistedPrefs = {
   preferredHealCity: null,
   consoleOpen: false,
   typeScale: 1,
-  frontend: 'genie',
+  frontend: DEFAULT_FRONTEND,
   demoPreset: 'basic_prime',
   houseEntryMethod: 'lockpick_ring',
   houseEntryMaxSearches: 3,

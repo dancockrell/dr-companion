@@ -35,7 +35,8 @@ function Line({ text }: { text: string }) {
        *
        * A flex item defaults to `min-width: auto`, which means it will not
        * shrink below its own content. These lines are `whitespace-nowrap`
-       * Windows paths - `#config lichpath C:\Ruby4Lich5\Lich5\lich.rbw` - so
+       * commands carrying a Windows path - the launch line this page still
+       * renders, `ruby C:\Ruby4Lich5\Lich5\lich.rbw --dragonrealms` - so
        * their content width is fixed and large, the `overflow-x-auto` beside
        * it never got a chance to engage, and the floor propagated all the way
        * out to the column.

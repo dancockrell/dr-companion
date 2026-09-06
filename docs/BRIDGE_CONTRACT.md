@@ -1,12 +1,19 @@
 # DR Companion — Lich Bridge Contract
 
-**Version:** 0.1  
+**Version:** 0.1
 **Status:** Design + mock implemented; live Ruby side not yet shipped
 
 ## Why a bridge exists
 
-Genie is the primary game window. Lich is the automation engine (TCP proxy + Ruby scripts).  
-The Companion is a separate desktop UI. It must not parse the game stream itself.
+This app is the game window. Lich is the automation engine (TCP proxy + Ruby
+scripts), started by this app after it performs the account login itself - see
+`docs/LICH_NATIVE_LOGIN.md`. There is no third program in the path.
+
+**The Companion does parse the game stream**, and has since `src/lib/gameStream.ts`
+shipped: it attaches to Lich's detachable-client port and reads the
+Lich-processed XML directly. The line that stood here said the opposite and had
+been false for months. What the bridge is for is the part Lich knows and the
+stream does not: map nodes, script control, and intents.
 
 A small **Lich script** exposes a **localhost-only** WebSocket so the Companion can:
 
@@ -237,13 +244,17 @@ Never implement “closest healer by room distance only” as the final decision
 
 ## Launch context (research notes)
 
-- Lich 5 acts as a proxy between Genie and the game server.
-- Typical Genie launch pattern:  
-  `ruby lich.rbw --dragonrealms --genie`  
-  (or packaged Ruby4Lich5 equivalents)
-- Genie is identified as a frontend with XML + Mono capabilities.
+- Lich 5 acts as a proxy between a frontend and the game server.
+- This app's launch pattern is a `.sal` launch file plus a detachable port:
+  `ruby lich.rbw <launch file> --headless=11024 --start-scripts=companion_bridge`
+  which `arg_normalization.rb:52-53` expands to
+  `--without-frontend --detachable-client=11024`. No frontend flag is passed and
+  none is wanted; `src-tauri/src/lich.rs`'s `launch_args` has a test asserting
+  the absence.
 - There is **no** built-in public WebSocket API for external UIs; the Companion bridge script provides that surface.
-- Recent Lich 5.20.x adds multi-client detach support and Genie identification for headless launches — useful later for robust attach.
+- Lich 5.20.x's multi-client detach support is what this app attaches through,
+  and it is no longer "useful later": `src-tauri/src/game_link.rs` dials that
+  port today.
 
 ## Security
 
