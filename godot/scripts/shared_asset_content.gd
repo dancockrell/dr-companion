@@ -24,6 +24,10 @@ const BRIDGE_WOOD := SHARED_ROOT + "/source/cc0/kenney/nature-kit-2.1/bridge_woo
 
 var _shared_available := false
 var _warned_missing_shared_assets := false
+var _native_source: Node3D
+var _native_records: Dictionary = {}
+var _room_compositions: Dictionary = {}
+var _native_attempted := false
 
 func _enter_tree() -> void:
 	# Register while autoloads enter the tree.  Headless acceptance scripts run
@@ -32,6 +36,7 @@ func _enter_tree() -> void:
 	ensure_registration()
 
 func ensure_registration() -> void:
+	ContentRegistry.register_room(build_room_composition)
 	ContentRegistry.register("terrain-cell-5m", _build_terrain)
 	ContentRegistry.register("interior-floor-5m", _build_interior_floor)
 	ContentRegistry.register("water-ribbon-5m", _build_water)
@@ -40,6 +45,67 @@ func ensure_registration() -> void:
 
 func _ready() -> void:
 	_shared_available = ResourceLoader.exists(ROCK_SMALL_A) and ResourceLoader.exists(BRIDGE_WOOD)
+
+func _exit_tree() -> void:
+	if is_instance_valid(_native_source):
+		_native_source.free()
+
+func _load_native_catalog() -> void:
+	if _native_attempted:
+		return
+	_native_attempted = true
+	var selections: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/shared_asset_selections.json"))
+	for recipe in selections.get("roomCompositions", []):
+		_room_compositions[recipe.cellId] = recipe
+	var spec: Dictionary = selections.get("nativeCatalog", {})
+	var path: String = spec.get("runtimePath", "")
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return
+	var provenance: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(spec.provenancePath))
+	_native_source = (load(path) as PackedScene).instantiate()
+	for record in provenance.assets:
+		_native_records[record.assetId] = record
+
+## Match both identity and the source-description hash. A renamed/re-described
+## room must not silently inherit old art. Positions/links remain untouched.
+func build_room_composition(cell: Dictionary) -> Node3D:
+	_load_native_catalog()
+	var recipe: Dictionary = _room_compositions.get(cell.get("id", ""), {})
+	if recipe.is_empty() or _native_source == null:
+		return null
+	if cell.get("sourceDescriptionHash", "") != recipe.descriptionHash:
+		return null
+	var size := ContentRegistryScript.block_size_metres(cell)
+	var ground_top := ContentRegistryScript.block_top_y(cell)
+	var holder := Node3D.new()
+	holder.name = "AuthoredTownGreen"
+	holder.set_meta("review_status", recipe.status)
+	holder.set_meta("missing_content", recipe.missing)
+	holder.set_meta("description_hash", recipe.descriptionHash)
+	for placement in recipe.pieces:
+		var record: Dictionary = _native_records.get(placement.assetId, {})
+		if record.is_empty():
+			holder.free()
+			return null
+		var model: Node3D = _native_source.get_node(record.nativeNode).duplicate()
+		var dimensions: Array = record.bounds.size
+		var yaw := deg_to_rad(float(placement.yawDegrees))
+		var rotated_width: float = absf(cos(yaw)) * dimensions[0] + absf(sin(yaw)) * dimensions[2]
+		var rotated_depth: float = absf(sin(yaw)) * dimensions[0] + absf(cos(yaw)) * dimensions[2]
+		var factor := minf(size.x * placement.envelope[0] / rotated_width, size.z * placement.envelope[1] / rotated_depth)
+		model.scale = Vector3.ONE * factor
+		model.rotation.y = yaw
+		model.position = Vector3(placement.center[0] * size.x, ground_top + placement.lift, placement.center[1] * size.z)
+		if placement.assetId.ends_with(".grass-verge"):
+			# This ground kit is rectangular. Fill the published footprint exactly;
+			# keep its top at the height already used by tokens and exit anchors.
+			model.scale.x = size.x / dimensions[0]
+			model.scale.z = size.z / dimensions[2]
+			model.position.y = ground_top - dimensions[1] * factor
+		model.visible = true
+		model.set_meta("asset_id", placement.assetId)
+		holder.add_child(model)
+	return holder
 
 func shared_asset_status() -> Dictionary:
 	# Validate the exact reviewed glTF files, rather than trusting the editor's

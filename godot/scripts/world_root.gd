@@ -166,8 +166,7 @@ func _mount_cell_detail(cell_id: String) -> void:
 	var content: Node3D = holder.get_node_or_null("DetailContent")
 	if content == null:
 		return
-	for primitive in cell.get("primitives", []):
-		content.add_child(ContentRegistry.build(cell, primitive))
+	content.add_child(ContentRegistry.build_cell(cell))
 	_active_detail_cells[cell_id] = true
 
 func _unmount_cell_detail(cell_id: String) -> void:

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "task_id": "crossing-native-content",
+  "agent": "codex",
+  "summary": "Build description-bound Town Green compositions inside the existing viewer using the shared native catalog",
+  "status": "active",
+  "claimed_at": "2026-09-06T03:00:00Z",
+  "updated_at": "2026-09-06T03:00:00Z",
+  "paths": ["godot/assets/crossing/", "godot/assets/shared_asset_selections.json", "godot/scripts/content_registry.gd", "godot/scripts/shared_asset_content.gd", "godot/scripts/world_root.gd", "godot/tests/crossing_content_test.gd", "tools/package-crossing-content.gd", "tools/capture-crossing-content.gd", "docs/verification/crossing-native-content.md"],
+  "coordination": {"depends_on": [], "conflicts_with": [], "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."},
+  "completion": {"commit": null, "checks": []}
+}

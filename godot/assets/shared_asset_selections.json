@@ -8,7 +8,12 @@
     "pinnedRevisionPolicy": "The DR Companion commit records the submodule SHA. Upgrade it only through this selection review."
   },
   "admission": {
-    "visualLanguage": ["chunky geometric", "tabletop miniature", "matte", "readable at room and world zoom"],
+    "visualLanguage": [
+      "detailed tabletop miniature",
+      "weathered masonry and timber",
+      "layered foliage",
+      "fixed isometric; complete geometry"
+    ],
     "forbiddenSubstitutions": [
       "No generic mesh may stand in for a named DragonRealms guild, shrine, shop, landmark, or room.",
       "No mesh contributes routes, legal exits, collision authority, navigation authority, selection authority, or game-state facts."
@@ -40,6 +45,349 @@
       "reviewState": "foundation approved; scale and approach composition review pending",
       "appropriateness": "A simple reusable crossing cue. Whether a bridge is present, where it leads, and whether passage is legal always remain manifest facts.",
       "presentationOnly": true
+    }
+  ],
+  "nativeCatalog": {
+    "repository": "https://github.com/dancockrell/shared-game-environment-library",
+    "revision": "63ccd5d1b5d61364ab789ed8c0f19631ee5cd7cd",
+    "source": "docs/river-port-build/catalog/catalog-native.scn",
+    "runtimePath": "res://assets/crossing/town-green.scn",
+    "provenancePath": "res://assets/crossing/provenance.json",
+    "assetIds": [
+      "painted-river-port.grass-verge",
+      "painted-river-port.cobble-street",
+      "painted-river-port.hedge-run",
+      "painted-river-port.oak-tree",
+      "painted-river-port.vine-bower",
+      "painted-river-port.stone-bench",
+      "painted-river-port.dirt-path"
+    ],
+    "reviewState": "Town Green first-pass composition; not complete city or final lore approval",
+    "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
+  },
+  "roomCompositions": [
+    {
+      "cellId": "1-14",
+      "evidence": "bent grass path; narrow cobblestones; privet hedge before weaponsmith",
+      "missing": [
+        "Milgrym exterior",
+        "botanically specific privet"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.grass-verge",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.cobble-street",
+          "center": [
+            0,
+            -0.32
+          ],
+          "envelope": [
+            0.82,
+            0.14
+          ],
+          "lift": 0.03,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            -0.28,
+            -0.43
+          ],
+          "envelope": [
+            0.3,
+            0.09
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            0.28,
+            -0.43
+          ],
+          "envelope": [
+            0.3,
+            0.09
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.dirt-path",
+          "center": [
+            0,
+            0.05
+          ],
+          "envelope": [
+            0.12,
+            0.65
+          ],
+          "lift": 0.04,
+          "yawDegrees": 0
+        }
+      ],
+      "status": "partial-authored",
+      "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
+      "descriptionHash": "f73bd5e2ac6e412c"
+    },
+    {
+      "cellId": "1-15",
+      "evidence": "modwyn vine bower; limestone bench; sawed-off tree stools; open performance space",
+      "missing": [
+        "modwyn fruit clusters",
+        "sawed-off stump stools"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.grass-verge",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.vine-bower",
+          "center": [
+            0,
+            -0.32
+          ],
+          "envelope": [
+            0.6,
+            0.26
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.stone-bench",
+          "center": [
+            -0.3,
+            0.06
+          ],
+          "envelope": [
+            0.28,
+            0.13
+          ],
+          "lift": 0.06,
+          "yawDegrees": 90
+        }
+      ],
+      "status": "partial-authored",
+      "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
+      "descriptionHash": "352586dc0dc77d00"
+    },
+    {
+      "cellId": "1-17",
+      "evidence": "well-manicured grass; ancient oak; open gathering space",
+      "missing": [
+        "ancient-oak-specific age treatment"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.grass-verge",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.oak-tree",
+          "center": [
+            -0.26,
+            -0.23
+          ],
+          "envelope": [
+            0.43,
+            0.46
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        }
+      ],
+      "status": "partial-authored",
+      "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
+      "descriptionHash": "bf4bf4c9cfbd91f7"
+    },
+    {
+      "cellId": "1-23",
+      "evidence": "west hedgerow; dense living fences south and west; no passage through them",
+      "missing": [
+        "lunat trees",
+        "thorn species detail"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.grass-verge",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            -0.43,
+            0
+          ],
+          "envelope": [
+            0.12,
+            0.88
+          ],
+          "lift": 0.06,
+          "yawDegrees": 90
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            0,
+            0.43
+          ],
+          "envelope": [
+            0.88,
+            0.12
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        }
+      ],
+      "status": "partial-authored",
+      "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
+      "descriptionHash": "a81dbac1f7408d93"
+    },
+    {
+      "cellId": "1-16",
+      "evidence": "grass; dense hedges; gap south toward Lunat Shade Road; civic buildings mentioned remotely, not located in this room",
+      "missing": [
+        "lunat trees"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.grass-verge",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            -0.32,
+            0.43
+          ],
+          "envelope": [
+            0.28,
+            0.12
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            0.32,
+            0.43
+          ],
+          "envelope": [
+            0.28,
+            0.12
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        }
+      ],
+      "status": "partial-authored",
+      "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
+      "descriptionHash": "a0e1b5cd1070402b"
+    },
+    {
+      "cellId": "1-225",
+      "evidence": "thick hedges with armory entrance breach; plank approach; unpainted wood exterior",
+      "missing": [
+        "Tembeg unpainted exterior with displayed work",
+        "plank walkway"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.grass-verge",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            -0.32,
+            -0.43
+          ],
+          "envelope": [
+            0.28,
+            0.12
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            0.32,
+            -0.43
+          ],
+          "envelope": [
+            0.28,
+            0.12
+          ],
+          "lift": 0.06,
+          "yawDegrees": 0
+        }
+      ],
+      "status": "partial-authored",
+      "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
+      "descriptionHash": "4b6facaa5a85d146"
     }
   ]
 }

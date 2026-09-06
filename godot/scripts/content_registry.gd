@@ -20,6 +20,22 @@ extends Node
 
 ## kind (String) -> Callable(cell: Dictionary, primitive: Dictionary) -> Node3D
 var _factories: Dictionary = {}
+var _room_factory: Callable
+
+## An evidence-bound composition may replace a cell's generic primitive recipe.
+## Returning null leaves the existing per-kind fallback path intact.
+func register_room(factory: Callable) -> void:
+	_room_factory = factory
+
+func build_cell(cell: Dictionary) -> Node3D:
+	if _room_factory.is_valid():
+		var authored: Node3D = _room_factory.call(cell)
+		if authored != null:
+			return authored
+	var holder := Node3D.new()
+	for primitive in cell.get("primitives", []):
+		holder.add_child(build(cell, primitive))
+	return holder
 
 ## Registers (or replaces) the factory for one primitive kind. Called by a
 ## content pack's own autoload/init code, never by this file. Replacing an
