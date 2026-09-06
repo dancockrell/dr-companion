@@ -14,7 +14,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# "protocol-asset": the optional music library is installed into the app
+# data directory, and a track there is played through the asset protocol.
+# Nothing else is granted; the scope is a single directory, allowed at
+# startup from `music::music_dir()` (see lib.rs).
+tauri = { version = "2", features = ["protocol-asset"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

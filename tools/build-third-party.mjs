@@ -34,6 +34,14 @@
  *
  * **Shared 3D assets** from every `sourceLicense` in
  * `godot/assets/shared_asset_selections.json`.
+ *
+ * **The music library** from `data/audio/manifest.json`, which is the source
+ * of truth for what `tools/vendor-audio.mjs` fetches and what the app's own
+ * "Install music" action downloads. It is not bundled - 4.36 GB against a
+ * 211 MB installer - but it is redistributed to whoever asks for it, so its
+ * licences belong here as much as anything in the binary does. Per-track
+ * credits stay in `data/audio/ATTRIBUTIONS.md`, generated from this same
+ * manifest; this section is the summary and the pointer, not a second copy.
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -45,6 +53,7 @@ const OUT = 'THIRD_PARTY.md'
 const LOCK = 'package-lock.json'
 const CARGO_LOCK = 'src-tauri/Cargo.lock'
 const SELECTIONS = 'godot/assets/shared_asset_selections.json'
+const AUDIO_MANIFEST = 'data/audio/manifest.json'
 
 /** The only target this app is built for; see the header. */
 const RUST_TARGET = 'x86_64-pc-windows-msvc'
@@ -155,6 +164,16 @@ const selections = JSON.parse(readFileSync(SELECTIONS, 'utf8'))
 const assetLicences = [...new Set(selections.selections.map((s) => s.sourceLicense))].sort()
 if (!assetLicences.length) throw new Error(`${SELECTIONS} declared no sourceLicense; refusing to publish.`)
 
+const music = musicEntries()
+if (!music.length)
+  throw new Error(`${AUDIO_MANIFEST} named no audio files; refusing to publish a licence notice with the music section empty.`)
+const musicCount = music.length
+const musicBytes = music.reduce((sum, e) => sum + (e.bytes ?? 0), 0)
+const musicSize = `${(musicBytes / 1024 ** 3).toFixed(2)} GB`
+const musicLicences = [
+  ...music.reduce((counts, e) => counts.set(e.license ?? 'unrecorded', (counts.get(e.license ?? 'unrecorded') ?? 0) + 1), new Map()),
+].sort((a, b) => b[1] - a[1])
+
 /* Lich's licence, and its copyright holders, are imported at the top of this
  * file from `src/data/lichLicense.ts` rather than kept here - see that
  * module's header, and the checks below, which are what keep it honest. */
@@ -256,7 +275,43 @@ ${selections.selections.map((s) => `| \`${s.id}\` | \`${s.sourcePack}\` | ${s.so
 Nothing in that library contributes routes, exits, collision, navigation or
 any other game fact; it is presentation only, which is a rule of the admission
 process rather than a property of the licences.
+
+## Music library (optional, installed on request)
+
+The app can download a curated music library. It is **not** in the installer:
+measured by fetching every entry and weighing what landed, it is
+${musicSize} across ${musicCount} files, against an installer of roughly 211 MB.
+Nothing is fetched until a player presses **Install music** in the sound
+transport, each file is pinned by sha256 in \`${AUDIO_MANIFEST}\`, and it
+installs into the app data directory so an uninstall can remove it.
+
+None of it is DragonRealms audio: Simutronics owns their game's sound and this
+project has no licence to it. Every track is separately sourced, and the
+licences present are:
+
+| Licence | Tracks |
+|---|---|
+${musicLicences.map(([name, n]) => `| ${name} | ${n} |`).join('\n')}
+
+Per-track credits - title, composer, performer, source URL and licence for all
+${musicCount} - are generated into \`data/audio/ATTRIBUTIONS.md\` by
+\`node tools/vendor-audio.mjs --attributions\`, from the same manifest this
+table is built from. That file rather than a second copy here: two lists of the
+same 182 tracks would disagree the first time one was regenerated.
 `
+}
+
+
+/** Everything the optional music library ships, read from the same manifest
+ * the installer and the app both read. Entries with no `file` are zone
+ * playlists, which name track ids rather than carrying audio of their own. */
+function musicEntries() {
+  const m = JSON.parse(readFileSync(AUDIO_MANIFEST, 'utf8'))
+  return [
+    ...Object.values(m.biome ?? {}),
+    ...Object.values(m.zone ?? {}),
+    ...(m.radio ?? []),
+  ].filter((e) => e.file)
 }
 
 /* ----------------------------------------------------------------- run --- */
@@ -359,8 +414,24 @@ if (crates) {
 }
 
 // The document must not have lost a section to a template edit.
-for (const heading of ['## Lich', '## Godot', '## npm packages', '## Rust crates', '## Fonts', '## Shared 3D assets']) {
+for (const heading of ['## Lich', '## Godot', '## npm packages', '## Rust crates', '## Fonts', '## Shared 3D assets', '## Music library']) {
   ok(`the document still has its ${heading.replace('## ', '')} section`, committed.includes(heading))
+}
+
+// The table above is the only place the music licences are published, so a
+// manifest entry with no `license` must not become a quiet blank row. Counted
+// against the manifest rather than against the table, so a generator that
+// stopped emitting rows fails here instead of agreeing with itself.
+{
+  const unlicensed = music.filter((e) => !e.license)
+  ok(
+    `every one of the ${musicCount} music tracks records a licence`,
+    unlicensed.length === 0,
+    unlicensed.slice(0, 3).map((e) => e.file).join(', ')
+  )
+  for (const [name] of musicLicences) {
+    ok(`...and ${name} appears in the published table`, committed.includes(`| ${name} |`))
+  }
 }
 
 console.log('')

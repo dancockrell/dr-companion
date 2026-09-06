@@ -138,6 +138,22 @@ const DESTINATIONS = [
     note: 'A script is only fetched when a player asks for that script.',
   },
   {
+    host: 'upload.wikimedia.org',
+    contacted: true,
+    what: 'The music library, when a player presses Install music. 178 of its 182 files come from here.',
+    sends: 'Nothing about the player. A download of public files, in one run, with no identifier attached.',
+    where: '`src-tauri/src/music.rs`, through the same `download_verified` and the same allowlist as everything above (`src-tauri/src/setup/downloads.rs`).',
+    note: 'Never contacted on startup or on a first run. The library is 4.36 GB, it is not in the installer, and nothing here is fetched until the button is pressed. Each file is checked against a SHA-256 that shipped inside the app in `data/audio/manifest.json`, so no list of what to download is fetched either.',
+  },
+  {
+    host: 'opengameart.org',
+    contacted: true,
+    what: 'The other four files of the music library - the biome ambience loops.',
+    sends: 'Nothing about the player.',
+    where: '`src-tauri/src/music.rs`, in the same allowlist.',
+    note: 'Same button, same run, same verification as the entry above.',
+  },
+  {
     host: 'rubyinstaller.org',
     contacted: false,
     what: 'A link, shown when Ruby is missing and the player would rather install it themselves.',

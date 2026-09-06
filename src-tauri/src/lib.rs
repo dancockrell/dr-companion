@@ -6,6 +6,7 @@ pub mod game_link;
 pub mod lich;
 pub mod lich_health;
 pub mod media_keys;
+pub mod music;
 pub mod node;
 pub mod pause;
 pub mod presentation_bridge;
@@ -169,6 +170,9 @@ pub fn run() {
             lich_health::lich_health,
             setup::plan_setup,
             setup::downloads::download_component,
+            music::music_library_status,
+            music::install_music_library,
+            music::cancel_music_install,
             setup::install_bundled_ruby4lich5,
             setup::extract_archive,
             setup::bundles::install_bundle,
@@ -210,6 +214,18 @@ pub fn run() {
         .manage(node::NodeTasks::default())
         .manage(viewer::ViewerProcess::default())
         .setup(|app| {
+            // The optional music library lives in the app data directory, so
+            // the asset protocol has to be told about that one directory
+            // before a track there can be played. Granted from `music_dir()`
+            // itself rather than a path repeated in tauri.conf.json, so the
+            // scope cannot name somewhere the installer does not write.
+            if let Err(e) = app
+                .asset_protocol_scope()
+                .allow_directory(music::music_dir(), true)
+            {
+                eprintln!("warning: music library directory is not readable: {e}");
+            }
+
             // The Python scripting socket. Started here rather than lazily on
             // first use, so a script waiting for the app to open does not
             // also have to guess whether it has finished starting - the token

@@ -9,7 +9,9 @@
       "download": "https://opengameart.org/sites/default/files/forest_2_0.ogg",
       "license": "CC0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "attributionRequired": false
+      "attributionRequired": false,
+      "sha256": "b9e05a1fcd5869b63193515e2a9c1bd578906a78e628e307f19527d387262593",
+      "bytes": 2947211
     },
     "town": {
       "file": "biome/town.mp3",
@@ -20,7 +22,9 @@
       "license": "CC-BY 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
       "attributionRequired": true,
-      "attributionText": "\"Peaceful Village Loop\" by abeth (opengameart.org), CC-BY 3.0"
+      "attributionText": "\"Peaceful Village Loop\" by abeth (opengameart.org), CC-BY 3.0",
+      "sha256": "d2d86dc52b88b5845dd798400bb3a21f356cfa070595d25bf04bd9fc791da8cf",
+      "bytes": 318467
     },
     "cave": {
       "file": "biome/cave.mp3",
@@ -31,7 +35,9 @@
       "license": "CC-BY 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
       "attributionRequired": true,
-      "attributionText": "\"Cave Loop\" by elerya (opengameart.org), CC-BY 3.0"
+      "attributionText": "\"Cave Loop\" by elerya (opengameart.org), CC-BY 3.0",
+      "sha256": "3cde3ccfddf00094b4a2d90885017b6e2d1e297a6eb51ddc6dd1292d8fb812a7",
+      "bytes": 447135
     },
     "dungeon": {
       "file": "biome/dungeon.ogg",
@@ -41,7 +47,9 @@
       "download": "https://opengameart.org/sites/default/files/dark_cavern_ambient_001.ogg",
       "license": "CC0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "attributionRequired": false
+      "attributionRequired": false,
+      "sha256": "3e364b94dc1fceff13d8d067af9f034f297cfa5d15ff9cecfbe02fd857801dce",
+      "bytes": 1689062
     }
   },
   "zone": {
@@ -1252,7 +1260,9 @@
       "license": "Public domain",
       "licenseUrl": "https://commons.wikimedia.org/wiki/File:Musopen_-_In_the_Hall_Of_The_Mountain_King.ogg",
       "attributionRequired": false,
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "3bfa7424d3a148f1482a44688b77eb9138a7cea6cff7474799f1329181ab3342",
+      "bytes": 2155317
     },
     {
       "id": "beethoven-moonlight-2",
@@ -1267,7 +1277,9 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/de/",
       "attributionRequired": true,
       "attributionText": "Beethoven, Moonlight Sonata, 2nd movement, via Wikimedia Commons, CC BY-SA 2.0 DE",
-      "gainDb": 2.7
+      "gainDb": 2.7,
+      "sha256": "1ed00a13f9bf930ebb4a46deca354321c86289680e0f99777dd6e13855f317d8",
+      "bytes": 2317258
     },
     {
       "id": "beethoven-moonlight-3",
@@ -1282,7 +1294,9 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/de/",
       "attributionRequired": true,
       "attributionText": "Beethoven, Moonlight Sonata, 3rd movement, via Wikimedia Commons, CC BY-SA 2.0 DE",
-      "gainDb": -1.6
+      "gainDb": -1.6,
+      "sha256": "b0456405855dffa2f9a9c1bba2a8ba673036a3bb24d45f279b0041d0eab3ff5b",
+      "bytes": 7848899
     },
     {
       "id": "chopin-nocturne-32-1",
@@ -1298,7 +1312,9 @@
       "attributionRequired": true,
       "attributionText": "Chopin, Nocturne Op. 32 No. 1, via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Replaced Op. 27 No. 1 (a 49-second excerpt, not the full piece) - Dan's call: stations need full songs, not short loops. Measured every track's duration with ffprobe after this.",
-      "gainDb": 4.2
+      "gainDb": 4.2,
+      "sha256": "78e55efbc5fb01bc547aa511a808a30efa6f0c566f7846d02d5a9043f49ff3e4",
+      "bytes": 4852417
     },
     {
       "id": "vivaldi-autumn-3",
@@ -1314,7 +1330,9 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "attributionRequired": true,
       "attributionText": "Vivaldi, The Four Seasons - Autumn, performed by John Harrison, via Wikimedia Commons, CC BY-SA 4.0",
-      "gainDb": 3
+      "gainDb": 3,
+      "sha256": "a3267b1dac66706def17def9d1aefe01e949b5527153d7a018d02e23e06257a1",
+      "bytes": 3850772
     },
     {
       "id": "satie-gymnopedie-3",
@@ -1329,7 +1347,9 @@
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "attributionRequired": false,
       "note": "Ogg-FLAC container, not Ogg-Vorbis like the rest of this station - verify browser playback before trusting it as loud as the others.",
-      "gainDb": 3.6
+      "gainDb": 3.6,
+      "sha256": "20a8311eb71e2675de49fa287ef1c0929962838a6dffd76bbf52851c85d70f5d",
+      "bytes": 5604668
     },
     {
       "id": "tarrega-alhambra",
@@ -1344,7 +1364,9 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
       "attributionRequired": true,
       "attributionText": "\"Recuerdos de la Alhambra\" by Francisco Tárrega, performance via Wikimedia Commons, CC BY-SA 3.0",
-      "gainDb": -1
+      "gainDb": -1,
+      "sha256": "aac6344dd8db0796589dede5cc2df72b766153942d436f5be300c81e3bfce675",
+      "bytes": 7772093
     },
     {
       "id": "romance-anonimo",
@@ -1358,7 +1380,9 @@
       "license": "CC0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "attributionRequired": false,
-      "gainDb": -0.2
+      "gainDb": -0.2,
+      "sha256": "d85885d97a04f6b85eae032b93f20b941470d7356ee869c7a90175b5ea43f3b8",
+      "bytes": 3937515
     },
     {
       "id": "albeniz-asturias",
@@ -1375,7 +1399,9 @@
       "attributionRequired": true,
       "attributionText": "Albéniz, Asturias (Leyenda), performed by David Hernando Vitores, via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Ogg Skeleton-multiplexed container - verify browser playback before trusting it plays like the plain-Vorbis files in this station.",
-      "gainDb": -0.3
+      "gainDb": -0.3,
+      "sha256": "dbd7c2483a3fb0fc14dda4b9e73a93d27177e07cb777b0313b571073edc8b242",
+      "bytes": 12551874
     },
     {
       "id": "bach-lute-gigue",
@@ -1390,7 +1416,9 @@
       "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
       "attributionRequired": true,
       "attributionText": "Bach, Lute Suite No. 2, BWV 997, IV. Gigue, via Wikimedia Commons, CC BY-SA 2.0",
-      "gainDb": 4.5
+      "gainDb": 4.5,
+      "sha256": "3e8e824f548f292fe563cfd6252b15bb40310fc6b8a87ac18f552c49aadb826e",
+      "bytes": 7875087
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-ii-andante-musopen-sym",
@@ -1406,7 +1434,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "58c8927bd0d4360860d9c8e7c5ab7cf5d2e2311410bcbc851e3f33f9202459c8",
+      "bytes": 74458296
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iv-allegro-musopen-sym",
@@ -1422,7 +1452,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "18c300b3cc11d64ed8eddba4d8cf3795075b9ba272a77488174e024a6cc8c2f2",
+      "bytes": 91371893
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto-mu",
@@ -1438,7 +1470,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "c8dc985872aed9497f0429d8655a98092d8cab4ac54fc54d662b37c2072afd60",
+      "bytes": 52705826
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio-mus",
@@ -1454,7 +1488,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": -0.6
+      "gainDb": -0.6,
+      "sha256": "f9dff2bb2361c657e0654a4e40e7cc37bdf1a596f8c0c37482e73fb5abe78c09",
+      "bytes": 93111879
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-ii-andante",
@@ -1470,7 +1506,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "e9ce7737f4559573a59df556513cf919f25042303016e8dcc1fedf5a63e6bd6e",
+      "bytes": 11456325
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iii-poco-allegretto",
@@ -1486,7 +1524,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "ba1db2035d78954d5f15711594817ccceaa730bd83df68734cb724a2e3ba32df",
+      "bytes": 8770243
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-iv-allegro",
@@ -1502,7 +1542,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 5.9
+      "gainDb": 5.9,
+      "sha256": "f9749e131715f7db02f338dc221669b7b80fbc12c91dfa56774a2e2b1bc1435b",
+      "bytes": 7278219
     },
     {
       "id": "brahms-symphony-no-3-in-f-major-op-90-i-allegro-con-brio",
@@ -1518,7 +1560,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": -0.6
+      "gainDb": -0.6,
+      "sha256": "636ac8d55b41de50065a68d342c7df5a475519870fc98dec30b801b493b018f5",
+      "bytes": 14211033
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato-mu",
@@ -1534,7 +1578,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 5.9
+      "gainDb": 5.9,
+      "sha256": "4888b6b24e8a9fb0b0da2a373a81d8d432e68adab4e7af7f30dc7ff65f4569be",
+      "bytes": 103707971
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo-m",
@@ -1550,7 +1596,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 4.3
+      "gainDb": 4.3,
+      "sha256": "8c796e3044e15489283caa9a7c63b94ec3abc0c922a85dbd8dc4520d8bd0f074",
+      "bytes": 125892314
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-iv-allegro-energico-e-",
@@ -1566,7 +1614,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": -0.4
+      "gainDb": -0.4,
+      "sha256": "a180d289dd7f7297110e3411becfda382a88f773159bdaaca0562235639cccb0",
+      "bytes": 107058979
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso-po",
@@ -1582,7 +1632,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": -1.9
+      "gainDb": -1.9,
+      "sha256": "fde97bc38da47dc0a46364997c4f2631a7d4c28b2d67c632b1942e7f8c5463b9",
+      "bytes": 63381927
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-ii-andante-moderato",
@@ -1598,7 +1650,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 5.8
+      "gainDb": 5.8,
+      "sha256": "e812bb6855ed1d144aa67e763b78fe1a25fcfa9b1885a1fb2d3674a0eaea9d2d",
+      "bytes": 14581724
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-iii-allegro-giocoso",
@@ -1614,7 +1668,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": -1.9
+      "gainDb": -1.9,
+      "sha256": "7cefe41babe6c26ad2ba8c44d4b3950a4da619a07f2860655c098b293f9ea475",
+      "bytes": 8414353
     },
     {
       "id": "brahms-symphony-no-4-in-e-minor-op-98-i-allegro-non-troppo",
@@ -1630,7 +1686,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 4.3
+      "gainDb": 4.3,
+      "sha256": "bd3bfc726f1beb025433c30782d2249b82cb79aa8fd30b6b6957f012d4dc498a",
+      "bytes": 12332322
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-ii-andante-sostenuto-m",
@@ -1646,7 +1704,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 7.1
+      "gainDb": 7.1,
+      "sha256": "b69bc7546ae702a6b9ae5b7f61e0ae886a5ae6bff9471dc1dbf09a7cde259ecc",
+      "bytes": 78251360
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-iii-un-poco-allegretto",
@@ -1662,7 +1722,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "a524d45bde3194dccdd09ed643bb88419590f406f0670c92335804ae0ae5eb34",
+      "bytes": 46687877
     },
     {
       "id": "moonlight-sonata-sharp-c-minor-sonata-2nd-movement-beethoven",
@@ -1678,7 +1740,9 @@
       "attributionRequired": true,
       "attributionText": "\"Moonlight Sonata (Sharp c minor Sonata) 2nd Movement Beethoven JMC,Han\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3.4
+      "gainDb": -3.4,
+      "sha256": "16f871d2e6fe8d9a5ca4ada65dc14880e8c76a7f94f3ca7da289287b8e5484e3",
+      "bytes": 1691974
     },
     {
       "id": "brahms-symphony-no-2-in-d-major-op-73-ii-adagio-non-troppo",
@@ -1694,7 +1758,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 4.3
+      "gainDb": 4.3,
+      "sha256": "2ab877e96e654afb4495d2aaedfa71388a2a64c1ddb15871d28a63c2fa62adb6",
+      "bytes": 12073302
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-i-un-poco-sostenuto-al",
@@ -1710,7 +1776,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": -0.1
+      "gainDb": -0.1,
+      "sha256": "767fe2e4021bb78f12c49737a448e11ffa58e630da38e5ac64e15ffedd26ec87",
+      "bytes": 140673511
     },
     {
       "id": "liszt-sonata-in-b-minor-piano-jorge-bolet-1960",
@@ -1726,7 +1794,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, turbulent",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "e2ad5aaa0e8c6761547a0fd200922f4c52a08f01bde4180d1ed5d7a5fb815171",
+      "bytes": 52978221
     },
     {
       "id": "brahms-symphony-no-1-in-c-minor-op-68-iv-adagio-piu-andante-",
@@ -1742,7 +1812,9 @@
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
       "mood": "dark, dramatic - Dan flagged this as fitting undead/dungeon zones well",
-      "gainDb": 5.9
+      "gainDb": 5.9,
+      "sha256": "a1872e0bb0b541756af29d36572b07ab0aacc43737b397e91282c3c57402c30e",
+      "bytes": 166468316
     },
     {
       "id": "sor-op-11-no-2",
@@ -1758,7 +1830,9 @@
       "attributionRequired": true,
       "attributionText": "\"Sor Op 11 No 2\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.1
+      "gainDb": 6.1,
+      "sha256": "f503e3d18edd9431cfc9e5899ee35512638387797e0ce4c68be64a23f3f629c6",
+      "bytes": 9123825
     },
     {
       "id": "sor-op-35-no-17",
@@ -1774,7 +1848,9 @@
       "attributionRequired": true,
       "attributionText": "\"Sor Op 35 No. 17\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3
+      "gainDb": -3,
+      "sha256": "fadfaf6ba44866d2ebc9e503d2c771e5230956a107b5c4de3200492d2dbd7fa9",
+      "bytes": 1334534
     },
     {
       "id": "romance-anonimo-jeux-interdits",
@@ -1789,7 +1865,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.2
+      "gainDb": -0.2,
+      "sha256": "d85885d97a04f6b85eae032b93f20b941470d7356ee869c7a90175b5ea43f3b8",
+      "bytes": 3937515
     },
     {
       "id": "romanza-espanola",
@@ -1804,7 +1882,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "8677c494e0932bfcc81d126bfb559a2727db089282ee1ec0cc779bbea7f0ef90",
+      "bytes": 2156129
     },
     {
       "id": "el-noi-de-la-mare-guitar",
@@ -1820,7 +1900,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 1.5
+      "gainDb": 1.5,
+      "sha256": "71d69f132846a8470db88554b7a6e6665b8f53675911d0c5264e56cfc6a73b07",
+      "bytes": 3756409
     },
     {
       "id": "mozart-symphony-no-34-c-major-i-allegro-vivace-mozart-europe",
@@ -1836,7 +1918,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.8
+      "gainDb": 7.8,
+      "sha256": "6872a1d9fcc6300411b0f33495e8ecfc0ca246d6f3985d83208bb1bb69191e42",
+      "bytes": 11593281
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-i-allegro-mozart-europ",
@@ -1852,7 +1936,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.4
+      "gainDb": 3.4,
+      "sha256": "45e66f1f804f9fcadc0a1d357e5a66bb5b36106e9f31d7c6e0308f7826b8fac2",
+      "bytes": 7081973
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-iii-menuetto-mozart-eu",
@@ -1868,7 +1954,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.9
+      "gainDb": 6.9,
+      "sha256": "b25796ebd77952a9e7ac874ca8459535dd0f17986f0506d9bc538aaa6d227751",
+      "bytes": 6084824
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-iv-allegro-mozart-euro",
@@ -1884,7 +1972,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.9
+      "gainDb": 6.9,
+      "sha256": "19e511a73c54e8b964dbd57e0955e52d67fb8e974cb887bcd194d564da3a9448",
+      "bytes": 7385736
     },
     {
       "id": "mozart-symphony-no-40-in-g-minor-k550-i-molto-allegro-musope",
@@ -1900,7 +1990,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.4
+      "gainDb": 4.4,
+      "sha256": "e291748465d6a8972b79ea60e075bab56dc845eca48d6abcdc3d49f87144f005",
+      "bytes": 65272320
     },
     {
       "id": "mozart-symphony-no-34-c-major-iii-finale-allegro-vivace-moza",
@@ -1916,7 +2008,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 8.3
+      "gainDb": 8.3,
+      "sha256": "a8c323eb3f7f1294a845cb1e0b2b8604fc6864ce0b3249afb28c576a58be0934",
+      "bytes": 6478423
     },
     {
       "id": "mozart-symphony-no-19-in-e-flat-major-ii-andantino-grazioso-",
@@ -1932,7 +2026,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.5
+      "gainDb": 5.5,
+      "sha256": "ecef5a6f24bed0b307b9deb1ab558749f921abb3cbb2d095d53b0b285436c196",
+      "bytes": 5752414
     },
     {
       "id": "mozart-symphony-no-34-c-major-ii-andante-di-molto-mozart-eur",
@@ -1948,7 +2044,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "be4b3c11c943d91eebb218777427c3e9555790a47d5d4f24acb70cf9fead8b5a",
+      "bytes": 10695011
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-iii-minuetto-mozart-europe",
@@ -1964,7 +2062,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.9
+      "gainDb": 3.9,
+      "sha256": "365e0c8de8c426f04a8c2fcca9fcab60664591cc45655cfdbbd6480ba62f25bf",
+      "bytes": 5424485
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-ii-andante-mozart-european",
@@ -1980,7 +2080,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "5808dc73b43c9c97ea390c370d4b437bdf3c7587a78cf7f9d640e292fb88c234",
+      "bytes": 9525854
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-iii-menuetto-mozart-european",
@@ -1996,7 +2098,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.8
+      "gainDb": 2.8,
+      "sha256": "a8c04bfddc3ab558ff5b8017dc0fcf5fd45cdda828e007c1ce378f2e372cdba5",
+      "bytes": 3570278
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-iv-finale-presto-mozart-eu",
@@ -2012,7 +2116,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.4
+      "gainDb": -0.4,
+      "sha256": "3db043277fae9dd24f2b7aad502e9833a4b3b19d466daf4bf6b887abc7c4e517",
+      "bytes": 6064299
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-i-allegro-mozart-european-ar",
@@ -2028,7 +2134,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.6
+      "gainDb": 4.6,
+      "sha256": "e0e07d13bb24a3fa84607054117fbde54ed214e599ed8226c517ed7137ac875d",
+      "bytes": 6238995
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-2",
@@ -2045,7 +2153,9 @@
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 2\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "c1a73d37e74fdf5fcb4217c157fca23278721a2b5018382a5c24229458f74cee",
+      "bytes": 20443888
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-3",
@@ -2062,7 +2172,9 @@
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 3\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.6
+      "gainDb": 3.6,
+      "sha256": "ee1a0cdaa8710c2bd3dfec6c4bc089d7f7dfe72a0fbc66ffccb1ff5939836544",
+      "bytes": 7203091
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-1",
@@ -2079,7 +2191,9 @@
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 1\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.2
+      "gainDb": 6.2,
+      "sha256": "90491c8844f2aacc4299fe16269778f27ab358f421a5d554527c04b8cba51162",
+      "bytes": 21157669
     },
     {
       "id": "symphony-no-35-in-d-haffner-k-385-i-allegro-con-spirito-moza",
@@ -2095,7 +2209,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2
+      "gainDb": 2,
+      "sha256": "1c996e6484f74c6a17d49f78d82fd11d29f4be0b74ec6b178a6993c2e2c58111",
+      "bytes": 9290440
     },
     {
       "id": "mozart-symphony-36-kv-425-linz-4",
@@ -2112,7 +2228,9 @@
       "attributionRequired": true,
       "attributionText": "\"Mozart Symphony 36 KV 425 Linz 4\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6
+      "gainDb": 6,
+      "sha256": "e867be9bdb0967f38ddff76246a4b31f55b9e7e7e64762ab7628d124a5db1918",
+      "bytes": 14052933
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-iv-allegro-molto-mozart-euro",
@@ -2128,7 +2246,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "880416f947ff152d526f0ed3e0299bc4d071f7f0b48cde1db96d2e3ad1be0745",
+      "bytes": 7166225
     },
     {
       "id": "w-a-mozart-symphony-n-25-ii-andante",
@@ -2145,7 +2265,9 @@
       "attributionRequired": true,
       "attributionText": "\"W. A. Mozart - Symphony n. 25 - II. Andante\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "62958c45ebc7a3c3ae6efbf5769217503f1eafa8b79e10d80373a90d1a6f56ae",
+      "bytes": 3236133
     },
     {
       "id": "symphony-no-18-in-f-major-k-130-ii-andantino-grazioso-mozart",
@@ -2161,7 +2283,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.3
+      "gainDb": 5.3,
+      "sha256": "55dc39810ff27a57bef06e3a5659fa84106aba5815ff0e0a5b20d82a9e2cbd95",
+      "bytes": 5130849
     },
     {
       "id": "w-a-mozart-symphony-n-25-iv-allegro",
@@ -2178,7 +2302,9 @@
       "attributionRequired": true,
       "attributionText": "\"W. A. Mozart - Symphony n. 25 - IV. Allegro\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.4
+      "gainDb": 2.4,
+      "sha256": "604551c528992cf19dd23cdc4d50f60253068ea6e3b8cfd8f2bf4eba564b6803",
+      "bytes": 4570668
     },
     {
       "id": "mozart-symphony-no-40-in-g-minor-k550-ii-andante-musopen-sym",
@@ -2194,7 +2320,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "ae3e45623e02b8b7417a174f1f4ce1c50f01f28fa213049e7e38ac5ceb88fd58",
+      "bytes": 75011718
     },
     {
       "id": "jcza-jczarnecki-flamenco",
@@ -2211,7 +2339,9 @@
       "attributionRequired": true,
       "attributionText": "\"JCZA - JCzarnecki-Flamenco\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.6
+      "gainDb": 5.6,
+      "sha256": "5db1c3f3791233141ef97210e760be4e25b74b9e1c80af58536bcce60ad8ed75",
+      "bytes": 11417280
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-02",
@@ -2227,7 +2357,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "6391cb6c0ea6a051dc3e58a8f288beed599e4df715967c8323207d213482d044",
+      "bytes": 41770240
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-13",
@@ -2243,7 +2375,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "a31588a96d984fff50e4b95f7bee1f846796b214301c5a62fb617cdc72ebdda9",
+      "bytes": 116050688
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-06",
@@ -2259,7 +2393,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "f4366a5bc5c5316093c1c05b2b91df39e4c3a45d3730708f4f9a17a421f977f5",
+      "bytes": 66084608
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-08",
@@ -2275,7 +2411,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "4e2a97b74ed2f1f86517f3896572c84b52c3d29ba84f6f4b0a31eab7af0d891e",
+      "bytes": 70638080
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-07",
@@ -2291,7 +2429,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "49f90f5904515a5ffe74ce0406e6534b2e51c1a8d83b5bf88d83020047849d06",
+      "bytes": 88133888
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-04",
@@ -2307,7 +2447,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.6
+      "gainDb": 7.6,
+      "sha256": "2170ac6b64cc68d277639fe42ac02e88fd045f7ef85e5db6056abb78ffbd4154",
+      "bytes": 17817600
     },
     {
       "id": "audio-files-of-spanish-guitar-chords-15",
@@ -2323,7 +2465,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "7c07748c7c65e866d6ef03bbb596ee2caba0888556c43850360d97aaaf7e99ec",
+      "bytes": 74386688
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-ii-all",
@@ -2339,7 +2483,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "c666606075d788e1e887d638324dac623d639077fd6b33c3b73e50fc63cedfc4",
+      "bytes": 72084637
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iii-al",
@@ -2355,7 +2501,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "20c62b1d6a98c8821887532b53ba42dcddc0d2fe2b131c350acef6dd7f083b8d",
+      "bytes": 90689821
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-i-adag",
@@ -2371,7 +2519,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "d00a50d86ad87e572ba586ad3f99f17de3b93860e93d031b153eff4a4494ca7f",
+      "bytes": 147106209
     },
     {
       "id": "tchaikovsky-symphony-no-6-in-b-minor-op-74-pathetique-iv-fin",
@@ -2387,7 +2537,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "fb9df5ea8d598138bf5568a9ff632717aa7048705783a7851f18ea449c40915e",
+      "bytes": 84418166
     },
     {
       "id": "tchaikovsky-theme-from-symphony-no-6-in-b-minor-op-74-pathet",
@@ -2403,7 +2555,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.2
+      "gainDb": 6.2,
+      "sha256": "375c49c6a59d9d69257cbe674747a1b3b9d34c5949fccfa302d08602ea55d2b5",
+      "bytes": 2389462
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-ii-allegro-con-gr",
@@ -2419,7 +2573,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.5
+      "gainDb": 5.5,
+      "sha256": "d945e224454749cf57d29d257eb9dfbba4953eb780a7d41ca4b055e4a94b6ec2",
+      "bytes": 4863514
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-iv-finale-adagio-",
@@ -2435,7 +2591,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.1
+      "gainDb": 4.1,
+      "sha256": "fc6a86012bb52e52367437be0194e0d214fd78fcf623715093d6abcede582a31",
+      "bytes": 5661129
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-iii-allegro-molto",
@@ -2451,7 +2609,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "a0c140ecf8b45d047e0844b147d3b83a95ae5d61aea0c6d14540ae0af00c247b",
+      "bytes": 5124371
     },
     {
       "id": "tchaikovsky-pathetique-wilhelm-furtwangler-i-adagio-allegro-",
@@ -2467,7 +2627,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "a2ae8f2d6d7128b8bf5a5a99ee19cce3c4d568dc846b14870115a99f03d8fb17",
+      "bytes": 11075882
     },
     {
       "id": "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-2nd-movement",
@@ -2484,7 +2646,9 @@
       "attributionRequired": true,
       "attributionText": "\"Sergei Rachmaninoff - Concerto 1 in F sharp minor, 2nd movement\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "e5c9d9a31f98f62b7b766b34eeac9f2856b25dda88727593d71645a90b4f02fd",
+      "bytes": 6793059
     },
     {
       "id": "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-1st-movement",
@@ -2501,7 +2665,9 @@
       "attributionRequired": true,
       "attributionText": "\"Sergei Rachmaninoff - Concerto 1 in F sharp minor, 1st movement\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.4
+      "gainDb": 5.4,
+      "sha256": "c853bc937bdfa3a7f3832b98eed79991ac6c07ebb5d0dbf8260b7dea1c965ced",
+      "bytes": 14499489
     },
     {
       "id": "sergei-rachmaninoff-concerto-1-in-f-sharp-minor-3rd-movement",
@@ -2518,7 +2684,9 @@
       "attributionRequired": true,
       "attributionText": "\"Sergei Rachmaninoff - Concerto 1 in F sharp minor, 3rd movement\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 8.7
+      "gainDb": 8.7,
+      "sha256": "e2bd8520d0fad01e31a6eb2a3194a24c8e1b85752c4c131dd8d38da6f8bf0cf9",
+      "bytes": 9012323
     },
     {
       "id": "mahler-symphony-no-6-andante-moderato",
@@ -2535,7 +2703,9 @@
       "attributionRequired": true,
       "attributionText": "\"Mahler Symphony No 6 Andante Moderato\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "5c2a950a2d950e1a218cfc56e00b54ce39cfbd13b9e271801da206dacbac6351",
+      "bytes": 16728217
     },
     {
       "id": "mahler-symphony-no-2-iv-urlicht",
@@ -2551,7 +2721,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "e71a9b12c9b9cedf076c49cd9c49b0c10b70c73fb624883dc0eb27f8b2547ffb",
+      "bytes": 3697912
     },
     {
       "id": "mahler-symphony-no-2-ii-andante-moderato",
@@ -2567,7 +2739,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "3dee1f21a5d5d0b03c99a53446ba244ed7621dec090b6c416763e64e4c49cfe3",
+      "bytes": 7763165
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-1-overt",
@@ -2584,7 +2758,9 @@
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 1 (Overture)\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 0.3
+      "gainDb": 0.3,
+      "sha256": "7f518d458c38536258176d972e2ec9684e150968b73be1630aac2a0fb5f178c5",
+      "bytes": 1379715
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-5-minue",
@@ -2601,7 +2777,9 @@
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 5 (Minuet)\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.4
+      "gainDb": -0.4,
+      "sha256": "0e6976371fd4d722b935ce986e6a64c334d9cbc0899fa6aaa3f388a68d8bc522",
+      "bytes": 1124463
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-3-peace",
@@ -2618,7 +2796,9 @@
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 3 (Peace)\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "126b475af92c22cc04fce80e39455696fa46223373e6920fd301c8f1289a6ef3",
+      "bytes": 1656093
     },
     {
       "id": "george-frideric-handel-music-for-the-royal-fireworks-4-la-re",
@@ -2635,7 +2815,9 @@
       "attributionRequired": true,
       "attributionText": "\"George Frideric Handel - Music for the Royal Fireworks 4 (La Rejouissance)\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.4
+      "gainDb": -1.4,
+      "sha256": "dcf4cea987b07171a6e80cfff32133f3f71f96c6482ff600728687d74f098b86",
+      "bytes": 1029461
     },
     {
       "id": "handel-messiah-44-hallelujah",
@@ -2652,7 +2834,9 @@
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 44 hallelujah\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.2
+      "gainDb": 2.2,
+      "sha256": "5e784d79e140a102bb4ac268ed37a56168545a51bc2901306312e007c4e7ad6d",
+      "bytes": 3388072
     },
     {
       "id": "handel-messiah-01-sinfony-new-version-deleted-3-coughs",
@@ -2669,7 +2853,9 @@
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 01 sinfony - New version (deleted 3 coughs)\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -2.2
+      "gainDb": -2.2,
+      "sha256": "49423d20f416c54b8a94b1de90935193029071f82104b60649b3a84189e06d57",
+      "bytes": 8955325
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-v-",
@@ -2685,7 +2871,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.4
+      "gainDb": -0.4,
+      "sha256": "7f35e5cadb2fc0a3fd0158a64c87814e6821dfef806ab46e561a94f6cc301a15",
+      "bytes": 1386268
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-i-",
@@ -2701,7 +2889,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 0.2
+      "gainDb": 0.2,
+      "sha256": "75c87690734c24d4d33218a8c8ac6e65ad625c38e1df152a391f0d1703aff711",
+      "bytes": 1713414
     },
     {
       "id": "handel-messiah-hallelujah-by-oratorio-chorus",
@@ -2717,7 +2907,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.3
+      "gainDb": -1.3,
+      "sha256": "4eb52221d866107ced5031bcd4559ceda578dcb5743f0dfc4ff795dfb4950da4",
+      "bytes": 1781664
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-iv",
@@ -2733,7 +2925,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.4
+      "gainDb": -1.4,
+      "sha256": "1dc8555e49f6b16dc6cffd016f1cc16b0dfdd29761d69dcebc41f7ed0fd46150",
+      "bytes": 1295870
     },
     {
       "id": "paul-ayres-handel-s-music-for-the-royal-fireworks-hwv-351-ii",
@@ -2749,7 +2943,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "982ec4308f613e2a9e245566acc48409b1c0027a2e5a9ab151807018b5507833",
+      "bytes": 1978294
     },
     {
       "id": "handel-messiah-part-2-scherchen-45-hallelujah",
@@ -2765,7 +2961,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 0.4
+      "gainDb": 0.4,
+      "sha256": "3d7b91e7f26015b91497af52e74a256784fc35bc4d8f8ec7b7a70525fda5f19a",
+      "bytes": 1400522
     },
     {
       "id": "handel-messiah-23-he-was-despised",
@@ -2782,7 +2980,9 @@
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 23 he was despised\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "168ff9356dd21471e15f5bfb257f900e417d9a9cbb7354d55cd9f9a2eb80575b",
+      "bytes": 7508036
     },
     {
       "id": "handel-messiah-part-1-scherchen-01-sinfony",
@@ -2798,7 +2998,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.2
+      "gainDb": -1.2,
+      "sha256": "38fda77cd308c490516fbde3db63e2b8e8a11631ec4f476f7ba6ac2065992a5a",
+      "bytes": 1892959
     },
     {
       "id": "handel-messiah-01-sinfony",
@@ -2815,7 +3017,9 @@
       "attributionRequired": true,
       "attributionText": "\"Handel - messiah - 01 sinfony\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 8.4
+      "gainDb": 8.4,
+      "sha256": "f02f0b63781a23954f464367ccb8e451c6be25eddc0fc0b94d45fb647f6856ad",
+      "bytes": 3396414
     },
     {
       "id": "haydn-symphony-no-94-surprise-2-andante",
@@ -2831,7 +3035,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "f11c47f87f3c1ae1446064bc8089153a1c539dee8f2596012f1e98ad2f5e48b2",
+      "bytes": 5707174
     },
     {
       "id": "haydn-symphony-no-94-surprise-1-adagio-vivace-assai",
@@ -2847,7 +3053,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "0a3c287421e38bbaaea215212d9a198fc6587b9e8620efc3afe7e4616bfe0952",
+      "bytes": 4252802
     },
     {
       "id": "haydn-symphony-no-94-surprise-4-finale-allegro-molto",
@@ -2863,7 +3071,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "fda2660a3a1354acb5fcc721f7374ac13d8025b6c9df95f4f0796861422ee55c",
+      "bytes": 3016542
     },
     {
       "id": "haydn-symphony-no-94-surprise-3-menuetto-allegro-molto",
@@ -2879,7 +3089,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.6
+      "gainDb": 2.6,
+      "sha256": "95781f8f23f360da99802371fb0b039dd483171b8aa44979b7ad2691e84456f8",
+      "bytes": 2968299
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-2-allegretto",
@@ -2895,7 +3107,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5
+      "gainDb": 5,
+      "sha256": "cae6a83c58e57862c741fe2b6d45feb073192ad5a76a2f180937aa3fc43a9c0a",
+      "bytes": 3644638
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-3-menuetto-moderat",
@@ -2911,7 +3125,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.7
+      "gainDb": 2.7,
+      "sha256": "02a16c145ab3367003e92b6d5ea511fadba5d6ad3ff0b732df14bab10b089905",
+      "bytes": 2939079
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-1-adagio-allegro",
@@ -2927,7 +3143,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.9
+      "gainDb": 5.9,
+      "sha256": "05f28a59b7edb8f7b1ca7869700017f9495b420b6021cb3e76a7c22ccc559f4f",
+      "bytes": 4946256
     },
     {
       "id": "haydn-symphony-no-100-in-g-major-military-4-finale-presto",
@@ -2943,7 +3161,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 1
+      "gainDb": 1,
+      "sha256": "1659c6ab4dda2556c23b15dc9e6070d813cbef635abadb601af941ae22c27ecc",
+      "bytes": 3010693
     },
     {
       "id": "haydn-surprise-symphony-second-movement",
@@ -2960,7 +3180,9 @@
       "attributionRequired": true,
       "attributionText": "\"Haydn Surprise Symphony Second Movement\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.7
+      "gainDb": 4.7,
+      "sha256": "8e146c2634c9c4771a119732ce421ddfc30f231f81780d95a1ff3673a737a5d0",
+      "bytes": 4492351
     },
     {
       "id": "pdp-ch-london-symphony-orchestra-bruno-walter-symphony-no-9-",
@@ -2976,7 +3198,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.7
+      "gainDb": 2.7,
+      "sha256": "fb8c2657e67a99c8fcabab91e84f4b5eaa3efc0a4a3a31d3a7f1c97515a0cb42",
+      "bytes": 140274058
     },
     {
       "id": "the-evergreen-symphony-orchestra-haydn-s-symphony-no-104-in-",
@@ -2993,7 +3217,9 @@
       "attributionRequired": true,
       "attributionText": "\"The Evergreen Symphony Orchestra - Haydn's Symphony No.104 in D major, Hob.I-104 - II. Andante\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "8a4f504efeafb91d7b4700fbda119e2de4fa8ddc9b0e1736563fd32581f9b702",
+      "bytes": 7492203
     },
     {
       "id": "dvorak-antonin-symphony-no-8-op-88-2-adagio",
@@ -3010,7 +3236,9 @@
       "attributionRequired": true,
       "attributionText": "\"Dvořák, Antonin — Symphony No. 8, Op. 88 — 2. adagio\", via Wikimedia Commons, CC BY 3.0 us",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.1
+      "gainDb": 5.1,
+      "sha256": "42ba27179de4cd325855a3af7ec059f6ae3a758dfaad34255e0cf4b3e56dd619",
+      "bytes": 7234471
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-allemande",
@@ -3027,7 +3255,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Allemande\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.3
+      "gainDb": 4.3,
+      "sha256": "90b6616c3d53c1ee653e4648cc7d5ee85013624b55f6d350d90d10890dc710e5",
+      "bytes": 5052493
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-prelude",
@@ -3044,7 +3274,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Prelude\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.6
+      "gainDb": 7.6,
+      "sha256": "2f27d08dbe734de19160a1ee3109a811a668be5314b1253d281b2ee6861d7d25",
+      "bytes": 2672071
     },
     {
       "id": "bach-cello-suite-1-prelude-bwv-1007-played-by-chris",
@@ -3060,7 +3292,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.4
+      "gainDb": -0.4,
+      "sha256": "1e50d9e513c37725e8d8f378787a87330b040505ec679f9e919b01f2f4eae25f",
+      "bytes": 8025732
     },
     {
       "id": "bach-cello-suite-bwv-1008-gigue",
@@ -3077,7 +3311,9 @@
       "attributionRequired": true,
       "attributionText": "\"Bach Cello Suite BWV 1008 Gigue\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "ba78e1cf168bad91a3d29ff88a487a9be1d5b0723643931deb97d7e879fe0609",
+      "bytes": 2565360
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude-lud-and-",
@@ -3094,7 +3330,9 @@
       "attributionRequired": true,
       "attributionText": "\"Bach - Cello Suite no. 1 in G major, BWV 1007 - I. Prélude, Lud and Schlatts Musical Emporium\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.2
+      "gainDb": 3.2,
+      "sha256": "6e05294b5cd930fac213a81f61816e99c8a360f4699f167baca51baeedcd4407",
+      "bytes": 4092616
     },
     {
       "id": "bach-cello-suite-no-5-1-prelude",
@@ -3111,7 +3349,9 @@
       "attributionRequired": true,
       "attributionText": "\"Bach - Cello Suite No. 5 - 1. Prelude\", via Wikimedia Commons, CC BY-SA 2.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "ab03caa6c70fafa83056951965ef82d3a19996c5aa207e9d6e16e8b1504b671c",
+      "bytes": 9176608
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-sarabande",
@@ -3128,7 +3368,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Sarabande\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.9
+      "gainDb": 4.9,
+      "sha256": "92571b598f0e449c5529ef4649e49afc5fe5f66d3e846020f70a8127facf6dd7",
+      "bytes": 2395219
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-minuets",
@@ -3145,7 +3387,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Minuets\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.2
+      "gainDb": 6.2,
+      "sha256": "d9ae8c2a1836ac2115990acf8fd077aaf944b66449081005e5993c23bebef90c",
+      "bytes": 4090887
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-iv-sarabande",
@@ -3161,7 +3405,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.2
+      "gainDb": 7.2,
+      "sha256": "a98a66383722a60129efa591b828617a9541307ccf5df82eb0c4605f8916cb87",
+      "bytes": 6083909
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-prelude",
@@ -3178,7 +3424,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Prelude\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.8
+      "gainDb": 3.8,
+      "sha256": "660334643e53a37ce456f2c25522bdd3db205721720faef76a724ca11549431b",
+      "bytes": 4273376
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-i-prelude",
@@ -3194,7 +3442,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "07a927151e6870bd5892f59aad0459a95096acac92fa282ffceb65dd39eb4908",
+      "bytes": 6286846
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-courante",
@@ -3211,7 +3461,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Courante\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "b66a2c2416913c5e9aab5059c467343a7a4aa6a0ae1d9b432faf3a610b7b7839",
+      "bytes": 2803446
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-ii-allemande",
@@ -3227,7 +3479,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.9
+      "gainDb": 6.9,
+      "sha256": "c0420fdf4426607035c0f71f78a9ca08c6d46be26aab17ca9ee5cf1e69599dd2",
+      "bytes": 9286146
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-vi-gigue",
@@ -3243,7 +3497,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.3
+      "gainDb": 4.3,
+      "sha256": "4cf47292438cb69d62a0148aea0f0c1591ebafb347e7aa5a7a868a6f9c9ca402",
+      "bytes": 4658650
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-iii-courante",
@@ -3259,7 +3515,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.1
+      "gainDb": 5.1,
+      "sha256": "fa1fb88b8c98340c6301eb12018be2bc718e1887df12ee2eb45724aa87f881a2",
+      "bytes": 6415008
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-g-bourees",
@@ -3276,7 +3534,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in G Bourees\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.6
+      "gainDb": 7.6,
+      "sha256": "ffc61dce54fdcbbb07debd458956c6800b0080d1b275c01329289091a124648e",
+      "bytes": 4334849
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-1-in-g-gigue",
@@ -3293,7 +3553,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 1 in G Gigue\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.4
+      "gainDb": 7.4,
+      "sha256": "750627031fec5c657bcc1204a78eac4cfe5df7f628a5e279404afb43585473b1",
+      "bytes": 2094590
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-courante",
@@ -3310,7 +3572,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Courante\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.9
+      "gainDb": 3.9,
+      "sha256": "cdefcdc8972f66a79886b73a94ca19de3744b748cfbda3528e4d1a20766d6e1e",
+      "bytes": 3403534
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-gigue",
@@ -3327,7 +3591,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Gigue\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.7
+      "gainDb": 2.7,
+      "sha256": "c06ce69bf65f551d3827d15607a24357908a49611547b4ed118410d94e9770a5",
+      "bytes": 3689047
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-allemande",
@@ -3344,7 +3610,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Allemande\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.4
+      "gainDb": 3.4,
+      "sha256": "5e855fad20f38e7aaf694a12ec1f9dc9ba9e18d57a6c06153acb768d45add911",
+      "bytes": 4447268
     },
     {
       "id": "john-michel-cello-j-s-bach-cello-suite-3-in-c-sarabande",
@@ -3361,7 +3629,9 @@
       "attributionRequired": true,
       "attributionText": "\"JOHN MICHEL CELLO-J S BACH CELLO SUITE 3 in C Sarabande\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4
+      "gainDb": 4,
+      "sha256": "5e577acbb3dd528a8642add0a92e4488f51969e57014aad96428e7d3f8b91c93",
+      "bytes": 3546118
     },
     {
       "id": "bach-cello-suite-no-1-in-g-major-bwv-1007-v-menuets-i-and-ii",
@@ -3377,7 +3647,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.1
+      "gainDb": 2.1,
+      "sha256": "c4fee9456a73c4acb7e45dcb5ebf30c72cce4ca7fe96c89cc9c3fa950cf7d4b7",
+      "bytes": 8124307
     },
     {
       "id": "kevin-macleod-j-s-bach-cello-suite-1-in-g-on-dulcimer-prelud",
@@ -3394,7 +3666,9 @@
       "attributionRequired": true,
       "attributionText": "\"Kevin MacLeod - J S Bach Cello Suite 1 in G on Dulcimer - Prelude\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -2
+      "gainDb": -2,
+      "sha256": "45f5714cfe89d3a40a3515d9a92ca6ef45c884a0a003bb164196f0967ca278ae",
+      "bytes": 3536067
     },
     {
       "id": "cello-suite-1-in-g-prelude-isrc-usuan1100298",
@@ -3411,7 +3685,9 @@
       "attributionRequired": true,
       "attributionText": "\"Cello Suite -1 in G - Prelude (ISRC USUAN1100298)\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.9
+      "gainDb": -1.9,
+      "sha256": "3eb1dd614883218142bb541f6d50bcd14bc8d1547f4d46b257a90878a998da7b",
+      "bytes": 5248689
     },
     {
       "id": "marc-antoine-charpentier-te-deum-h-146-prelude",
@@ -3427,7 +3703,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3.1
+      "gainDb": -3.1,
+      "sha256": "75fcee0b7bdd9ccde14537f189a25d250a3094b907172db4dd00fdcc900ef63b",
+      "bytes": 2049892
     },
     {
       "id": "te-deum-charpentier",
@@ -3444,7 +3722,9 @@
       "attributionRequired": true,
       "attributionText": "\"Te Deum Charpentier\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 1.9
+      "gainDb": 1.9,
+      "sha256": "4e633532ba5dfd73548bbc91442ebc1189a92256460aede01f4cf2f4251fc496",
+      "bytes": 2164133
     },
     {
       "id": "charpentier-te-deum-prelude",
@@ -3460,7 +3740,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.8
+      "gainDb": -0.8,
+      "sha256": "910001d84607b9b7dbad27df289abf83668f545a347a7e8bb2facc2f9ec3c713",
+      "bytes": 4914185
     },
     {
       "id": "te-deum",
@@ -3476,7 +3758,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3.7
+      "gainDb": -3.7,
+      "sha256": "9937be0c2ed1b6152c7e4fe129851ee3456e3f5d6e9ac7b8843a5c9ef530f956",
+      "bytes": 6161531
     },
     {
       "id": "pasquale-amato-tosca-te-deum",
@@ -3492,7 +3776,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 8
+      "gainDb": 8,
+      "sha256": "0285db202a8c2f8825259df38aa00a27cba3806f600af2488452bae3d494eee2",
+      "bytes": 2363621
     },
     {
       "id": "radio-herrijzend-nederland-3-7-1945-dodenherdenking-in-de-st",
@@ -3508,7 +3794,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "b2e93996193dee9171fc6849228e88274e57e075411bfcdd8e91cabb93ddcf68",
+      "bytes": 425744798
     },
     {
       "id": "cra09583-43-miletin",
@@ -3525,7 +3813,9 @@
       "attributionRequired": true,
       "attributionText": "\"CRA09583-43 Miletín\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 2.5
+      "gainDb": 2.5,
+      "sha256": "3d918649273fb2acbaf08936a1cccc3d0fef0833b7635fac07c867da32fbe6ee",
+      "bytes": 16839518
     },
     {
       "id": "inleiding-staatskoor-van-letland-audio",
@@ -3542,7 +3832,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Staatskoor van Letland (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.4
+      "gainDb": 3.4,
+      "sha256": "48b397cd8ad587100c62fe6b170f75e5e97fda31bcca443099a8379ae653c114",
+      "bytes": 21289086
     },
     {
       "id": "inleiding-le-concert-spirituel-olv-herve-niquet-charpentier-",
@@ -3559,7 +3851,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Le Concert Spirituel olv. Hervé Niquet - Charpentier (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.7
+      "gainDb": 4.7,
+      "sha256": "43b90c2697373eba8e708aee7365af121b6026d699e79b0d39ac7003929b87ad",
+      "bytes": 6600298
     },
     {
       "id": "inleiding-koor-en-orkest-collegium-vocale-gent-olv-philippe-",
@@ -3576,7 +3870,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Koor en Orkest Collegium Vocale Gent olv. Philippe Herreweghe (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "36f545d35a5da31f143a5a642394dc1256f895e3bba22db65da2695359df73ba",
+      "bytes": 21563200
     },
     {
       "id": "inleiding-le-concert-spirituel-herve-niquet-audio",
@@ -3593,7 +3889,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Le Concert Spirituel - Hervé Niquet (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.6
+      "gainDb": 3.6,
+      "sha256": "3e7c2bc6671eb4bb0773a399bcc78fc8747a293bbc9f6d951a3955fc5ec9655f",
+      "bytes": 22858496
     },
     {
       "id": "hmv-da1480-ola1015",
@@ -3609,7 +3907,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "0349abd26bf79dcc84a351ad5d978e7aca30872c591cdd6fa32d6488ee8ccbeb",
+      "bytes": 5017875
     },
     {
       "id": "handel-zadok-the-priest-hwv-258-st-matthew-s-concert-choir",
@@ -3626,7 +3926,9 @@
       "attributionRequired": true,
       "attributionText": "\"Handel - Zadok the Priest, HWV 258 (St Matthew's Concert Choir)\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "cfec573b637ccb99c0ef8cd601980bd4514534dcaae472f7fb67e68da54dd538",
+      "bytes": 4517829
     },
     {
       "id": "inleiding-koor-orkest-collegium-vocale-gent-audio",
@@ -3643,7 +3945,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Koor & Orkest Collegium Vocale Gent (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -2.8
+      "gainDb": -2.8,
+      "sha256": "faeb14096954b56f05214c78922f75931722423895a218aad3fa37496177ee05",
+      "bytes": 19818382
     },
     {
       "id": "inleiding-le-concert-spirituel-olv-herve-niquet-audio",
@@ -3660,7 +3964,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Le Concert Spirituel olv. Hervé Niquet (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7
+      "gainDb": 7,
+      "sha256": "39868a7931ab0ee95e458f2cad6117c7cbed984824a11c818a7623f3bb862133",
+      "bytes": 24249244
     },
     {
       "id": "cra09583-09a-dobruska",
@@ -3677,7 +3983,9 @@
       "attributionRequired": true,
       "attributionText": "\"CRA09583-09a Dobruška\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.3
+      "gainDb": 6.3,
+      "sha256": "d40cc4d718b2f9b10b72fade06b8ea27bf3be5ef9a99e55659ca342ece08411d",
+      "bytes": 21131066
     },
     {
       "id": "cra09583-44-mirotice",
@@ -3694,7 +4002,9 @@
       "attributionRequired": true,
       "attributionText": "\"CRA09583-44 Mirotice\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 1.5
+      "gainDb": 1.5,
+      "sha256": "50fc0e1bf4174e7ea10bfaa8ffb3ddd32354c064fa37cfc0c7294b72df7d4b19",
+      "bytes": 27467188
     },
     {
       "id": "inleiding-anima-eterna-jos-van-immerseel-audio",
@@ -3711,7 +4021,9 @@
       "attributionRequired": true,
       "attributionText": "\"Inleiding Anima Eterna - Jos Van Immerseel (audio)\", via Wikimedia Commons, CC BY 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "314130cf5a82170161906586ca7c8798854526bd5cc26002854a4652fcf8ec7e",
+      "bytes": 25922899
     },
     {
       "id": "cc0-ch-london-brass-players-a-trumpet-voluntary-jeremiah-cla",
@@ -3727,7 +4039,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -7.4
+      "gainDb": -7.4,
+      "sha256": "aaa4b17c14da11398c765faf8a9605bc3f445c41d7b26855076be7e328454953",
+      "bytes": 53445574
     },
     {
       "id": "clarke-trumpet-voluntary",
@@ -3744,7 +4058,9 @@
       "attributionRequired": true,
       "attributionText": "\"Clarke Trumpet Voluntary\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.5
+      "gainDb": -1.5,
+      "sha256": "5f6065b7e83f2a952816142d58419fb1f1bebff1d61f9141624c94301745c783",
+      "bytes": 2463223
     },
     {
       "id": "pdp-ch-the-halle-trumpet-voluntary-columbia-l1986-ax2660",
@@ -3760,7 +4076,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.9
+      "gainDb": 5.9,
+      "sha256": "df1d3b62b1989730cd0667c4861bbf3c61e63c5bde773d5b3ab284292cf352ca",
+      "bytes": 123441018
     },
     {
       "id": "jeremiah-clarke-prince-of-denmarks-march-harpsichord",
@@ -3777,7 +4095,9 @@
       "attributionRequired": true,
       "attributionText": "\"Jeremiah Clarke - Prince of Denmarks March Harpsichord\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "8c35f2ed5405aaa2db02a93017759cd4ad290017ed37b7dd134ff4390f910f22",
+      "bytes": 38150188
     },
     {
       "id": "funeral-march-for-queen-mary-h-purcell-opus",
@@ -3794,7 +4114,9 @@
       "attributionRequired": true,
       "attributionText": "\"Funeral March for Queen Mary - H. Purcell\", via Wikimedia Commons, CC BY 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.8
+      "gainDb": 4.8,
+      "sha256": "3c87a498d8f5ae732768ab952bb9a9ea80eafd39a20c79ac210fdafec5ad243b",
+      "bytes": 2917623
     },
     {
       "id": "columbia-dx1536-cax10357",
@@ -3810,7 +4132,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -7.4
+      "gainDb": -7.4,
+      "sha256": "11377120c9738a37e7b0245d2e8d99de6cb91759bc9322c40acd3f28d69db306",
+      "bytes": 6713105
     },
     {
       "id": "intermezzo-from-goyescas-u-s-marine-band",
@@ -3826,7 +4150,9 @@
       "licenseUrl": "",
       "attributionRequired": false,
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -2.3
+      "gainDb": -2.3,
+      "sha256": "42bc530bea5429bc839374a3a95a3acd43c882de3f0b96c646a84cd870d6cf7a",
+      "bytes": 15925098
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00314b-10-fandanguillo-critica-a-",
@@ -3843,7 +4169,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00314B 10 - Fandanguillo. Crítica a la Iglesia\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 0.8
+      "gainDb": 0.8,
+      "sha256": "de8f21c6665d7a03f5d4d67c6bc1b08741534447fe2609c057216afe41fe8470",
+      "bytes": 909998
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00353-04-fandanguillos",
@@ -3860,7 +4188,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00353 04 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3.7
+      "gainDb": -3.7,
+      "sha256": "937e356067b7040c9bb3d06627e53f2bd9d8e0a3cca0e3019266e27f9a524ac7",
+      "bytes": 894356
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00237-03-fandanguillos",
@@ -3877,7 +4207,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00237 03 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3.6
+      "gainDb": -3.6,
+      "sha256": "a46902f735fcc4ee6eea5527175705cfe2349afb52dc042a305f7cd4ae440571",
+      "bytes": 1187811
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00920-06-fandanguillos",
@@ -3894,7 +4226,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00920 06 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -0.3
+      "gainDb": -0.3,
+      "sha256": "eb752e71e418c688c4e50e85e0cd21e4953c382736c0ff81f512d5977942e975",
+      "bytes": 814860
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00278-04a-fandanguillo",
@@ -3911,7 +4245,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00278 04A - Fandanguillo\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.4
+      "gainDb": -1.4,
+      "sha256": "ccc03a05e57b7017c20522c579c801b4ef08fcb1930a43263d43905cd2d2f3a8",
+      "bytes": 1104796
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00353-16-fandanguillos",
@@ -3928,7 +4264,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00353 16 - Fandanguillos\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -3.1
+      "gainDb": -3.1,
+      "sha256": "8e8c9b009e55d0f90ddc6ba44e995042017acf903c0df5a4bbabf42e26a1d389",
+      "bytes": 1361878
     },
     {
       "id": "fermin-pardo-cinta-315-a",
@@ -3945,7 +4283,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 315-A\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.7
+      "gainDb": 5.7,
+      "sha256": "87065a1147a8ef0f6443845115cbd306b928d54004b300ba38557d4fd51fa5f2",
+      "bytes": 116270354
     },
     {
       "id": "fermin-pardo-cinta-65-b",
@@ -3962,7 +4302,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 65-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "3e0ee57328a38c149f77655c5885207842fe0bf0876e589f153e8bd1521eafb6",
+      "bytes": 51521423
     },
     {
       "id": "fermin-pardo-cinta-53-a",
@@ -3979,7 +4321,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 53-A\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.4
+      "gainDb": 6.4,
+      "sha256": "b842f08dbefa7873dce9ef2d3325841fa38b6cd28a01557524dd99dd0fc87082",
+      "bytes": 36122187
     },
     {
       "id": "fermin-pardo-cinta-275-b",
@@ -3996,7 +4340,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 275-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 3.8
+      "gainDb": 3.8,
+      "sha256": "c9864be320118e46e1d1e071c5466469a6c9f472c38192a8aa8a8e9f53e3418d",
+      "bytes": 224363909
     },
     {
       "id": "fermin-pardo-cinta-147-b",
@@ -4013,7 +4359,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 147-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "43dba09bcd71b290b580f0149a31a33f80bd5bee96e420a14dcdc28bca9ce028",
+      "bytes": 36138270
     },
     {
       "id": "fermin-pardo-cinta-145-a",
@@ -4030,7 +4378,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 145-A\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.8
+      "gainDb": 7.8,
+      "sha256": "daaafeffe601e8255406d106b7106f23110479e6a6cb2b9deb28dc7423f087c3",
+      "bytes": 37964827
     },
     {
       "id": "fermin-pardo-cinta-146-b",
@@ -4047,7 +4397,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 146-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 9
+      "gainDb": 9,
+      "sha256": "b670806608922afece9cc745bbe6ecbfd0a457feafa0cf44b6128faf9bcf6180",
+      "bytes": 36247935
     },
     {
       "id": "fermin-pardo-cinta-144-b",
@@ -4064,7 +4416,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 144-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 4.1
+      "gainDb": 4.1,
+      "sha256": "10b18471be61fd365840ed2b07cdd9546ae11212d08b9d037a84f2e232e00311",
+      "bytes": 36441013
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00585b-19-el-pernales",
@@ -4081,7 +4435,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00585B 19 - El Pernales\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 0.3
+      "gainDb": 0.3,
+      "sha256": "e24a7387dce8f015b59f1ec3becc3dc2bc282ce0e6a99c3f2407a36e69d3341c",
+      "bytes": 4489545
     },
     {
       "id": "fermin-pardo-cinta-315-b",
@@ -4098,7 +4454,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 315-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 6.8
+      "gainDb": 6.8,
+      "sha256": "973c4d9f13be5f538a7eca453cc35bead930c5e735d738caa8b2805818d89dc7",
+      "bytes": 114911729
     },
     {
       "id": "fermin-pardo-cinta-26-b",
@@ -4115,7 +4473,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 26-B\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 7.9
+      "gainDb": 7.9,
+      "sha256": "4db65846158aea06310f650591cffc555d4f25be562d2a5016863a8b96b24da5",
+      "bytes": 36357554
     },
     {
       "id": "fermin-pardo-cinta-60-a",
@@ -4132,7 +4492,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fermín Pardo - Cinta 60-A\", via Wikimedia Commons, CC BY-SA 4.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": 5.9
+      "gainDb": 5.9,
+      "sha256": "fc0b121440a9b84145b464eeffd16b7692280b2dab4c790b625722c9f3801eb0",
+      "bytes": 35880636
     },
     {
       "id": "fundacion-joaquin-diaz-ato-00920-15-fandango",
@@ -4149,7 +4511,9 @@
       "attributionRequired": true,
       "attributionText": "\"Fundación Joaquín Díaz - ATO 00920 15 - Fandango\", via Wikimedia Commons, CC BY-SA 3.0",
       "note": "Added by tools/source-radio.mjs - composer/era not filled in, review before treating as finished.",
-      "gainDb": -1.5
+      "gainDb": -1.5,
+      "sha256": "78a318b22125b0b53619d8a3af78a5dc05e8c825c6fe0a565fb201b8d7be7830",
+      "bytes": 1339906
     }
   ]
 }
