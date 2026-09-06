@@ -86,7 +86,8 @@
       "painted-river-port.plaster-wall-section",
       "painted-river-port.timber-doorway-section",
       "painted-river-port.clinker-rowboat",
-      "painted-river-port.pier-section"
+      "painted-river-port.pier-section",
+      "painted-river-port.quay-wall"
     ],
     "reviewState": "Crossing authoring pack; per-room omissions remain explicit",
     "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
@@ -1867,8 +1868,9 @@
             0.15909090909090906,
             0.16477272727272727
           ],
-          "lift": -0.18350000679493,
-          "yawDegrees": 90
+          "lift": 0,
+          "yawDegrees": 90,
+          "alignTop": true
         },
         {
           "assetId": "painted-river-port.pier-section",
@@ -1893,8 +1895,9 @@
             0.16477272727272727,
             0.15909090909090906
           ],
-          "lift": -0.18350000679493,
-          "yawDegrees": 0
+          "lift": 0,
+          "yawDegrees": 0,
+          "alignTop": true
         },
         {
           "assetId": "painted-river-port.clinker-rowboat",
@@ -1934,6 +1937,115 @@
           ],
           "lift": -1.08,
           "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-25",
+      "descriptionHash": "39633d5925c5127a",
+      "status": "partial-authored",
+      "evidence": "Trollferry Approach is an intersection leading toward a built-up river embankment and old pier. Shared place description is composed as one approach sequence, not duplicate piers in every room.",
+      "placementPolicy": "The actual 1-25 west to 1-26 west to 1-32 graph determines the approach sequence. Stone retaining construction and cobbled paving are explicit artistic interpretations.",
+      "missing": [
+        "source-specific paving and bank weathering",
+        "east street continuation"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-street",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-26",
+      "descriptionHash": "39633d5925c5127a",
+      "status": "partial-authored",
+      "evidence": "Trollferry Approach is an intersection leading toward a built-up river embankment and old pier. Shared place description is composed as one approach sequence, not duplicate piers in every room.",
+      "placementPolicy": "The actual 1-25 west to 1-26 west to 1-32 graph determines the approach sequence. Stone retaining construction and cobbled paving are explicit artistic interpretations.",
+      "missing": [
+        "source-specific paving and bank weathering",
+        "society building frontage and threshold",
+        "north approach continuation"
+      ],
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-street",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.quay-wall",
+          "center": [
+            -0.47670454545454544,
+            -0.3963068181818181
+          ],
+          "envelope": [
+            0.056818181818181816,
+            0.20738636363636362
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "alignTop": true
+        },
+        {
+          "assetId": "painted-river-port.quay-wall",
+          "center": [
+            -0.47670454545454544,
+            -0.18892045454545453
+          ],
+          "envelope": [
+            0.056818181818181816,
+            0.20738636363636362
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "alignTop": true
+        },
+        {
+          "assetId": "painted-river-port.quay-wall",
+          "center": [
+            -0.47670454545454544,
+            0.18892045454545453
+          ],
+          "envelope": [
+            0.056818181818181816,
+            0.20738636363636362
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "alignTop": true
+        },
+        {
+          "assetId": "painted-river-port.quay-wall",
+          "center": [
+            -0.47670454545454544,
+            0.3963068181818181
+          ],
+          "envelope": [
+            0.056818181818181816,
+            0.20738636363636362
+          ],
+          "lift": 0,
+          "yawDegrees": 90,
+          "alignTop": true
         }
       ]
     }

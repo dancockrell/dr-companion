@@ -205,6 +205,63 @@
 		},
 		{
 			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.quay-wall",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-1.99000000953674,
+					0.0,
+					-0.440000176429749
+				],
+				"size": [
+					3.98000001907349,
+					1.4375,
+					0.880000352859497
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "architecture",
+			"forwardAxis": "-Z",
+			"geometryGlb": "quay-wall.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"stone0",
+				"stone1",
+				"stone9",
+				"stone6",
+				"stone7",
+				"stone8",
+				"stone10",
+				"stone3"
+			],
+			"meshInstances": 24.0,
+			"nativeNode": "painted_quay_wall",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "c25e124feaa1721e3992b346bdb15fc41dfb21d5f61717e2f4ec37b59e43251c",
+			"sockets": {
+				"join_a": [
+					2.0,
+					-0.0125000029802322,
+					-0.00000017484555314
+				],
+				"join_b": [
+					-2.0,
+					-0.0125000029802322,
+					0.00000017484555314
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 672.0
+		},
+		{
+			"admissionStatus": "candidate",
 			"assetId": "painted-river-port.pier-section",
 			"assetKind": "model",
 			"bounds": {
@@ -2016,7 +2073,7 @@
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
 	"revision": "a3b714f07edfc6ff4055ebf5c535a3f03efc2695",
-	"runtimeSha256": "e3a574138ff651c55e3f3c5c61cf22df71776d62a537ad47e76fc0dde8d3e9f9",
+	"runtimeSha256": "45e07157e00669bed39d6a9f5469aeed2c8b390452d19d2521cdebf7b340de97",
 	"sourceSha256": "ecbf5468d80915f17e02d2f6f20bd50105fe03841c2d256ff1b846164299e342",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }

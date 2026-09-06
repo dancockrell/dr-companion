@@ -173,6 +173,10 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 			model.free()
 			model = tiled
 		model.set_meta("inspection_cover", placement.get("inspectionCover", false))
+		if placement.get("alignTop", false):
+			# Caps and approach boards align by measured native bounds after
+			# fitting. Never bake a height from one asset version into its room.
+			model.position.y = ground_top + float(placement.lift) - float(dimensions[1]) * model.scale.y
 		model.set_meta("composition_role", placement.get("role", "furnishing"))
 		if placement.has("exitMove"):
 			var move: String = placement.exitMove

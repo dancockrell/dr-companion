@@ -142,6 +142,17 @@ func _run() -> void:
 		check(boat.position.y < water.position.y and boat.end.y > water.position.y, "Dinghy hull crosses the declared waterline")
 		check(boat.end.y < deck_top, "Dinghy gunwale stays below the raised pier deck")
 	quay.free()
+	var bank: Node3D = content.build_room_composition(cells["1-26"])
+	for index in range(1, bank.get_child_count()):
+		var cap := _bounds(bank.get_child(index), bank)
+		check(absf(cap.end.y - registry.block_top_y(cells["1-26"])) < 0.001, "Retaining caps meet the street surface after native fitting")
+		check(cap.end.z <= -1.499 or cap.position.z >= 1.499, "Embankment leaves a three-metre clear opening to the pier")
+	bank.free()
+	for pair in [["1-25", "1-26"], ["1-26", "1-32"]]:
+		var east: Dictionary = cells[pair[0]]
+		var west: Dictionary = cells[pair[1]]
+		check(east.position.z == west.position.z and east.position.x > west.position.x, "Approach rooms follow the true westward street sequence")
+		check(is_equal_approx(registry.block_top_y(east) + float(east.position.y), registry.block_top_y(west) + float(west.position.y)), "Approach standing surfaces meet at equal world height")
 	var water_recipe: Dictionary = content._room_compositions["1-32"]
 	water_recipe.pieces[0].surfaceKind = "unregistered-fake-river"
 	check(content.build_room_composition(cells["1-32"]) == null, "Unknown authored surface refuses whole composition")

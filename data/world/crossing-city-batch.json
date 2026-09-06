@@ -6,7 +6,7 @@
     "directedExits": 2389,
     "descriptions": 976,
     "missingDescriptions": 84,
-    "partialRecipes": 20,
+    "partialRecipes": 22,
     "complete": 0,
     "compassMismatches": 493,
     "sourceCompassMismatches": 2
@@ -4235,10 +4235,15 @@
           "status": "requires-design-review"
         }
       ],
-      "currentModels": [],
+      "currentModels": [
+        "painted-river-port.cobble-street"
+      ],
       "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "recipeStatus": "partial-authored",
+      "remainingRecipeWork": [
+        "source-specific paving and bank weathering",
+        "east street continuation"
+      ],
       "connections": [
         {
           "command": "east",
@@ -4325,10 +4330,20 @@
           "status": "requires-design-review"
         }
       ],
-      "currentModels": [],
+      "currentModels": [
+        "painted-river-port.cobble-street",
+        "painted-river-port.quay-wall",
+        "painted-river-port.quay-wall",
+        "painted-river-port.quay-wall",
+        "painted-river-port.quay-wall"
+      ],
       "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "recipeStatus": "partial-authored",
+      "remainingRecipeWork": [
+        "source-specific paving and bank weathering",
+        "society building frontage and threshold",
+        "north approach continuation"
+      ],
       "connections": [
         {
           "command": "north",

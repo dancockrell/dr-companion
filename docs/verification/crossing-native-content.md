@@ -400,6 +400,32 @@ silently enlarge scenery beyond known bounds.
 
 ## Reproduce
 
+### Trollferry bank and street continuation
+
+Rooms `1-25` and `1-26` now continue into `1-32` as one description-led approach
+sequence. Their shared place description is not repeated as a separate pier
+in each room. Both approach rooms receive fitted street ground; four measured
+retaining-wall sections form the river-facing edge of `1-26`, leaving a 3 m
+opening for the 2.9 m pier approach. East/west room centers follow the actual
+graph and their standing surfaces have equal world height. The standard room
+gutter remains; no additional movement commands are created.
+
+Stone retaining construction and cobbled paving are explicitly inferred art
+choices, not claims that the description specifies those materials. Bank wear,
+the north and east continuations, and society building frontage/threshold are
+still missing. The native selection now contains 34 models; the city inventory
+contains 22 partial recipes and zero approved-complete rooms.
+
+The reusable `alignTop` placement flag derives cap/board elevation from the
+fitted native bounds rather than a copied asset height. It is used by the new
+bank caps and the quay's plank approaches. Tests verify caps meet street
+height, the bank opening is clear, and the connected room surfaces agree.
+The 18-script Godot suite passed 4,355 checks for this checkpoint.
+The updated quay view was rendered and inspected. The bank now joins the pier
+approach at the intended opening, but the broad street surfaces look repetitive
+and under-dressed. Their material treatment needs refinement before visual
+approval; the neighboring south waterfront also remains an unbuilt placeholder.
+
 ### Trollferry Quay composition checkpoint
 
 Room `1-32` now uses its description-hash-bound pier and dinghy composition.
