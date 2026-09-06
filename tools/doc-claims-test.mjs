@@ -342,6 +342,91 @@ const pkg = JSON.parse(read('package.json'))
   ok('Console.tsx imports the set rather than redeclaring it', /import \{[^}]*PROBLEM_KINDS[^}]*\} from '\.\.\/\.\.\/lib\/bugReport\.ts'/.test(console_) && !/^\s*const PROBLEM_KINDS\s*=/m.test(console_))
 }
 
+// --------------------------------------------------------------------------
+// K. The password claim, in both directions.
+// --------------------------------------------------------------------------
+// Lane N makes this app perform the account login itself
+// (docs/LICH_NATIVE_LOGIN.md §5), which turned four written promises false at
+// once. This section stops them being written again, and it is the clearest
+// case in the file of a claim with an authority to check it against:
+//
+//   1. the retired sentences must be gone from every document and component;
+//   2. the replacement must actually be present, word for word - or (1) is
+//      satisfied just as well by saying nothing at all;
+//   3. and the sentence's load-bearing half, "not stored", is checked against
+//      the persistence layer rather than taken on trust.
+{
+  /** The sentence docs/PRIVACY.md, LichLauncher.tsx and SettingsSheet.tsx share. */
+  const TRUE_CLAIM = 'held only in memory, and not stored unless you later ask for it'
+
+  /**
+   * Claims that were true before the app signed players in, and are not now.
+   * Each is the literal text that stood in the tree, so a match is a
+   * regression rather than a near-miss.
+   */
+  const RETIRED = [
+    'never sent anywhere by this app',
+    'never passes through here',
+    'never reaches this app at all',
+    'never touches the password',
+    'never sees your password',
+  ]
+
+  // The population is every document above plus every component, because a
+  // promise in the UI is read by far more people than a promise in a doc.
+  const componentFiles = []
+  const walkComponents = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name)
+      if (entry.isDirectory()) walkComponents(p)
+      else if (/\.tsx?$/.test(entry.name)) componentFiles.push(p)
+    }
+  }
+  walkComponents('src/components')
+  const population = [...DOCS, 'docs/ENGINE.md', ...componentFiles]
+  ok('the password-claim scan found files to read', population.length >= 40, `${population.length} file(s)`)
+
+  // Whitespace-flattened, because the same sentence is wrapped differently in
+  // Markdown prose, in a JSX text node and in a comment - and a check that
+  // could only see one of the three would be green on the two that matter.
+  const flat = (s) => s.replace(/[\s*_`]+/g, ' ')
+  const offenders = []
+  for (const f of population) {
+    const src = flat(read(f))
+    for (const phrase of RETIRED) if (src.includes(phrase)) offenders.push(`${f}: "${phrase}"`)
+  }
+  ok('no document or component still says the app never sees the password', offenders.length === 0, offenders.join('; '))
+
+  // The other direction. Without it, deleting the paragraph passes.
+  const saysIt = population.filter((f) => flat(read(f)).includes(TRUE_CLAIM))
+  ok('the true sentence is stated where the retired one stood', saysIt.length >= 3, `${saysIt.length} file(s): ${saysIt.join(', ')}`)
+  ok('PRIVACY.md names the account server the password goes to', read('docs/PRIVACY.md').includes('eaccess.play.net'))
+
+  // 3. "not stored", against the code rather than the prose. The denominator
+  //    is the prefs interface's own field list: if the extractor breaks, "no
+  //    password key" is exactly what it reports, and so does a clean file.
+  const prefs = read('src/lib/persistence.ts')
+  const fields = [...prefs.matchAll(/^\s{2}([A-Za-z][A-Za-z0-9_]*)\??:/gm)].map((m) => m[1])
+  ok('the persisted-preference extractor found fields', fields.length >= 10, `${fields.length} field(s)`)
+  const SECRETISH = /pass(word|wd)?$|^pw$|secret|credential/i
+  const stored = fields.filter((f) => SECRETISH.test(f))
+  ok('no persisted preference is a password', stored.length === 0, stored.join(', ') || `${fields.length} field(s) checked`)
+
+  // Positive control, on a fixture rather than on the tree: the account name
+  // is stored and must not be flagged, a password field must be. The real
+  // file has no `accountName` yet - N5 adds it with the sign-in screen - so
+  // the control is the only thing here that can prove the matcher fires at
+  // all, and without it every result above is compatible with a dead regexp.
+  const fixture = 'export interface PersistedPrefs {\n  accountName: string\n  password: string\n}\n'
+  const fixtureFields = [...fixture.matchAll(/^\s{2}([A-Za-z][A-Za-z0-9_]*)\??:/gm)].map((m) => m[1])
+  const fixtureFlagged = fixtureFields.filter((f) => SECRETISH.test(f))
+  ok(
+    'the persistence matcher catches a password field, and spares the account name',
+    fixtureFields.length === 2 && fixtureFields.includes('accountName') && fixtureFlagged.join(',') === 'password',
+    `fixture fields [${fixtureFields.join(', ')}], flagged [${fixtureFlagged.join(', ')}]`,
+  )
+}
+
 console.log(`\n${checked} checked, ${failed} failed` + (skipped.length ? `, ${skipped.length} not checked` : ''))
 if (checked < 12) {
   console.log('REFUSING TO REPORT A RESULT: too few checks ran for a pass to mean anything.')

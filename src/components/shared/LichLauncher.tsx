@@ -7,19 +7,22 @@
  * app with a manual step in front of it, and the manual step is where everyone
  * stopped.
  *
- * # The password is not ours
+ * # The password never goes on a command line
  *
  * Lich will accept an account and password as command-line arguments. This app
  * does not use them and will not. A password on a command line is readable by
- * every other process on the machine and ends up in crash dumps and logs.
+ * every other process on the machine and ends up in crash dumps and logs. That
+ * part has not changed and will not.
  *
- * So the first launch opens **Lich's own login window** and stops there. The
- * player types their details into the program that is supposed to have them,
- * Lich saves the entry itself, and from then on this app starts it by
- * character name with no secret involved anywhere.
- *
- * That is a deliberate ceiling on what this button does. It could be one click
- * instead of two, and it would have to hold a password to get there.
+ * What has changed is the sentence that used to stand here: that this app never
+ * holds a password at all. Lich's own login window cannot complete a sign-in on
+ * this machine, the third-party client that filled that gap was retired on
+ * 6 September 2026, and Lane N of `docs/PLAN_TO_1_0.md` therefore makes this app
+ * perform the eaccess handshake itself. The password is typed here, sent to
+ * Simutronics and nowhere else, held in memory for one sign-in in
+ * `src-tauri/src/credentials.rs`'s `Secret` - which overwrites its own bytes on
+ * drop - and not stored unless the player later asks for it. `docs/PRIVACY.md`
+ * and `docs/LICH_NATIVE_LOGIN.md` §5 are the authorities on that.
  *
  * # Three states, not two
  *
@@ -295,15 +298,19 @@ export function LichLauncher() {
             </p>
           )}
 
-          {/* Two different true statements, and saying the wrong one is worse
-            * than saying nothing: promising "Lich's own window" on a machine
-            * where that window cannot sign in points at a door that is
-            * bricked up. The constant across both is the part that actually
-            * matters - this app never handles the password. */}
+          {/* Both branches used to end on a promise that the app never
+            * handles the password at all.
+            * One of them still can, because when Lich's own window works the
+            * password really does stay there. The other cannot: there is no
+            * longer any other program in that path, so the app signs the
+            * player in itself. The sentence below is the one docs/PRIVACY.md
+            * states, kept word for word so the two cannot drift, and
+            * tools/doc-claims-test.mjs checks it against what is persisted.
+            * N5 replaces this panel with the sign-in screen and keeps it. */}
           <p className="text-xs leading-snug text-ink-faint">
             {status.guiLoginUsable
               ? "Your password is typed into Lich's own window and stays there. This app never sees it, and starting a saved character needs only the name."
-              : 'This app never sees your password either way. It is typed into Genie, which is where it already lives, and never passes through here.'}
+              : 'Your password is typed into this app, used once to sign in to Simutronics, held only in memory, and not stored unless you later ask for it.'}
           </p>
 
           {/* Always offered, not only after a failed launch. A character
