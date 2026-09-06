@@ -1,11 +1,18 @@
 /**
- * The player config panel: one tab per domain, and the Genie import.
+ * The player config panel: one tab per domain, the Genie import, and the
+ * whole-store transfer.
  *
- * The shell, deliberately. Q1 owns the store, the schema, the migration and
- * the import; Q2, Q3, Q4 and Q6 fill the tabs. Every tab therefore names the
- * increment that will fill it rather than showing an empty form, so the gap is
- * on screen where a player and a session can both see it, instead of only in a
- * planning document.
+ * The shell, deliberately. Q1 owned the store, the schema, the migration and
+ * the Genie import; Q2, Q3 and Q4 filled the seven tabs and Q6 added the
+ * transfer section below them. Every tab used to name the increment that would
+ * fill it rather than showing an empty form, so the gap was on screen rather
+ * than only in a planning document; all seven have editors now, and the
+ * placeholder line is each tab's one-sentence description.
+ *
+ * The transfer section is not an eighth tab on purpose. The tab strip is keyed
+ * on `DOMAINS`, which is the denominator every check in
+ * `tools/player-config-test.mjs` counts against, and a tab that is not a domain
+ * would make "seven tabs" mean two things.
  *
  * Reachable as `?view=panel&id=config`, like every other dockable panel.
  */
@@ -35,6 +42,7 @@ import { PresetsTab } from './PresetsTab.tsx'
 import { VariablesTab } from './VariablesTab.tsx'
 import { SubstitutesTab } from './SubstitutesTab.tsx'
 import { GagsTab } from './GagsTab.tsx'
+import { ExportImportTab } from './ExportImportTab.tsx'
 
 const TAB_LABEL: Record<Domain, string> = {
   presets: 'Presets',
@@ -102,11 +110,14 @@ export function PlayerConfigPanel() {
       setApplied(null)
       return
     }
-    const { config: merged, report: merge } = mergeImported(loadPlayerConfig(), imported)
+    // `keep-mine`: a second Genie import must not overwrite rules the player
+    // has edited here since the first one. The config document's own import
+    // uses `update`, which is a different question answered by the same merge.
+    const { config: merged, report: merge } = mergeImported(loadPlayerConfig(), imported, 'keep-mine')
     const write = savePlayerConfig(merged)
     resetPlayerConfigCache()
     const added = DOMAINS.reduce((n, d) => n + merge.added[d], 0)
-    const duplicates = DOMAINS.reduce((n, d) => n + merge.duplicates[d], 0)
+    const duplicates = DOMAINS.reduce((n, d) => n + merge.unchanged[d], 0)
     setApplied(
       write.ok
         ? `Added ${added} rules from ${loaded.from}. ${duplicates} were already here and were left alone.`
@@ -275,6 +286,8 @@ export function PlayerConfigPanel() {
           </div>
         )}
       </div>
+
+      <ExportImportTab config={config} />
     </div>
   )
 }

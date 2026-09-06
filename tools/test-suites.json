@@ -46,6 +46,8 @@
   "test:macro-dry-run",
   "test:player-config",
   "test:player-config-import",
+  "test:player-config-transfer",
+  "test:player-config-transfer-break",
   "test:line-rules",
   "test:off-classes",
   "test:stream",

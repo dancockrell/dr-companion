@@ -2218,6 +2218,24 @@ registry admits one. K6 stays `[!]` and names S3.
 
 ### Lane Q — Player config: the client's own macros, aliases, highlights, substitutes, gags, variables and presets
 
+**Complete, 6 September 2026.** Q1–Q6 are `[x]` (#467, #471, #476, #478, #474
+and Q6). What the lane leaves behind: one store, `src/lib/playerConfig.ts`, with
+one localStorage key per domain and one migration that answers in three states;
+seven editors in one panel, each previewing through the resolver the game pane
+itself calls rather than a matcher written for the preview; a read-only Genie
+importer that reports every line it would not take; a file surface,
+`src/lib/playerFiles.ts` over `src-tauri/src/player_files.rs`, that is the only
+thing this app writes with and writes nothing into a Genie install; and one JSON
+document carrying all seven domains between machines, sharing its header and its
+writer with the scene editor's export rather than growing a second of either.
+`docs/PLAYER_CONFIG.md` §§10–13 record what each increment actually landed where
+it differs from the design, and say plainly that where the page and a `verify:`
+line disagree the check is right.
+
+The gap this lane closed, in one sentence: a player without a Genie install
+could not hold a single rule of their own, and now the rules are the app's own
+and leave it as a file they can read.
+
 N6 deleted the editors for all seven, correctly — they edited *Genie's*
 `Config\*.cfg` files and the app no longer routes through Genie — and its own
 PR body wrote down what that costs rather than leaving it to be found:
@@ -2410,14 +2428,102 @@ them instead of writing new ones:
   export still reports the path in the log rather than opening the folder, which
   is a UI increment nobody has claimed.
 
-- [ ] **Q6  Export and import the whole store, and the documents** (≈90)
-  touches: new:src/components/config/ExportImportTab.tsx, new:tools/player-config-export-test.mjs, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, Q5>src-tauri/src/player_files.rs, docs/PLAYER_CONFIG.md, docs/PLAYER_DATA.md, package.json, tools/test-suites.json
+- [x] **Q6  Export and import the whole store, and the documents** (≈90)
+  touches: new:src/lib/exportEnvelope.ts, new:src/lib/playerConfigTransfer.ts, new:src/components/config/ExportImportTab.tsx, new:tools/player-config-transfer-test.mjs, new:tools/player-config-transfer-break-check.mjs, Q1>src/lib/playerConfig.ts, Q1>src/components/config/PlayerConfigPanel.tsx, src/lib/sceneOverrides.ts, tools/player-config-shots.mjs, tools/build-player-data-doc.mjs, README.md, docs/PLAYER_CONFIG.md, docs/PLAYER_DATA.md, docs/PRIVACY.md, docs/SETUP-POLICY.md, package.json, tools/test-suites.json
   depends-on: Q1, Q5
   do: one JSON document for the whole store (`docs/PLAYER_CONFIG.md` §4.2), written into `app_data_dir()/config` through `write_player_file` and read back through `read_player_file`. Import is a **preview then apply**, with the same add/update/skip shape `pinsFile.ts` already uses for pins — never a silent overwrite of rules the player has edited since. A second Genie import is the same preview. Update `docs/PLAYER_DATA.md`'s inventory through its generator so the seven new storage keys are listed rather than discovered, and correct `docs/PLAYER_CONFIG.md` wherever Q2–Q5 landed differently from this design.
   verify: `node tools/player-config-export-test.mjs` → export then import round-trips byte-identically across all seven domains, with the domain count asserted so a store missing a domain cannot round-trip cleanly; an import of a document with an unknown `version` is refused by name rather than half-applied; the preview's counts equal what apply actually changes. `node tools/build-player-data-doc.mjs --check` exits 0. `node tools/plan-audit.mjs` → `plan ok`.
   sabotage: (1) drop one domain from the export → the round-trip reddens naming it. (2) make the import apply without the preview → the count-equality case reddens. (3) accept an unknown `version` → its case reddens.
   pitfalls: 12 (fixing a claim in one place does not fix its copies: the storage-key inventory is generated, so change the generator), 19 (record the command, not the claim: `docs/PLAYER_CONFIG.md` ends by saying the `verify:` lines win where the prose disagrees).
   done-when: a player can carry their whole config to another machine as one file, and a stale `docs/PLAYER_CONFIG.md` fails a check rather than being believed.
+  done: 2026-09-06 minutes: 150 — `dev/wt-q6` off `origin/main` at `ef8018e0`.
+  `npx tsc -b` exit 0; `npm run lint` exit 0 (140 pre-existing React warnings,
+  none in the new files); `DRC_TEST_PORT=8082 node tools/run-tests.mjs`
+  `no failures`, 167 suites, 6510 checks, with the one pre-existing NOT CHECKED
+  line (`test:godot-fixture-contract`); `node tools/plan-audit.mjs` `plan ok`;
+  `node tools/build-player-data-doc.mjs --check` exit 0. `docs/PLAYER_CONFIG.md`
+  §13 is what landed.
+  **The envelope and the writer are shared, not copied.** `src/lib/exportEnvelope.ts`
+  holds `readEnvelope`, and `parseSceneOverrides` (#468) now calls it instead of
+  carrying its own four header refusals — the wording is unchanged, which is
+  what `tools/scene-editor-test.mjs` asserts on, and `SceneExport` extends
+  `ExportEnvelope` so the two documents cannot grow different headers. `shorten`
+  moved with them and `sceneOverrides.ts` aliases the shared one rather than
+  keeping a copy. The writer is Q5's: `exportPlayerConfigToFile` reads the file
+  and writes it in the same breath through `writePlayerFile`, passing what it
+  just read, so `expectedPrevious` has its second caller and there is no second
+  writer.
+  **One merge, three modes, rather than a second merge.** `mergeImported` gained
+  `keep-mine | update | replace-all` and a report of
+  `{added, updated, unchanged, removed}`; the Genie import moved to `keep-mine`
+  and its `duplicates` count is now `unchanged`. Two implementations of "is this
+  the same rule" would have diverged the first time either was improved, and
+  `identityOf` was already one function.
+  **One validator.** Every entry goes through `migratePlayerConfig` and then
+  through the predicate the matching editor calls: `compilePattern` (Q2),
+  `ruleRefusal` (Q4), `isGenieScript` and `isBookkeepingVariable` (Q3). The
+  suite reads the shipping module and asserts it names each of them and builds
+  no `RegExp` of its own, with a control on the same scan.
+  **`tools/player-config-transfer-test.mjs`: 65 checks, 0 failed**, seven
+  domains populated with three entries each and the per-domain count printed.
+  Export→import→export is compared **as strings**; the two-window case runs the
+  shipping export against a fake of `player_files.rs` and is refused by name,
+  with the control immediately after showing the same window succeeds once it
+  has re-read; `added + updated + unchanged + refused` is asserted equal to
+  `inFile` for every domain, with a control that the denominator is not zero.
+  **The sabotage is a committed tool, not a paragraph.**
+  `tools/player-config-transfer-break-check.mjs`, registered in both registries,
+  4 sabotages, 18 checks, 0 failed. It asserts the md5 of each file before and
+  after its own restore rather than this line quoting a value - a hash of a
+  working copy depends on the line endings git last handed out, so a number
+  written here would go stale on the next checkout and read as tampering.
+  Dropping the per-domain validation reddens 4 checks naming
+  the bad highlight and the reserved variable; dropping `expectedPrevious`
+  reddens 5, all of them the two-window case; accepting an unknown version
+  reddens 2. Pointing a case's anchor at text that is not there aborts naming
+  the file rather than passing, proved by running a copy with a drifted anchor.
+  **The fourth sabotage found a real hole and is the reason for a check that was
+  not in the `verify:` line.** Dropping one domain from the serialiser reddened
+  **nothing**: `doc[domain].length` threw, the suite exited non-zero with no
+  FAIL line at all, and a runner counting failures would have called it caught.
+  Byte-identity cannot catch it either — both exports come from the same broken
+  serialiser and agree perfectly. Counting what is present cannot detect what is
+  absent, so the suite carries a manifest check that names the seven domains and
+  a second that compares each domain's restored count against the fixture. The
+  same sabotage now reddens 9 checks and names `gags` three times, and the
+  break-check treats "exited non-zero, reddened nothing" as a failed sabotage
+  rather than a catch.
+  **The browser harness was stale in a way that would have passed.**
+  `tools/player-config-shots.mjs` asserted that an unbuilt tab "names the
+  increment that will fill it", pointed at `substitutes` — which Q4 built. The
+  check was asserting a promise; the property it was protecting is that a tab is
+  never blank, so that is what it asserts now, across all seven, with two
+  controls (it measured seven non-empty bodies; the same read returns 0 for a
+  body that is not there). Q6's own flow was added: export, edit the *text* so
+  the document did not come from this machine, import, read the report.
+  `docs/verification/player-config-2026-09-06-transfer.png`, all passed, against
+  a dev server on 5200 that was killed by the pid it was started with.
+  **Three departures from the lines above, each named.** (1) The test is
+  `player-config-transfer-test.mjs`, not `player-config-export-test.mjs`: it
+  tests the round trip and the merge, not the export. (2) Two library modules
+  were not in `touches:` — `exportEnvelope.ts`, because the alternative was a
+  second header reader, and `playerConfigTransfer.ts`, because putting a file
+  writer and a document parser inside `playerConfig.ts` would have made the
+  store's module the transfer's module too; `src-tauri/src/player_files.rs`
+  needed no change at all, which is the point of Q5. (3) `ExportImportTab.tsx`
+  renders as a section under the tab strip rather than as an eighth tab: the
+  strip is keyed on `DOMAINS`, which is the denominator every check in
+  `player-config-test.mjs` counts against, and a tab that is not a domain would
+  make "seven tabs" mean two things.
+  **Not done here, and named rather than folded in.** Nothing was verified
+  against a running desktop app: the file layer is exercised through a fake of
+  `player_files.rs` (the real one is `cargo test player_files`) and the panel
+  through headless Chrome, where `isTauri()` is false and the two file buttons
+  are deliberately absent. The import applies and then reports, rather than
+  reporting and waiting for a second press; `Replace all` takes the second press
+  instead, because it is the only mode that can delete anything. `reveal_file`
+  is registered and the panel still reports a path in text rather than opening
+  the folder — the same gap the map panel's export has.
 
 **Concurrency.** Q1 first and alone — it publishes the schema everything else
 reads. Then **Q2, Q3, Q4 and Q5 run at the same time**, in four worktrees: Q2
