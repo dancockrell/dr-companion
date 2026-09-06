@@ -148,6 +148,7 @@
   "test:portrait-art",
   "test:dead-produced-values",
   "test:panel-window-lifecycle",
+  "test:window-command-async",
   "test:task-catalog-status",
   "test:game-connection-owner",
   "test:map-keyboard",
