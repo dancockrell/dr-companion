@@ -67,6 +67,8 @@
     "test:location-line": "node tools/location-line-test.mjs",
     "test:first-screen": "node --experimental-strip-types --experimental-test-module-mocks tools/first-screen-test.mjs",
     "test:sign-in": "node --experimental-strip-types tools/sign-in-test.mjs",
+    "test:login-fixture": "node --experimental-strip-types tools/login-error-fixture-test.mjs",
+    "test:lich-lifetime": "node --experimental-strip-types tools/lich-lifetime-test.mjs",
     "sign-in:shots": "node tools/sign-in-shots.mjs",
     "sign-in:break-check": "python tools/sign-in-break-check.py",
     "test:presentation-bridge": "node tools/presentation-bridge-test.mjs",

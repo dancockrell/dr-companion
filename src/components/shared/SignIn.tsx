@@ -62,7 +62,7 @@ import {
   tauriCredentials,
 } from '../../lib/rememberPassword.ts'
 import { RememberPasswordCheckbox } from './RememberPassword.tsx'
-import { attachGame, LICH_STARTUP_WAIT_MS } from '../../lib/gameLink.ts'
+import { attachGame, DEFAULT_ATTACH_PORT, LICH_STARTUP_WAIT_MS } from '../../lib/gameLink.ts'
 import { isTauri } from '../../lib/tauri.ts'
 
 /**
@@ -96,6 +96,14 @@ export function SignIn() {
   const [error, setError] = useState('')
   const [errorDetail, setErrorDetail] = useState('')
   const [launched, setLaunched] = useState('')
+  /**
+   * Whether the last failure was "a Lich is already up" (#488 §3).
+   *
+   * Its own state rather than a string match on `error`: the sentence is prose
+   * and prose gets reworded, which is the same silent breakage `classifyLoginError`
+   * exists to avoid. Set from the classified `kind` and nothing else.
+   */
+  const [alreadyRunning, setAlreadyRunning] = useState(false)
 
   /**
    * The error block, so it can be scrolled to when it appears.
@@ -171,6 +179,10 @@ export function SignIn() {
   const report = (e: unknown) => {
     const { kind, sentence, detail } = classifyLoginError(e)
     setError(sentence)
+    // The offer is keyed on the classified kind, and cleared on every other
+    // failure: an Attach button left over from a previous error would be
+    // offering to attach to a Lich this failure says nothing about.
+    setAlreadyRunning(kind === 'lich_already_running')
     // The detail is shown under the sentence rather than instead of it, and
     // not at all when the sentence already carries it (the `unknown` arm
     // appends it). Deleting information is never the answer to a busy screen.
@@ -189,6 +201,7 @@ export function SignIn() {
     setBusy(true)
     setError('')
     setErrorDetail('')
+    setAlreadyRunning(false)
     try {
       const result = await listCharacters({ account: account.trim(), password, gameCode })
       rememberSignIn({ account: account.trim(), gameCode })
@@ -223,6 +236,7 @@ export function SignIn() {
     setBusy(true)
     setError('')
     setErrorDetail('')
+    setAlreadyRunning(false)
     try {
       // Frame 2 of the protocol runs again for the launch, so the password is
       // needed a second time. It is held in this component's state between the
@@ -269,11 +283,50 @@ export function SignIn() {
     }
   }
 
+  /**
+   * Attach to the Lich that is already up.
+   *
+   * The whole of #488 §3's second half. This used to arrive as
+   * `lich_did_not_start`, whose sentence sends the player to a diagnostic -
+   * and there is nothing to diagnose: the sign-in worked, a Lich is running,
+   * and the thing to do is join it. That is the ordinary state after closing
+   * the app with "Leave it running".
+   *
+   * The same `attachGame` the launch path uses, and the same port constant the
+   * connection bar defaults to, so there is one attach and one number.
+   * `undefined` for the wait, deliberately: this Lich is up already, so there
+   * is nothing to wait for and twenty seconds of spinner would be a worse
+   * answer than an immediate one.
+   */
+  const attachToRunning = async () => {
+    setBusy(true)
+    setError('')
+    setErrorDetail('')
+    try {
+      await attachGame(Number(DEFAULT_ATTACH_PORT))
+      setAlreadyRunning(false)
+      setStage('launched')
+    } catch (attachFailure) {
+      // Still worth offering again: a Lich that is up but not yet listening is
+      // the commonest reason this fails, and a second press seconds later
+      // works. So the sentence changes and the button stays.
+      report({
+        code: 'lich_did_not_start',
+        message:
+          attachFailure instanceof Error ? attachFailure.message : String(attachFailure ?? ''),
+      })
+      setAlreadyRunning(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const back = () => {
     setStage('form')
     setCharacters([])
     setError('')
     setErrorDetail('')
+    setAlreadyRunning(false)
     // Going back is also the way out of the flow, so it is the other place the
     // password has to stop existing.
     setPassword('')
@@ -493,6 +546,19 @@ export function SignIn() {
             * things happened. */}
           {errorDetail && (
             <p className="mt-1 text-xs leading-snug text-ink-faint">{errorDetail}</p>
+          )}
+          {/* The action, not a diagnostic. Rendered only for the one kind that
+            * means a Lich is up and joinable (#488 §3). */}
+          {alreadyRunning && (
+            <button
+              type="button"
+              onClick={() => void attachToRunning()}
+              disabled={busy}
+              className="mt-2 flex items-center gap-1.5 rounded border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent disabled:opacity-40"
+            >
+              {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+              Attach to the Lich that is running
+            </button>
           )}
         </div>
       )}

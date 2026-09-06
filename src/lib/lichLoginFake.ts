@@ -83,6 +83,11 @@ const FIXTURES: Record<string, { fail?: string; characters?: string[] }> = {
   offline: { fail: 'network' },
   ghost: { fail: 'no_such_character' },
   nolich: { fail: 'lich_did_not_start' },
+  // #488: the sign-in works and a Lich is already up, so the screen offers
+  // Attach rather than a diagnostic. A launch-only failure like `nolich`, so
+  // it has to get past the character list to be reachable at all - which is
+  // what makes the fixture able to produce the state a player actually meets.
+  running: { fail: 'lich_already_running', characters: ['Phemius'] },
   garbled: { fail: 'protocol_mismatch' },
   longpw: { fail: 'password_length' },
   // The two states N9 wired up (#459). `saved` signs in with no typed
@@ -110,9 +115,10 @@ export async function fakeListCharacters(args: FakeArgs) {
   await new Promise((r) => setTimeout(r, DELAY_MS))
   const fixture = fixtureFor(args.account)
   if (!fixture) throw failureFor('bad_credentials')
-  // The launch-only failure is not a sign-in failure, so it has to get past
+  // The launch-only failures are not sign-in failures, so they have to get past
   // this call to be reachable at all.
-  if (fixture.fail && fixture.fail !== 'lich_did_not_start') throw failureFor(fixture.fail)
+  const LAUNCH_ONLY = ['lich_did_not_start', 'lich_already_running']
+  if (fixture.fail && !LAUNCH_ONLY.includes(fixture.fail)) throw failureFor(fixture.fail)
   // An account with a saved password is signed in to with none typed, which is
   // the whole point of N9; every other account still needs one.
   if (!args.password && !fakeCredentialHas(args.account)) throw failureFor('password_needed')

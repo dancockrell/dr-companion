@@ -120,6 +120,12 @@ export const LOGIN_ERROR_KINDS = [
   'login_service_changed',
   'password_unsendable',
   'lich_did_not_start',
+  // #488: the sign-in worked and this app started no Lich, because one was
+  // already up. Deliberately not `lich_did_not_start`: that sentence sends a
+  // player to a diagnostic, and there is nothing wrong here. It is the
+  // ordinary state after the app was closed with "Leave it running", and the
+  // thing to do about it is attach.
+  'lich_already_running',
   // The two states N9 (#459) made reachable by wiring the stored password up.
   // Neither is a rename of `bad_password`: one is "you did not type one and
   // there is none saved", the other is "the saved one has just been thrown
@@ -152,6 +158,7 @@ export const RUST_ERROR_CODES = [
   'obscured_byte_out_of_range',
   'network',
   'lich_did_not_start',
+  'lich_already_running',
   'password_needed',
   'stored_password_rejected',
   'internal',
@@ -208,6 +215,7 @@ export const EACCESS_VARIANT_KINDS: Record<string, LoginErrorKind> = {
 export const CODE_KINDS: Record<string, LoginErrorKind> = {
   ...EACCESS_VARIANT_KINDS,
   lich_did_not_start: 'lich_did_not_start',
+  lich_already_running: 'lich_already_running',
   password_needed: 'password_needed',
   stored_password_rejected: 'stored_password_rejected',
 }
@@ -235,6 +243,8 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
     'This password cannot be sent to the login service. Changing it on the Play.net website is the only way round it.',
   lich_did_not_start:
     'The sign-in worked but Lich did not start. Use "Why won\'t it start?" below to find out why.',
+  lich_already_running:
+    'Lich is already running, so this app did not start a second one. Attach to the one that is up.',
   password_needed:
     'No password was sent and none is saved for this account. Type your password and try again.',
   stored_password_rejected:

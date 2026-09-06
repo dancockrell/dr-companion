@@ -24,6 +24,7 @@ import { PanelWindow } from './components/PanelWindow.tsx'
 import { PanelBoundary } from './components/shared/PanelBoundary.tsx'
 import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary.tsx'
 import { CommandPalette } from './components/shared/CommandPalette.tsx'
+import { LichClosePrompt } from './components/shared/LichClosePrompt.tsx'
 import { useMapDock } from './lib/mapDock.ts'
 import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
 import { subscribePresentationIntents } from './lib/presentationIntents.ts'
@@ -213,6 +214,12 @@ export default function App() {
   return (
     <WindowShell aux={v.kind !== 'app'}>
       <AppViews />
+      {/* The one question this app asks on the way out (#488). Mounted beside
+        * the view rather than inside it, so it does not depend on the setup
+        * wizard having finished - a Lich can be running whatever the app is
+        * showing - and only in the main window, which is the one whose close
+        * Rust holds. */}
+      {v.kind === 'app' && <LichClosePrompt />}
     </WindowShell>
   )
 }
