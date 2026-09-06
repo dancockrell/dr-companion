@@ -109,6 +109,12 @@ export interface LaunchResult {
 export const LOGIN_ERROR_KINDS = [
   'bad_password',
   'account_locked',
+  // #488: the login service said no with a token this version cannot read.
+  // Not folded into `bad_password` — that sentence tells a player to re-check
+  // a password, and the whole point of this state is that nobody knows whether
+  // the password is the problem. It is also the state in which the saved
+  // password is deliberately NOT thrown away.
+  'account_refused',
   'character_not_found',
   'service_unreachable',
   'login_service_changed',
@@ -139,6 +145,7 @@ export const LOGIN_ERROR_KINDS = [
 export const RUST_ERROR_CODES = [
   'bad_credentials',
   'account_locked_or_expired',
+  'account_refused',
   'no_such_character',
   'protocol_mismatch',
   'password_length',
@@ -170,6 +177,10 @@ export const EACCESS_VARIANT_KINDS: Record<string, LoginErrorKind> = {
   // vocabulary into. One a retry can fix, one it cannot.
   bad_credentials: 'bad_password',
   account_locked_or_expired: 'account_locked',
+  // The third refusal (#488). `classify_account_refusal`'s old two-way split
+  // made this one `bad_credentials`, which on the Rust side meant deleting the
+  // saved password for a token nobody had ever seen.
+  account_refused: 'account_refused',
   no_such_character: 'character_not_found',
   // A reply that did not have the shape the step requires. The player has done
   // nothing wrong and retrying will not help, so it must not read as either a
@@ -212,6 +223,8 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
   bad_password: 'That account name or password was not accepted. Check both and try again.',
   account_locked:
     'Play.net has locked this account. Sign in on the Play.net website to unlock it, then come back.',
+  account_refused:
+    'Play.net refused this sign-in and gave a reason this app does not recognise. Your saved password has been kept. Check the account on the Play.net website, then try again.',
   character_not_found:
     'That character is not on this account any more. Sign in again to get a fresh list.',
   service_unreachable:

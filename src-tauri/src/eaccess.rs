@@ -140,11 +140,25 @@ impl LaunchData {
 /// flattened into a guess.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EAccessError {
-    /// The `A` frame was refused. The account name or the password is wrong.
+    /// The `A` frame was refused with the one token Lich documents as meaning
+    /// the password itself is wrong (`PASSWORD`, `authenticator.rb:21`). This
+    /// is the **only** variant that lets `lich::protocol_failure` delete a
+    /// stored password, so nothing may be classified here on a guess.
     BadCredentials { code: String },
     /// The `A` frame was refused for a reason that is not "try again":
     /// the account is locked, suspended or expired.
     AccountLockedOrExpired { code: String },
+    /// The `A` frame was refused with a token that is neither of the above:
+    /// `REJECT`, `NORECORD`, `INVALID`, `NEW`, an empty third field, or
+    /// anything the live server sends that is not written down anywhere.
+    ///
+    /// A third state on purpose (issue #488). The old classifier had two, so
+    /// "not one of five lock words" fell through to `BadCredentials` — and once
+    /// #459 made `BadCredentials` the trigger for erasing the Windows
+    /// Credential Manager entry, the fallback for an *unrecognised* token was a
+    /// destructive action. "The server said no and this version cannot tell
+    /// why" is a real answer, and it is the one that keeps the password.
+    AccountRefused { code: String },
     /// The `C` reply had no character of that name. Case-sensitive, as
     /// `resolve_char_code` is (`eaccess.rb:221-229`).
     NoSuchCharacter { requested: String, available: usize },
@@ -185,6 +199,7 @@ impl EAccessError {
         match self {
             Self::BadCredentials { .. } => LoginCode::BadCredentials,
             Self::AccountLockedOrExpired { .. } => LoginCode::AccountLockedOrExpired,
+            Self::AccountRefused { .. } => LoginCode::AccountRefused,
             Self::NoSuchCharacter { .. } => LoginCode::NoSuchCharacter,
             Self::ProtocolMismatch { .. } => LoginCode::ProtocolMismatch,
             Self::PasswordLength { .. } => LoginCode::PasswordLength,
@@ -209,6 +224,12 @@ impl std::fmt::Display for EAccessError {
             Self::AccountLockedOrExpired { code } => {
                 write!(f, "the account cannot sign in right now ({code})")
             }
+            Self::AccountRefused { code } => write!(
+                f,
+                "the login service refused the account for a reason this version does not \
+                 recognise ({})",
+                if code.is_empty() { "no code" } else { code }
+            ),
             Self::NoSuchCharacter {
                 requested,
                 available,
@@ -362,7 +383,7 @@ fn handshake(
             .next_back()
             .unwrap_or("")
             .to_string();
-        return Err(classify_account_refusal(code));
+        return Err(EAccessError::from_refusal_code(code));
     }
 
     // 3. M -> the game list. Its content is unused here (the caller already
@@ -425,23 +446,73 @@ fn is_subscription_tier(reply: &str) -> bool {
         .any(|t| reply.contains(t))
 }
 
-/// Which of the two refusals a code is.
+/// The one token that means "the password you sent is wrong".
 ///
-/// Coarse on purpose. Lich raises `AuthenticationError` with whatever code the
-/// server sent and never interprets it, so the live vocabulary is unknown
-/// (`LICH_NATIVE_LOGIN.md` §7 item 5). Anything naming a lock, a suspension or
-/// an expiry is the kind a player cannot fix by retyping; everything else is
-/// reported as credentials, which is the honest default because it is what a
-/// retry can address. Either way the raw code travels with the error.
-fn classify_account_refusal(code: String) -> EAccessError {
-    let upper = code.to_ascii_uppercase();
-    if ["LOCK", "SUSPEND", "EXPIRE", "CLOSED", "BANNED"]
-        .iter()
-        .any(|w| upper.contains(w))
-    {
-        EAccessError::AccountLockedOrExpired { code }
-    } else {
-        EAccessError::BadCredentials { code }
+/// `authenticator.rb:23`'s `FATAL_ERROR_CODES` is the only place in Lich that
+/// writes the `A`-reply vocabulary down, and its comment above it
+/// (`authenticator.rb:20-22`) glosses each token:
+///
+/// | token | Lich's gloss | this app |
+/// |---|---|---|
+/// | `PASSWORD` | wrong password | [`EAccessError::BadCredentials`] |
+/// | `REJECT` | bad credentials | [`EAccessError::AccountRefused`] |
+/// | `NORECORD` | account not found | [`EAccessError::AccountRefused`] |
+/// | `INVALID` | invalid request | [`EAccessError::AccountRefused`] |
+/// | `CHARACTER_NOT_FOUND` | character not in account | [`EAccessError::AccountRefused`] |
+/// | `GENERATOR_NOT_AVAILABLE` | not entitled to the generator | [`EAccessError::AccountRefused`] |
+///
+/// `REJECT` is the near miss and it is deliberately not here. Lich glosses it
+/// "bad credentials", which is the *pair* — the account name or the password —
+/// so a mistyped account name produces it just as readily as a stale stored
+/// secret, and deleting a good password over a typo in the other field is the
+/// destructive answer to an ambiguous one. `PASSWORD` is the only token that
+/// names the password alone.
+///
+/// Two tokens Lich lists never reach this function: `CHARACTER_NOT_FOUND` and
+/// `GENERATOR_NOT_AVAILABLE` are raised later in `eaccess.rb` (`:226`, `:165`),
+/// after the `A` step, and this module has [`EAccessError::NoSuchCharacter`]
+/// and never enters the generator. They are in the table because a server may
+/// still send one at `A`, and the row says what would happen if it did.
+const WRONG_PASSWORD_TOKEN: &str = "PASSWORD";
+
+/// Words that mean the account itself cannot sign in, whatever was typed.
+///
+/// Not from Lich — Lich never interprets the code — but from the shapes a
+/// play.net refusal is likely to take, matched as substrings so `LOCKED`,
+/// `ACCOUNT_LOCKED` and `LOCK` all land together.
+const LOCKED_WORDS: [&str; 5] = ["LOCK", "SUSPEND", "EXPIRE", "CLOSED", "BANNED"];
+
+impl EAccessError {
+    /// Which refusal an `A`-reply code is. **The one place this is decided.**
+    ///
+    /// Three states rather than two, and the third is the point (issue #488).
+    /// The old version had `BadCredentials` as the fallback for anything that
+    /// was not one of five lock words, which read as honest — "it is what a
+    /// retry can address" — right up until #459 made `BadCredentials` the
+    /// trigger for deleting the saved password. From that commit the fallback
+    /// for a token nobody has ever seen was to destroy a credential, and the
+    /// list of tokens it destroyed one for included `NEW`, which
+    /// `login_error.rs` ships as its example of a *locked* account.
+    ///
+    /// So: `PASSWORD` and nothing else is "the password is wrong". Anything
+    /// naming a lock is the lock. Everything else — including the empty string
+    /// a truncated reply produces — is [`Self::AccountRefused`], which reports
+    /// the code and keeps the password. The raw code travels with all three.
+    ///
+    /// `login_error.rs`'s fixture calls this rather than building variants by
+    /// hand, so a fixture cannot record a (token, variant) pair the live
+    /// pipeline will not produce. That was #457's defect and #488 found it
+    /// reintroduced one level in.
+    pub(crate) fn from_refusal_code(code: impl Into<String>) -> Self {
+        let code = code.into();
+        let upper = code.to_ascii_uppercase();
+        if upper == WRONG_PASSWORD_TOKEN {
+            Self::BadCredentials { code }
+        } else if LOCKED_WORDS.iter().any(|w| upper.contains(w)) {
+            Self::AccountLockedOrExpired { code }
+        } else {
+            Self::AccountRefused { code }
+        }
     }
 }
 
@@ -761,6 +832,61 @@ pub(crate) mod test_support {
     /// Shared with `lich.rs`, whose N9 cases turn on the difference between a
     /// refused *typed* password and a refused *stored* one.
     pub(crate) const REFUSED_A_REPLY: &[u8] = b"A\tacct-example\tPASSWORD\n";
+
+    /// Every `A`-reply token issue #488 drives through the composed path, plus
+    /// the three the classifier itself names.
+    ///
+    /// The first six are Lich's own `FATAL_ERROR_CODES`
+    /// (`authenticator.rb:23`) — the only written-down vocabulary there is. The
+    /// rest are the plausible-but-undocumented shapes #488's reviewer drove,
+    /// kept verbatim so this list is a superset of the run in the issue, and
+    /// `""` for a truncated third field.
+    pub(crate) const REFUSAL_TOKENS: [&str; 22] = [
+        "PASSWORD",
+        "REJECT",
+        "NORECORD",
+        "INVALID",
+        "CHARACTER_NOT_FOUND",
+        "GENERATOR_NOT_AVAILABLE",
+        "LOCKED",
+        "SUSPENDED",
+        "EXPIRED",
+        "CLOSED",
+        "BANNED",
+        "NEW",
+        "FROZEN",
+        "INACTIVE",
+        "NO_SUBSCRIPTION",
+        "TOO_MANY_ATTEMPTS",
+        "MAINTENANCE",
+        "DISABLED",
+        "TERMINATED",
+        "HOLD",
+        "password",
+        "",
+    ];
+
+    /// The `A` reply for one refusal token, as the server would frame it.
+    pub(crate) fn refused_a_reply(token: &str) -> Vec<u8> {
+        format!("A\tacct-example\t{token}\n").into_bytes()
+    }
+
+    /// A server whose `A` step refuses with `token` and whose every other step
+    /// is the happy one — so a case that reaches a later step is a case that
+    /// did not refuse, rather than a case that ran out of script.
+    pub(crate) fn server_refusing(token: &str) -> MockEAccess {
+        let refusal = refused_a_reply(token);
+        let mut replies: Vec<(u8, Vec<u8>)> = happy_replies()
+            .into_iter()
+            .map(|(v, r)| (v, r.to_vec()))
+            .collect();
+        for entry in replies.iter_mut() {
+            if entry.0 == b'A' {
+                entry.1 = refusal.clone();
+            }
+        }
+        MockEAccess::new(replies.iter().map(|(v, r)| (*v, r.as_slice())).collect())
+    }
 
     pub(crate) const C_REPLY: &[u8] = b"C\t2\t2\t0\t0\tW_ABC123\tPhemius\tW_DEF456\tAlisandra\n";
     pub(crate) const L_REPLY: &[u8] = b"L\tOK\tUPPORT=5535\tGAME=STORM\tGAMECODE=DR\tFULLGAMENAME=DragonRealms\tGAMEFILE=STORMFRONT.EXE\tGAMEHOST=dr.simutronics.net\tGAMEPORT=11024\tKEY=one-shot-launch-key\n";

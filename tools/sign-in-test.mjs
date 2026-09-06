@@ -117,6 +117,14 @@ const REQUIRED_KINDS = [
   // password they did not type has nothing to re-check.
   'password_needed',
   'stored_password_rejected',
+  // One more #488 forced. The account server refused the sign-in with a token
+  // this version cannot read, and the specification half of that is: it is not
+  // `bad_password` (nobody knows whether the password is the problem) and it is
+  // not `stored_password_rejected` (the saved password is deliberately still
+  // there). Before #488 an unrecognised token classified as `bad_credentials`,
+  // which since #459 meant deleting the entry from Windows Credential Manager
+  // for a code nobody has ever observed.
+  'account_refused',
 ]
 
 /**
@@ -131,6 +139,9 @@ const REQUIRED_KINDS = [
 const REQUIRED_CODES = [
   'bad_credentials',
   'account_locked_or_expired',
+  // #488: the third refusal. `EAccessError::from_refusal_code` has three
+  // outcomes, and only `bad_credentials` may cost the player a saved password.
+  'account_refused',
   'no_such_character',
   'protocol_mismatch',
   'password_length',

@@ -46,7 +46,7 @@
  *     Rust half was not checked, and this exits non-zero saying so. Merging on
  *     "the parts I have installed passed" is exactly what a CI runner used to
  *     make impossible.
- *   - The summary carries the denominator: `7 of 7 stages ran`, and that seven
+ *   - The summary carries the denominator: `11 of 11 stages ran`, and that eleven
  *     is asserted against `EXPECTED_STAGES` rather than against the list it
  *     came from. Both halves used to be derived from `STAGES`, so trimming the
  *     list to two printed `2 of 2 stages ran` and exited 0 — a denominator that
@@ -265,6 +265,20 @@ const STAGES = [
     args: [resolve(root, 'tools', 'doc-claims-break-check.mjs')],
   },
   {
+    // The same crate in the configuration that ships (#488). `rust-tests` above
+    // is a debug build, so `cfg!(debug_assertions)` is true throughout it and
+    // the release half of #464's two knob tests never executes: removing the
+    // dry-run gate call from `lich.rs` left this whole gate green, and only
+    // `cargo test --release` went red. Filtered to the two tests and asserting
+    // that both of them ran, because a `--exact` filter matching nothing exits
+    // 0 — see `tools/rust-release-knobs.mjs` for the cost and the reasoning.
+    name: 'rust-release-knobs',
+    needs: cargo,
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'rust-release-knobs.mjs')],
+  },
+  {
     name: 'godot',
     precheck: godotStage,
     // This node and this path, spawned directly. `shell: true` would hand a
@@ -305,7 +319,7 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 10
+const EXPECTED_STAGES = 11
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */

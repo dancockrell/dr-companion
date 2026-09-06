@@ -13,7 +13,7 @@ Full ritual: docs/MERGING.md
 ## Verification
 
 - [ ] `npm run gate` was run on this branch, after the last commit on it, and
-      its final line read **`gate ok: 10 of 10 stages ran`**. Paste it below.
+      its final line read **`gate ok: 11 of 11 stages ran`**. Paste it below.
       (`node tools/gate.mjs --list` prints the stages. A `--only=` run is not
       the gate and says so.)
 - [ ] Rebased on `origin/main`, and if the rebase moved anything I did not
