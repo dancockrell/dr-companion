@@ -60,6 +60,27 @@ export interface LinkState {
   connected: boolean
   host: string
   port: number
+  /**
+   * Whether the link is between sockets rather than without one.
+   *
+   * Optional for the same reason `lich` is: a hot-reloaded frontend can outrun
+   * the Rust binary it is talking to, and an absent field has to degrade to the
+   * old two-state reading rather than to a wrong claim. {@link linkPhase} reads
+   * it with `??` for exactly that case.
+   */
+  reconnecting?: boolean
+  /**
+   * Which re-dial is under way, 1-based and 0 when none is - and, once a run
+   * has given up, the count it spent. Carried into the give-up state on
+   * purpose: "gave up after 6 attempts" is a fact a player can act on, where
+   * "could not connect" is the same sentence as the very first refusal.
+   */
+  attempt?: number
+  /**
+   * The bound, published by Rust rather than duplicated here, so the UI can say
+   * "3 of 6" without a second copy of the number to forget to update.
+   */
+  maxAttempts?: number
   lines: number
   note: string
   /**
@@ -113,6 +134,55 @@ let state: LinkState = {
  * so the `unknown` case cannot quietly acquire a claim later: it returns
  * `null`, and a caller with nothing to add says nothing about Lich at all.
  */
+/**
+ * Which of the link's states this is, as one word.
+ *
+ * Four, not two, and every consumer reads them from here rather than testing
+ * `connected` and inventing the rest. The two that used to be folded together
+ * are `reconnecting` and `gave-up`: both are "not connected", and they ask
+ * opposite things of the player - wait, versus go and look at Lich - so a UI
+ * that shows one sentence for both is telling half its readers the wrong
+ * thing.
+ *
+ * `idle` is the honest fourth: never attached, or deliberately detached. It is
+ * separate from `gave-up` because a link that never tried and one that tried
+ * six times and stopped are different facts, and only one of them is a
+ * failure.
+ *
+ * Defensive against an older Rust binary on purpose - see `reconnecting` on
+ * {@link LinkState}. With the field absent this returns `connected` or `idle`,
+ * which is exactly the behaviour that predates it.
+ */
+export type LinkPhase = 'connected' | 'reconnecting' | 'gave-up' | 'idle'
+
+export function linkPhase(s: LinkState): LinkPhase {
+  if (s.connected) return 'connected'
+  if (s.reconnecting ?? false) return 'reconnecting'
+  // A spent attempt count with no reconnect in flight is a run that ended.
+  // `?? 0` and not `|| 0`: the field is a number and 0 is meaningful.
+  if ((s.attempt ?? 0) > 0) return 'gave-up'
+  return 'idle'
+}
+
+/**
+ * What the link bar shows, in one place so the wording cannot drift between
+ * the two bars that show it.
+ *
+ * Returns `null` for `idle` and `connected`: those already have their own
+ * treatment in both bars, and a badge that is always on screen is furniture
+ * that gets skimmed on the day it changes.
+ */
+export function linkPhaseLabel(s: LinkState): string | null {
+  switch (linkPhase(s)) {
+    case 'reconnecting':
+      return `Reconnecting ${s.attempt ?? 0}/${s.maxAttempts ?? 0}`
+    case 'gave-up':
+      return `Link lost after ${s.attempt ?? 0} attempts`
+    default:
+      return null
+  }
+}
+
 export function lichNote(lich: LichPresence | undefined): string | null {
   if (lich === 'gone') return 'Lich has exited — restart Lich, then Attach.'
   if (lich === 'alive') return 'Lich is still running — press Attach to reconnect.'
@@ -199,6 +269,50 @@ function wire() {
     state = adopt(s)
     notify()
   })
+
+  /**
+   * A reconnect landed. Throw away what the tag parser knows and go and get
+   * the state again.
+   *
+   * An *edge*, deliberately, not a flag on `game:state`: the reset below must
+   * happen once per reconnect, and a level would re-run it on every later
+   * state event for as long as the flag stayed set.
+   *
+   * The reset is the point. `parser` accumulates vitals, indicators, compass
+   * and room occupants, and `vitals.ts` and `situation.ts` both prefer the
+   * stream's answer over the bridge's whenever the stream has one at all - so
+   * without this, a character's health from before the drop keeps being
+   * reported, with full confidence, as current. Same reasoning as
+   * `resetStream` on attach; a reconnect is the case that was missing.
+   *
+   * Lich replays part of the state on a fresh accept, so some of it comes back
+   * on its own — four progress bars, a spell, seven indicators and a compass
+   * (`global_defs.rb:2306-2343`), after a wait of up to ten seconds
+   * (`:2307`). Room, occupants, roundtime and scripts are not in that replay
+   * at all, which is what `linkReplay.ts` asks the bridge for.
+   */
+  listenTauri<number>('game:reconnected', () => {
+    resetStream()
+    for (const fn of reconnectListeners) fn()
+    notify()
+  })
+}
+
+/**
+ * Subscribers to the reconnect edge, so the module that knows about the bridge
+ * does not have to live in here.
+ *
+ * `gameLink.ts` owns the socket and the parser and deliberately knows nothing
+ * about the 7415 bridge; wiring `get_status` in here would put two transports
+ * in one module. See `src/lib/linkReplay.ts`.
+ */
+const reconnectListeners = new Set<() => void>()
+
+/** Called after a reconnect, once the stale parser state has been dropped. */
+export function onGameReconnect(fn: () => void): () => void {
+  wire()
+  reconnectListeners.add(fn)
+  return () => reconnectListeners.delete(fn)
 }
 
 /** One chunk as Rust emits it: bytes up to and including a newline. */
@@ -307,6 +421,14 @@ function applyChunk(chunk: GameChunk) {
     state = {
       ...state,
       connected: true,
+      // Cleared here as well as set by Rust, and for the same reason
+      // `connected` is: a chunk cannot arrive from a socket that is still
+      // being dialled, so this is reading a fact rather than inferring one.
+      // Without it a dropped `game:state` would leave the bar counting
+      // attempts over a pane filling with live text - which is precisely the
+      // shape of the bug the `connected: true` line above was added to fix.
+      reconnecting: false,
+      attempt: 0,
       lines: nextSeq,
       note: state.connected ? state.note : '',
     }

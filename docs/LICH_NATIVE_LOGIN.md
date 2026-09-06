@@ -382,8 +382,67 @@ Two things about *Lich's* behaviour do change, because `$frontend` is no longer
   (`lib/global_defs.rb:2306-2343`) sends a synthetic snapshot — progress bars,
   spell, indicators, hands, wounds, compass — to a newly attached client, and is
   **suppressed for Genie and Saga only** (`global_defs.rb:2357-2361`). So the
-  Lich-native route gains it. `tools/fake-lich.mjs` already mirrors it (`:183`,
-  `:209`, `:301`).
+  Lich-native route gains it. `tools/fake-lich.mjs` mirrors it (`INIT_TAGS` at
+  `:274`, sent as one write at `:369-372`).
+
+  Three corrections to the sentence above, all read out of Lich 5.20.1 on 7 Sep
+  2026 while measuring PR #454's open hypothesis (issue #479). None of them
+  changes the conclusion that this app receives the replay; all three change
+  what may be built on it.
+
+  **The suppression is not keyed on `$frontend`.** It is a raw ARGV match:
+
+  ```ruby
+  def handle_detachable_client(client)
+    unless ARGV.any? { |argument| argument.match?(/^--(?:genie|saga)$/i) }
+      Thread.new { detachable_client_send_init(client) }
+    end
+  ```
+
+  `global_defs.rb:2357-2360`. `$frontend` appears nowhere in that block — the
+  only two mentions of it in the whole file are commented out (`:1812`,
+  `:1833`). There is no `profanity` branch anywhere; `profanity` is the
+  *fallback return* of `resolve_headless_frontend` (`login_helpers.rb:578-584`)
+  and nothing more. This app passes neither flag (`src-tauri/src/lich.rs`, whose
+  `launch_args` test asserts the absence), so it lands in the `unless` body.
+  The two conditions coincide; they are not the same condition, and a future
+  change that set `$frontend` by another route would not move this branch.
+
+  **It arrives about ten seconds late, every time, in DragonRealms.** The
+  replay's first statement is
+  `100.times { sleep 0.1; break if XMLData.indicator['IconJOINED'] }`
+  (`global_defs.rb:2307`), on its own thread. `IconJOINED` is a **GemStone**
+  indicator: every setter in Lich's tree is under `lib/gemstone/`
+  (`group.rb:353,395,398`, `infomon/xmlparser.rb:9`), and the generic path only
+  sets it if the game itself sends that id (`common/xmlparser.rb:789`).
+  DragonRealms does not. So the `break` never fires, the loop runs its full
+  course, and the dump lands ten seconds after the accept — behind ten seconds
+  of live game text, rather than as the opening frames anybody would look at
+  first. **This is the most likely reason #454's 22-second attach did not
+  observe it.**
+
+  **It is partial, and cannot be asked for.** It is assembled from `XMLData`,
+  not a buffer of the bytes a client missed: four `<progressBar>` (with `value`
+  hardcoded `'0'` — the numbers are only in `text`), `<spell>`, seven
+  `<indicator>`, `<compass>`. The hands / wounds / `pbarStance` / `mindState` /
+  `encumlevel` block is gated behind `XMLData.game.to_s.match?(/GS/)` and never
+  arrives in DragonRealms. **Not** in it: room title, room description,
+  `<component id='room objs'>` / `'room players'`, `<prompt>`, roundtime, the
+  script list. And there is no request path: the detachable read loop
+  understands `SET_FRONTEND_PID <n>` (honoured only from the registry's primary
+  client) and an exit command, and treats every other line as player input
+  (`global_defs.rb:2363-2379`); `detachable_client_send_init` has exactly one
+  caller in the tree, and it is the accept. So a client cannot ask for a
+  replay — it can only get a fresh one by reconnecting, which is a fresh
+  accept. `src/lib/linkReplay.ts` synthesises the rest from the bridge's
+  `status` on 7415 for exactly this reason.
+
+- **A reconnect gets its own replay, and the port survives a client leaving.**
+  The `Thread.new` above is per-accept, and `handle_detachable_client`'s
+  `ensure` (`global_defs.rb:2390-2409`) closes and unregisters only that
+  socket while the accept loop in `main.rb:842-906` blocks on `server.accept`
+  again. Downstream text fans out to every attached client
+  (`games.rb:1122-1130`), so several may be attached at once.
 
 One behaviour worth stating because it is easy to trip over: when any detachable
 client is attached, the primary frontend stops receiving the stream —
@@ -593,6 +652,29 @@ so the two are separated rather than blended.
   (§3.1).
 - The detachable listener, the state replay, its Genie/Saga suppression, and the
   `elsif` that starves a primary frontend (§4).
+- **The state replay's gate, its ten-second delay, its exact contents, and the
+  absence of any way to request one.** Read 7 Sep 2026 against the installed
+  Lich 5.20.1 (`lib/version.rb:3`) while settling PR #454's hypothesis
+  (issue #479), and every cite in §4 re-checkable by opening the file:
+  - the gate is `ARGV`, not `$frontend` (`global_defs.rb:2357-2360`), and there
+    is no `profanity` branch anywhere;
+  - the wait is `100.times { sleep 0.1; break if XMLData.indicator['IconJOINED'] }`
+    (`:2307`), and every setter of `IconJOINED` is under `lib/gemstone/`;
+  - the contents, with the `XMLData.game =~ /GS/` gate on hands, wounds,
+    stance, mindstate and encumbrance (`:2306-2343`);
+  - the two out-of-band verbs the detachable loop understands, and that
+    `detachable_client_send_init` has one caller (`:2359`, `:2363-2379`);
+  - the per-accept replay, the re-accept after a disconnect (`main.rb:842-906`,
+    `global_defs.rb:2390-2409`), and the fan-out to every attached client
+    (`games.rb:1122-1130`).
+
+  Two negative results, recorded with the command that establishes them rather
+  than as a claim: there is **no** `_` sentinel and **no** connect-time `<c>`
+  hello on the detachable socket. `grep -rn "SET_FRONTEND_PID" lib/` in the
+  Lich tree is the positive control for that search — it finds the one handler
+  at `global_defs.rb:2364`, so the scope is right — and the same sweep for a
+  bare-underscore comparison finds nothing. `<c>` is what Lich *prepends*
+  (`:2376`), not what a client sends.
 - Genie's registered capabilities and the three behavioural switches it flips
   (§4, §6).
 - `entry.yaml` as the current store, `entry.dat` as unencrypted Marshal+Base64
@@ -649,7 +731,17 @@ so the two are separated rather than blended.
    not the bytes that provoke them. N1's mock covers the shapes Lich's own
    regexes accept and reject; the live shapes are N7's.
 
-6. **Whether twenty seconds is long enough for a real Lich to open its
+6. ~~**Whether the app receives the attach-time state replay at all.**~~
+   **Read 7 Sep 2026 (issue #479): yes, and the reason #454 did not see it is
+   that it arrives ten seconds late in DragonRealms.** Moved to the read
+   column above. What is *still* not measured is the one thing only a live
+   session can settle: whether a real DragonRealms Lich ever sets
+   `IconJOINED` and so breaks that loop early. Every setter being under
+   `lib/gemstone/` makes it very unlikely, and nothing is built on it either
+   way — the app resets its parser and asks the bridge on every reconnect
+   regardless of when Lich's own dump turns up.
+
+7. **Whether twenty seconds is long enough for a real Lich to open its
    detachable port on a real machine.** The attach retry added for issue #458
    (`game_link::dial_with_retry`) is tested against a loopback listener that
    opens 1.5 seconds late, a stand-in that has exited without listening, and a

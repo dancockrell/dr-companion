@@ -7,10 +7,24 @@
 import { invokeTauri } from '../lib/tauri.ts'
 import type { BridgeClientMessage, BridgeServerMessage } from './types'
 
+/**
+ * What the live bridge is doing.
+ *
+ * `reconnecting` and `gave-up` were added for issue #479 and are the two that
+ * used to be folded into `disconnected` with the real answer in a free-text
+ * `detail` string that nothing parsed. They ask opposite things of the player -
+ * wait, versus go and start the bridge - so a UI showing one badge for both
+ * tells half its readers the wrong thing, and there was no way to show two.
+ *
+ * `disconnected` is now only the honest idle case: never connected, or
+ * deliberately disconnected.
+ */
 export type RealBridgeStatus =
   | 'disconnected'
   | 'connecting'
+  | 'reconnecting'
   | 'connected'
+  | 'gave-up'
   | 'error'
 
 type Listener = (msg: BridgeServerMessage) => void
@@ -20,6 +34,22 @@ const DEFAULT_URL = 'ws://127.0.0.1:7415/companion'
 
 const BASE_RECONNECT_MS = 1000
 const MAX_RECONNECT_MS = 30_000
+
+/**
+ * How many times a dropped bridge re-dials before it stops and says so.
+ *
+ * Bounded as of issue #479; it retried forever before, capped at thirty
+ * seconds. Forever sounds generous and is not: a bridge that is genuinely gone
+ * and one that is fifteen seconds into a Lich restart produced the identical
+ * permanent spinner, there was no state in which the app could say it had
+ * stopped, and a spinner that never resolves is one people learn to ignore.
+ *
+ * Eight on the doubling schedule below is about two minutes of real elapsed
+ * time (1+2+4+8+16+30+30+30 seconds of waiting), which covers a Lich restart
+ * and a network blip and does not cover a bridge script that was never
+ * started. Reconnect is one click away from the settings sheet either way.
+ */
+export const MAX_RECONNECT_ATTEMPTS = 8
 
 /**
  * How long the game clock may stand still before we call the game hung.
@@ -70,6 +100,23 @@ export class RealBridge {
     return this.status
   }
 
+  /**
+   * How many re-dials have been made, and the bound they are counted against.
+   *
+   * Structured, because the attempt count used to exist only inside the
+   * free-text `detail` string passed to status listeners, where the store
+   * logged it and nothing could render it. A number nobody can read is the
+   * same absence as no number: see the SafetyFooter's own note about a signal
+   * moving from one place nobody looks to another.
+   */
+  getAttempt() {
+    return this.reconnectAttempts
+  }
+
+  getMaxAttempts() {
+    return MAX_RECONNECT_ATTEMPTS
+  }
+
   setUrl(url: string) {
     this.url = url
   }
@@ -99,6 +146,15 @@ export class RealBridge {
     // in a screenshot as two "Live bridge: connecting" lines stamped the same
     // second.
     if (this.connectPending || this.status === 'connected') return
+
+    // A deliberate connect after a give-up gets a fresh budget.
+    //
+    // Without this the counter is still at the bound, so the one retry a
+    // person asked for would open a socket, and the first close would give up
+    // again immediately with no backoff and no second attempt — a button that
+    // appears to do nothing. The bound is there to stop an *automatic* run
+    // going on forever, not to make the app refuse to try again when asked.
+    if (this.status === 'gave-up') this.reconnectAttempts = 0
 
     this.connectPending = true
     this.shouldReconnect = true
@@ -194,22 +250,38 @@ export class RealBridge {
       ws.onclose = () => {
         this.ws = null
         this.stopStaleWatch()
-        if (this.shouldReconnect) {
-          // Exponential backoff, capped. Retrying every 3s forever floods the
-          // console and hammers a port that is usually just not there yet.
-          const delay = Math.min(
-            MAX_RECONNECT_MS,
-            BASE_RECONNECT_MS * 2 ** this.reconnectAttempts
-          )
-          this.reconnectAttempts += 1
-          this.setStatus(
-            'disconnected',
-            `Connection closed — retrying in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts})`
-          )
-          this.reconnectTimer = setTimeout(() => this.connect(), delay)
-        } else {
+        if (!this.shouldReconnect) {
           this.setStatus('disconnected')
+          return
         }
+        // The bound, checked before the next attempt is scheduled rather than
+        // inside the timer, so the state the UI sees changes at the moment the
+        // decision is made and not one backoff later.
+        //
+        // `shouldReconnect` is cleared here as well as the status being set:
+        // without it a later `connect()` from anywhere - the settings sheet,
+        // another window's mount effect - would restart an unbounded run under
+        // a status that says it gave up.
+        if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          this.shouldReconnect = false
+          this.setStatus(
+            'gave-up',
+            `Gave up after ${this.reconnectAttempts} attempts — the Lich companion bridge is not answering on ${this.url}. Start it in Lich, then reconnect from Setup.`
+          )
+          return
+        }
+        // Exponential backoff, capped. Retrying every 3s forever floods the
+        // console and hammers a port that is usually just not there yet.
+        const delay = Math.min(
+          MAX_RECONNECT_MS,
+          BASE_RECONNECT_MS * 2 ** this.reconnectAttempts
+        )
+        this.reconnectAttempts += 1
+        this.setStatus(
+          'reconnecting',
+          `Connection closed — retrying in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts} of ${MAX_RECONNECT_ATTEMPTS})`
+        )
+        this.reconnectTimer = setTimeout(() => this.connect(), delay)
       }
     } catch (e) {
       this.setStatus(

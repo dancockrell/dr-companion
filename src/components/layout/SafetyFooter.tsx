@@ -36,7 +36,7 @@
  * made for living here rather than in a scrollable panel.
  */
 import { Square, Pause, Play, Heart, Navigation } from 'lucide-react'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, useSyncExternalStore } from 'react'
 import {
   commandLaneStatus,
   onCommandLane,
@@ -52,6 +52,12 @@ import {
   isAutomationPaused,
 } from '../../lib/flowStop.ts'
 import { pauseStatus } from '../../lib/pauseStatus.ts'
+import {
+  gameState,
+  linkPhase,
+  linkPhaseLabel,
+  subscribeGame,
+} from '../../lib/gameLink.ts'
 import { MusicTransport } from '../game/MusicTransport.tsx'
 import { isLowHealth } from '../../lib/vitals.ts'
 import { requestOpenSoundPanel } from '../../lib/soundPanelOpen.ts'
@@ -76,6 +82,9 @@ export function SafetyFooter() {
   const activeFlow = useAppStore((s) => s.activeFlow)
   const character = useAppStore((s) => s.character)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
+  const bridgeStatus = useAppStore((s) => s.bridgeStatus)
+  const bridgeAttempt = useAppStore((s) => s.bridgeAttempt)
+  const bridgeMaxAttempts = useAppStore((s) => s.bridgeMaxAttempts)
   const bridgeAuth = useAppStore((s) => s.bridgeAuth)
   const bridgeAuthNote = useAppStore((s) => s.bridgeAuthNote)
   const bridgeIntents = useAppStore((s) => s.bridgeIntents)
@@ -151,6 +160,21 @@ export function SafetyFooter() {
     bridgeConnected,
     bridgePauseLatched: character?.pauseLatched,
   })
+
+  /**
+   * The game socket's own state, read straight from `gameLink` rather than
+   * through the store.
+   *
+   * Deliberate, and the reason is in gameLink.ts's own header: the game link
+   * is kept outside Zustand so a line of text does not re-render the whole
+   * dashboard. Mirroring its state into the store to render one badge would
+   * give up exactly that, and give this bar a second copy of a fact to fall
+   * out of date. `gameState` changes on connect, disconnect and each
+   * reconnect attempt, which is a handful of events, not a stream.
+   */
+  const link = useSyncExternalStore(subscribeGame, gameState, gameState)
+  const gamePhase = linkPhase(link)
+  const gameLinkLabel = linkPhaseLabel(link)
 
   const lowHealth = isLowHealth(character)
   const inCombat = character?.situation.includes('in_combat') ?? false
@@ -313,13 +337,55 @@ export function SafetyFooter() {
         aria-atomic="true"
       >
         {/* First, because a bar full of controls that cannot reach Lich is the
-            one state where pressing Stop achieves nothing at all. */}
-        {!bridgeConnected && (
+          * one state where pressing Stop achieves nothing at all.
+          *
+          * Three states now, not two (issue #479). "Bridge down" was shown for
+          * a bridge that had stopped dialling and for one that was two seconds
+          * into coming back, and those ask opposite things of the player -
+          * wait, versus go and start it in Lich. The attempt count is what
+          * separates them, and before this it existed only inside a log line
+          * that no component rendered. */}
+        {!bridgeConnected &&
+          (bridgeStatus === 'reconnecting' || bridgeStatus === 'connecting' ? (
+            <span
+              className="shrink-0 rounded border border-warn/40 bg-warn/15 px-1.5 py-0.5 font-semibold tabular-nums text-warn"
+              title="The bridge dropped and is dialling again. Nothing reaches Lich until it is back; stop scripts in Lich itself if this is urgent."
+            >
+              Bridge reconnecting{bridgeAttempt > 0 ? ` ${bridgeAttempt}/${bridgeMaxAttempts}` : ''}
+            </span>
+          ) : (
+            <span
+              className="shrink-0 rounded border border-danger/40 bg-danger/15 px-1.5 py-0.5 font-semibold text-danger"
+              title={
+                bridgeStatus === 'gave-up'
+                  ? `Stopped dialling after ${bridgeAttempt} attempts. Start companion_bridge in Lich, then reconnect from Setup.`
+                  : 'Nothing reaches Lich while the bridge is down. Stop scripts in Lich itself.'
+              }
+            >
+              {bridgeStatus === 'gave-up' ? `Bridge gave up (${bridgeAttempt})` : 'Bridge down'}
+            </span>
+          ))}
+
+        {/* The game socket, which is a different transport from the bridge and
+          * drops independently of it. It had no badge here at all: a dropped
+          * game link showed only in GameConnectionBar, which lives inside a
+          * panel that can be scrolled away or popped out, while this bar is
+          * part of the window - the same argument that put Stop here.
+          *
+          * Shown only when it is not connected and not idle, for the same
+          * reason as everything else in this row: a badge that is always on
+          * screen is furniture and gets skimmed on the day it changes. */}
+        {gameLinkLabel && (
           <span
-            className="shrink-0 rounded border border-danger/40 bg-danger/15 px-1.5 py-0.5 font-semibold text-danger"
-            title="Nothing reaches Lich while the bridge is down. Stop scripts in Lich itself."
+            className={cn(
+              'shrink-0 rounded border px-1.5 py-0.5 font-semibold tabular-nums',
+              gamePhase === 'reconnecting'
+                ? 'border-warn/40 bg-warn/15 text-warn'
+                : 'border-danger/40 bg-danger/15 text-danger'
+            )}
+            title={link.note}
           >
-            Bridge down
+            {gameLinkLabel}
           </span>
         )}
 

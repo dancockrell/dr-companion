@@ -166,9 +166,28 @@ console.log('\n-- both application and native boundaries own the invariant --')
   ok('the native entry point validates before it queues anything',
     native.indexOf('validate_game_command(&command)?;') <
       native.indexOf('gate.submit(command, source)'))
+  /*
+   * Sliced to `write_command`'s own body before the ordering is read.
+   *
+   * This used to compare two file-global `indexOf` results, which worked only
+   * while `write_command` happened to hold the first `link.inner.lock()` in
+   * the file. Issue #479's reconnect supervisor added an earlier one — it
+   * swaps the write half into the existing handle when a re-dial succeeds —
+   * and this went red while the property it names stayed exactly as true as
+   * before. The name was right and the mechanism was wrong, so the mechanism
+   * is what changed.
+   *
+   * The slice is asserted to have been found, and the fragment asserted to be
+   * present: two absent strings both give −1, which compares equal and would
+   * let this pass having read nothing at all.
+   */
+  const wcAt = native.indexOf('pub(crate) fn write_command(')
+  ok('write_command is where this expects to find it', wcAt >= 0)
+  const wc = native.slice(wcAt, native.indexOf('\n}', wcAt))
+  ok('the native command still validates at the write', wc.includes('validate_game_command(command)?;'))
   ok('the native command validates before locking or writing',
-    native.indexOf('validate_game_command(command)?;') <
-      native.indexOf('let mut guard = link.inner.lock().unwrap();'))
+    wc.indexOf('validate_game_command(command)?;') <
+      wc.indexOf('let mut guard = link.inner.lock().unwrap();'))
 }
 
 // Far below the real count on purpose: a tripwire for a truncated or

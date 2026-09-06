@@ -1,5 +1,7 @@
 import { bridge } from '../bridge/index.ts'
 import type { AppState } from '../types'
+import type { RealBridgeStatus } from '../bridge/realBridge.ts'
+import { storeBridgeStatus } from './bridgeStatus.ts'
 import type { BridgeServerMessage } from '../bridge/types'
 
 export type StoreSet = (
@@ -26,6 +28,8 @@ export function setBridgeMode(
   set({
     bridgeMode: mode,
     bridgeConnected: false,
+    bridgeStatus: 'disconnected',
+    bridgeAttempt: 0,
     bridgeAuth: 'unknown',
     bridgeAuthNote: '',
     bridgeIntents: null,
@@ -56,17 +60,35 @@ export function connectBridge(
     unsubscribeLiveStatus?.()
     unsubscribeLiveStatus = bridge.onLiveStatus((status, detail) => {
       get().addLog(`Live bridge: ${status}${detail ? ` — ${detail}` : ''}`)
-      if (status === 'connected') set({ bridgeConnected: true })
-      if (status === 'disconnected' || status === 'error') {
-        set({ bridgeConnected: false })
-      }
+      // Every status now lands somewhere. It used to be two `if`s with no
+      // `else`, so `connecting` changed nothing at all and the attempt count
+      // reached the store only inside the log line above - a number in prose
+      // that no component could render, which is the same absence as no number
+      // (issue #479).
+      set({
+        ...storeBridgeStatus(status as RealBridgeStatus),
+        bridgeAttempt: bridge.getLiveAttempt(),
+        bridgeMaxAttempts: bridge.getLiveMaxAttempts(),
+      })
     })
   }
 
   bridge.connect()
   // A reused live transport may already be open and will not emit a second
   // connected event, so read its actual state after connect.
-  set({ bridgeConnected: live ? bridge.getLiveStatus() === 'connected' : true })
+  set(
+    live
+      ? {
+          ...storeBridgeStatus(bridge.getLiveStatus() as RealBridgeStatus),
+          bridgeAttempt: bridge.getLiveAttempt(),
+          bridgeMaxAttempts: bridge.getLiveMaxAttempts(),
+        }
+      : // The mock has no socket, so it is not in any transport state. Saying
+        // `connected` here would put a live-transport word on a thing with no
+        // transport, and the status bars would then offer a reconnect for
+        // something that never dials.
+        { bridgeConnected: true, bridgeStatus: 'mock', bridgeAttempt: 0 }
+  )
 }
 
 export function disconnectBridge(set: StoreSet): void {
@@ -77,6 +99,8 @@ export function disconnectBridge(set: StoreSet): void {
   unsubscribeLiveStatus = null
   set({
     bridgeConnected: false,
+    bridgeStatus: 'disconnected',
+    bridgeAttempt: 0,
     character: null,
     characterAt: 0,
     scriptStates: [],
