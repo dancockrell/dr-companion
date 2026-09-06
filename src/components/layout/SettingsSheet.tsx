@@ -21,10 +21,30 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions.ts'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale.ts'
 import { DEMO_PRESET_LIST } from '../../bridge/index.ts'
 import { loadPrefs } from '../../lib/persistence.ts'
+import {
+  PAUSE_LATCH_MODES,
+  initialPauseLatchMode,
+  type PauseLatchMode,
+} from '../../lib/bridgeModeSelect.ts'
 import { useModalDialog } from '../../lib/useModalDialog.ts'
 import { LICH_LICENSE } from '../../data/lichLicense.ts'
 import { DiagnosticsPanel } from '../shared/DiagnosticsPanel.tsx'
 import { ForgetStoredPassword } from '../shared/RememberPassword.tsx'
+
+/**
+ * What each pause-latch mode means, in the words the chooser shows.
+ *
+ * Keyed by the mode rather than listed beside it, and the chooser maps over
+ * `PAUSE_LATCH_MODES` - so a mode added to the parser's closed set cannot
+ * appear in the chooser with no sentence, or be left out of the chooser
+ * entirely, which is how the last knob in this area went missing.
+ */
+const PAUSE_LATCH_WHAT: Record<PauseLatchMode, string> = {
+  follow: 'the latch tracks Pause and Resume',
+  latched: 'Lich is holding, this app did not ask',
+  clear: 'something unpaused it in Lich',
+  absent: 'a bridge older than 0.13.0',
+}
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // Read from the same place that applied it at startup, so the highlighted
@@ -40,6 +60,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const demoCombat = useAppStore((s) => s.demoCombat)
   const demoSafe = useAppStore((s) => s.demoSafe)
   const demoBrokenPattern = useAppStore((s) => s.demoBrokenPattern)
+  const demoPauseLatch = useAppStore((s) => s.demoPauseLatch)
   const openSetup = useAppStore((s) => s.openSetup)
   const trainFocus = useAppStore((s) => s.trainFocus)
   const toggleTrainFocus = useAppStore((s) => s.toggleTrainFocus)
@@ -60,6 +81,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   // it and does not report it back; the select would otherwise sit on its
   // default while the app showed somebody else.
   const [demoPreset, setDemoPreset] = useState(() => loadPrefs().demoPreset ?? 'basic_prime')
+  /* Seeded from the same parser the mock bridge constructs itself with, so
+   * opening `?mock-pause=latched` shows 'latched' here rather than the
+   * default beside a world that is in a different cell. One parser, two
+   * readers - see `selectPauseLatchMode`. */
+  const [pauseLatch, setPauseLatch] = useState<PauseLatchMode>(() => initialPauseLatchMode())
 
   // E9. Collapsed by default: the licence has to be present, not prominent.
   const [showLichLicence, setShowLichLicence] = useState(false)
@@ -170,6 +196,42 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                   They disagree with each other on purpose. Bard · Circle 1 is a
                   real character read off a live session, and it is the one that
                   shows what this app does badly.
+                </span>
+              </label>
+            )}
+            {/* The four-cell chooser (#503). `bridge.setPauseLatchMode` was
+                added for #487 and then had no caller anywhere, so
+                `paused-by-bridge` and the connected form of
+                `paused-unconfirmed` - the two cells a live bridge reaches
+                routinely, and the two that whole issue exists for - still
+                could not be looked at in development. A chooser rather than
+                a button because the point is to reach each cell, not to
+                toggle one. `?mock-pause=latched` is the same choice made
+                from the address bar, for a harness that has no hands. */}
+            {bridgeMode === 'mock' && (
+              <label className="block space-y-1 pt-1">
+                <span className="text-xs text-ink-muted">What Lich says about Pause</span>
+                <select
+                  aria-label="What Lich says about Pause"
+                  data-testid="mock-pause-latch"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-2 py-1.5 text-xs text-ink"
+                  value={pauseLatch}
+                  onChange={(e) => {
+                    const next = e.target.value as PauseLatchMode
+                    setPauseLatch(next)
+                    demoPauseLatch(next)
+                  }}
+                >
+                  {PAUSE_LATCH_MODES.map((m) => (
+                    <option key={m} value={m}>
+                      {m} ({PAUSE_LATCH_WHAT[m]})
+                    </option>
+                  ))}
+                </select>
+                <span className="block text-xs leading-snug text-ink-faint">
+                  The bridge owns Pause, and it can be holding one this app never
+                  asked for. Each setting puts the footer chip in a different
+                  cell.
                 </span>
               </label>
             )}

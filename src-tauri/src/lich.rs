@@ -615,7 +615,10 @@ const LAUNCH_FILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(
 /// The [`std::process::Child`] is held rather than only the pid because a pid
 /// can be recycled: asking the handle is the only answer that cannot name
 /// somebody else's process.
-static SPAWNED_LICH: LichProcess = LichProcess(std::sync::Mutex::new(None));
+static SPAWNED_LICH: LichProcess = LichProcess {
+    child: std::sync::Mutex::new(None),
+    port: std::sync::atomic::AtomicU16::new(0),
+};
 
 /// The one owner of the [`std::process::Child`] this app spawned.
 ///
@@ -641,7 +644,17 @@ static SPAWNED_LICH: LichProcess = LichProcess(std::sync::Mutex::new(None));
 /// and never said about this handle. `docs/LICH_NATIVE_LOGIN.md` §9 is the
 /// sentence; [`LichProcess::stop`] and [`LichProcess::release`] are the two
 /// answers to the question the app asks on close.
-pub struct LichProcess(std::sync::Mutex<Option<std::process::Child>>);
+pub struct LichProcess {
+    child: std::sync::Mutex<Option<std::process::Child>>,
+    /// The detachable-client port this app started that child with.
+    ///
+    /// Recorded rather than re-read from [`DETACHABLE_PORT`] at the
+    /// point of use: #504 is a defect about dialling a number nobody
+    /// checked, and a fix that answers "which port is ours" with the
+    /// same constant the bug used would be the same guess wearing a
+    /// function name. Zero means no child is held.
+    port: std::sync::atomic::AtomicU16,
+}
 
 /// What [`LichProcess::stop`] did, so a caller can say which rather than guess.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -662,13 +675,30 @@ impl LichProcess {
     /// A previous child is *released*, never killed - see
     /// [`LichProcess::release`]. In practice there is never one, because both
     /// launch paths refuse while a Lich is running.
-    fn hold(&self, child: std::process::Child) {
-        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
+    fn hold(&self, child: std::process::Child, port: u16) {
+        *self.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
+        self.port.store(port, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// The port of the Lich this app started, while it is still running.
+    ///
+    /// `None` covers all three of "we started none", "it has exited" and
+    /// "the handle failed", because every one of them means the same
+    /// thing to the caller: whatever is listening out there is not ours
+    /// to attach to without saying whose it is.
+    fn our_port(&self) -> Option<u16> {
+        match self.status() {
+            SpawnedLich::Running => {
+                let p = self.port.load(std::sync::atomic::Ordering::SeqCst);
+                (p != 0).then_some(p)
+            }
+            _ => None,
+        }
     }
 
     /// Non-blocking: what the held child is doing. See [`spawned_lich_status`].
     fn status(&self) -> SpawnedLich {
-        let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.child.lock().unwrap_or_else(|e| e.into_inner());
         let Some(child) = guard.as_mut() else {
             return SpawnedLich::NotOurs;
         };
@@ -696,7 +726,7 @@ impl LichProcess {
     /// `shred_pending_launch_files` takes a different lock and holding two is
     /// how an ordering bug gets in.
     fn stop(&self) -> StopOutcome {
-        let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.child.lock().unwrap_or_else(|e| e.into_inner());
         let outcome = match guard.as_mut() {
             None => StopOutcome::NotOurs,
             Some(child) => match child.try_wait() {
@@ -732,7 +762,8 @@ impl LichProcess {
     /// nothing; `dial_with_retry` and the 120-second backstop own that file and
     /// both still apply to a Lich that is still running.
     fn release(&self) -> bool {
-        self.0
+        self.port.store(0, std::sync::atomic::Ordering::SeqCst);
+        self.child
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .take()
@@ -808,6 +839,232 @@ pub fn lich_owned_status() -> OwnedLich {
     }
 }
 
+/// Where Lich writes a session descriptor for each listener it opens.
+///
+/// `Frontend.create_session_file` (Lich 5.20.1
+/// `lib/common/front-end.rb:435-443`) writes
+/// `<tmp>/simutronics/sessions/<Name>.session`, whose whole content is
+/// `{"name":..,"host":..,"port":..}` - and the detachable listener calls it
+/// with the character it was started for and the port it just bound
+/// (`lib/main/main.rb:856-866`). That file is the only thing on this machine
+/// that says *whose* Lich is on a port, and it is written by Lich rather than
+/// inferred by us, which is the whole difference between this and #504.
+///
+/// The environment override is the seam: the real directory has whatever the
+/// player's own sessions put there, so a test that needs an empty one, a
+/// malformed one, or a descriptor for a port nothing is listening on has no
+/// way to arrange it otherwise. A branch nobody can execute on purpose is a
+/// branch nobody can prove they fixed.
+fn session_dir() -> PathBuf {
+    match std::env::var("DRC_SESSION_DIR") {
+        Ok(dir) if !dir.trim().is_empty() => PathBuf::from(dir),
+        _ => std::env::temp_dir().join("simutronics").join("sessions"),
+    }
+}
+
+/// One of Lich's session descriptors: which character, on which port.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionDescriptor {
+    pub name: String,
+    pub port: u16,
+}
+
+/// Every descriptor in `dir` that parses, ignoring every file that does not.
+///
+/// A missing directory is an empty list rather than an error: Lich writes
+/// these only for a listener it actually opened, so "no directory" and "no
+/// sessions" are the same fact. A file that will not parse is skipped rather
+/// than failing the sweep, because one truncated descriptor from a Lich that
+/// died mid-write must not hide the good ones beside it.
+fn session_descriptors_in(dir: &Path) -> Vec<SessionDescriptor> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("session") {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
+            continue;
+        };
+        let name = value
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let port = value.get("port").and_then(|v| v.as_u64()).unwrap_or(0);
+        if name.is_empty() || port == 0 || port > u16::MAX as u64 {
+            continue;
+        }
+        out.push(SessionDescriptor {
+            name,
+            port: port as u16,
+        });
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out
+}
+
+/// The character Lich says is on this port, where it says so.
+///
+/// `None` is a real third answer and must not be shown as a name: a Lich
+/// started without `--login` writes no descriptor at all
+/// (`lib/main/main.rb:857-866` only calls the writer `if char_name`), so a
+/// port with a listener and no descriptor is "we cannot tell whose", which
+/// is a different sentence from any name.
+fn character_on_port(descriptors: &[SessionDescriptor], port: u16) -> Option<String> {
+    descriptors
+        .iter()
+        .find(|d| d.port == port)
+        .map(|d| d.name.clone())
+}
+
+/// Is anything listening on `port` of the loopback interface?
+///
+/// Read out of the OS connection table rather than by connecting. A connect
+/// would *attach a detachable client* to somebody's live session
+/// (`global_defs.rb:2357` registers every accepted socket and logs the
+/// disconnect), so the probe would be a side effect on the thing it is
+/// probing. `netstat -ano` is a read.
+///
+/// Three answers, for the reason `any_image_listed` gives: "nothing is
+/// listening" and "the table could not be read" lead to opposite sentences.
+fn listening_on(port: u16) -> Option<bool> {
+    let out = Command::new("netstat")
+        .args(["-ano", "-p", "TCP"])
+        .output()
+        .ok()?;
+    parse_listening(&String::from_utf8_lossy(&out.stdout), port)
+}
+
+/// The parsing half of [`listening_on`], separated so all three answers can
+/// be driven without a socket.
+///
+/// Matched on the local-address column ending in `:<port>` with state
+/// `LISTENING`, never on the port appearing anywhere in the line: a remote
+/// address, a pid column or another connection's ephemeral port would all
+/// satisfy a substring match, and the wrong answer being available is the
+/// entire subject of #504.
+fn parse_listening(table: &str, port: u16) -> Option<bool> {
+    if table.trim().is_empty() {
+        return None;
+    }
+    let suffix = format!(":{port}");
+    Some(table.lines().any(|line| {
+        let mut cols = line.split_whitespace();
+        let Some(proto) = cols.next() else {
+            return false;
+        };
+        if !proto.eq_ignore_ascii_case("tcp") {
+            return false;
+        }
+        let Some(local) = cols.next() else {
+            return false;
+        };
+        let listening = cols.any(|c| c.eq_ignore_ascii_case("LISTENING"));
+        listening && local.ends_with(&suffix)
+    }))
+}
+
+/// What the sign-in screen may offer when a launch was refused because a
+/// Lich is already up.
+///
+/// Issue #504. What this replaces was a single `tasklist` match on the image
+/// name `rubyw.exe` and then a dial at the constant 11024 - which knows that
+/// *a* Ruby process exists and nothing else. It could join another account's
+/// character with nothing on screen saying the character had changed, and its
+/// "press it again in a moment" advice could never come true for a Lich
+/// started without a detachable listener, because that Lich will never open
+/// one.
+///
+/// So the offer names what it knows, and the sentence differs per answer.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum AttachOffer {
+    /// This app started it and still holds the handle. Nothing to ask.
+    Ours { port: u16 },
+    /// Something else's Lich is listening. `character` is what Lich itself
+    /// wrote about that port, and `None` where it wrote nothing - which is
+    /// not the same as "it is yours".
+    Foreign {
+        port: u16,
+        character: Option<String>,
+    },
+    /// A Lich is running and nothing is listening on the port this app can
+    /// join. Pressing again will never work; it was not started with
+    /// `--detachable-client`.
+    NoPort { port: u16 },
+    /// Nothing is listening and no Lich is running. The refusal that led
+    /// here is stale.
+    NoLich,
+    /// The question was not answered. Never folded into either of the two
+    /// above: a check that cannot say "I could not tell" reports a fact it
+    /// did not establish.
+    Unknown { why: String },
+}
+
+/// The decision, with every input passed in.
+///
+/// Its own function for the reason `already_running_refusal` is: on a machine
+/// with a real Lich the caller below cannot be aimed at any of these states
+/// on purpose, and the whole point of the issue is *which* answer comes out.
+///
+/// Order matters. Ours first, because a handle is the only evidence that
+/// needs no interpretation. Then the listener, because a Lich with no
+/// attachable port and no Lich at all are the same silence on the socket and
+/// are told apart by the process list, not by the port.
+fn decide_attach_offer(
+    our_port: Option<u16>,
+    lich_running: Option<bool>,
+    listening: Option<bool>,
+    character: Option<String>,
+    port: u16,
+) -> AttachOffer {
+    if let Some(p) = our_port {
+        return AttachOffer::Ours { port: p };
+    }
+    match listening {
+        None => AttachOffer::Unknown {
+            why: format!(
+                "could not read the local listening ports, so nothing is known about {port}"
+            ),
+        },
+        Some(true) => AttachOffer::Foreign { port, character },
+        Some(false) => match lich_running {
+            Some(true) => AttachOffer::NoPort { port },
+            Some(false) => AttachOffer::NoLich,
+            None => AttachOffer::Unknown {
+                why: format!(
+                    "nothing is listening on {port} and the process list could not be read"
+                ),
+            },
+        },
+    }
+}
+
+/// Which Lich is running, before the screen offers to join it.
+///
+/// Called by `SignIn.tsx` the moment a launch is refused with
+/// `lich_already_running`, and again after a failed attach - a fresh read
+/// rather than the inference the old sentence made about why the attach did
+/// not work.
+#[tauri::command]
+pub fn lich_attach_offer() -> AttachOffer {
+    let port = DETACHABLE_PORT;
+    decide_attach_offer(
+        SPAWNED_LICH.our_port(),
+        lich_running(),
+        listening_on(port),
+        character_on_port(&session_descriptors_in(&session_dir()), port),
+        port,
+    )
+}
 /// "Stop Lich": end the one this app started, and say what that did.
 ///
 /// One of the two answers to the close prompt (#488 §3). The player chose
@@ -1015,7 +1272,7 @@ fn launch_lich_using(
     // exited" - see [`LichProcess`] and issue #458. A previous child is
     // dropped here, which on every platform this ships to detaches rather
     // than kills: this app does not end a Lich it did not start ending.
-    SPAWNED_LICH.hold(child);
+    SPAWNED_LICH.hold(child, DETACHABLE_PORT);
 
     Ok(LaunchOutcome {
         pid: Some(pid),
@@ -1478,6 +1735,61 @@ mod tests {
     /// second one cannot be written wrong.
     static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+    /// The session-directory seam is a seam, and it is aimed somewhere the
+    /// default could not reach.
+    ///
+    /// A run that merely passes proves nothing here: the real directory is
+    /// whatever this machine happens to hold. So the override is pointed at
+    /// a path with this process's own pid in it, which the default cannot
+    /// produce, and the descriptor read back has to be the one written
+    /// there. Same rule as `DRC_TEST_PORT` reporting the port it was given.
+    #[test]
+    fn the_session_directory_can_be_pointed_somewhere_on_purpose() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+
+        let real = session_dir();
+        let dir = std::env::temp_dir().join(format!("drc-session-seam-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("a session directory");
+        std::fs::write(
+            dir.join("Seamcheck.session"),
+            format!(
+                r#"{{"name":"Seamcheck","host":"127.0.0.1","port":{}}}"#,
+                DETACHABLE_PORT
+            ),
+        )
+        .unwrap();
+
+        std::env::set_var("DRC_SESSION_DIR", &dir);
+        let aimed = session_dir();
+        let found = character_on_port(&session_descriptors_in(&aimed), DETACHABLE_PORT);
+        std::env::remove_var("DRC_SESSION_DIR");
+        let back = session_dir();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert_eq!(aimed, dir, "the override decides the directory");
+        assert_ne!(
+            aimed, real,
+            "and it is not where the default would have looked"
+        );
+        assert_eq!(
+            found.as_deref(),
+            Some("Seamcheck"),
+            "a name only this test could have written came back, so the read went there"
+        );
+        assert_eq!(back, real, "and removing it puts the default back");
+    }
+
+    /// `DRC_SESSION_DIR=` (empty) is not a directory named "".
+    #[test]
+    fn an_empty_session_directory_override_falls_back_rather_than_reading_nothing() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let real = session_dir();
+        std::env::set_var("DRC_SESSION_DIR", "   ");
+        let got = session_dir();
+        std::env::remove_var("DRC_SESSION_DIR");
+        assert_eq!(got, real);
+    }
     /// `DRC_LICH_DRY_RUN=1`: the argv is reported, the launch file is really
     /// written and really removed, and no process is started.
     #[test]
@@ -2271,7 +2583,7 @@ mod tests {
 
         let child = loopback_stand_in();
         let pid = child.id();
-        SPAWNED_LICH.hold(child);
+        SPAWNED_LICH.hold(child, DETACHABLE_PORT);
 
         let path = std::env::temp_dir().join(format!(
             // The child's pid, plus this process's own, so two
@@ -2329,7 +2641,7 @@ mod tests {
 
         let child = loopback_stand_in();
         let pid = child.id();
-        SPAWNED_LICH.hold(child);
+        SPAWNED_LICH.hold(child, DETACHABLE_PORT);
 
         let path = std::env::temp_dir().join(format!(
             // The child's pid, plus this process's own, so two
@@ -2408,7 +2720,7 @@ mod tests {
             .spawn()
             .expect("the stand-in starts");
         let pid = child.id();
-        SPAWNED_LICH.hold(child);
+        SPAWNED_LICH.hold(child, DETACHABLE_PORT);
         assert!(wait_for_exit(pid), "control: the stand-in exits by itself");
 
         assert!(
@@ -2437,7 +2749,7 @@ mod tests {
 
         let child = loopback_stand_in();
         let pid = child.id();
-        SPAWNED_LICH.hold(child);
+        SPAWNED_LICH.hold(child, DETACHABLE_PORT);
         let asked = lich_owned_status();
         assert!(asked.ours && asked.running, "{asked:?}");
 
@@ -2450,12 +2762,249 @@ mod tests {
         );
     }
 
+    /// A netstat table with the wrong answers present and reachable.
+    ///
+    /// #504 - the attach offer names whose Lich it found, and the cases from
+    /// here to `a_released_handle_stops_claiming_a_port` are that issue's.
+    ///
+    /// The port under test appears four times over: as a remote port, as a
+    /// pid, inside an established connection, and on UDP. A substring match
+    /// on ":11024" passes every one of them, which is why they are here -
+    /// a chooser tested where only the right answer exists is a chooser
+    /// testing that the code executes.
+    fn netstat_without_our_listener() -> String {
+        let p = DETACHABLE_PORT;
+        [
+            "Active Connections".to_string(),
+            String::new(),
+            "  Proto  Local Address          Foreign Address        State           PID"
+                .to_string(),
+            format!("  TCP    127.0.0.1:52001        127.0.0.1:{p}        ESTABLISHED     4231"),
+            format!("  TCP    127.0.0.1:8098         0.0.0.0:0              LISTENING       {p}"),
+            "  TCP    0.0.0.0:135            0.0.0.0:0              LISTENING       1024"
+                .to_string(),
+            format!("  UDP    127.0.0.1:{p}        *:*                                    9012"),
+        ]
+        .join("\r\n")
+    }
+
+    fn netstat_with_our_listener() -> String {
+        format!(
+            "{}\r\n  TCP    127.0.0.1:{}        0.0.0.0:0              LISTENING       7788",
+            netstat_without_our_listener(),
+            DETACHABLE_PORT
+        )
+    }
+
+    #[test]
+    fn a_port_that_is_not_listening_is_not_found_by_a_lookalike() {
+        // The control first: the same parser must find a real listener, or
+        // "false" below would only prove the parser never matches anything.
+        assert_eq!(
+            parse_listening(&netstat_with_our_listener(), DETACHABLE_PORT),
+            Some(true),
+            "a LISTENING row on the port is found"
+        );
+        assert_eq!(
+            parse_listening(&netstat_without_our_listener(), DETACHABLE_PORT),
+            Some(false),
+            "a remote port, a pid, an established socket and a UDP bind are none of them a listener"
+        );
+    }
+
+    #[test]
+    fn an_unreadable_table_is_not_a_clean_no() {
+        assert_eq!(parse_listening("", DETACHABLE_PORT), None);
+        assert_eq!(parse_listening("   \r\n", DETACHABLE_PORT), None);
+    }
+
+    #[test]
+    fn lich_says_which_character_is_on_which_port() {
+        let dir = std::env::temp_dir().join(format!("drc-sessions-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("a session directory");
+        // The shape Lich writes: front-end.rb:435-443.
+        let ours = DETACHABLE_PORT;
+        let neighbour = DETACHABLE_PORT + 1;
+        std::fs::write(
+            dir.join("Phemius.session"),
+            format!(r#"{{"name":"Phemius","host":"127.0.0.1","port":{ours}}}"#),
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("Someoneelse.session"),
+            format!(r#"{{"name":"Someoneelse","host":"127.0.0.1","port":{neighbour}}}"#),
+        )
+        .unwrap();
+        // A descriptor from a Lich that died mid-write must not hide the
+        // good ones beside it.
+        std::fs::write(dir.join("Truncated.session"), "{\"name\":\"Trunc").unwrap();
+        std::fs::write(dir.join("notes.txt"), "ignored").unwrap();
+
+        let found = session_descriptors_in(&dir);
+        assert_eq!(found.len(), 2, "two parsed, from {found:?}");
+        assert_eq!(character_on_port(&found, ours).as_deref(), Some("Phemius"));
+        // The wrong answer is available: another character is in the same
+        // directory on a neighbouring port.
+        assert_eq!(
+            character_on_port(&found, neighbour).as_deref(),
+            Some("Someoneelse")
+        );
+        assert_eq!(
+            character_on_port(&found, neighbour + 1),
+            None,
+            "a port nobody claims"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_missing_session_directory_is_no_sessions_and_not_an_error() {
+        let dir = std::env::temp_dir().join("drc-sessions-that-do-not-exist-504");
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(session_descriptors_in(&dir).is_empty());
+    }
+
+    #[test]
+    fn the_lich_we_started_is_attached_to_without_asking_whose_it_is() {
+        let offer = decide_attach_offer(
+            Some(DETACHABLE_PORT),
+            Some(true),
+            Some(true),
+            Some("Someoneelse".into()),
+            DETACHABLE_PORT,
+        );
+        assert_eq!(
+            offer,
+            AttachOffer::Ours {
+                port: DETACHABLE_PORT
+            },
+            "a handle outranks every other reading, including a name for that port"
+        );
+        // And it is the recorded port, not the constant: a launch on another
+        // port must attach there.
+        assert_eq!(
+            decide_attach_offer(Some(11099), Some(true), Some(true), None, DETACHABLE_PORT),
+            AttachOffer::Ours { port: 11099 }
+        );
+    }
+
+    #[test]
+    fn somebody_elses_lich_is_named_rather_than_joined_silently() {
+        assert_eq!(
+            decide_attach_offer(
+                None,
+                Some(true),
+                Some(true),
+                Some("Someoneelse".into()),
+                DETACHABLE_PORT
+            ),
+            AttachOffer::Foreign {
+                port: DETACHABLE_PORT,
+                character: Some("Someoneelse".into())
+            }
+        );
+        // No descriptor is "we cannot tell whose", never "it must be yours".
+        assert_eq!(
+            decide_attach_offer(None, Some(true), Some(true), None, DETACHABLE_PORT),
+            AttachOffer::Foreign {
+                port: DETACHABLE_PORT,
+                character: None
+            }
+        );
+    }
+
+    #[test]
+    fn a_lich_with_no_detachable_port_is_a_different_sentence_from_a_retry() {
+        assert_eq!(
+            decide_attach_offer(None, Some(true), Some(false), None, DETACHABLE_PORT),
+            AttachOffer::NoPort {
+                port: DETACHABLE_PORT
+            },
+            "running, nothing listening: pressing again can never work"
+        );
+        assert_eq!(
+            decide_attach_offer(None, Some(false), Some(false), None, DETACHABLE_PORT),
+            AttachOffer::NoLich,
+            "nothing running and nothing listening is a stale refusal, not a Lich to join"
+        );
+    }
+
+    #[test]
+    fn a_question_that_was_not_answered_never_reads_as_an_answer() {
+        let a = decide_attach_offer(None, Some(true), None, None, DETACHABLE_PORT);
+        let b = decide_attach_offer(None, None, Some(false), None, DETACHABLE_PORT);
+        for offer in [&a, &b] {
+            assert!(
+                matches!(offer, AttachOffer::Unknown { .. }),
+                "{offer:?} must be Unknown, not folded into a yes or a no"
+            );
+        }
+        assert_ne!(a, b, "and the two say which half was missing");
+        let AttachOffer::Unknown { why } = &a else {
+            unreachable!()
+        };
+        assert!(
+            why.contains(&DETACHABLE_PORT.to_string()),
+            "the sentence names the port: {why}"
+        );
+    }
+
+    #[test]
+    fn every_offer_serialises_with_the_tag_the_webview_switches_on() {
+        // The consuming side is a `switch (offer.kind)` in SignIn.tsx, so a
+        // variant that serialised without a `kind` would fall through it in
+        // silence. Asserted here rather than assumed from the derive.
+        for offer in [
+            AttachOffer::Ours {
+                port: DETACHABLE_PORT,
+            },
+            AttachOffer::Foreign {
+                port: DETACHABLE_PORT,
+                character: Some("Phemius".into()),
+            },
+            AttachOffer::NoPort {
+                port: DETACHABLE_PORT,
+            },
+            AttachOffer::NoLich,
+            AttachOffer::Unknown { why: "x".into() },
+        ] {
+            let json = serde_json::to_value(&offer).expect("serialises");
+            assert!(
+                json.get("kind").and_then(|k| k.as_str()).is_some(),
+                "{offer:?} serialised without a kind: {json}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_released_handle_stops_claiming_a_port() {
+        let _guard = LICH_PROCESS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        SPAWNED_LICH.release();
+        assert_eq!(SPAWNED_LICH.our_port(), None, "nothing held claims no port");
+        let child = loopback_stand_in();
+        SPAWNED_LICH.hold(child, 11077);
+        assert_eq!(
+            SPAWNED_LICH.our_port(),
+            Some(11077),
+            "a live handle reports the port it was started with"
+        );
+        SPAWNED_LICH.stop();
+        assert_eq!(
+            SPAWNED_LICH.our_port(),
+            None,
+            "and a stopped one claims nothing, so the offer stops saying Ours"
+        );
+    }
     /// The refusal a running Lich produces is the one that offers Attach.
     ///
     /// #488 §3: this arrived as `lich_did_not_start`, whose player sentence
     /// sends them to "Why won't it start?" - a diagnostic for a Lich that is
     /// running perfectly well. The three states are driven here because the
     /// caller cannot be aimed at them on a machine that has Lich installed.
+
     #[test]
     fn a_lich_that_is_already_up_is_an_attach_offer_and_not_a_diagnostic() {
         let refusal =

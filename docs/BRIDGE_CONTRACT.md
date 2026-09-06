@@ -182,10 +182,31 @@ A field that is **absent** must never render as confirmed: that bridge has no
 latch at all. Same shape as `auth`/`implementedIntents` on the `hello` frame,
 and for the same reason.
 
-`src/bridge/mockBridge.ts` can produce every cell on demand —
-`bridge.setPauseLatchMode('follow' | 'latched' | 'clear' | 'absent')` — because
-a state the fixture cannot reach is a state nobody sees until a live bridge is
-the first place it happens.
+`src/bridge/mockBridge.ts` can produce every cell on demand, because a state
+the fixture cannot reach is a state nobody sees until a live bridge is the
+first place it happens. Two ways in, and they are the same setter:
+
+- **What Lich says about Pause**, a chooser in Settings under Bridge, shown
+  only in mock mode.
+- `?mock-pause=follow|latched|clear|absent`, read by `selectPauseLatchMode`
+  in the same parser as `?bridge=`, for a harness with no hands.
+
+Both reach `bridge.setPauseLatchMode`. Being *on the facade* is not being
+reachable and this paragraph used to claim it was: the setter had no caller
+anywhere for weeks, so two of the four cells stayed unreachable in
+development while a regex over the file that declares it reported them
+covered (issue #503).
+
+To see all four rather than read about them:
+
+```
+npm run dev
+npm run pause:cells -- http://127.0.0.1:1420/
+```
+
+That drives each cell through the chooser in a real browser, reads the footer
+chip back, and writes `docs/verification/pause-cells-*.png`. Where this table
+and that run disagree, the run is right and the table is stale.
 
 `tools/pause-reaches-travel-test.mjs` derives the set of intents that
 must be held from the bridge's own `HANDLERS` table, so a new intent that starts

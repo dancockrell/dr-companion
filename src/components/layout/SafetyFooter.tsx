@@ -401,6 +401,13 @@ export function SafetyFooter() {
             pause - `requestResumeAll` sends the bridge's `resume` either way. */}
         {pause.state !== 'running' && (
           <span
+            /* The cell itself, beside the words. `pause-cell-shots.mjs` reads
+               both: the attribute says which of the four `pauseStatus` chose,
+               the text says what a player is told, and a check that only had
+               one of them could not tell a relabelled cell from a wrong one.
+               Derived from the same reading that picks the colour, so it
+               cannot name a cell this chip is not rendering. */
+            data-pause-state={pause.state}
             className={cn(
               'shrink-0 rounded border px-1.5 py-0.5 font-semibold',
               pause.state === 'paused-confirmed'

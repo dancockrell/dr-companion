@@ -5,7 +5,7 @@ import { bridge } from '../bridge/index.ts'
 import type { IntentName } from '../bridge/types'
 import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence.ts'
-import { initialBridgeMode } from '../lib/bridgeModeSelect.ts'
+import { initialBridgeMode, type PauseLatchMode } from '../lib/bridgeModeSelect.ts'
 import { publishBridgeMode } from '../lib/bridgeModeSync.ts'
 import { DEFAULT_FRONTEND } from '../lib/frontends.ts'
 import {
@@ -302,6 +302,7 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   demoCombat: () => bridge.simulateCombat(),
   demoSafe: () => bridge.simulateSafe(),
   demoBrokenPattern: () => bridge.simulateBrokenPattern(),
+  demoPauseLatch: (mode: PauseLatchMode) => bridge.setPauseLatchMode(mode),
   loadPreset: (id: string) => bridge.loadPreset(id as DemoPresetId),
 
   /**

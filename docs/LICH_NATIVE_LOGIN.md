@@ -993,14 +993,50 @@ detection. That refusal used to arrive as `lich_did_not_start`, whose player
 sentence is *"The sign-in worked but Lich did not start. Use 'Why won't it start?'
 below to find out why."* - a diagnostic, for a Lich that is running perfectly
 well. It has its own code now, `lich_already_running`, and the sign-in screen
-offers **Attach to the Lich that is running** instead.
+offers an attach instead.
+
+What it offers is not one button. That refusal comes from one `tasklist`
+match on the image name `rubyw.exe`, so what it establishes is *a Ruby
+process exists* - not whose, not which character, not whether it opened a
+port. A single **Attach to the Lich that is running** on that evidence could
+join another account's character with nothing on screen saying the character
+had changed, and its "press it again in a moment" advice could never come
+true for a Lich started without `--detachable-client` (issue #504).
+
+So `lich_attach_offer` answers first, with one of five things, and the screen
+has a sentence for each:
+
+| answer | what it means | is there a button |
+|---|---|---|
+| `ours` | this app started it and still holds the handle | yes, on the recorded port |
+| `foreign` | somebody else’s Lich is listening | yes, and it names the character |
+| `no_port` | a Lich is running with nothing listening | no - pressing could never work |
+| `no_lich` | nothing running, nothing listening | no - the refusal is stale |
+| `unknown` | the question was not answered | no, and it says which half was missing |
+
+The name comes from Lich, not from us. `Frontend.create_session_file`
+(`lib/common/front-end.rb:435-443`) writes
+`<tmp>/simutronics/sessions/<Name>.session` holding
+`{"name":..,"host":..,"port":..}`, and the detachable listener calls it with
+the character it was started for and the port it just bound
+(`lib/main/main.rb:856-866`). A Lich started without `--login` writes no
+descriptor, which is why `foreign` carries a nullable character and says "does
+not say which character" rather than assuming the session is yours.
+
+The listener is read out of `netstat -ano`, not by connecting: a connect would
+register a detachable client on somebody's live session
+(`global_defs.rb:2357`), which is a side effect on the thing being probed.
 
 ### How to check it rather than believe it
 
 ```
 cd src-tauri && cargo test --lib lich::tests::stopping_lich
 cd src-tauri && cargo test --lib lich::tests::leaving_lich
+cd src-tauri && cargo test --lib lich::tests::somebody_elses_lich
+cd src-tauri && cargo test --lib lich::tests::a_lich_with_no_detachable_port
+cd src-tauri && cargo test --lib lich::tests::a_port_that_is_not_listening
 npm run test:lich-lifetime
+npm run test:sign-in
 ```
 
 The two Rust cases drive a loopback stand-in (`ping -n 60 127.0.0.1`), assert it

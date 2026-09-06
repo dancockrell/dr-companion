@@ -683,6 +683,113 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* #504 - the attach offer says which Lich, or says it does not know   */
+/* ------------------------------------------------------------------ */
+{
+  /*
+   * `attachAdvice` decides both the sentence and whether there is a button,
+   * from one value, so the two cannot disagree. That is the property under
+   * test here; the Rust half - which Lich is out there - is
+   * `decide_attach_offer` and its cases live in `src-tauri/src/lich.rs`.
+   *
+   * What this replaced: one button reading "Attach to the Lich that is
+   * running", rendered on a `tasklist` image-name match, dialling the
+   * constant 11024. The rows below are the four things that button could
+   * not say.
+   */
+  const { attachAdvice } = await import('../src/lib/lichAttachOffer.ts')
+
+  const checking = attachAdvice(null)
+  ok(
+    'before the answer arrives there is nothing to press',
+    checking.action === null && checking.port === null && /Checking/.test(checking.sentence),
+    JSON.stringify(checking)
+  )
+
+  const ours = attachAdvice({ kind: 'ours', port: 11031 })
+  ok(
+    'a Lich this app started is attached to on the port it was started with',
+    ours.port === 11031 && ours.action !== null,
+    JSON.stringify(ours)
+  )
+
+  const named = attachAdvice({ kind: 'foreign', port: 11024, character: 'Someoneelse' })
+  ok(
+    'somebody else\'s character is named in the sentence',
+    /Someoneelse/.test(named.sentence),
+    named.sentence
+  )
+  ok(
+    'and on the button, which is the last thing read before pressing',
+    named.action !== null && named.action.includes('Someoneelse'),
+    String(named.action)
+  )
+  ok(
+    'and the sentence warns that the sign-in just typed does not decide it',
+    /whoever you just signed in as/.test(named.sentence),
+    named.sentence
+  )
+
+  const anon = attachAdvice({ kind: 'foreign', port: 11024, character: null })
+  ok(
+    'a listener Lich named nobody for is not reported as yours',
+    /does not say which character/.test(anon.sentence) && anon.action !== null,
+    JSON.stringify(anon)
+  )
+
+  const noPort = attachAdvice({ kind: 'no_port', port: 11024 })
+  ok(
+    'a Lich with no detachable port offers no button, because pressing could never work',
+    noPort.action === null && noPort.port === null,
+    JSON.stringify(noPort)
+  )
+  ok(
+    'and it names the flag it was started without, rather than sending anybody to a diagnostic',
+    /--detachable-client/.test(noPort.sentence) && !/did not start/.test(noPort.sentence),
+    noPort.sentence
+  )
+
+  const gone = attachAdvice({ kind: 'no_lich' })
+  ok(
+    'a refusal that has gone stale says to sign in again, not to attach',
+    gone.action === null && /sign(ing)? in again/i.test(gone.sentence),
+    JSON.stringify(gone)
+  )
+
+  const unknown = attachAdvice({ kind: 'unknown', why: 'netstat could not be read' })
+  ok(
+    'a question that was not answered offers nothing and says why',
+    unknown.action === null && /netstat could not be read/.test(unknown.sentence),
+    JSON.stringify(unknown)
+  )
+
+  // The denominator for this block: a stub returning one object for every
+  // input would satisfy several rows above on its own.
+  const sentences = new Set(
+    [checking, ours, named, anon, noPort, gone, unknown].map((a) => a.sentence)
+  )
+  ok(
+    'seven inputs produced seven sentences',
+    sentences.size === 7,
+    `${sentences.size} distinct`
+  )
+
+  // And the one that would catch a revert: the old wording must be gone
+  // from the component, not merely unreachable.
+  const signIn = read('src/components/shared/SignIn.tsx')
+  ok(
+    'the unconditional offer is gone from SignIn',
+    !/Attach to the Lich that is running/.test(signIn),
+    'no fixed sentence left'
+  )
+  ok(
+    'and the port comes from the offer rather than a constant',
+    !/attachGame\(Number\(DEFAULT_ATTACH_PORT\)\)/.test(signIn) &&
+      /attachGame\(advice\.port\)/.test(signIn),
+    'attachGame takes the read port'
+  )
+}
 console.log(`\n${pass} checks passed, ${fail} failed` + (skipped.length ? `, ${skipped.length} not checked` : ''))
 
 // The denominator, derived rather than typed: a throw or an early return

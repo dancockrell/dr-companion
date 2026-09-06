@@ -407,10 +407,69 @@ console.log('\n-- the mock can produce every cell --')
     /pauseLatched: latched/.test(mockSrc) && /delete payload\.pauseLatched/.test(mockSrc),
     'the status goes through the mode, including deleting the key for the absent case'
   )
-  const facade = readFileSync('src/bridge/index.ts', 'utf8')
+  /* The consuming side, derived from the tree rather than asserted about the
+   * file that declares the setter.
+   *
+   * Issue #503. What stood here was
+   * `/setPauseLatchMode/.test(readFileSync('src/bridge/index.ts'))` with the
+   * message 'so it is reachable' - and it passed for months while nothing in
+   * the app called it, because a regex over the producer cannot say anything
+   * about a consumer. Same shape as the `authNote` case in CLAUDE.md: the
+   * signal moved from one place nobody reads to another place nobody reads.
+   *
+   * So: sweep src, count the files outside `src/bridge/` that name it, and
+   * require the chain a developer actually walks - a store action, a
+   * component that calls that action, and the URL parser the mock reads
+   * itself. Deleting any link goes red naming which.
+   */
+  const callers = []
+  const sweep = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`
+      if (entry.isDirectory()) sweep(full)
+      else if (/\.tsx?$/.test(entry.name)) {
+        const text = readFileSync(full, 'utf8')
+        if (/setPauseLatchMode|demoPauseLatch|selectPauseLatchMode|initialPauseLatchMode/.test(text)) {
+          callers.push(full)
+        }
+      }
+    }
+  }
+  sweep('src')
+  // The denominator, and it is the fragile number: a sweep that read nothing
+  // would satisfy every 'no file does X' check below by finding no files.
+  ok(callers.length >= 4, `the sweep found files naming the knob (${callers.length})`)
+  const outside = callers.filter((f) => !f.startsWith('src/bridge/'))
   ok(
-    /setPauseLatchMode/.test(facade),
-    'and the facade exposes it, so it is reachable rather than console-only like setAuthMode'
+    outside.length >= 1,
+    'something outside src/bridge reaches it, so it is reachable rather than declared',
+    outside.join(', ') || 'nothing - this is exactly the #503 state'
+  )
+  const storeAction = callers.find(
+    (f) => f.startsWith('src/store/') && /demoPauseLatch/.test(readFileSync(f, 'utf8'))
+  )
+  ok(!!storeAction, 'a store action wraps it, which is the only devtools route', storeAction ?? '')
+  const component = callers.find(
+    (f) => /\.tsx$/.test(f) && /demoPauseLatch\(/.test(readFileSync(f, 'utf8'))
+  )
+  ok(!!component, 'and a component calls that action', component ?? '')
+  const parser = readFileSync('src/lib/bridgeModeSelect.ts', 'utf8')
+  ok(
+    /mock-pause/.test(parser) && /selectBridgeMode/.test(parser),
+    'the URL route is in the same parser as ?bridge=, not a second one'
+  )
+  const mockReads = readFileSync('src/bridge/mockBridge.ts', 'utf8')
+  ok(
+    /initialPauseLatchMode\(\)/.test(mockReads),
+    'and the mock starts in the mode the URL asked for'
+  )
+  // The behavioural half is `tools/pause-cell-shots.mjs`, which drives all
+  // four cells through that chooser in a real browser and reads the chip
+  // back. Named here because the checks above are still structural, and a
+  // structural check saying 'reachable' is what #503 was.
+  ok(
+    readFileSync('tools/pause-cell-shots.mjs', 'utf8').includes('data-pause-state'),
+    'and a browser check reads the chip those cells produce'
   )
 }
 

@@ -221,11 +221,25 @@ ok(
 )
 ok(
   'source: and the offer is a real attach, not another sign-in',
-  /attachGame\(Number\(DEFAULT_ATTACH_PORT\)\)/.test(signIn),
+  // The name is the property; the body used to be the mechanism, and the
+  // mechanism it asserted - `attachGame(Number(DEFAULT_ATTACH_PORT))` - is
+  // precisely what #504 found wrong. Dialling the constant on a `tasklist`
+  // image-name match could join another account's character with nothing on
+  // screen saying so. So this now asks what its own name asks: does pressing
+  // the button attach, at a port that was read rather than assumed.
+  /attachGame\(advice\.port\)/.test(signIn) && /lichAttachOffer\(/.test(signIn),
 )
 ok(
   'source: the port is the one shared constant, not a retyped number',
   !/1102[0-9]/.test(signIn),
+)
+ok(
+  'source: and no attach is offered before the offer has been read',
+  // The three answers that must not produce a button are decided in
+  // `attachAdvice`; what this holds is that SignIn renders the button from
+  // that decision rather than from `alreadyRunning` alone, which is the
+  // shape the old screen had.
+  /attachAdvice\(offer\)\.action && \(/.test(signIn),
 )
 
 // ---------------------------------------------------------------------------
