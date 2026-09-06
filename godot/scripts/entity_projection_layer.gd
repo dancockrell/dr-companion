@@ -45,13 +45,17 @@ const BAND_CLEARANCE_METRES := 0.015
 const ASSESSMENT_RING_DROP_METRES := 0.39
 const ENGAGEMENT_LINE_LIFT_METRES := 0.08
 
-## The ground-item token's own box. Its height is named for the same reason: a
-## token is centred on its anchor, so half of this is the lift
-## `src/lib/isometric-board-layout.mjs` publishes for the `item` role, and the
-## two want to be readable against each other rather than one being a bare
-## number inside a Vector3.
-const ITEM_TOKEN_PLAN_METRES := 0.28
-const ITEM_TOKEN_HEIGHT_METRES := 0.12
+## The token drawn for a role whose cell published no token to draw: a
+## deliberately implausible cube, and no lift at all, so it reads as a broken
+## board contract rather than as a thing of a plausible size standing in a
+## plausible place. The same choice `content_registry.gd` makes with its
+## missing-footprint marker.
+##
+## It is the only mesh size in this file, and it is not a token's: every size a
+## token really has arrives on the spawn point that placed it, so that the lift
+## the board publishes and the mesh the viewer draws cannot be two statements of
+## one rule (issue #385).
+const UNPLACED_TOKEN_MARKER_METRES := 1.0
 
 signal inspect_entity_requested(entity_id: String)
 signal inspect_ground_item_requested(item_id: String)
@@ -111,11 +115,15 @@ func _project_entity(entity: Dictionary, room_holders: Dictionary) -> void:
 
 	var token := MeshInstance3D.new()
 	token.name = "Entity_%s" % entity_id
-	token.mesh = _entity_mesh(String(entity.get("deck", "")))
-	token.material_override = _token_material(CombatPresentation.token_color(entity))
 	var tactical_value = entity.get("tactical")
 	var role := "hostile" if String(entity.get("deck", "")) == "hostile" else "occupant"
-	token.position = _token_slot(tether, role, entity_id, _range_radius(entity), tactical_value is Dictionary)
+	# One spawn point, read once: the mesh this token is drawn as and the height
+	# it stands at are the same published fact, so they cannot be looked up
+	# separately and disagree.
+	var point := _spawn_point_for(tether, role, entity_id)
+	token.mesh = _token_mesh(point)
+	token.material_override = _token_material(CombatPresentation.token_color(entity))
+	token.position = _token_slot(tether, point, entity_id, _range_radius(entity), tactical_value is Dictionary)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "entity")
 	token.set_meta("entityName", String(entity.get("name", "")))
@@ -137,12 +145,10 @@ func _project_player(snapshot: Dictionary, room_holders: Dictionary) -> void:
 		return
 	var token := MeshInstance3D.new()
 	token.name = "PlayerSelf"
-	var pawn := CapsuleMesh.new()
-	pawn.radius = 0.28
-	pawn.height = 0.94
-	token.mesh = pawn
+	var point := _spawn_point_for(tether, "player", "player:self")
+	token.mesh = _token_mesh(point)
 	token.material_override = _token_material(CombatPresentation.player_color(player_value))
-	token.position = _token_slot(tether, "player", "player:self", 0.0, false)
+	token.position = _token_slot(tether, point, "player:self", 0.0, false)
 	var view := CombatPresentation.player_view(player_value)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "player")
@@ -196,11 +202,10 @@ func _project_ground_item(item: Dictionary, room_holders: Dictionary) -> void:
 
 	var token := MeshInstance3D.new()
 	token.name = "GroundItem_%s" % item_id
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(ITEM_TOKEN_PLAN_METRES, ITEM_TOKEN_HEIGHT_METRES, ITEM_TOKEN_PLAN_METRES)
-	token.mesh = mesh
+	var point := _spawn_point_for(tether, "item", item_id)
+	token.mesh = _token_mesh(point)
 	token.material_override = _token_material(Color(0.94, 0.71, 0.18))
-	token.position = _token_slot(tether, "item", item_id, 1.55, false)
+	token.position = _token_slot(tether, point, item_id, 1.55, false)
 	token.set_meta("roomId", room_id)
 	token.set_meta("snapshotKind", "ground-item")
 	token.set_meta("itemName", String(item.get("name", "")))
@@ -287,17 +292,57 @@ func _tether_for(room_id: String, room_holders: Dictionary) -> Node3D:
 	_tethers[room_id] = tether
 	return tether
 
-func _entity_mesh(deck: String) -> PrimitiveMesh:
-	if deck == "hostile":
-		var sphere := SphereMesh.new()
-		sphere.radius = 0.34
-		sphere.height = 0.68
-		return sphere
-	var pawn := CylinderMesh.new()
-	pawn.top_radius = 0.18
-	pawn.bottom_radius = 0.38
-	pawn.height = 0.8
-	return pawn
+## The mesh a spawn point published, built from the dimensions the cell carries.
+##
+## This file used to hold those dimensions - a 0.94 capsule, a 0.8 cylinder, a
+## 0.68 sphere and a 0.12 box - while `src/lib/isometric-board-layout.mjs`
+## published each token's lift as half the same height. Nothing related the two,
+## and issue #385 demonstrated what that costs: `sphere.height` changed from
+## 0.68 to 1.60 left the hostile token 0.46 m inside the block it stands on with
+## every guard in the repository green, because no check could see both halves.
+##
+## So the sizes come from the board now, in the same message as the lift derived
+## from them. A token whose cell published no size for it is not drawn small or
+## drawn at a guess: it gets the marker, which is a broken contract made visible.
+func _token_mesh(point: Dictionary) -> PrimitiveMesh:
+	var token_value = point.get("token", {})
+	if not (token_value is Dictionary):
+		return _unplaced_marker_mesh()
+	var token: Dictionary = token_value
+	if not token.has("height"):
+		return _unplaced_marker_mesh()
+	var height := float(token["height"])
+	if height <= 0.0:
+		return _unplaced_marker_mesh()
+	match str(token.get("shape", "")):
+		"capsule":
+			var capsule := CapsuleMesh.new()
+			capsule.radius = float(token.get("radius", 0.0))
+			capsule.height = height
+			return capsule
+		"cylinder":
+			var cylinder := CylinderMesh.new()
+			cylinder.top_radius = float(token.get("topRadius", 0.0))
+			cylinder.bottom_radius = float(token.get("bottomRadius", 0.0))
+			cylinder.height = height
+			return cylinder
+		"sphere":
+			var sphere := SphereMesh.new()
+			sphere.radius = float(token.get("radius", 0.0))
+			sphere.height = height
+			return sphere
+		"box":
+			var box := BoxMesh.new()
+			box.size = Vector3(float(token.get("width", 0.0)), height, float(token.get("depth", 0.0)))
+			return box
+	# A shape this viewer cannot build is the same fact as no shape at all.
+	return _unplaced_marker_mesh()
+
+## The cube drawn for a token whose cell published nothing to size it by.
+func _unplaced_marker_mesh() -> PrimitiveMesh:
+	var marker := BoxMesh.new()
+	marker.size = Vector3(UNPLACED_TOKEN_MARKER_METRES, UNPLACED_TOKEN_MARKER_METRES, UNPLACED_TOKEN_MARKER_METRES)
+	return marker
 
 func _token_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -367,6 +412,13 @@ func _ring_offset(stable_id: String, radius: float) -> Vector2:
 ## point's `anchor.y`, measured from the top face rather than from the cell
 ## origin, so a room and a 3 m interior cutaway need no different answer here.
 ##
+## That lift is half the token's own published height - the module's
+## `tokenLiftFor()` is the only place that says so, and this file builds the
+## mesh out of the same spawn point, so the drawn token's bottom face lands on
+## the surface without either side holding a number the other could contradict.
+## Issue #385 is what it looked like when they were two numbers: a mesh height
+## changed here left a token buried with every guard green.
+##
 ## `prefer_ring` is the tactical case, and it is why the anchors are published
 ## relative rather than absolute. A confirmed tactical entity is staged on the
 ## range band its assessed range names, so its x and z come from the ring above
@@ -384,8 +436,7 @@ func _ring_offset(stable_id: String, radius: float) -> Vector2:
 ## 21 were 1.0 to 1.4 m inside it (issue #373). There is no height typed into
 ## this file now, so there is nothing left here for the manifest to disagree
 ## with.
-func _token_slot(tether: Node3D, role: String, stable_id: String, ring_radius: float, prefer_ring: bool) -> Vector3:
-	var point := _spawn_point_for(tether, role, stable_id)
+func _token_slot(tether: Node3D, point: Dictionary, stable_id: String, ring_radius: float, prefer_ring: bool) -> Vector3:
 	var lift := UNPLACED_TOKEN_LIFT_METRES
 	var ground := Vector2.ZERO
 	var placed := false

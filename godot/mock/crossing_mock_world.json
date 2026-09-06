@@ -61,7 +61,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -72,7 +77,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -83,7 +94,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -94,7 +111,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -105,7 +127,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -116,7 +143,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -127,7 +160,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -250,7 +289,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -261,7 +305,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -272,7 +322,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -283,7 +339,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -294,7 +355,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -305,7 +371,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -316,7 +388,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -399,7 +477,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -410,7 +493,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -421,7 +510,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -432,7 +527,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -443,7 +543,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -454,7 +559,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -465,7 +576,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -548,7 +665,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -559,7 +681,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -570,7 +698,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -581,7 +715,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -592,7 +731,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -603,7 +747,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -614,7 +764,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -718,7 +874,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -729,7 +890,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -740,7 +907,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -751,7 +924,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -762,7 +940,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -773,7 +956,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -784,7 +973,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -899,7 +1094,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -910,7 +1110,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -921,7 +1127,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -932,7 +1144,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -943,7 +1160,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -954,7 +1176,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -965,7 +1193,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1072,7 +1306,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1083,7 +1322,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1094,7 +1339,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -1105,7 +1356,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -1116,7 +1372,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -1127,7 +1388,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -1138,7 +1405,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1221,7 +1494,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1232,7 +1510,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1243,7 +1527,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -1254,7 +1544,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -1265,7 +1560,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -1276,7 +1576,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -1287,7 +1593,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1381,7 +1693,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1392,7 +1709,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1403,7 +1726,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -1414,7 +1743,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -1425,7 +1759,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -1436,7 +1775,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -1447,7 +1792,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1525,7 +1876,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1536,7 +1892,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1547,7 +1909,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -1558,7 +1926,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -1569,7 +1942,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -1580,7 +1958,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -1591,7 +1975,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1682,7 +2072,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1693,7 +2088,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1704,7 +2105,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -1715,7 +2122,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -1726,7 +2138,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -1737,7 +2154,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -1748,7 +2171,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1822,7 +2251,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1833,7 +2267,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1844,7 +2284,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -1855,7 +2301,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -1866,7 +2317,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -1877,7 +2333,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -1888,7 +2350,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -1971,7 +2439,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -1982,7 +2455,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -1993,7 +2472,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2004,7 +2489,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2015,7 +2505,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2026,7 +2521,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2037,7 +2538,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -2139,7 +2646,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -2150,7 +2662,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -2161,7 +2679,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2172,7 +2696,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2183,7 +2712,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2194,7 +2728,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2205,7 +2745,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -2292,7 +2838,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -2303,7 +2854,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -2314,7 +2871,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2325,7 +2888,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2336,7 +2904,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2347,7 +2920,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2358,7 +2937,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -2441,7 +3026,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -2452,7 +3042,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -2463,7 +3059,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2474,7 +3076,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2485,7 +3092,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2496,7 +3108,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2507,7 +3125,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -2591,7 +3215,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -2602,7 +3231,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -2613,7 +3248,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2624,7 +3265,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2635,7 +3281,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2646,7 +3297,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2657,7 +3314,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -2755,7 +3418,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -2766,7 +3434,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -2777,7 +3451,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2788,7 +3468,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2799,7 +3484,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2810,7 +3500,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2821,7 +3517,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },
@@ -2894,7 +3596,12 @@
               "z": 0
             },
             "yawDeg": 0,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "capsule",
+              "height": 0.94,
+              "radius": 0.28
+            }
           },
           {
             "id": "occupant-left",
@@ -2905,7 +3612,13 @@
               "z": 0.75
             },
             "yawDeg": 45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "occupant-right",
@@ -2916,7 +3629,13 @@
               "z": 0.75
             },
             "yawDeg": -45,
-            "rigSocket": "humanoid-root"
+            "rigSocket": "humanoid-root",
+            "token": {
+              "shape": "cylinder",
+              "height": 0.8,
+              "topRadius": 0.18,
+              "bottomRadius": 0.38
+            }
           },
           {
             "id": "hostile-left",
@@ -2927,7 +3646,12 @@
               "z": -1.15
             },
             "yawDeg": 135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "hostile-right",
@@ -2938,7 +3662,12 @@
               "z": -1.15
             },
             "yawDeg": -135,
-            "rigSocket": "creature-root"
+            "rigSocket": "creature-root",
+            "token": {
+              "shape": "sphere",
+              "height": 0.68,
+              "radius": 0.34
+            }
           },
           {
             "id": "item-left",
@@ -2949,7 +3678,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           },
           {
             "id": "item-right",
@@ -2960,7 +3695,13 @@
               "z": 1.55
             },
             "yawDeg": 0,
-            "rigSocket": "item-root"
+            "rigSocket": "item-root",
+            "token": {
+              "shape": "box",
+              "height": 0.12,
+              "width": 0.28,
+              "depth": 0.28
+            }
           }
         ]
       },

@@ -104,6 +104,64 @@ export const CELL_GAP_METRES = 0.6
 /** The drawn block: the pitch, less the gutter. */
 export const CELL_BLOCK_METRES = CELL_PITCH_METRES - CELL_GAP_METRES
 
+/**
+ * Each token kind's own mesh, in metres. One owner for "how tall is a token".
+ *
+ * The viewer used to hold these: a capsule 0.94 tall for the player, a cylinder
+ * 0.8 for an occupant, a sphere 0.68 for a hostile and a 0.12 box for a ground
+ * item, all typed into `godot/scripts/entity_projection_layer.gd`, while this
+ * module published each token's lift as half the same height. Two statements of
+ * one rule in two languages, tied by nothing but a comment - and issue #385
+ * demonstrated the drift with `sphere.height = 0.68` changed to `1.60`, which
+ * left the hostile token 0.46 m inside its block with every guard in the
+ * repository green.
+ *
+ * So the dimensions live here, the manifest carries them on each spawn point,
+ * and the viewer builds the mesh out of what the cell published - the same
+ * shape the block size, the ground and the selection box already have. The lift
+ * is then not a second fact: `tokenLiftFor()` is the only place that says a
+ * token is centred on its anchor, and there is no number left in GDScript for
+ * it to disagree with.
+ *
+ * `shape` names the primitive rather than a height alone, because a viewer that
+ * knew how tall a thing is and not what it is would be back to typing the other
+ * half. A shape this module does not publish is not a token the viewer can
+ * size, and it draws the deliberately implausible marker instead.
+ */
+export const TOKEN_MESHES = {
+  player: { shape: 'capsule', height: 0.94, radius: 0.28 },
+  occupant: { shape: 'cylinder', height: 0.8, topRadius: 0.18, bottomRadius: 0.38 },
+  hostile: { shape: 'sphere', height: 0.68, radius: 0.34 },
+  item: { shape: 'box', height: 0.12, width: 0.28, depth: 0.28 },
+}
+
+/** The mesh published for `role`, or null for a role that has no token. */
+export function tokenMeshFor(role) {
+  const mesh = TOKEN_MESHES[role]
+  return mesh ? { ...mesh } : null
+}
+
+/**
+ * How far above the block's top face a token of this role stands.
+ *
+ * The whole of the rule, stated once: a token is centred on its anchor, so its
+ * lift is half its own height and its bottom face lands exactly on the surface.
+ * Every published `anchor.y` comes from here,
+ * `tools/godot-fixture-contract-test.mjs` checks the property that produces -
+ * the bottom of the token is at or above the block top - on both subjects, and
+ * `godot/tests/entity_projection_test.gd` measures the drawn mesh's bottom
+ * against the block it stands on.
+ */
+export function tokenLiftFor(role) {
+  const mesh = TOKEN_MESHES[role]
+  return mesh ? mesh.height / 2 : 0
+}
+
+/** One published spawn point: where a thing of this role stands, and how big it is. */
+function spawnPoint(id, role, x, z, yawDeg, rigSocket) {
+  return { id, role, anchor: { x, y: tokenLiftFor(role), z }, yawDeg, rigSocket, token: tokenMeshFor(role) }
+}
+
 export function boardLayoutFor(cell) {
   const interior = cell.classification?.spatialMode === 'interior-cutaway'
   return {
@@ -160,17 +218,18 @@ export function boardLayoutFor(cell) {
     // that surface each kind of thing stands.
     //
     // A token is centred on its anchor, so each lift is half that token's own
-    // height: the player capsule is 0.94 tall, an occupant cylinder 0.8, a
-    // hostile sphere 0.68, a ground item's box 0.12. That is a presentation
-    // fact and it belongs beside `rigSocket`, which is the same kind of claim.
+    // height - and the token's dimensions are published here beside the lift
+    // rather than typed into the viewer, which is issue #385. `tokenLiftFor()`
+    // above is the only statement of the relation; no lift is written out on
+    // these lines, so there is nothing here for a mesh to drift from.
     spawnPoints: [
-      { id: 'player', role: 'player', anchor: { x: 0, y: 0.47, z: 0 }, yawDeg: 0, rigSocket: 'humanoid-root' },
-      { id: 'occupant-left', role: 'occupant', anchor: { x: -1.15, y: 0.4, z: 0.75 }, yawDeg: 45, rigSocket: 'humanoid-root' },
-      { id: 'occupant-right', role: 'occupant', anchor: { x: 1.15, y: 0.4, z: 0.75 }, yawDeg: -45, rigSocket: 'humanoid-root' },
-      { id: 'hostile-left', role: 'hostile', anchor: { x: -1.35, y: 0.34, z: -1.15 }, yawDeg: 135, rigSocket: 'creature-root' },
-      { id: 'hostile-right', role: 'hostile', anchor: { x: 1.35, y: 0.34, z: -1.15 }, yawDeg: -135, rigSocket: 'creature-root' },
-      { id: 'item-left', role: 'item', anchor: { x: -1.55, y: 0.06, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
-      { id: 'item-right', role: 'item', anchor: { x: 1.55, y: 0.06, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
+      spawnPoint('player', 'player', 0, 0, 0, 'humanoid-root'),
+      spawnPoint('occupant-left', 'occupant', -1.15, 0.75, 45, 'humanoid-root'),
+      spawnPoint('occupant-right', 'occupant', 1.15, 0.75, -45, 'humanoid-root'),
+      spawnPoint('hostile-left', 'hostile', -1.35, -1.15, 135, 'creature-root'),
+      spawnPoint('hostile-right', 'hostile', 1.35, -1.15, -135, 'creature-root'),
+      spawnPoint('item-left', 'item', -1.55, 1.55, 0, 'item-root'),
+      spawnPoint('item-right', 'item', 1.55, 1.55, 0, 'item-root'),
     ],
   }
 }

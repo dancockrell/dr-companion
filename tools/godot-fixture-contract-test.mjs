@@ -57,6 +57,15 @@ let pass = 0
 let fail = 0
 const skipped = []
 
+/**
+ * Floating-point slack on the token-bottom rule, and nothing more. Every
+ * published lift is a division by two, so a token's bottom lands on the block's
+ * top face exactly; this is here so that a lift arriving through JSON at the
+ * last bit cannot be reported as a buried token. Millimetres of real burial are
+ * three orders of magnitude above it.
+ */
+const SPAWN_TOLERANCE_METRES = 1e-9
+
 const ok = (what, cond, detail = '') => {
   if (cond) {
     pass += 1
@@ -154,11 +163,23 @@ const contractViolations = (manifest) => {
     // meant to stand on, and all 21 on the three interior cutaways more than a
     // metre inside it.
     //
-    // Written as the viewer's own arithmetic rather than as `anchor.y >= 0`,
-    // though the two are the same test today: what has to be true is that a
-    // token ends up at or above the top of its own cell's block, and saying it
-    // that way keeps this rule pointed at the right thing if the frame moves
-    // again.
+    // The rule as it was written until issue #385, and why it had to change.
+    // It read `blockTop + anchor.y < blockTop`, which is `anchor.y < 0`. But a
+    // token is *centred* on its anchor, so a lift anywhere in
+    // `[0, height / 2)` leaves it partly inside the block and satisfied that
+    // test. Demonstrated: every one of the seven published lifts set to 0 -
+    // every token half buried - left this rule green on both subjects. The
+    // check could only ever reject a negative number, and it was titled as
+    // though it rejected a buried token.
+    //
+    // It could not do better, because the manifest did not carry the other
+    // half. The token's own height was a GDScript literal in
+    // `entity_projection_layer.gd`, so from here there was no such thing as
+    // half of it. Now the board publishes each token's mesh beside the lift
+    // derived from it, which is what makes the honest property checkable: the
+    // *bottom* of the token - its anchor less half its own height - is at or
+    // above the block's top face. Say it in the viewer's own arithmetic, so
+    // this stays pointed at the right thing if the frame moves again.
     const spawnPoints = cell.board?.spawnPoints
     if (!Array.isArray(spawnPoints) || spawnPoints.length === 0) {
       violations.push(`board-spawn: ${cell.id} carries no board.spawnPoints for the viewer to place tokens on`)
@@ -166,11 +187,20 @@ const contractViolations = (manifest) => {
       const blockTop = footprint.height / 2
       for (const point of spawnPoints) {
         const anchor = point?.anchor
+        const height = point?.token?.height
         if (!anchor || ['x', 'y', 'z'].some((axis) => typeof anchor[axis] !== 'number')) {
           violations.push(`board-spawn: ${cell.id} spawn point "${point?.id}" has no complete numeric anchor`)
-        } else if (blockTop + anchor.y < blockTop) {
+        } else if (typeof height !== 'number' || !(height > 0)) {
+          // Without it the rule below is unfalsifiable, so its absence is the
+          // violation rather than something to skip past: a spawn point with no
+          // published token is one the viewer has to invent a size for, which is
+          // the fork this rule exists to prevent coming back.
           violations.push(
-            `board-spawn: ${cell.id} spawn point "${point.id}" stands at ${(blockTop + anchor.y).toFixed(2)} m, ${(-anchor.y).toFixed(2)} m inside the top of its own ${footprint.height} m block`,
+            `board-spawn: ${cell.id} spawn point "${point?.id}" publishes no token height, so nothing here states how tall the thing standing on this block is`,
+          )
+        } else if (blockTop + anchor.y - height / 2 < blockTop - SPAWN_TOLERANCE_METRES) {
+          violations.push(
+            `board-spawn: ${cell.id} spawn point "${point.id}" lifts its ${height} m token by ${anchor.y} m, so ${(height / 2 - anchor.y).toFixed(3)} m of it is inside the top of its own ${footprint.height} m block`,
           )
         }
       }
@@ -263,13 +293,24 @@ for (const subject of subjects) {
   // and because the count that was 117 of 133 when issue #373 was found is the
   // one worth printing every run.
   const allAnchors = manifest.cells.flatMap((cell) =>
-    (cell.board?.spawnPoints ?? []).map((point) => ({ cell, y: point?.anchor?.y })),
+    (cell.board?.spawnPoints ?? []).map((point) => ({ cell, y: point?.anchor?.y, height: point?.token?.height })),
   )
+  // The count that goes to zero when the token dimensions stop being published
+  // - which is the state issue #385 was filed about, where the height lived in
+  // GDScript and nothing on this side could see it. Counted separately from the
+  // verdict below, because "every token clears its block" is also what a
+  // manifest that states no token heights would say if the rule skipped them.
+  const withToken = allAnchors.filter(({ height }) => typeof height === 'number' && height > 0).length
   const clearAnchors = allAnchors.filter(
-    ({ cell, y }) => typeof y === 'number' && typeof cell.board?.footprint?.height === 'number' && cell.board.footprint.height / 2 + y >= cell.board.footprint.height / 2,
+    ({ cell, y, height }) =>
+      typeof y === 'number' &&
+      typeof height === 'number' &&
+      typeof cell.board?.footprint?.height === 'number' &&
+      y - height / 2 >= -SPAWN_TOLERANCE_METRES,
   ).length
   ok(`${name}: carries the spawn anchors the token-height rule turns on`, allAnchors.length >= subject.minAnchors, `${allAnchors.length} anchors, floor ${subject.minAnchors}`)
-  ok(`${name}: every spawn anchor stands at or above its own cell's block top`, clearAnchors === allAnchors.length, `${clearAnchors} of ${allAnchors.length} anchors`)
+  ok(`${name}: every spawn point publishes the token height its lift is half of`, withToken === allAnchors.length, `${withToken} of ${allAnchors.length} anchors carry a token height`)
+  ok(`${name}: every token's bottom face is at or above its own cell's block top`, clearAnchors === allAnchors.length, `${clearAnchors} of ${allAnchors.length} anchors`)
 
   const violations = contractViolations(manifest)
   const of = (rule) => violations.filter((v) => v.startsWith(`${rule}:`))
@@ -279,7 +320,7 @@ for (const subject of subjects) {
   ok(`${name}: every cell publishes the block size the board layout states`, of('board-footprint').length === 0, of('board-footprint')[0] ?? `${manifest.cells.length} cells at ${CELL_BLOCK_METRES} m`)
   ok(`${name}: every cell publishes a complete selection box`, of('board-selection').length === 0, of('board-selection')[0] ?? `${manifest.cells.length} cells`)
   ok(`${name}: every cell publishes ground wider than its block, which is the gutter`, of('board-ground').length === 0, of('board-ground')[0] ?? `${manifest.cells.length} cells, each larger than ${CELL_BLOCK_METRES} m`)
-  ok(`${name}: no cell places a token inside the block it publishes`, of('board-spawn').length === 0, of('board-spawn')[0] ?? `${allAnchors.length} anchors across ${manifest.cells.length} cells`)
+  ok(`${name}: no cell places a token inside the block it publishes`, of('board-spawn').length === 0, of('board-spawn')[0] ?? `${allAnchors.length} tokens across ${manifest.cells.length} cells, each standing on its own block`)
   ok(`${name}: satisfies the whole contract`, violations.length === 0, violations.length ? `${violations.length} violations` : 'no violations')
 
   // Each rule, shown able to fire against THIS subject. The broken manifests
@@ -324,6 +365,28 @@ for (const subject of subjects) {
   })
   firesOn('an anchor with no y, which the viewer would have to invent one for', 'board-spawn', (m) => {
     delete m.cells[0].board.spawnPoints[0].anchor.y
+  })
+  firesOn('every lift set to zero, so every token is half buried, which the old rule accepted', 'board-spawn', (m) => {
+    // The exact demonstration in issue #385: the rule this replaced read
+    // `anchor.y < 0`, so seven lifts of 0 - every token sunk to its waist -
+    // passed it on both subjects. It is the whole reason a token's height had
+    // to become something this side can see.
+    for (const cell of m.cells) for (const point of cell.board?.spawnPoints ?? []) point.anchor.y = 0
+  })
+  firesOn('a token that grew without its lift, which is the drift #385 demonstrated', 'board-spawn', (m) => {
+    // `sphere.height = 0.68` changed to `1.60` in the viewer, with the
+    // published lift left at 0.34. That put the hostile token 0.46 m inside its
+    // block and nothing in the repository could see it, because the height was
+    // a GDScript literal. The height is published now, so the same drift is
+    // this mutation - and it is caught here.
+    // Written so the mutation is a mutation whatever the subject carries: a
+    // manifest that had stopped publishing tokens at all would otherwise throw
+    // here, and a suite that crashes reports nothing about the rules after it.
+    const point = m.cells[0].board.spawnPoints[0]
+    point.token = { ...(point.token ?? {}), height: 1.6 }
+  })
+  firesOn('a spawn point with no published token, which the viewer would have to size by guess', 'board-spawn', (m) => {
+    delete m.cells[0].board.spawnPoints[0].token
   })
   firesOn('ground shrunk to the block, which leaves the board with no gutter', 'board-ground', (m) => {
     m.cells[0].board.ground.width = CELL_BLOCK_METRES
