@@ -23,7 +23,11 @@ export interface RoomContent {
   id: number
   /** street, path, interior, cave, water, snow, swamp, sand, forest, farmland, grass, rock, unknown. */
   ground: string
-  /** Which rule decided `ground`: colour, title, label, zone, neighbour, unknown. */
+  /** Which rule decided `ground`: player, colour, title, label, zone, neighbour,
+   * unknown - `GROUND_RULES` in `world-content-rules.mjs`, in that order.
+   * `player` means a person corrected it in the scene editor and the builder
+   * read that back; every other value means the batch decided it, and those are
+   * the rooms the panel's coverage list is drawn from. */
   rule: string
   /** outdoor-open, building-interior, cave, water. */
   block: string

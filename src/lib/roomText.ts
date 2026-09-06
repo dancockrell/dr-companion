@@ -1,6 +1,7 @@
 import { grokRoomScene } from '../data/grokRoomScenes.ts'
 import { roomScenePattern } from '../data/roomScenePatterns.ts'
 import { DEMO_INVASION_ROOM, DEMO_INVASION_ROOM_TEXT } from '../data/demoInvasionRoom.ts'
+import { resolveSceneForRoom } from './sceneOverrides.ts'
 
 /**
  * The description of the room you are standing in.
@@ -89,12 +90,24 @@ export function cachedRoomText(zone: string, room: number): RoomText | null {
  * visibly soft 336x192 images back into the full battle canvas. A missing
  * scene is now represented honestly instead of by art we already rejected.
  */
-export type RoomArtLayer = 'curated-place-pattern' | 'grok-text' | 'fingerprint'
+/**
+ * `player-override` is `docs/SCENE_ART.md`'s first tier, "curated landmark /
+ * published override", finally given a writer: the scene editor. Until it
+ * existed that tier could only be reached by regenerating the pattern table, so
+ * a player who could see the wrong picture had no way to say so.
+ */
+export type RoomArtLayer = 'player-override' | 'curated-place-pattern' | 'grok-text' | 'fingerprint'
 
 export function roomArtSelection(zone: string, room: number, title?: string | null, text?: string | null): {
   url: string | null
   layer: RoomArtLayer
 } {
+  // Ahead of the generated table on purpose. A person who has looked at the
+  // room and at the picture is a better authority on whether they match than a
+  // keyword classifier, and `resolveScene` has already refused any url the
+  // reviewed art ledger does not carry.
+  const chosen = resolveSceneForRoom(`${zone}-${room}`, null)?.art ?? null
+  if (chosen) return { url: chosen, layer: 'player-override' }
   const patterned = roomScenePattern(zone, room)
   if (patterned) return { url: patterned, layer: 'curated-place-pattern' }
   const textFallback = grokRoomScene(zone, room, title, text)

@@ -38,6 +38,12 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { landmarkFor } from '../src/lib/mapLandmarks.ts'
+// `isDrawable` rather than a check written here. It is the same question the
+// editor asks before storing a choice and the same one `resolveScene` asks
+// before honouring one, and a third statement of it in this file would be the
+// copy that drifts. Importing it costs nothing at module scope: it reads the
+// compiled registry and never touches the store.
+import { isDrawable } from '../src/lib/sceneOverrides.ts'
 import { expandCompassDirection } from '../src/lib/isometric-board-layout.mjs'
 import {
   COHORT_MAJORITY_DENOMINATOR,
@@ -60,9 +66,36 @@ import {
 } from '../src/lib/world-content-rules.mjs'
 
 const MAP_DIR = 'src/data/map'
-const OUT_DIR = 'src/data/world'
-const RESIDUE_PATH = 'tools/world-content-residue.csv'
+
+/**
+ * Where the run writes, overridable for one reason: so a test can run the real
+ * builder end to end without writing over 87 committed files that several
+ * sessions have open.
+ *
+ * A seam rather than a flag, and deliberately not a mode switch inside the
+ * builder: the code under test is then byte-for-byte the code that ships, and
+ * `tools/scene-editor-test.mjs` can assert what one room came out as rather
+ * than reading a count off a summary line. Point it somewhere wrong and the
+ * run fails naming that directory, which is what makes the seam provable.
+ */
+const OUT_DIR = process.env.DRC_WORLD_OUT ?? 'src/data/world'
+const RESIDUE_PATH = process.env.DRC_WORLD_RESIDUE ?? 'tools/world-content-residue.csv'
 const BRIEFS_PATH = 'data/art/out/geometric-room-briefs.json'
+
+/**
+ * A person's own corrections, exported from the scene editor.
+ *
+ * Optional by design: the file is a player's, not the repository's, and a
+ * checkout without one classifies exactly as it did before this rule existed.
+ * Its shape is `SceneExport` from `src/lib/sceneOverrides.ts` - `{ version,
+ * provenance, overrides }` - because the editor writes it and reading a second
+ * shape here would be the same set of choices described twice.
+ *
+ * Read as the *first* rule, ahead of colour. Below colour it would be a
+ * correction the next run overrules, and a correction the machine can overrule
+ * is not a correction.
+ */
+const OVERRIDES_PATH = process.env.DRC_SCENE_OVERRIDES ?? 'data/scene-overrides.json'
 
 /**
  * A floor, not a comment.
@@ -113,6 +146,10 @@ const zones = zoneFiles.map((file) => {
   return { id: zone.id ?? file.slice(0, -5), name: zone.name ?? '', rooms: zone.rooms ?? [] }
 })
 const totalRooms = zones.reduce((n, zone) => n + zone.rooms.length, 0)
+/** Every room id this cartography has, so a player file can be told apart from
+ * a player file for a *different* cartography. `presentationBridge.ts::cellId`
+ * and `tools/world-content-residue.csv` use the same `<zone>-<room>` key. */
+const zoneRoomIds = new Set(zones.flatMap((zone) => zone.rooms.map((room) => `${zone.id}-${room.id}`)))
 if (totalRooms < MIN_ROOMS) {
   console.error(`FAIL read ${totalRooms} rooms from ${MAP_DIR} across ${zones.length} zones, which is below the ${MIN_ROOMS} floor.`)
   console.error('     The map directory is empty, truncated, or has changed shape. Refusing to publish a world content manifest derived from it.')
@@ -173,6 +210,49 @@ function deriveColourTable() {
 const colourRows = deriveColourTable()
 const colourKind = new Map(colourRows.filter((row) => row.admitted).map((row) => [row.colour, row.kind]))
 
+// ------------------------------------------------- player corrections
+
+/**
+ * What a person said, read back from the scene editor's export.
+ *
+ * Three states, never two. `null` means there is no file, which is the ordinary
+ * state of a fresh checkout and is not a fault. An empty map means there *is* a
+ * file and it decided nothing, which is a fault worth naming: an export whose
+ * every field this build cannot draw, or a file of the wrong shape, would
+ * otherwise print the same "player 0" line as a machine with no file at all -
+ * the pipeline's own docstring warns that a rule reporting zero reads as dead
+ * code, and the reader has to be able to tell which zero this is.
+ *
+ * A field naming something the registry cannot draw is dropped and counted, not
+ * honoured: a ground kind Godot has no factory for renders as the placeholder
+ * box, and baking one into the committed content would put it in front of every
+ * player rather than only the one who typed it.
+ */
+function loadPlayerOverrides() {
+  if (!existsSync(OVERRIDES_PATH)) return { rooms: null, dropped: 0, rawRooms: 0 }
+  const file = JSON.parse(readFileSync(OVERRIDES_PATH, 'utf8'))
+  const incoming = file && typeof file === 'object' ? (file.overrides ?? {}) : {}
+  const rooms = new Map()
+  let dropped = 0
+  for (const [roomId, override] of Object.entries(incoming)) {
+    if (!override || typeof override !== 'object') {
+      dropped += 1
+      continue
+    }
+    const kept = {}
+    for (const field of ['ground', 'block', 'landmark']) {
+      if (!(field in override)) continue
+      if (isDrawable(field, override[field])) kept[field] = override[field]
+      else dropped += 1
+    }
+    if (Object.keys(kept).length > 0) rooms.set(roomId, kept)
+  }
+  return { rooms, dropped, rawRooms: Object.keys(incoming).length }
+}
+
+const playerFile = loadPlayerOverrides()
+const playerRooms = playerFile.rooms ?? new Map()
+
 // --------------------------------------------------------- classify
 
 const ruleCounts = new Map(GROUND_RULES.map((rule) => [rule, 0]))
@@ -181,6 +261,10 @@ const kindCounts = new Map(GROUND_KINDS.map((kind) => [kind, 0]))
 /** Everything the direct rules can say, before neighbour propagation. */
 function directGround(room, zone) {
   const { subject, context } = textOf(room)
+  // First, above colour. See `OVERRIDES_PATH`: a correction the next run can
+  // overrule is not a correction.
+  const byPlayer = playerRooms.get(`${zone.id}-${room.id}`)?.ground
+  if (byPlayer) return { kind: byPlayer, rule: 'player' }
   const byColour = room.color ? colourKind.get(room.color) : null
   if (byColour) return { kind: byColour, rule: 'colour' }
   const byTitle = groundKindFromText(context) ?? groundKindFromText(subject)
@@ -408,7 +492,10 @@ for (const zone of zones) {
   const blockOf = new Map()
   for (const room of zone.rooms) {
     const answer = decided.get(room.id) ?? { kind: 'unknown', rule: 'unknown' }
-    blockOf.set(room.id, blockKindFor(answer.kind))
+    // `??` and not `||`: `blockKindFor` is only consulted when the player named
+    // no block, and a player who overrode the ground alone gets the block that
+    // follows from it, exactly as `resolveScene` resolves the same pair.
+    blockOf.set(room.id, playerRooms.get(`${zone.id}-${room.id}`)?.block ?? blockKindFor(answer.kind))
   }
 
   const rooms = zone.rooms.map((room) => {
@@ -426,7 +513,11 @@ for (const zone of zones) {
       gateway: room.gateway,
       leaves: room.leaves,
     })
-    const landmarkKind = landmark?.kind ?? null
+    // `'landmark' in player` rather than a truthiness test, because `null` is a
+    // real answer here and is the correction the batch cannot express: "this
+    // room has no landmark, whatever `landmarkFor` reads into its title".
+    const player = playerRooms.get(`${zone.id}-${room.id}`)
+    const landmarkKind = player && 'landmark' in player ? player.landmark : (landmark?.kind ?? null)
     const tags = tagsFor({ groundKind: answer.kind, landmarkKind, subject, context })
     const specialKinds = specialKindsFor(tags)
     const spatialMode = spatialModeFor(blockKind, tags)
@@ -479,6 +570,24 @@ const unknownTotal = perZone.reduce((n, zone) => n + zone.unknown, 0)
 const unknownPercent = (unknownTotal / totalRooms) * 100
 
 console.log(`read ${totalRooms} rooms in ${zones.length} zones from ${MAP_DIR} (floor ${MIN_ROOMS})`)
+// Three states, printed as three sentences. A run that silently skipped the
+// player file and a run whose player file was empty would otherwise both show
+// "player 0" in the rule table below, and the reader could not tell a machine
+// with no corrections from one whose corrections were all thrown away.
+if (playerFile.rooms === null) {
+  console.log(`no ${OVERRIDES_PATH}: nothing to apply above colour, which is the ordinary state`)
+} else {
+  const applied = [...playerRooms.keys()].filter((id) => zoneRoomIds.has(id)).length
+  console.log(
+    `read ${OVERRIDES_PATH}: ${playerFile.rawRooms} rooms in the file, ${playerRooms.size} usable, ${applied} matched a room in ${MAP_DIR}, ${playerFile.dropped} fields dropped as undrawable`
+  )
+  if (playerFile.rawRooms > 0 && applied === 0) {
+    console.error(
+      `FAIL ${OVERRIDES_PATH} names ${playerFile.rawRooms} rooms and not one of them is a room this map has. That is a file for another cartography, or the wrong shape, and applying none of it silently would look exactly like having no file.`
+    )
+    process.exit(1)
+  }
+}
 console.log('')
 console.log('colour table (derived: each colour scored against the title rules on the rooms where both fire)')
 console.log('  colour     rooms  scored   kind        purity  admitted')

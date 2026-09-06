@@ -147,6 +147,8 @@
   "test:primitive-world",
   "test:world-content",
   "test:world-content-loader",
+  "test:scene-registry",
+  "test:scene-editor",
   "test:node-projection",
   "test:geometric-kit",
   "test:primitive-registry",

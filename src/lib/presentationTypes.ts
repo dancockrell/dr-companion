@@ -68,10 +68,19 @@ export interface WorldCellContent {
   tier: string
   /** Compass sides with nothing walkable beyond them. */
   boundaryEdges: string[]
-  /** Slots for `content_registry.gd` to fill, in the same `{kind, role}` shape
-   * the offline manifest publishes. Derived by `primitivesFor()` rather than
-   * stored, so there is one statement of which kinds a cell asks for. */
-  primitives: { kind: string; role: string }[]
+  /**
+   * Slots for `content_registry.gd` to fill, in the same `{kind, role}` shape
+   * the offline manifest publishes. The rule-derived ones come from
+   * `primitivesFor()` rather than being stored, so there is one statement of
+   * which kinds a cell asks for.
+   *
+   * `offset` is present only on the ones a person placed with the scene editor,
+   * and is metres from the cell's own origin: x east, z south, each within half
+   * the block (`sceneOverrides.ts::PLACEMENT_HALF_EXTENT`). Absent means the
+   * cell's origin, which is where every rule-derived primitive goes and where
+   * every primitive went before the editor existed.
+   */
+  primitives: { kind: string; role: string; offset?: { x: number; z: number } }[]
 }
 
 export interface EntitySnapshot {

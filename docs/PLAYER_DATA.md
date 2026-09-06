@@ -36,8 +36,8 @@ password in a settings file, obfuscated or not, is a plaintext password with a
 decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
-29 keys, owned by 25 files, found by scanning
-324 source files.
+30 keys, owned by 26 files, found by scanning
+327 source files.
 
 ## The keys
 
@@ -70,6 +70,7 @@ decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 | `drc.portrait.v1` | The portrait chosen for each character. | `src/lib/portraits.ts` |
 | `drc.quickswitch.v3` | What is pinned to the Quick Switch bar and in what order: tasks (with their language), commands and raw scripts. | `src/lib/quickSwitch.ts` |
 | `drc.right-rail-width.v1` | How wide the context side is, as a fraction of the window. Replaces `drc.experience-width.v2`; the experience strip moved to the console row and this rail holds alerts, actions and the AI worker. | `src/App.tsx` |
+| `drc.scene.v1` | Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. | `src/lib/sceneOverrides.ts` |
 | `drc.script-icons.v1` | Icon overrides for scripts, one entry per script rather than one per profile. | `src/lib/scriptIconOverrides.ts` |
 | `drc.watched-rooms.v1` | Rooms the player is watching, per profile. | `src/lib/watchedRooms.ts` |
 

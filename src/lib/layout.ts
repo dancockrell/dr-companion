@@ -36,6 +36,9 @@ export type PanelId =
   | 'room'
   | 'mindstate'
   | 'scripts'
+  // The scene editor: what the room the character is in looks like, and how to
+  // disagree with the batch that decided it.
+  | 'scene'
   // The room, the game text and the command line, as one panel.
   // Rendered as a fixed column in the normal layout; it becomes a panel in
   // freeform, where there are no columns to put it in.

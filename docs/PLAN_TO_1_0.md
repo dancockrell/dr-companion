@@ -299,6 +299,7 @@ PRs per lane, squash-merged.
 |---|---|---|---|---|
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | N | N5, N6 | `lane-n/n5-sign-in` | `dev/wt-n5` | 2026-09-06 |
+| S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
 
 N1 and N2 have merged (#441, #438). N7 is unheld and needs Dan rather than a
 session. G's row was deleted on 6 Sep 2026 when G11's second
@@ -1551,6 +1552,7 @@ receives. No portraits, no images in the client.
   blocked-on: the asset registry admits no item meshes, so the picker has nothing to offer
   touches: new:src/components/shared/AppearancePicker.tsx, src/components/dashboard/DashboardLayout.tsx
   depends-on: K5
+  superseded-by: S3, for scenery. **The blocker above is unchanged and still correct for item meshes.** Lane S builds the picker and the in-cell placement UI this increment describes, over the kinds `godot/scripts/shared_asset_content.gd` actually registers - two, both scenery. That is the same control this row wants, pointed at content that exists; the day the registry admits its first item mesh, K6 is `AppearancePicker.tsx` built from `ScenePrimitivePicker.tsx` rather than from nothing. Left `[!]` rather than `[x]` because what this row promises - a player choosing the model for their own sword - is still not possible.
   note: K1–K5 are `[x]`, so nothing in Lane K blocks this. `godot/assets/shared_asset_selections.json` holds two ids and both are scenery, so `do:`'s "grid of registry entries for its class" would today be a grid offering a rock and a footbridge as alternatives to a sword — a UI that can only be exercised by making exactly the substitution `admission.forbiddenSubstitutions` forbids, and whose `verify:` (set, reload, still set) would pass while demonstrating the wrong behaviour. `knownModelIds()` and `appearanceClasses()` in `src/lib/appearance.ts` are what it will read; unblock it when the registry admits its first item mesh. Codex's side is filed as `.agents/claims/k4-godot-appearance-mapping.json`.
   do: from the inventory list, click an item → grid of registry entries for its class (thumbnails from the registry if it has them, labelled squares if not); one click sets, one resets; shows "default (from Large Edged)" vs "your choice".
   verify: browser: set, reload, still set; reset → default.
@@ -1919,6 +1921,73 @@ already on disk.
   done-when: somebody who was not there can see that the batch produced a board.
   done: Boar Clan `127-186` (Paasvadh Forest, Understory; 666 cells) and Hibarnhvidar `116-114` (Inner Hibarnhvidar, Upper Cavern; 513 cells) — the first captures of any zone but the Crossing in this repository. Boar Clan is a flat green board of 1 m blocks on terrain planes (199 forest, 123 grass of 666); Hibarnhvidar is brown 3 m cutaway blocks (296 interior, 95 cave of 513). Nothing in the viewer differs between the two captures. The rig's own five `FIXTURE` tokens are in both; `capture-godot-window.ps1` refused three times with "window did not take foreground" before the second capture, so both are pictures of the window they name, and each viewer and rig was killed by the pid it was launched with.
   pitfalls: the boundary kit draws as the matte fallback slab in both, because `godot/shared-assets` is not initialised in this worktree. That is a missing asset and the viewer says so on the console; it is not a missing classification, and the doc says which.
+
+
+### Lane S — Scene editor (#445)
+
+Dan, 6 Sep 2026: *"work on the scene editor."* There was none. Lane M
+classified all 17,750 rooms from the cartography and M2 carried that answer to
+the viewer, which leaves the other half of the same problem: 86 rooms the batch
+could not classify, and 17,664 it classified with nobody able to disagree. This
+lane is the disagreement, and the route back into the pipeline.
+
+The shape is the one this repo has already built four times — `portraits.ts`,
+`creatureArt.ts`, `playerArt.ts`, and `appearance.ts` in Lane K: a generated
+guess, a player override in prefs, and **one** resolver both the compiler and
+the UI read. Nothing here is a second copy of the batch's rules; `ground` is a
+choice and `block`, `spatialMode` and `tier` follow from it through
+`world-content-rules.mjs`, which is the pipeline's own statement of them.
+
+Lane K's **K6 Picker UI** is superseded rather than closed. Its blocker was
+real and is unchanged: the asset registry admits no *item* meshes, so a picker
+offering a rock as an alternative to a sword is still the substitution
+`admission.forbiddenSubstitutions` forbids. S3 builds the picker for the class
+of content the registry *can* draw — scenery, two kinds today — so the UI
+pattern K6 described now exists and can be pointed at item meshes the day the
+registry admits one. K6 stays `[!]` and names S3.
+
+- [x] **S1  Resolver, storage, and the compiler hook** (≈45)
+  commit: (this PR) verified: 2026-09-06 minutes: 95
+  touches: new:src/lib/sceneOverrides.ts, new:tools/build-scene-registry.mjs, new:src/data/sceneRegistry.json, new:tools/scene-editor-test.mjs, godot/scripts/world_root.gd, src/lib/presentationBridge.ts, src/lib/presentationTypes.ts, src/lib/usePresentationBridgePublisher.ts, src/lib/mapLandmarks.ts, godot/scripts/content_registry.gd, godot/tests/content_registry_test.gd, package.json, tools/test-suites.json, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md
+  depends-on: M2
+  do: `resolveScene(roomId, guess, overrides)` = override ?? guess, exported and read by `compileWorldSnapshot` and by the panel — one resolver, not two agreeing ones. Overrides under `drc.scene.v1` through `storage.ts`. Every option list compiled from `godot/scripts/shared_asset_content.gd` by a `--check`-able builder, never typed. `content_registry.gd::build` places a primitive at the `offset` the manifest gives it, clamped to the cell's own published block.
+  verify: `node tools/scene-editor-test.mjs`; `node tools/godot-tests.mjs`; `node tools/build-scene-registry.mjs --check`.
+  done-when: an override set in the store changes what the live compiler publishes for that cell, and changes the block's height when it should.
+  done: 36 checks. Registry compiled: 5 kinds (2 placeable, both scenery), 13 of 13 ground kinds drawable, 4 of 4 block kinds, 29 landmark kinds, 17 reviewed backdrops. `content_registry_test.gd` 27 checks to 33.
+  sabotage: six, each reddening a different named check, all restored by md5. Full evidence in `docs/verification/scene-editor-2026-09-06.md`.
+  pitfalls: two. `loadSceneOverrides` had to start holding its parsed object, because `useSyncExternalStore` compares snapshots by identity and a loader that re-parsed would re-render the panel forever — which also meant the test's own reset had to clear that cache as well as the backing store, or every case would have read the previous case's overrides and several would have passed for the wrong reason. And the publisher republishes on zone, room and character, none of which an edit changes, so an edit forces a publish through a revision counter; without it the viewer would not have moved until the player walked out and back.
+
+- [x] **S2  The panel** (≈40)
+  commit: (this PR) verified: 2026-09-06 minutes: 55
+  touches: new:src/components/shared/ScenePanel.tsx, new:tools/scene-editor-shots.mjs, src/lib/layout.ts, src/components/dashboard/panels.tsx, src/lib/panelDataContracts.ts, src/lib/roomText.ts, new:docs/verification/scene-editor-2026-09-06.md
+  depends-on: S1
+  do: a dockable panel, `?view=panel&id=scene` as well, on the room the character is in or any room from the existing `PlaceSearch`. Ground, block and landmark as dropdowns over `sceneOptions()`; the backdrop as a grid of the actual reviewed images, since a dropdown of file names is unreviewable. Each field says whether the value is the batch's or yours, and offers reset only when there is something to reset. `roomArtSelection` gains a `player-override` layer ahead of the generated table — `docs/SCENE_ART.md`'s tier 1 finally has a writer.
+  verify: the real browser, in demo mode: change the ground kind, assert the store and the compiled cell; captures in `docs/verification/`.
+  done-when: a person can change what a room looks like without editing a file.
+  done: the panel ships as `scene`. Landmarks are labelled as not drawn by the viewer, because no content pack registers a landmark factory: the field is real content the snapshot carries and the 2D map draws, and saying so is better than implying the choice changes the board.
+
+- [x] **S3  Picker and placement, superseding K6** (≈40)
+  commit: (this PR) verified: 2026-09-06 minutes: 50
+  touches: new:src/components/shared/ScenePrimitivePicker.tsx, S2>src/components/shared/ScenePanel.tsx, S1>src/lib/sceneOverrides.ts, S1>tools/scene-editor-test.mjs
+  depends-on: S2
+  do: a grid of the registry's placeable kinds — two today, and item meshes appear by themselves the day the registry admits one, because the list is compiled rather than typed. No placeholder rows for meshes that do not exist. Position by clicking a top-down 4.4 m footprint of the cell with its eight compass edges drawn, or by typing x and z.
+  verify: browser: place one, reload, still there; the compiled cell carries the offset; the Godot capture shows it where it was put.
+  done-when: K6's `verify:` is satisfied for the content the registry can actually draw, and K6 says so.
+  done: the picker ships inside the scene panel, over the two kinds the registry admits, both scenery. `clampToCell` is exported from `sceneOverrides.ts` and is the only arithmetic the control does, so the property checked is not "the clamp clamps" but that **no value the control can produce is one `isDrawable` refuses** — asked of the store rather than of the clamp. A click moves the selected primitive rather than adding a second copy of it, because placing then nudging is the commonest thing a person does here. The empty case is a sentence, not a greyed-out row: a "sword (coming soon)" would be the same lie as an undrawable dropdown entry.
+  sabotage: `tools/scene-sabotage.mjs` case 8 — `clampToCell` returns its input unbounded, which is exactly what a picker doing its own arithmetic amounts to, and `FAIL nothing the clamp can produce is refused by the store` goes red.
+  pitfalls: the clamp had to live in exactly one place. A control doing its own arithmetic can hand `setSceneField` a value a float past the edge, and the refusal then arrives as a red message about a click made *inside* the square the person was shown, which reads as the editor being broken rather than as a rounding error. Godot's own clamp in `content_registry.gd::_place` is against the cell's *published* block rather than this layout constant, and the two are allowed to differ in that direction only.
+
+- [x] **S4  Coverage list, export and import** (≈35)
+  commit: (this PR) verified: 2026-09-06 minutes: 60
+  touches: S2>src/components/shared/ScenePanel.tsx, S1>src/lib/sceneOverrides.ts, tools/build-world-content.mjs, src/lib/world-content-rules.mjs, S1>tools/scene-editor-test.mjs
+  depends-on: S2
+  do: the zone's residue from `tools/world-content-residue.csv` as a work list, each row opening that room in the editor. Export and import the override set as one JSON, the local player's own choices always winning a conflict. `tools/build-world-content.mjs` reads that file as its first rule, above colour, so a correction made once survives the next build.
+  verify: the coverage list equals the residue for the zone; export then import round-trips byte-identical; a room in the imported set comes out of the builder with the imported answer.
+  done-when: the residue is a list somebody can work through, and working through it is not thrown away by the next `npm run world:build`.
+  done: `GROUND_RULES` gains `player` ahead of `colour`, and the builder reads `data/scene-overrides.json` — the editor's own export shape, so the set of choices is not described twice — as its first rule. Below colour it would be a correction the next run overrules, and a correction the machine can overrule is not a correction. The coverage list is derived from the zone's committed content by `rule === 'unknown'` rather than read from the CSV, because the CSV is the same fact written a second time and a panel reading it would go stale the day somebody rebuilt the world without committing it; `tools/scene-editor-test.mjs` holds the two to each other across all 85 zones, **in both directions**, and asserts the 86 is non-zero first so two empty sets cannot satisfy the equality.
+  verified-by: 56 checks in `tools/scene-editor-test.mjs`, 20 of them added here. The builder cases run the real `tools/build-world-content.mjs` end to end through new `DRC_WORLD_OUT` / `DRC_WORLD_RESIDUE` / `DRC_SCENE_OVERRIDES` seams into a fresh temp directory — a seam and not a mode switch, so the code under test is byte-for-byte the code that ships, and a run that ignored the seam fails for want of the file rather than passing against the committed one.
+  sabotage: `tools/scene-sabotage.mjs` cases 9–11 — the builder stops reading a person's corrections back; it keeps the read but drops the undrawable guard, so a kind Godot has no factory for is baked into content every player receives; and the committed residue CSV gains a row for a room the batch *did* classify, which is the drift the coverage list exists to be protected from. Each reddens its own named check and nothing else — a row was added rather than deleted precisely so exactly one direction of the comparison can see it. Nine of the eleven cases run without an engine (`--no-godot`), and the harness carries the two it skipped into its own summary rather than reporting nine as though it were the whole suite.
+  pitfalls: three states, never two. A run with no override file and a run whose file decided nothing would both have printed `player 0` in the rule table, and the reader could not have told a machine with no corrections from one whose corrections were all thrown away — so "there is no file" is its own sentence, and a file naming rooms this cartography does not have is a hard `FAIL` rather than a silent no-op, because applying none of it looks exactly like having no file. A field the registry cannot draw is dropped and counted rather than honoured: baking one into the committed content would put a placeholder box in front of every player rather than only the one who typed it. And `landmark` is read with `'landmark' in override` rather than a truthiness test, because `null` is a real answer here — "this room has no landmark" is the correction the batch cannot express.
 
 ---
 

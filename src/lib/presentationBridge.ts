@@ -87,6 +87,12 @@ import {
 } from './isometric-board-layout.mjs'
 import { primitivesFor } from './world-content-rules.mjs'
 import type { RoomContent } from './worldContent.ts'
+import {
+  loadSceneOverrides,
+  resolveScene,
+  type ResolvedScene,
+  type SceneOverrides,
+} from './sceneOverrides.ts'
 import { invokeTauri } from './tauri.ts'
 import type {
   Vec3,
@@ -175,20 +181,33 @@ function exitsFor(zoneId: string, room: MapZoneRoom): WorldExit[] {
  * statement, and `tools/build-primitive-world-manifest.mjs` narrows the same
  * classification through its own richer recipe for the art path.
  */
-function cellContentFor(room: RoomContent): WorldCellContent {
+function cellContentFor(scene: ResolvedScene): WorldCellContent {
   return {
-    groundKind: room.ground,
-    blockKind: room.block,
-    landmark: room.landmark,
-    tags: room.classification.tags,
-    spatialMode: room.classification.spatialMode,
-    tier: room.classification.tier,
-    boundaryEdges: room.boundaryEdges,
-    primitives: primitivesFor({
-      blockKind: room.block,
-      tags: room.classification.tags,
-      boundaryEdges: room.boundaryEdges,
-    }),
+    groundKind: scene.ground,
+    blockKind: scene.block,
+    landmark: scene.landmark,
+    tags: scene.classification.tags,
+    spatialMode: scene.classification.spatialMode,
+    tier: scene.classification.tier,
+    boundaryEdges: scene.boundaryEdges,
+    primitives: [
+      ...primitivesFor({
+        blockKind: scene.block,
+        tags: scene.classification.tags,
+        boundaryEdges: scene.boundaryEdges,
+      }),
+      // What a person put in this cell by hand, in the same array and the same
+      // shape as what the rules asked for. Deliberately one list rather than a
+      // second field: `world_root.gd` iterates `primitives` and hands each entry
+      // to `ContentRegistry.build`, so a placed prop that arrived under a
+      // different key would need a second loop in the viewer, and then there
+      // would be two answers to "what does this cell contain".
+      ...scene.primitives.map((placed) => ({
+        kind: placed.kind,
+        role: 'landform',
+        offset: { x: placed.x, z: placed.z },
+      })),
+    ],
   }
 }
 
@@ -228,9 +247,20 @@ export function compileWorldSnapshot(params: {
    * is tested as such; `publishWorldSnapshotIfChanged` below does the loading.
    */
   content?: Map<number, RoomContent> | null
+  /**
+   * The player's scene-editor corrections, from `loadSceneOverrides()`.
+   *
+   * Optional, and omitting it reads the store rather than skipping the
+   * override: a caller that does not know about the scene editor must still
+   * publish what the player chose, or their edit would apply in whichever code
+   * path happened to pass this and nowhere else. It is a parameter at all so a
+   * test can resolve against a set it built itself, and so the read happens
+   * once per compile rather than once per cell.
+   */
+  overrides?: SceneOverrides | null
   sequence: number
 }): WorldSnapshot | null {
-  const { zone, here, character, inventory, content, sequence } = params
+  const { zone, here, character, inventory, content, overrides, sequence } = params
 
   // No zone, no zone id, or the zone itself reported failure: there is
   // nothing true to publish. A snapshot with an empty cells array would
@@ -241,19 +271,31 @@ export function compileWorldSnapshot(params: {
   const hereId = here?.id ?? zone.here ?? null
   if (hereId == null) return null
 
+  // Read once for the whole zone rather than per cell: `resolveScene` takes the
+  // store as a parameter precisely so 1,060 cells cost one localStorage read,
+  // and so a test can resolve against a set it built itself.
+  const sceneOverrides = overrides ?? loadSceneOverrides()
+
   const rooms = (zone.rooms ?? []).filter((r): r is MapZoneRoom & { id: number } => r.id != null)
   const cells: WorldCell[] = rooms.map((room) => {
-    const roomContent = content?.get(room.id) ?? null
-    const cellContent = roomContent ? cellContentFor(roomContent) : null
+    const id = cellId(zoneId, room.id)
+    // The player's answer if they gave one, else the batch's, from the one
+    // resolver the scene editor also reads. A room with neither resolves to
+    // null and publishes no content, which is the state every live cell was in
+    // before `src/data/world` existed.
+    const scene = resolveScene(id, content?.get(room.id) ?? null, sceneOverrides)
+    const cellContent = scene ? cellContentFor(scene) : null
     return {
-      id: cellId(zoneId, room.id),
+      id,
       title: room.title ?? '',
       position: worldPosition(room),
       // The classification decides the block's height and whether the viewer
       // draws a floor or terrain, so it has to reach `boardLayoutFor`. `{}`
       // when there is none, which is the shape this passed unconditionally
-      // before `src/data/world` existed.
-      board: boardLayoutFor(roomContent ? { classification: roomContent.classification } : {}),
+      // before `src/data/world` existed. Taken from the resolved scene rather
+      // than from the batch record, so a player who calls a room an interior
+      // gets a 3 m block rather than a relabelled 1 m one.
+      board: boardLayoutFor(scene ? { classification: scene.classification } : {}),
       exits: exitsFor(zoneId, room),
       ...(cellContent ? { content: cellContent } : {}),
     }

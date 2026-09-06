@@ -41,9 +41,10 @@
  * signal, tracked here and forces the next publish regardless of whether the
  * projected facts happen to match the last successful publish.
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useAppStore } from '../store/useAppStore.ts'
 import { justReconnected, publishWorldSnapshotIfChanged } from './presentationBridge.ts'
+import { sceneOverridesRevision, subscribeSceneOverrides } from './sceneOverrides.ts'
 
 export function usePresentationBridgePublisher(enabled: boolean): void {
   const zone = useAppStore((s) => s.mapZone)
@@ -62,10 +63,24 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
   // room-changed publish on the first real snapshot already covers that.
   const wasConnected = useRef(false)
 
+  // A scene-editor edit changes no store field the publisher watches - same
+  // zone, same room, same character - so without this the player would change
+  // a room's ground kind and watch the viewer not change until they happened
+  // to walk out and back. Forced rather than compared, because the projection
+  // key is built from the live facts and an override moves none of them.
+  const sceneRevision = useSyncExternalStore(
+    subscribeSceneOverrides,
+    sceneOverridesRevision,
+    sceneOverridesRevision
+  )
+  const publishedRevision = useRef(sceneRevision)
+
   useEffect(() => {
     if (!enabled) return
-    const force = justReconnected(bridgeConnected, wasConnected.current)
+    const sceneEdited = publishedRevision.current !== sceneRevision
+    publishedRevision.current = sceneRevision
+    const force = justReconnected(bridgeConnected, wasConnected.current) || sceneEdited
     wasConnected.current = bridgeConnected
     void publishWorldSnapshotIfChanged({ zone, here, character, inventory }, force)
-  }, [enabled, zone, here, character, inventory, bridgeConnected])
+  }, [enabled, zone, here, character, inventory, bridgeConnected, sceneRevision])
 }

@@ -41,11 +41,55 @@ func registered_kinds() -> Array:
 ## the viewer rather than silently invisible.
 func build(cell: Dictionary, primitive: Dictionary) -> Node3D:
 	var kind: String = primitive.get("kind", "")
+	var node: Node3D = null
 	if _factories.has(kind):
-		var node: Node3D = _factories[kind].call(cell, primitive)
-		if node != null:
-			return node
-	return _placeholder(cell, primitive)
+		node = _factories[kind].call(cell, primitive)
+	if node == null:
+		node = _placeholder(cell, primitive)
+	_place(cell, node, primitive)
+	return node
+
+## Moves a primitive to the spot inside the cell the manifest asked for.
+##
+## Applied here rather than in `world_root.gd`'s mount loop, and rather than in
+## each factory, for the same reason every dimension in this file has one
+## source: a placed prop must land in the same spot whether a content pack drew
+## it or the placeholder box stood in for it, and a factory that forgot to read
+## the field would silently ignore somebody's edit. There is one statement of
+## "where does this primitive go" and it is this function.
+##
+## No offset means the cell origin, which is where every rule-derived primitive
+## goes and where every primitive went before the scene editor existed. That is
+## not a default filling a gap: a terrain plane or a floor is the cell, so its
+## place *is* the origin, and only hand-placed scenery has anywhere else to be.
+func _place(cell: Dictionary, node: Node3D, primitive: Dictionary) -> void:
+	var offset_value = primitive.get("offset")
+	if not (offset_value is Dictionary):
+		return
+	var offset: Dictionary = offset_value
+	var x = offset.get("x", 0.0)
+	var z = offset.get("z", 0.0)
+	if not (x is float or x is int) or not (z is float or z is int):
+		push_error("ContentRegistry: primitive '%s' published a board offset that is not two numbers (%s). Leaving it at the cell origin rather than guessing." % [primitive.get("kind", "unknown"), str(offset)])
+		return
+	node.position = clamp_offset_to_cell(cell, Vector3(float(x), node.position.y, float(z)))
+
+## Holds a placed primitive inside the cell it belongs to.
+##
+## Half the block's own published width and depth, so the bound follows the
+## manifest rather than a number typed here - the rule the whole of this file
+## is about. It is the same extent `sceneOverrides.ts::PLACEMENT_HALF_EXTENT`
+## holds the editor to, and it is applied again here because the editor is not
+## the only thing that can write a manifest.
+##
+## Static so a test can ask it directly without the autoload, like every other
+## geometry question in this file.
+static func clamp_offset_to_cell(cell: Dictionary, offset: Vector3) -> Vector3:
+	var size := block_size_metres(cell)
+	return Vector3(
+		clampf(offset.x, -size.x * 0.5, size.x * 0.5),
+		offset.y,
+		clampf(offset.z, -size.z * 0.5, size.z * 0.5))
 
 ## The block is the size the manifest published for this cell, never a number
 ## invented here.
