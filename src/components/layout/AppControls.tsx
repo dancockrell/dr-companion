@@ -1,5 +1,5 @@
 import { lazy, useState } from 'react'
-import { Pin, PinOff, Circle, Settings, Map as MapIcon, Highlighter } from 'lucide-react'
+import { Pin, PinOff, Circle, Settings, Map as MapIcon } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri.ts'
 import { useMapDock, setMapDock } from '../../lib/mapDock.ts'
@@ -7,7 +7,6 @@ import { cn } from '../../lib/cn.ts'
 import { LazySurface } from '../shared/LazySurface.tsx'
 
 const SettingsSheet = lazy(() => import('./SettingsSheet.tsx').then((module) => ({ default: module.SettingsSheet })))
-const ConfigManagerSheet = lazy(() => import('../config/ConfigManagerSheet.tsx').then((module) => ({ default: module.ConfigManagerSheet })))
 
 /**
  * Three controls and a connection light, floating over the top right corner.
@@ -25,7 +24,6 @@ const ConfigManagerSheet = lazy(() => import('../config/ConfigManagerSheet.tsx')
  */
 export function AppControls() {
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [configOpen, setConfigOpen] = useState(false)
   const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
   const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
@@ -117,17 +115,11 @@ export function AppControls() {
           {alwaysOnTop ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
         </button>
 
-        {setupComplete && (
-          <button
-            type="button"
-            title="Genie config - highlights, aliases, macros, substitutes, gags, variables"
-            aria-label="Genie config"
-            className="pointer-events-auto rounded p-1 text-ink-faint hover:text-ink"
-            onClick={() => setConfigOpen(true)}
-          >
-            <Highlighter className="h-3.5 w-3.5" />
-          </button>
-        )}
+        {/* The Genie config button stood here until N6. It opened an editor
+          * that wrote back into another program's `Config\*.cfg` files, which
+          * is not a thing this app can honestly offer once it no longer routes
+          * through that program. Deleted rather than relabelled: see the
+          * commit, and `docs/PLAN_TO_1_0.md` N-a. */}
 
         <button
           type="button"
@@ -140,7 +132,6 @@ export function AppControls() {
       </div>
 
       {settingsOpen && <LazySurface label="Settings"><SettingsSheet onClose={() => setSettingsOpen(false)} /></LazySurface>}
-      {configOpen && <LazySurface label="Genie config"><ConfigManagerSheet onClose={() => setConfigOpen(false)} /></LazySurface>}
     </>
   )
 }

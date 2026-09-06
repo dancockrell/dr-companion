@@ -61,9 +61,23 @@ let failed = 0
 let checked = 0
 const skipped = []
 
+/**
+ * The two trailing spaces before `padEnd` are load-bearing.
+ *
+ * `doc-claims-break-check.mjs` recovers a check's name from this line by
+ * splitting on a run of two or more spaces - the only thing separating the
+ * name from its detail column. A name of 58 characters or more used to pad to
+ * nothing, glue the detail on after a single space, and hand the negative
+ * suite a "name" with the detail welded to it: the sabotage landed, the right
+ * check went red, and the harness still reported FAIL because the string did
+ * not match. N6 hit that with two checks 57 and 60 characters long, and it
+ * reads like the guard is broken rather than the reporting. Appending the
+ * separator before padding makes those two spaces unconditional, so a check
+ * name may be any length.
+ */
 const ok = (name, cond, detail = '') => {
   checked++
-  console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(58)}${detail}`)
+  console.log(`${cond ? 'OK  ' : 'FAIL'} ${`${name}  `.padEnd(60)}${detail}`)
   if (!cond) failed++
 }
 const notChecked = (name, why) => {
@@ -511,6 +525,186 @@ const pkg = JSON.parse(read('package.json'))
   ok(
     'that key matcher would catch one',
     SECRETISH.test('drc.accountPassword') && !SECRETISH.test('drc.accountName'),
+  )
+}
+
+
+// --------------------------------------------------------------------------
+// L. No user-facing string or document tells anybody to configure the retired
+//    client. (N6)
+// --------------------------------------------------------------------------
+// The Genie route is gone: the app performs the account login itself and starts
+// Lich with the result (`docs/LICH_NATIVE_LOGIN.md`). Four components and two
+// documents used to print the commands for setting that client up instead, and
+// deleting them is only half the job - the half a person does once. This is the
+// half that holds, because an instruction for a route the app no longer takes
+// reads as current advice and sends a player somewhere that cannot work.
+//
+// # What is in the population, and why the exclusions are not loopholes
+//
+// Scoped to what a *player* can reach: everything under `src/`, the shipped
+// documents in `DOCS`, and `docs/BRIDGE_CONTRACT.md`. Deliberately not the
+// whole tree, because four files legitimately contain these strings and a
+// guard that failed on them would be telling the truth about the string while
+// lying about the claim:
+//
+//   - `docs/LICH_NATIVE_LOGIN.md` and `docs/PLAN_TO_1_0.md` name the verbs
+//     because they *record the decision to retire them*.
+//   - `docs/ENGINE.md` and `docs/LIVE-STATE.md` quote `--genie` out of Lich's
+//     own `login_helpers.rb`, describing what Lich's flag does. Not advice.
+//   - `src-tauri/src/lich.rs` asserts `--genie` is absent from the argument
+//     list; the test needs the string to test for it.
+//   - `docs/DOMAIN.md` is a research log of community traffic, marked as
+//     history at its section 22, kept verbatim because its value is the record.
+//
+// Every one of those describes the route. None of them tells a player to take
+// it, which is the property this check is for.
+{
+  /** Instructions a player must never be given again, and why each is dead. */
+  const RETIRED_INSTRUCTIONS = [
+    ['#lichconnect', 'the connect command for a client this app no longer routes through'],
+    ['licharguments', 'its config verb for Lich arguments'],
+    ['#config lichpath', 'its config verb for the Lich path'],
+    ['--genie', 'the frontend flag; it drops the streams capability the channel tabs need'],
+    // The one that survived N5 in three components: they printed a comma
+    // prefix for a route the app no longer takes. Lich runs headless here, so
+    // the character is `;` (`main.rb:58`) - see `frontends.ts`'s `prefixFor`.
+    [',companion_bridge', 'the comma-prefixed bridge command; this app is headless, so it is `;`'],
+  ]
+
+  const scanned = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name)
+      if (entry.isDirectory()) walk(p)
+      else if (/\.(tsx?|md)$/.test(entry.name)) scanned.push(p)
+    }
+  }
+  walk('src')
+  const population = [...scanned, ...DOCS, 'docs/BRIDGE_CONTRACT.md']
+
+  // The denominator. A walk that returned nothing finds no instructions for
+  // exactly the same reason a clean tree does. Well below the real count on
+  // purpose: a tripwire for an empty or truncated walk, not a file census.
+  ok('the retired-instruction scan found files to read', population.length >= 100, `${population.length} file(s)`)
+
+  /** Every hit, as `file:line: needle`, so a failure is actionable as it stands. */
+  const scan = (files) => {
+    const hits = []
+    for (const f of files) {
+      const lines = read(f).split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        for (const [needle] of RETIRED_INSTRUCTIONS) {
+          if (lines[i].includes(needle)) hits.push(`${f}:${i + 1}: ${needle}`)
+        }
+      }
+    }
+    return hits
+  }
+
+  /**
+   * Files inside the scanned tree that legitimately name a needle, each with
+   * the reason, because an unexplained exemption is how a real regression gets
+   * waved through.
+   *
+   * One entry, and it arrived from N4 rather than being written with this
+   * check: `frontends.ts` describes Lich's *own* argument parser - which flags
+   * `determine_frontend` accepts and which only `resolve_headless_frontend`
+   * honours - and `--genie` is one of the facts it is describing. That is the
+   * same category as `src-tauri/src/lich.rs`, which asserts the flag is absent
+   * and needs the string in order to test for it. Describing a flag is not
+   * instructing a player to pass it.
+   *
+   * The exemption is by file and not by line, and it is checked in both
+   * directions below: a file listed here that no longer contains a needle is a
+   * stale exemption and fails, the same way `tools/color-token-allowlist.json`
+   * refuses an entry that no longer matches.
+   */
+  const EXEMPT = new Map([
+    [
+      'src/lib/frontends.ts',
+      "doc comments describing Lich's own argument parser, not instructions",
+    ],
+  ])
+  const norm = (h) => h.replace(/\\/g, '/')
+  const allHits = scan(population).map(norm)
+  const exemptHit = (h) => [...EXEMPT.keys()].some((f) => h.startsWith(`${f}:`))
+  const found = allHits.filter((h) => !exemptHit(h))
+  ok(
+    'no shipped string or document instructs the retired route',
+    found.length === 0,
+    found.join('; ') ||
+      `${allHits.length - found.length} exempt hit(s) in ${EXEMPT.size} file(s)`
+  )
+  // A stale exemption is worse than none: it spends a reader's attention and
+  // quietly widens the hole. Every file listed must still contain a needle.
+  const staleExemptions = [...EXEMPT.keys()].filter(
+    (f) => !allHits.some((h) => h.startsWith(`${f}:`))
+  )
+  ok(
+    'every retired-instruction exemption still earns itself',
+    staleExemptions.length === 0,
+    staleExemptions.join(', ') || [...EXEMPT.values()].join('; ')
+  )
+
+  // The positive control, through the same `scan` the real check uses - not a
+  // re-implementation of it, which would leave `scan` itself unproven. The
+  // fixture carries all five needles on five lines, so a needle added to the
+  // table without being added here fails the control instead of passing
+  // silently.
+  const FIXTURE = 'tools/fixtures/retired-instructions.md'
+  const controlHits = scan([FIXTURE])
+  ok(
+    'control: the scan catches a fixture that does instruct it',
+    controlHits.length === RETIRED_INSTRUCTIONS.length,
+    `${controlHits.length}/${RETIRED_INSTRUCTIONS.length}: ${controlHits.join('; ')}`
+  )
+  // And that the control is reading real line numbers rather than always
+  // saying 1, which is what a broken splitter would produce.
+  ok(
+    'control: and reports distinct line numbers',
+    new Set(controlHits.map((h) => h.split(':')[1])).size === RETIRED_INSTRUCTIONS.length,
+    controlHits.map((h) => h.split(':')[1]).join(',')
+  )
+  const clean = 'Sign in on the first screen and the app starts Lich for you.'
+  ok(
+    'control: and spares a line that does not',
+    RETIRED_INSTRUCTIONS.every(([n]) => !clean.includes(n))
+  )
+
+  // ------------------------------------------------------------------
+  // The editor, which was a whole feature rather than a string.
+  // ------------------------------------------------------------------
+  // N6 deleted the sheet that read and wrote a Genie install's own
+  // `Config\*.cfg` files - highlights, aliases, macros, presets, substitutes,
+  // gags, variables - because an editor for a program the app no longer routes
+  // through is a promise it cannot keep. The strings above would not have
+  // caught it: none of them appeared in that editor. So this asserts the
+  // shape rather than the wording.
+  //
+  // `write_genie_config` itself survives, and the second check is why that is
+  // not a loophole: exactly one module may call it, and that module is the pin
+  // export (Dan's ask, 30 Aug 2026), which writes a DR Companion YAML into
+  // that folder rather than editing anything Genie wrote. A second caller
+  // appearing is how the editor would come back, one save at a time.
+  ok(
+    'the Genie config editor stays deleted',
+    !existsSync('src/components/config'),
+    existsSync('src/components/config') ? 'src/components/config is back' : ''
+  )
+  ok(
+    'control: the directory check can see a directory that is there',
+    existsSync('src/components/shared')
+  )
+  // `scanned` came from `join`, so it carries this platform's separator.
+  // Normalise before comparing, or the check passes or fails by OS.
+  const writers = scanned
+    .map((f) => f.replace(/\\/g, '/'))
+    .filter((f) => f !== 'src/lib/genieConfigWrite.ts' && read(f).includes('saveGenieConfig'))
+  ok(
+    'only the pin export writes into a Genie install',
+    writers.length === 1 && writers[0] === 'src/lib/pinsFile.ts',
+    writers.join(', ') || 'nothing calls it'
   )
 }
 

@@ -13,13 +13,13 @@ WebSocket server, written in pure stdlib Ruby so it needs no gems.
 Copy `companion_bridge.lic` into Lich's `scripts` folder, then in game:
 
 ```
-;companion_bridge          most frontends
-,companion_bridge          Genie, which uses a comma
+;companion_bridge
 ```
 
-Genie starts Lich scripts with a comma and every other frontend uses a
-semicolon. The rest of this file writes `;`; substitute `,` if you are on
-Genie.
+Lich takes its command character from its frontend. DR Companion starts Lich
+headless, with no frontend at all, so it is a semicolon (`main.rb:58`) and the
+rest of this file writes `;`. If you start Lich yourself under a frontend that
+uses something else, substitute it.
 
 Other forms:
 

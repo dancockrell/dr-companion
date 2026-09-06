@@ -12,10 +12,11 @@
  * `expansion` may contain positional tokens - `$0` is everything typed after
  * the alias word, `$1`/`$2`/... are that remainder split on whitespace, one
  * word each - and may itself be several DR commands joined with `;`, which is
- * this project's frontend's own command separator (`main.rb`'s
- * `$clean_lich_char` is `;` for anything that isn't `--genie`). That chaining
- * is sent through untouched and handled by the game side, not split apart
- * here.
+ * this app's command separator: Lich runs headless on this route, with no
+ * frontend to say otherwise, so `main.rb:58`'s `$clean_lich_char` is `;`. See
+ * `frontends.ts`'s `prefixFor`, which is the one place that answer is
+ * computed. That chaining is sent through untouched and handled by the game
+ * side, not split apart here.
  *
  * Anything else starting with `$` - `$preposition`, `$shop`, `$patient` and
  * so on - is a Genie *variable*, not an alias argument. This module has no

@@ -42,6 +42,7 @@
 import { useEffect, useState } from 'react'
 import { Play, RefreshCw, ExternalLink } from 'lucide-react'
 import { isTauri, invokeTauri } from '../../lib/tauri.ts'
+import { bridgeCommand } from '../../lib/frontends.ts'
 
 interface LichStatus {
   installDir: string | null
@@ -189,7 +190,10 @@ export function LichLauncher() {
       {status.running ? (
         <p className="mt-2 text-xs text-ink-faint">
           Nothing to do here. If the companion is still empty, run{' '}
-          <code className="text-ink">,companion_bridge</code> in the game.
+          {/* `null` = no frontend in the path. This panel only renders when
+            * Lich is up, and on this app's route that Lich is headless, so
+            * the command character is `;`. See `prefixFor`. */}
+          <code className="text-ink">{bridgeCommand(null)}</code> in the game.
         </p>
       ) : (
         <div className="mt-2 space-y-2">

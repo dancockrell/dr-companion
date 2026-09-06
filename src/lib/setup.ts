@@ -196,7 +196,7 @@ export function formatBytes(n: number): string {
 /**
  * Install a set of repo files, each verified against its git blob hash.
  *
- * Used for Genie's plugins and maps, which ship as files in a repo rather than
+ * Used for the plugin and map bundles that ship as files in a repo rather than
  * as release assets, so there is no release checksum to check them against.
  */
 export async function installBundle(
@@ -208,20 +208,25 @@ export async function installBundle(
 }
 
 /**
- * Is a Genie frontend running, and could we tell? (E11)
+ * Is another game client running, and could we tell? (E11)
+ *
+ * Renamed in N6, not deleted, and the rename is the point: this was never
+ * about the route the app used to take. Two processes cannot both hold the
+ * detachable port, and starting a second client has taken the connection out
+ * from under a live session on this machine twice, with no error either time.
  *
  * Three answers, not two. `known: false` means the process list could not be
- * read at all, which must never be rendered as "Genie is not running": a
+ * read at all, which must never be rendered as "nothing else is running": a
  * player whose live session is about to lose its connection deserves better
  * than a confident wrong answer.
  *
- * Nothing in this app closes Genie. It may be a session someone is playing,
+ * Nothing in this app closes anything. It may be a session someone is playing,
  * and taking the port out from under a running client is precisely the
  * accident this warning exists to prevent.
  */
-export async function genieStatus(): Promise<{ running: boolean; known: boolean }> {
+export async function frontendConflictStatus(): Promise<{ running: boolean; known: boolean }> {
   if (!isTauri()) return { running: false, known: false }
-  const res = (await invokeTauri('genie_status')) as
+  const res = (await invokeTauri('frontend_conflict_status')) as
     | { running?: boolean; known?: boolean }
     | null
   return { running: res?.running ?? false, known: res?.known ?? false }

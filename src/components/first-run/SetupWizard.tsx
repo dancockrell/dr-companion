@@ -43,7 +43,7 @@ import {
   revealFile,
   onSetupProgress,
   appDataPath,
-  genieStatus,
+  frontendConflictStatus,
   type SetupPlan,
   type DownloadOption,
 } from '../../lib/setup.ts'
@@ -83,9 +83,9 @@ export function SetupWizard() {
   // Why the check failed, when it did. An empty plan and a clean bill of
   // health are not the same thing and must never render the same.
   const [checkError, setCheckError] = useState<string | null>(null)
-  // E11. Whether Genie is up, and whether we could tell. Starts not-known,
-  // which is the honest state before the check has run.
-  const [genie, setGenie] = useState<{ running: boolean; known: boolean }>({
+  // E11. Whether another client is up, and whether we could tell. Starts
+  // not-known, which is the honest state before the check has run.
+  const [conflict, setConflict] = useState<{ running: boolean; known: boolean }>({
     running: false,
     known: false,
   })
@@ -126,7 +126,7 @@ export function SetupWizard() {
       // E11. One tasklist call, so it rides along with the check rather than
       // getting its own button. Its own command, not a field on lich_status,
       // because that one takes about five seconds.
-      setGenie(await genieStatus())
+      setConflict(await frontendConflictStatus())
 
       // Do not flash the title screen. If the check was instant, let it be
       // seen for a beat rather than blinking past.
@@ -306,9 +306,9 @@ export function SetupWizard() {
   const required = plan?.components.filter((c) => c.required) ?? []
   const lichPresent =
     plan?.components.find((c) => c.id === 'lich')?.presence === 'present'
-  // Detection reports the folder containing lich.rbw, and #config lichpath
-  // wants the file. Getting this wrong is one of the causes of the
-  // connect-retry loop, so hand them the exact string.
+  // Detection reports the folder containing lich.rbw; the launch line
+  // `ConnectGuide` renders wants the file. Getting this wrong is one of the
+  // causes of the connect-retry loop, so hand it the exact string.
   const lichDir = plan?.components.find((c) => c.id === 'lich')?.path ?? null
   const lichRbwPath = lichDir ? `${lichDir}\\lich.rbw` : null
 
@@ -410,9 +410,9 @@ export function SetupWizard() {
       )}
 
       {/* Both installed is not the same as both talking to each other. */}
-      {/* Shown once Lich exists. The frontend does not have to be Genie: this
-          app is a panel for Lich, and Lich works with whatever you use. */}
-      {/* E11. Genie and Lich both want the frontend port, and the accident
+      {/* Shown once Lich exists. You do not have to run any other client at
+          all now - this app signs in and starts Lich itself. */}
+      {/* E11. Another client and Lich both want the frontend port, and the accident
           this prevents has happened on this machine twice: starting a second
           frontend took the connection the first was holding, with no error
           either time - the live window simply went to "Not connected".
@@ -423,21 +423,21 @@ export function SetupWizard() {
         * here.
         *
         * Shown only when the answer is yes. `known: false` is not rendered as
-        * "Genie is not running" - it says so, quietly, because a player about
-        * to lose a live connection is owed better than a confident wrong
+        * "nothing else is running" - it says so, quietly, because a player
+        * about to lose a live connection is owed better than a confident wrong
         * answer, and because a warning shown on every run for a machine with
-        * no Genie at all would be furniture inside a week. */}
-      {phase !== 'browser' && genie.known && genie.running && (
+        * nothing else installed would be furniture inside a week. */}
+      {phase !== 'browser' && conflict.known && conflict.running && (
         <p className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-ink-muted">
-          Genie is running and may hold the frontend port. Close it or
-          continue — this app will not close it for you, in case you are
-          playing.
+          Another game client is running and may hold the port Lich needs.
+          Close it or continue — this app will not close it for you, in case
+          you are playing.
         </p>
       )}
-      {phase !== 'browser' && lichPresent && !genie.known && (
+      {phase !== 'browser' && lichPresent && !conflict.known && (
         <p className="text-xs text-ink-faint">
-          Whether Genie is already running could not be checked, so this is
-          unknown rather than no. If a frontend is up, it may hold the port.
+          Whether another client is already running could not be checked, so
+          this is unknown rather than no. If one is up, it may hold the port.
         </p>
       )}
 

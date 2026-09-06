@@ -24,6 +24,7 @@ import { useLayout } from '../../lib/useLayout.ts'
 import type { PanelId } from '../../lib/layout'
 import { DashboardLayout } from './DashboardLayout.tsx'
 import { cn } from '../../lib/cn.ts'
+import { bridgeCommand } from '../../lib/frontends.ts'
 import { PANEL_CONTENT, PANEL_TITLES } from './panels.tsx'
 import { FreeCanvas } from './FreeCanvas.tsx'
 import { useHiddenMiddlePanels, type MiddlePanelId } from '../../lib/panelVisibility.ts'
@@ -123,7 +124,10 @@ export function Dashboard() {
           {bridgeConnected ? (
             <p className="mt-1 text-xs text-ink-muted">
               The bridge is up but no character has reported in yet. Log in, or run{' '}
-              <code className="text-ink">,companion_bridge</code> in the game.
+              {/* `null` = no frontend in the path, which is this app's own
+                * route: Lich runs headless and its command character is `;`.
+                * See `prefixFor`. This line hardcoded a comma until N6. */}
+              <code className="text-ink">{bridgeCommand(null)}</code> in the game.
             </p>
           ) : (
             <>

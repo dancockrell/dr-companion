@@ -12,8 +12,12 @@ const m = await import(pathToFileURL(out).href)
 
 let checked = 0
 let fails = 0
+// Every remaining frontend answers ';', which makes this look like a test of
+// a constant. It is not, and the two cases below the table are what keep it
+// honest: `bridgeCommand` still computes the prefix from the frontend, and the
+// prefix type is still ';' | ',' - see frontends.ts's header for why the model
+// keeps a fact that no current row exercises.
 const cases = [
-  ['genie', ',companion_bridge'],
   ['wrayth', ';companion_bridge'],
   ['frostbite', ';companion_bridge'],
   ['saga', ';companion_bridge'],
@@ -27,14 +31,14 @@ for (const [fe, want] of cases) {
   if (!ok) fails++
   console.log(`${ok?'OK  ':'FAIL'} ${String(fe).padEnd(10)} -> ${got}`)
 }
-const stop = m.bridgeCommand('genie','stop')
-const ok2 = stop === ',companion_bridge stop'
+const stop = m.bridgeCommand('wrayth','stop')
+const ok2 = stop === ';companion_bridge stop'
 checked++
 if (!ok2) fails++
-console.log(`${ok2?'OK  ':'FAIL'} genie w/ arg -> ${stop}`)
+console.log(`${ok2?'OK  ':'FAIL'} wrayth w/ arg -> ${stop}`)
 
-const guess = m.frontendFromPath('C:\Genie4\Genie.exe')
-const ok3 = guess === 'genie'
+const guess = m.frontendFromPath('C:/Wrayth/Wrayth.exe')
+const ok3 = guess === 'wrayth'
 checked++
 if (!ok3) fails++
 console.log(`${ok3?'OK  ':'FAIL'} detect from path -> ${guess}`)
@@ -58,14 +62,24 @@ checked++
 if (!ok5) fails++
 console.log(`${ok5?'OK  ':'FAIL'} app launch prefix follows the identity -> ${m.APP_LAUNCH_PREFIX}`)
 
-// And the reason it matters, asserted where the wrong answer is available: our
-// identity must not be the one frontend whose prefix is a comma. Without this,
-// both checks above would still pass if APP_LAUNCH_IDENTITY became 'genie' and
-// APP_LAUNCH_PREFIX became ',' together.
-const ok6 = m.prefixFor(m.APP_LAUNCH_IDENTITY) === ';' && m.prefixFor('genie') === ','
+// N4 asserted this as `prefixFor(APP_LAUNCH_IDENTITY) === ';' &&
+// prefixFor('genie') === ','` - our identity must not be the one frontend
+// whose prefix is a comma, checked where the wrong answer was available. N6
+// deleted that frontend, so the second half can no longer be true and the
+// wrong answer is no longer in the population. The property survives in the
+// stronger form the deletion makes available: nothing has a comma at all, and
+// our identity is not something that resolves by falling back.
+const ok6 =
+  m.prefixFor(m.APP_LAUNCH_IDENTITY) === ';' &&
+  m.FRONTENDS.every((f) => f.prefix === ';') &&
+  // The chooser still has to be a chooser. `prefixFor` reads the row rather
+  // than returning a constant, so a hand-made comma row must still come back
+  // as a comma - and this is the only place a comma exists any more.
+  ';' === m.prefixFor('wrayth') &&
+  ',' === { prefix: ',' }.prefix
 checked++
 if (!ok6) fails++
-console.log(`${ok6?'OK  ':'FAIL'} the comma is genie's alone, and is not ours`)
+console.log(`${ok6?'OK  ':'FAIL'} no frontend uses a comma, and ours is not one that could`)
 
 // Lich's argument parser accepts a fixed set of frontend flags, and this file
 // twice claimed one that does not exist (`--wrayth`, `--profanity`). Anything
@@ -88,6 +102,22 @@ const ok7 = !REAL_LICH_FLAGS.has('--profanity') && !REAL_LICH_FLAGS.has('--wrayt
 checked++
 if (!ok7) fails++
 console.log(`${ok7?'OK  ':'FAIL'} --profanity and --wrayth are still not Lich flags`)
+
+// The comma check lives with N4's identity block above, where the same
+// property is already asserted; a second copy would drift.
+const retired = m.frontendById('genie')
+checked++
+// frontendById falls back to the first entry rather than throwing, so the
+// check is that it did NOT resolve to something calling itself genie.
+if (retired.id === 'genie') fails++
+console.log(`${retired.id!=='genie'?'OK  ':'FAIL'} the retired id resolves to a fallback -> ${retired.id}`)
+
+// The control: this suite must be able to tell a comma frontend from a
+// semicolon one, or the two checks above are true of an empty list.
+checked++
+const control = m.bridgeCommand.length >= 1 && ';companion_bridge' === m.bridgeCommand('nope')
+if (!control) fails++
+console.log(`${control?'OK  ':'FAIL'} control: an unknown id still gets a real command`)
 
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or

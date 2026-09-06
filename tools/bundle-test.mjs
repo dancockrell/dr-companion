@@ -76,7 +76,12 @@ check('a startup entry chunk was identified', Boolean(main))
 // convention as the numbers they replace.
 check('startup entry stays below the measured 1.8 MB raw budget', Boolean(main && main.bytes <= 1_800_000), main ? `${main.bytes} bytes` : 'missing')
 check('startup entry stays below the measured 445 kB gzip budget', Boolean(main && main.gzip <= 445_000), main ? `${main.gzip} bytes` : 'missing')
-for (const surface of ['SetupWizard', 'SettingsSheet', 'ConfigManagerSheet', 'ReportDialog', 'ScriptEditor', 'SoundControls']) {
+// `ConfigManagerSheet` was in this list until N6 deleted the Genie config
+// editor. Dropped rather than kept as a name that can never match: a surface
+// that does not exist cannot fail to be code-split, so leaving it here would
+// have turned a real budget check into one permanent red line nobody could
+// clear, which is the same wasted attention as a check that cannot fail.
+for (const surface of ['SetupWizard', 'SettingsSheet', 'ReportDialog', 'ScriptEditor', 'SoundControls']) {
   check(`${surface} remains an asynchronous chunk`, sizes.some(({ file }) => file.startsWith(`${surface}-`)))
 }
 

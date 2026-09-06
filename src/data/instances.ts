@@ -1,7 +1,7 @@
 /**
  * The four DragonRealms instances, and the port Lich opens for each.
  *
- * Values from the Genie 4 wiki, "Connecting and Profiles". This lived inside
+ * This lived inside
  * ConnectGuide, which is the right place to *teach* it and the wrong place to
  * *keep* it: the attach control in GamePane needs the same table to say which
  * game a port belongs to, and a second copy of four port numbers is a second
@@ -27,8 +27,6 @@ export interface InstanceConfig {
   id: GameInstance
   label: string
   port: number
-  /** Genie's licharguments value, which includes --genie. */
-  genieArgs: string
   /** The instance flags Lich itself needs, without the frontend flag. */
   lichArgs: string
   suffix: string
@@ -39,7 +37,6 @@ export const INSTANCES: InstanceConfig[] = [
     id: 'Prime',
     label: 'Prime',
     port: 11024,
-    genieArgs: '--genie --dragonrealms',
     lichArgs: '--dragonrealms',
     suffix: 'DR',
   },
@@ -47,7 +44,6 @@ export const INSTANCES: InstanceConfig[] = [
     id: 'Platinum',
     label: 'Platinum',
     port: 11124,
-    genieArgs: '--genie --platinum --dragonrealms',
     lichArgs: '--platinum --dragonrealms',
     suffix: 'DRX',
   },
@@ -55,7 +51,6 @@ export const INSTANCES: InstanceConfig[] = [
     id: 'Fallen',
     label: 'The Fallen',
     port: 11324,
-    genieArgs: '--genie --fallen',
     lichArgs: '--fallen',
     suffix: 'DRF',
   },
@@ -63,7 +58,6 @@ export const INSTANCES: InstanceConfig[] = [
     id: 'Test',
     label: 'Test',
     port: 11624,
-    genieArgs: '--genie --test --dragonrealms',
     lichArgs: '--test --dragonrealms',
     suffix: 'DRT',
   },

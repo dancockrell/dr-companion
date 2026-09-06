@@ -79,7 +79,7 @@ use crate::setup::{detect_ruby, pretty_path, rank_lich_installs};
 /// The port Lich is asked to open with `--headless`, and the port the app's
 /// own TCP client (`game_link.rs`) and its "Attach" button both default to.
 /// One number in one place: the frontend hardcodes this same value in four
-/// spots (the Genie config example, the connect guide, and the Attach
+/// spots (the sign-in screen, the connect guide, and the Attach
 /// button), and a mismatch here would launch a Lich nothing could reach.
 pub const DETACHABLE_PORT: u16 = 11024;
 
@@ -122,7 +122,8 @@ pub struct LichStatus {
 
 /// Whether Lich's own GUI login window can actually reach the game here.
 ///
-/// It cannot, on a machine where the only frontend installed is Genie, and
+/// It cannot, on a machine whose only installed frontend is one it does not
+/// list, and
 /// this is not a misconfiguration anyone can retry past.
 ///
 /// Lich's frontend registry marks which frontends its GUI is allowed to
@@ -135,14 +136,15 @@ pub struct LichStatus {
 ///   => ["stormfront", "wizard", "avalon", "saga"]
 /// ```
 ///
-/// `genie` is registered with capabilities only and no `gui_selectable`
+/// That client is registered with capabilities only and no `gui_selectable`
 /// metadata (`front-end.rb:251`), so it can never appear in that list. Every
 /// GUI login tab requires picking one of them - `manual_login_tab.rb:474`,
 /// `saved_login_tab.rb:752`, `account_manager_ui.rb:812`/`:969` all raise
 /// "No supported frontend is available." when the selector comes up empty,
 /// and no GUI tab has a headless path.
 ///
-/// So Genie-only + GUI login = that modal, deterministically, forever. Two
+/// So such a machine plus the GUI login = that modal, deterministically,
+/// forever. Two
 /// peer sessions and this one independently confirmed it against Lich's
 /// source on 27 Aug 2026, after it was first misread here as fallout from an
 /// unrelated authentication failure in the same attempt.
@@ -153,7 +155,7 @@ pub struct LichStatus {
 /// succeed. The app knows enough to say so; it just was not asking.
 fn gui_login_usable() -> bool {
     // The four Lich's GUI will offer, and the executables each ships as.
-    // Genie is deliberately absent - that is the whole point of this check.
+    // It is deliberately absent - that is the whole point of this check.
     const GUI_FRONTEND_EXES: [&str; 5] = [
         "Wrayth.exe",     // stormfront, current name
         "StormFront.exe", // stormfront, older name
@@ -251,7 +253,7 @@ fn saved_characters(data_dir: &Path) -> Option<Vec<String>> {
 ///
 /// Launching a second one is not harmless. Lich binds a local port for the
 /// frontend to connect to, and a second instance either fails to bind or takes
-/// the connection the first one was holding. The same mistake with Genie
+/// the connection the first one was holding. The same mistake with another client
 /// disconnected a live session on this machine twice.
 ///
 /// Returns `None` when the check itself could not run, rather than `false`.
@@ -275,7 +277,8 @@ fn lich_running() -> Option<bool> {
 /// more likely a call that failed than a clean no - and "we could not ask" and
 /// "nothing is running" lead to opposite actions.
 ///
-/// Extracted from `lich_running` rather than copied for `genie_running` (E11).
+/// Extracted from `lich_running` rather than copied for
+/// `other_frontend_running` (E11).
 /// Two functions deciding what an empty tasklist means would eventually decide
 /// it differently, and the one that got it wrong would be the one that reports
 /// a frontend is absent while it holds the port.
@@ -287,24 +290,25 @@ fn any_image_listed(listed: &str, images: &[&str]) -> Option<bool> {
     Some(images.iter().any(|i| haystack.contains(&i.to_lowercase())))
 }
 
-/// Is Genie running, and therefore possibly holding the frontend port?
+/// Is another game client running, and therefore possibly holding the port?
 ///
 /// The same hazard as `lich_running` and the one that has actually bitten on
 /// this machine: starting a second frontend took the connection the first was
 /// holding, twice, and nothing errored either time - the live window simply
 /// went to "Not connected".
 ///
-/// So this reports and never acts. Nothing in this app may close Genie: it may
+/// So this reports and never acts. Nothing in this app may close it: it may
 /// be a session someone is playing, and the wizard's job is to say so and let
 /// them decide.
 ///
-/// One unfiltered `tasklist` rather than one call per candidate name. Genie has
+/// One unfiltered `tasklist` rather than one call per candidate name. The client
+/// it looks for has
 /// shipped under four names and `lich_status` is already slow enough to have
 /// frozen the window (see `lich_status`'s own note); four extra process spawns
 /// to answer one question is not a trade worth making. It also makes the `None`
 /// branch mean something: an unfiltered tasklist that returns nothing at all is
 /// a broken call, whereas a filtered one returning nothing is ambiguous.
-fn genie_running() -> Option<bool> {
+fn other_frontend_running() -> Option<bool> {
     let out = Command::new("tasklist")
         .args(["/FO", "CSV", "/NH"])
         .output()
@@ -346,7 +350,16 @@ fn genie_running() -> Option<bool> {
 ///
 /// The cost itself is still worth reducing - this makes it not freeze the
 /// app, which is a different thing from making it fast.
-/// Whether a Genie frontend is running, in the three answers that has (E11).
+/// Whether another game client is running, in the three answers that has (E11).
+///
+/// **Kept through N6 on purpose, renamed rather than deleted.** N6's `do:` line
+/// says to remove this with the rest of the retired route, and doing so would
+/// have been a deletion dressed as a sweep. This was never about the route:
+/// two processes cannot both hold the detachable port, and starting a second
+/// client has taken the connection out from under a live session on this
+/// machine twice, with no error either time. The hazard outlives the client
+/// that named it, so the warning does too - under a name that says what it is
+/// for rather than what it happens to match on.
 ///
 /// Its own command rather than a field on `LichStatus`, for one measured
 /// reason: `lich_status` takes about five seconds (see its note) because it
@@ -360,19 +373,19 @@ fn genie_running() -> Option<bool> {
 /// whether anything holds the port".
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct GenieStatus {
+pub struct FrontendConflictStatus {
     pub running: bool,
     pub known: bool,
 }
 
 #[tauri::command]
-pub async fn genie_status() -> GenieStatus {
-    tokio::task::spawn_blocking(|| match genie_running() {
-        Some(running) => GenieStatus {
+pub async fn frontend_conflict_status() -> FrontendConflictStatus {
+    tokio::task::spawn_blocking(|| match other_frontend_running() {
+        Some(running) => FrontendConflictStatus {
             running,
             known: true,
         },
-        None => GenieStatus::default(),
+        None => FrontendConflictStatus::default(),
     })
     .await
     // A panic in the probe must not take the command with it, and the default
@@ -447,7 +460,8 @@ pub(crate) fn lich_status_blocking() -> LichStatus {
         // rather than something to retry.
         "Lich is installed with no saved character, and its own login window cannot \
          complete on this machine: it only offers Wrayth, Wizard, Avalon and Saga, \
-         and none of those are installed. Genie is not one it can offer."
+         and none of those are installed. Sign in from this app instead: it \
+         performs the account login itself and starts Lich with the result."
             .into()
     } else if s.characters.is_empty() {
         "Lich is installed with no saved character yet. Its own login window handles that, and this app never sees the password.".into()
@@ -1057,11 +1071,12 @@ mod tests {
         assert_eq!(shred_pending_launch_files(), 0);
     }
 
-    /// Genie must never count as a frontend Lich's GUI can offer.
+    /// The retired client must never count as a frontend Lich's GUI can offer.
     ///
     /// This is the whole point of `gui_login_usable` being a separate question
-    /// from "is a frontend installed at all" - `setup.rs`'s `detect_genie`
-    /// happily finds Genie and is right to, but Lich's own login window cannot
+    /// from "is a frontend installed at all" - `setup.rs`'s detection still
+    /// finds it and is right to, because the config importer reads its files -
+    /// but Lich's own login window cannot
     /// use it. Conflating the two is what made the app offer a dead-end
     /// button on this machine.
     ///

@@ -2,24 +2,6 @@
   "note": "Raw colour literals in src/components. This list may only shrink: tools/color-token-test.mjs fails on a new literal and on an entry that no longer matches. Do not regenerate it to make a failure go away - that is the one move it exists to prevent. Every entry now carries a `why`, which is the point: what is left is not a backlog, it is a set of decisions somebody made and wrote down. A new entry without a `why` is a literal that still owes a token, and the test reports the two counts separately so neither can hide in the other.",
   "entries": [
     {
-      "file": "src/components/config/HighlightsEditor.tsx",
-      "literal": "#FF0000",
-      "count": 1,
-      "why": "PERMANENT EXCEPTION. Not an app colour. A worked example of the game's own #highlight command, shown as placeholder text in the import box so a player can see the syntax of what they are pasting."
-    },
-    {
-      "file": "src/components/config/HighlightsEditor.tsx",
-      "literal": "#FFFFFF",
-      "count": 1,
-      "why": "PERMANENT EXCEPTION. Not an app colour. The default colour of a highlight the *player* creates, written into the Genie/Lich config file and read by the game client, which cannot resolve a CSS variable - a token here would send the literal text var(--color-ink) to a Ruby script."
-    },
-    {
-      "file": "src/components/config/PresetsEditor.tsx",
-      "literal": "#400000",
-      "count": 1,
-      "why": "PERMANENT EXCEPTION. Not an app colour. Placeholder text showing the shape of a value the player types into the preset background field. That field is the game client's colour vocabulary, not this app's."
-    },
-    {
       "file": "src/components/room/RoomBackdrop.tsx",
       "literal": "#12283a",
       "count": 1,
