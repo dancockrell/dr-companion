@@ -20,11 +20,13 @@ for (const file of readdirSync('src/data/map').filter((name) => name.endsWith('.
 
 const normalize = (value) => String(value ?? '').replace(/\s+/g, ' ').trim()
 const lower = (entry) => `${entry.title} ${entry.place} ${entry.lore}`.toLowerCase()
-const has = (text, ...terms) => terms.some((term) => text.includes(term))
+const has = (text, ...terms) => terms.some((term) => new RegExp('\\b' + term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(text))
 const hashes = (value) => createHash('sha256').update(value).digest('hex').slice(0, 16)
 
 const classify = (entry) => {
-  const text = lower(entry)
+  // Figurative traffic is not a water feature. Keep the original description
+  // intact in the brief; only this conservative feature scan removes idioms.
+  const text = lower(entry).replace(/stream of (customers|people|traffic|visitors)/g, 'flow of visitors')
   const tags = []
   const specialKinds = []
   if (has(text, 'guild')) { tags.push('guild'); specialKinds.push('guild') }
@@ -68,8 +70,8 @@ const makePrompt = (key, entry, representativeRoom, cellRoom = null) => {
     ? ` It belongs to the described place ${normalize(entry.title || entry.place)}; preserve that relationship without copying a neighboring room wholesale.`
     : ''
   const lore = normalize(entry.lore)
-  const paragraphOne = `Create an original, cute geometric tabletop interpretation of ${title} in ${entry.zoneName}. ${lore}${placeContext} Let every described material, landmark, boundary, and route carry the scene; do not replace the authored place with a generic fantasy town. ${exitPhrase(cellRoom ?? representativeRoom)}`
-  const paragraphTwo = `${modePhrase(classification)} Build it from deliberate 5-metre geometric blocks with clean, rough, short, corner, and transition variants so the assembled result is irregular without becoming unreadable. Use painted-resin terrain, broad color blocking, chunky stylized silhouettes, and a warm elevated three-quarter tactical camera with room for expressive player and creature miniatures. Keep text, logos, modern objects, photoreal surface noise, copied branded styling, and unsupported landmarks out of the scene.`
+  const paragraphOne = `Create a detailed tabletop-fantasy interpretation of ${title} in ${entry.zoneName}. ${lore}${placeContext} Let every described material, landmark, boundary, and route carry the scene; do not replace the authored place with a generic fantasy town. ${exitPhrase(cellRoom ?? representativeRoom)}`
+  const paragraphTwo = `${modePhrase(classification)} Design it as part of the connected city-wide batch, using measured reusable footprints, entrance sockets, continuous street sections and supported vertical connections. Preserve fine geometry, material detail and complex shadows at the fixed isometric camera. Reserve usable occupant space without uniformly enlarging buildings or furniture. Generic square platforms and permanently open demo houses are superseded; interior visibility is a presentation state, not missing exterior architecture. Do not invent geography, inhabitants, or unsupported landmarks.`
   return `${paragraphOne}\n\n${paragraphTwo}`
 }
 

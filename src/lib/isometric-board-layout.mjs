@@ -115,11 +115,27 @@ export function packedRoomPositions(rooms) {
   const ordered = [...rooms].sort((a, b) => a.id - b.id)
   const minX = Math.min(0, ...ordered.map(r => r.x ?? 0))
   const minY = Math.min(0, ...ordered.map(r => r.y ?? 0))
+  // Reserve the source map's dominant street lattice before diagram insets.
+  // This uses coordinates, not guesses that a room title implies an interior.
+  const phase = axis => {
+    const counts = new Map()
+    for (const room of ordered) {
+      const value = ((Number(room[axis] ?? 0) % 40) + 40) % 40
+      counts.set(value, (counts.get(value) ?? 0) + 1)
+    }
+    return [...counts].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? 0
+  }
+  const originX = Math.floor(minX / 40) * 40 + phase('x')
+  const originY = Math.floor(minY / 40) * 40 + phase('y')
+  const onStreetLattice = room => Number.isInteger(((room.x ?? 0) - originX) / 40) && Number.isInteger(((room.y ?? 0) - originY) / 40)
+  ordered.sort((a, b) => Number(onStreetLattice(b)) - Number(onStreetLattice(a)) || a.id - b.id)
   for (const room of ordered) {
     // Main streets are normally forty source units apart. Compress those to
     // one pitch instead of preserving hundred-metre gaps.
-    const gx = Math.round(((room.x ?? 0) - minX) / 40)
-    const gz = -Math.round(((room.y ?? 0) - minY) / 40)
+    const gx = Math.round(((room.x ?? 0) - originX) / 40)
+    // Source screen-y increases south, as does Godot +Z. Negation mirrored
+    // north/south exits and was geometrically wrong even without collisions.
+    const gz = Math.round(((room.y ?? 0) - originY) / 40)
     const floor = room.z ?? 0
     let slot
     for (let radius = 0; !slot && radius <= ordered.length; radius++) {

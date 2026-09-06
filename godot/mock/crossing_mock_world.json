@@ -15,9 +15,9 @@
       "roomId": 14,
       "title": "The Crossing, Town Green North",
       "position": {
-        "x": 252,
+        "x": 270,
         "y": 0,
-        "z": -198
+        "z": 198
       },
       "sourceGrid": {
         "x": 170,
@@ -29,11 +29,10 @@
       "sourceDescriptionHash": "f73bd5e2ac6e412c",
       "tier": "special",
       "tags": [
-        "water",
         "landmark"
       ],
-      "spatialMode": "waterfront",
-      "palette": "river-blue-green",
+      "spatialMode": "exterior-cell",
+      "palette": "crossing-ground-street",
       "board": {
         "footprint": {
           "width": 17.6,
@@ -141,10 +140,6 @@
           "role": "boundary"
         },
         {
-          "kind": "water-ribbon-5m",
-          "role": "landform"
-        },
-        {
           "kind": "special-landmark-silhouette",
           "role": "landmark"
         }
@@ -205,9 +200,9 @@
       "roomId": 12,
       "title": "The Crossing, Via Iltesh",
       "position": {
-        "x": 252,
+        "x": 270,
         "y": 0,
-        "z": -162
+        "z": 162
       },
       "sourceGrid": {
         "x": 170,
@@ -354,9 +349,9 @@
       "roomId": 13,
       "title": "The Crossing, Via Iltesh",
       "position": {
-        "x": 252,
+        "x": 270,
         "y": 0,
-        "z": -180
+        "z": 180
       },
       "sourceGrid": {
         "x": 170,
@@ -503,9 +498,9 @@
       "roomId": 15,
       "title": "The Crossing, Town Green Southeast",
       "position": {
-        "x": 270,
+        "x": 288,
         "y": 0,
-        "z": -216
+        "z": 216
       },
       "sourceGrid": {
         "x": 210,
@@ -670,9 +665,9 @@
       "roomId": 16,
       "title": "The Crossing, Town Green South",
       "position": {
-        "x": 252,
+        "x": 270,
         "y": 0,
-        "z": -216
+        "z": 216
       },
       "sourceGrid": {
         "x": 170,
@@ -854,9 +849,9 @@
       "roomId": 17,
       "title": "The Crossing, Town Green Northeast",
       "position": {
-        "x": 270,
+        "x": 288,
         "y": 0,
-        "z": -198
+        "z": 198
       },
       "sourceGrid": {
         "x": 210,
@@ -1027,9 +1022,9 @@
       "roomId": 22,
       "title": "The Crossing, Manciple Cobble",
       "position": {
-        "x": 198,
+        "x": 234,
         "y": 0,
-        "z": -216
+        "z": 216
       },
       "sourceGrid": {
         "x": 90,
@@ -1176,9 +1171,9 @@
       "roomId": 23,
       "title": "The Crossing, Town Green Southwest",
       "position": {
-        "x": 234,
+        "x": 252,
         "y": 0,
-        "z": -216
+        "z": 216
       },
       "sourceGrid": {
         "x": 130,
@@ -1337,9 +1332,9 @@
       "roomId": 24,
       "title": "The Crossing, Puddle Path",
       "position": {
-        "x": 216,
+        "x": 234,
         "y": 0,
-        "z": -180
+        "z": 180
       },
       "sourceGrid": {
         "x": 90,
@@ -1481,9 +1476,9 @@
       "roomId": 40,
       "title": "The Crossing, Lunat Shade Road",
       "position": {
-        "x": 252,
+        "x": 270,
         "y": 0,
-        "z": -234
+        "z": 234
       },
       "sourceGrid": {
         "x": 170,
@@ -1639,7 +1634,7 @@
       "position": {
         "x": 234,
         "y": 0,
-        "z": -198
+        "z": 198
       },
       "sourceGrid": {
         "x": 150,
@@ -1778,7 +1773,7 @@
       "position": {
         "x": 216,
         "y": 0,
-        "z": -198
+        "z": 198
       },
       "sourceGrid": {
         "x": 130,
@@ -1921,9 +1916,9 @@
       "roomId": 225,
       "title": "The Crossing, Town Green Northwest",
       "position": {
-        "x": 270,
+        "x": 252,
         "y": 0,
-        "z": -180
+        "z": 198
       },
       "sourceGrid": {
         "x": 130,
@@ -2088,9 +2083,9 @@
       "roomId": 264,
       "title": "Crossing, Midton Circle",
       "position": {
-        "x": 288,
+        "x": 306,
         "y": 0,
-        "z": -198
+        "z": 198
       },
       "sourceGrid": {
         "x": 230,
@@ -2242,9 +2237,9 @@
       "roomId": 371,
       "title": "Behind the Amphitheater, Supply Stand",
       "position": {
-        "x": 342,
+        "x": 378,
         "y": 0,
-        "z": -198
+        "z": 234
       },
       "sourceGrid": {
         "x": 210,
@@ -2254,9 +2249,9 @@
       "status": "described",
       "sourceDescriptionId": "1::Supply Stand",
       "sourceDescriptionHash": "40ba1666ebd6b149",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
@@ -2365,10 +2360,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -2391,9 +2382,9 @@
       "roomId": 377,
       "title": "The Crossing Amphitheater, The Back Lawn",
       "position": {
-        "x": 378,
+        "x": 396,
         "y": 0,
-        "z": -216
+        "z": 216
       },
       "sourceGrid": {
         "x": 230,
@@ -2403,9 +2394,9 @@
       "status": "described",
       "sourceDescriptionId": "1::The Back Lawn",
       "sourceDescriptionHash": "4941c1e4ab673537",
-      "tier": "special",
+      "tier": "ordinary",
       "tags": [
-        "landmark"
+        "ordinary"
       ],
       "spatialMode": "exterior-cell",
       "palette": "crossing-ground-street",
@@ -2514,10 +2505,6 @@
         {
           "kind": "rough-edge-boundary-kit",
           "role": "boundary"
-        },
-        {
-          "kind": "special-landmark-silhouette",
-          "role": "landmark"
         }
       ],
       "exits": [
@@ -2540,9 +2527,9 @@
       "roomId": 379,
       "title": "The Crossing, Mongers' Bazaar",
       "position": {
-        "x": 360,
+        "x": 378,
         "y": 0,
-        "z": -162
+        "z": 180
       },
       "sourceGrid": {
         "x": 240,
@@ -2706,9 +2693,9 @@
       "roomId": 467,
       "title": "The Crossing, Town Green Pond",
       "position": {
-        "x": 414,
+        "x": 432,
         "y": 0,
-        "z": -216
+        "z": 216
       },
       "sourceGrid": {
         "x": 160,
@@ -2844,9 +2831,9 @@
       "roomId": 853,
       "title": "Underground Passageway",
       "position": {
-        "x": 288,
+        "x": 306,
         "y": 5,
-        "z": -198
+        "z": 198
       },
       "sourceGrid": {
         "x": 230,

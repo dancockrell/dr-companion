@@ -113,8 +113,8 @@ const output = {
   generatedFrom: {
     roomBriefCatalogue: briefsPath,
     zone,
-    layoutPolicy: 'compact-nearest-vacant-slot',
-    coordinateConvention: 'Source map coordinates seed compact room slots; sourceGrid preserves original coordinates. Exits remain authoritative. Levels use 5m y steps.',
+    layoutPolicy: 'dominant-street-lattice-before-insets',
+    coordinateConvention: 'Source screen-y increases south, as does world +Z. Reserve dominant 40-unit source lattice before diagram insets. Remaining collisions use vacant slots and require city-wide review. Exits remain authoritative. Levels use 5m y steps.',
   },
   primitiveRegistry: {
     path: 'data/world/out/crossing-primitive-registry.json',

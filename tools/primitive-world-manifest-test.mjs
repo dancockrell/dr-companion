@@ -28,6 +28,16 @@ if (!existsSync(outputPath)) fail('primitive world manifest is generated')
 else {
   const world = JSON.parse(readFileSync(outputPath, 'utf8'))
   const townGreenNorth = world.cells.find((cell) => cell.id === '1-14')
+  const byId = new Map(world.cells.map(c => [c.id, c]))
+  const compass = { north: [0, -1], northeast: [1, -1], east: [1, 0], southeast: [1, 1], south: [0, 1], southwest: [-1, 1], west: [-1, 0], northwest: [-1, -1] }
+  const greenIds = new Set(['1-14', '1-15', '1-16', '1-17', '1-23', '1-225'])
+  for (const id of greenIds) for (const exit of byId.get(id).exits) {
+    if (!greenIds.has(exit.targetCellId) || !compass[exit.move]) continue
+    const a = byId.get(id).position, b = byId.get(exit.targetCellId).position
+    const [dx, dz] = compass[exit.move]
+    if (b.x - a.x === dx * CELL_PITCH_METRES && b.z - a.z === dz * CELL_PITCH_METRES) pass(`${id} ${exit.move} has an exact matching geometric neighbor`)
+    else fail(`${id} ${exit.move} is displaced or mirrored`)
+  }
   const guild = world.cells.find((cell) => cell.tags.includes('guild'))
   const water = world.cells.find((cell) => cell.tags.includes('water'))
   if (world.cells.length >= 1000) pass(`Crossing contains a full room-cell world (${world.cells.length})`)
