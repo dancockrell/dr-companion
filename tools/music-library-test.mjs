@@ -725,6 +725,51 @@ console.log('\n-- 9. an interrupted download is a state the panel can see (#402)
     /s\.partial > 0/.test(panel) && /interrupted/.test(panel),
     'src/components/game/MusicInstall.tsx'
   )
+
+  // The three checks above name `partial_files`, and nothing anywhere named
+  // `installed_files` - the field every group's state is derived from.
+  // Measured 6 Sep 2026: adding `#[serde(rename_all = "camelCase")]` to
+  // `MusicLibraryStatus` left `cargo test --lib music::` at 18 passed and this
+  // suite at 96 checks / 0 failures, while `refreshMusicLibrary` would have
+  // read `raw.installed_files` as `undefined`, fallen through its `?? []`, and
+  // reported every group `absent` - a 4.36 GB re-download offered for a
+  // library already on the disk, and `trackPresence` stepping past every
+  // track that is actually there.
+  //
+  // So the pairing is checked by walking the struct rather than by naming one
+  // field: every key Rust puts on the wire has to be read on this side under
+  // that exact name, and a field added tomorrow is covered without anybody
+  // adding a line here. The serde check is the other half, because a rename
+  // attribute changes every key on the wire while leaving every
+  // `pub <field>` below untouched - a text check on the identifiers alone
+  // cannot see it, which is precisely how the sabotage above stayed green.
+  const statusStruct = /pub struct MusicLibraryStatus \{([\s\S]*?)\r?\n\}/.exec(rust)?.[1] ?? ''
+  const statusFields = [...statusStruct.matchAll(/^\s*pub (\w+):/gm)].map((m) => m[1])
+  // The denominator, and it is the fragile thing: a regex that stopped
+  // matching would otherwise report a struct with no fields and pass the loop
+  // below by having nothing to iterate.
+  check(
+    'the status struct parses at all',
+    statusFields.length >= 3,
+    statusFields.join(', ') || 'nothing parsed - suspect the regex, not the struct'
+  )
+  const attributes = rust
+    .slice(0, rust.indexOf('pub struct MusicLibraryStatus'))
+    .split(/\r?\n/)
+    .slice(-4)
+    .join('\n')
+  check(
+    'nothing renames the status keys between Rust and the wire',
+    !/serde\s*\([^)]*rename/.test(attributes) && !/serde\s*\([^)]*rename/.test(statusStruct),
+    'src-tauri/src/music.rs'
+  )
+  for (const field of statusFields) {
+    check(
+      `and this side reads status.${field} under that exact name`,
+      new RegExp(`raw\\.${field}\\b`).test(lib),
+      'src/lib/musicLibrary.ts'
+    )
+  }
 }
 
 console.log('\n-- 10. a refusal reaches the transport where progress would be (#402) --')
