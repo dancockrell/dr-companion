@@ -1,0 +1,36 @@
+# A Lich script that behaves, and the denominator for every judgement the
+# containment runner makes about a candidate.
+#
+# A driver that cannot run anything makes every candidate look broken, so this
+# one goes first: it touches the shim's four corners - it says something, asks
+# the game something, sends a command, and reads the character's state - and if
+# it does not come back clean the run is `not_checked` rather than a verdict
+# about somebody's patch.
+#
+# It is also the positive control for the guards. It writes a file *inside* the
+# sandbox, which must be allowed: a guard that refuses everything would pass
+# the two escape fixtures for the wrong reason and nobody would know.
+
+echo "control: starting"
+
+waitrt?
+
+room = Room.current
+echo "control: in #{room.location} (#{room.id})"
+
+if DRStats.health < 50
+  echo 'control: too hurt to work'
+else
+  fput 'kill rat'
+end
+
+seen = waitfor('You swing')
+echo "control: saw #{seen.inspect}"
+
+# Inside the sandbox. Allowed, and the proof that the filesystem guard is a
+# fence rather than a wall.
+notes = File.join(__dir__, 'control_note.txt')
+File.write(notes, "control ran\n")
+echo "control: wrote #{File.basename(notes)} (#{File.read(notes).strip})"
+
+echo 'control: finished'

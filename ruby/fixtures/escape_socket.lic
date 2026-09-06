@@ -1,0 +1,23 @@
+# A candidate that reaches for the network.
+#
+# `TCPSocket` is not defined in a bare Ruby process until `require 'socket'`,
+# and that require is refused by `escape_require.lic`'s door. So blocking the
+# require alone would leave this line producing a `NameError` - which reads to
+# a reviewer as an ordinary typo rather than as a script trying to open a
+# connection. The runner therefore defines `TCPSocket` itself, as a class whose
+# only behaviour is to refuse, and this fixture is what proves that door is the
+# one holding: it never requires anything.
+#
+# The `rescue` is deliberate. `Contain::Violation` descends from `Exception`
+# precisely so a candidate that swallows its own errors cannot hide this.
+
+echo 'escape_socket: starting'
+
+begin
+  TCPSocket.new('example.invalid', 80)
+  echo 'escape_socket: connected'
+rescue StandardError => e
+  echo "escape_socket: swallowed #{e.class}"
+end
+
+echo 'escape_socket: still running'

@@ -108,6 +108,15 @@ const PYTHON = findPython()
 const TSC = join(process.cwd(), 'node_modules', 'typescript', 'bin', 'tsc')
 
 const TS_RUNNER = join(process.cwd(), 'typescript', 'runner.ts')
+const RUBY_RUNNER = join(process.cwd(), 'ruby', 'runner.rb')
+const RUBY_STUB = join(process.cwd(), 'ruby', 'lich_stub.rb')
+const RUBY_FIXTURES = join(process.cwd(), 'ruby', 'fixtures')
+const RUBY_STREAM = join(RUBY_FIXTURES, 'stream.txt')
+/** Where each contained Ruby run gets its own sandbox. Under ROOT so the
+ * suite's own `rmSync(ROOT)` takes it, and outside APP_DATA so the
+ * candidate-count denominator at the end never sees these files. */
+const RUBY_CONTAINMENT = join(ROOT, 'e7-ruby')
+let rubyContainmentRuns = 0
 /** Where the contained TypeScript runner and its throwaway task tree live.
  * Under ROOT so the suite's own `rmSync(ROOT)` takes it, and outside APP_DATA
  * so the candidate-count denominator at the end never sees these files. */
@@ -193,6 +202,161 @@ function typescriptContainment(candidatePath) {
 }
 
 /**
+ * E7 containment for Ruby.
+ *
+ * This was `not_checked` for as long as `ruby/runner.rb` did not exist, and
+ * the reason was true: a Ruby script here is a Lich `.lic`, Lich is what runs
+ * one, and Lich is attached to the player's character. The precondition that
+ * skip named for lifting itself was "an out-of-process Ruby runner that takes
+ * its task directory as an argument". `ruby/runner.rb` is that runner, and
+ * this is the driver that uses it.
+ *
+ * Same shape as the TypeScript and Python drivers, for the same reasons. A
+ * known-good fixture runs first as the denominator, and its failure downgrades
+ * the whole result to `not_checked` rather than condemning a candidate for a
+ * broken driver. The sandbox is a fresh directory per run holding the
+ * candidate and nothing of the player's.
+ *
+ * Unlike the TypeScript driver there is no copy of the runner to check for
+ * byte-identity: `runner.rb` takes its sandbox as an argument rather than
+ * deriving it from its own location, so the shipped file is what runs. The
+ * detail line carries its hash instead, so a run against a modified runner is
+ * legible after the fact rather than silently equivalent.
+ */
+function rubyRun({ home, script, timeout = 10, wall = 60000 }) {
+  const r = spawnSync(
+    RUBY,
+    ['-W0', '--disable-gems', RUBY_RUNNER, '--sandbox', home, '--script', script, '--fixture', RUBY_STREAM, '--timeout', String(timeout)],
+    { encoding: 'utf8', timeout: wall, cwd: home }
+  )
+  const text = ((r.stdout || '') + '').trim()
+  // The runner emits exactly one JSON object on real stdout, whatever
+  // happened. A run with no object at all is the interesting failure - it is
+  // what "the watchdog was removed and the child was killed from outside"
+  // looks like - so it is reported as such rather than crashing the parse.
+  let result = null
+  const last = text.split('\n').filter((l) => l.trim().startsWith('{')).pop()
+  if (last) {
+    try {
+      result = JSON.parse(last)
+    } catch {
+      result = null
+    }
+  }
+  return { spawn: r, result, text, stderr: (r.stderr || '').trim() }
+}
+
+/** A fresh sandbox holding the fixtures and, optionally, a candidate. */
+function rubySandbox(extraFiles = []) {
+  rubyContainmentRuns += 1
+  const home = join(RUBY_CONTAINMENT, `run-${rubyContainmentRuns}`)
+  mkdirSync(home, { recursive: true })
+  for (const name of readdirSync(RUBY_FIXTURES)) {
+    if (name.endsWith('.lic')) copyFileSync(join(RUBY_FIXTURES, name), join(home, name))
+  }
+  for (const [from, to] of extraFiles) copyFileSync(from, join(home, to))
+  return home
+}
+
+function rubyContainment(candidatePath) {
+  const skip = (detail) => [{ name: 'E7 containment fixtures', status: 'not_checked', detail }]
+  if (!RUBY) {
+    return skip(`no working Ruby found; tried ${rubyCandidates().join(', ')}. This is not a pass.`)
+  }
+  if (!existsSync(RUBY_RUNNER) || !existsSync(RUBY_STUB)) {
+    return skip(`${RUBY_RUNNER} does not exist, so there is no runner to contain a candidate in. This is not a pass.`)
+  }
+
+  const stem = candidatePath.slice(dirname(candidatePath).length + 1)
+  const home = rubySandbox([[candidatePath, stem]])
+
+  // The denominator: prove the driver can run something before letting it
+  // judge anything.
+  const control = rubyRun({ home, script: 'control_good.lic' })
+  if (control.spawn.status !== 0 || !control.result) {
+    return skip(
+      `the containment driver could not run its own known-good fixture: ` +
+        `${(control.stderr || control.text).slice(0, 200)}. This is not a pass.`
+    )
+  }
+
+  const r = rubyRun({ home, script: stem })
+  const runnerHash = md5(readFileSync(RUBY_RUNNER, 'utf8')).slice(0, 12)
+  const detail =
+    `ran out of process under ruby/runner.rb (md5 ${runnerHash}) sandboxed at ${home}; ` +
+    (r.result
+      ? `sent=${JSON.stringify(r.result.sent)} violations=${JSON.stringify(r.result.violations)} errors=${JSON.stringify(r.result.errors).slice(0, 120)}`
+      : `no JSON result: ${(r.stderr || r.text).slice(0, 160)}`)
+  return [
+    {
+      name: 'E7 containment fixtures',
+      status: r.spawn.status === 0 && r.result && !r.result.timedOut && r.result.violations.length === 0 ? 'pass' : 'fail',
+      detail,
+    },
+  ]
+}
+
+/** The Python driver's known-good fixture. A constant rather than an inline
+ * literal because it is one string with several escapes in it, and this file
+ * is edited by scripts often enough that `\n` collapsing to a real newline is
+ * a live hazard rather than a theoretical one. */
+const PY_GOOD_FIXTURE = ['"""A task that behaves."""', '', '', 'def main():', '    print("fixture: finished")', ''].join('\n')
+
+function pythonContainment(candidatePath) {
+  if (!PYTHON) {
+    return [{ name: 'E7 containment fixtures', status: 'not_checked', detail: 'no working Python found. This is not a pass.' }]
+  }
+  const dir = dirname(candidatePath)
+  const stem = candidatePath.slice(dir.length + 1).replace(/\.py$/, '')
+
+  // The denominator. A driver that cannot run anything makes every
+  // candidate look broken, so the known-good fixture goes first and its
+  // failure downgrades the whole result to not_checked rather than
+  // condemning the candidate.
+  const goodStem = 'drc_fixture_good'
+  writeFileSync(join(dir, `${goodStem}.py`), PY_GOOD_FIXTURE, 'utf8')
+  const control = spawnSync(PYTHON, ['-c', E7_DRIVER, PY_DIR, dir, `user.${goodStem}`], { encoding: 'utf8', timeout: 60000 })
+  if (control.status !== 0) {
+    return [
+      {
+        name: 'E7 containment fixtures',
+        status: 'not_checked',
+        detail: `the containment driver could not run its own known-good fixture: ${(control.stderr || '').trim().slice(0, 200)}. This is not a pass.`,
+      },
+    ]
+  }
+
+  const r = spawnSync(PYTHON, ['-c', E7_DRIVER, PY_DIR, dir, `user.${stem}`], { encoding: 'utf8', timeout: 20000 })
+  const timedOut = r.error && String(r.error.message).includes('ETIMEDOUT')
+  return [
+    {
+      name: 'E7 containment fixtures',
+      status: r.status === 0 && !timedOut ? 'pass' : 'fail',
+      detail: timedOut
+        ? 'the candidate did not finish within 20s under the containment driver'
+        : ((r.stdout || '') + (r.stderr || '')).trim().slice(0, 300),
+    },
+  ]
+}
+
+/**
+ * The one place that decides which containment driver runs a candidate.
+ *
+ * Keyed by language rather than by extension, because the language is what the
+ * job already knows and an extension is a second name for the same fact - and
+ * the app's Ruby scripts are `.lic` while this suite's fixtures are `.rb`, so
+ * anything keyed on the extension would have to know both. A language with no
+ * driver returns null and its caller says so; it never falls through to
+ * somebody else's driver, which is the failure a dispatcher exists to prevent.
+ */
+const CONTAINMENT_DRIVERS = {
+  ruby: { runner: 'ruby/runner.rb', drive: rubyContainment },
+  typescript: { runner: 'typescript/runner.ts', drive: typescriptContainment },
+  python: { runner: 'python/runner.py', drive: pythonContainment },
+}
+const containmentDriverFor = (lang) => CONTAINMENT_DRIVERS[lang] ?? null
+
+/**
  * The port the worker is given. Real, on purpose - see the header.
  *
  * `tamper` exists so the two sabotages can be run through the same object the
@@ -274,27 +438,8 @@ function makePort(over = {}) {
       return { name: `syntax check for ${lang}`, status: 'not_checked', detail: `no syntax check is defined for ${lang}. This is not a pass.` }
     },
     fixtures(lang, candidatePath) {
-      if (lang === 'typescript') return typescriptContainment(candidatePath)
-      if (lang === 'ruby') {
-        // Not "we could not be bothered": there is no out-of-process Ruby
-        // runner in this repository to contain anything with. A Ruby script
-        // here is a Lich `.lic`, and only Lich runs one. `assertRubySkipIsStillTrue`
-        // below checks that this is still the case rather than leaving the
-        // reason as a claim nobody re-derives - the day somebody adds
-        // ruby/runner.rb, the suite says so instead of skipping forever.
-        return [
-          {
-            name: 'E7 containment fixtures',
-            status: 'not_checked',
-            detail:
-              'a Ruby script is a Lich script and runs only inside Lich: this repo has no ruby/runner.rb ' +
-              'counterpart to python/runner.py, so there is no out-of-process runner to contain a candidate ' +
-              'in. Precondition to lift it: an out-of-process Ruby runner that takes its task directory as ' +
-              'an argument. This is not a pass.',
-          },
-        ]
-      }
-      if (lang !== 'python') {
+      const driver = containmentDriverFor(lang)
+      if (!driver || !driver.drive) {
         return [
           {
             name: 'E7 containment fixtures',
@@ -303,40 +448,7 @@ function makePort(over = {}) {
           },
         ]
       }
-      if (!PYTHON) {
-        return [{ name: 'E7 containment fixtures', status: 'not_checked', detail: 'no working Python found. This is not a pass.' }]
-      }
-      const dir = dirname(candidatePath)
-      const stem = candidatePath.slice(dir.length + 1).replace(/\.py$/, '')
-
-      // The denominator. A driver that cannot run anything makes every
-      // candidate look broken, so the known-good fixture goes first and its
-      // failure downgrades the whole result to not_checked rather than
-      // condemning the candidate.
-      const goodStem = 'drc_fixture_good'
-      writeFileSync(join(dir, `${goodStem}.py`), '"""A task that behaves."""\n\n\ndef main():\n    print("fixture: finished")\n', 'utf8')
-      const control = spawnSync(PYTHON, ['-c', E7_DRIVER, PY_DIR, dir, `user.${goodStem}`], { encoding: 'utf8', timeout: 60000 })
-      if (control.status !== 0) {
-        return [
-          {
-            name: 'E7 containment fixtures',
-            status: 'not_checked',
-            detail: `the containment driver could not run its own known-good fixture: ${(control.stderr || '').trim().slice(0, 200)}. This is not a pass.`,
-          },
-        ]
-      }
-
-      const r = spawnSync(PYTHON, ['-c', E7_DRIVER, PY_DIR, dir, `user.${stem}`], { encoding: 'utf8', timeout: 20000 })
-      const timedOut = r.error && String(r.error.message).includes('ETIMEDOUT')
-      return [
-        {
-          name: 'E7 containment fixtures',
-          status: r.status === 0 && !timedOut ? 'pass' : 'fail',
-          detail: timedOut
-            ? 'the candidate did not finish within 20s under the containment driver'
-            : ((r.stdout || '') + (r.stderr || '')).trim().slice(0, 300),
-        },
-      ]
+      return driver.drive(candidatePath)
     },
     ...over,
   }
@@ -574,35 +686,241 @@ for (const [lang, name, source, diff] of [
   }
 }
 
-console.log('-- the reason Ruby containment is skipped is itself checked, not asserted --')
+console.log('-- E7 containment for Ruby: the candidate runs out of process, in a sandbox, or not at all --')
 {
-  // A skip whose reason nobody re-derives is a claim, and a claim rots. The
-  // Ruby fixture is skipped because this repository has no out-of-process Ruby
-  // runner - the counterpart to python/runner.py and typescript/runner.ts. If
-  // one ever appears, the skip above is stale and the fixture should be wired,
-  // so the precondition is measured rather than believed.
+  // This section used to be a skip and a check that the skip's reason was
+  // still true ("no out-of-process Ruby runner exists"). `ruby/runner.rb`
+  // exists now, so the reason is gone and the thing it stood in for runs.
   //
-  // The denominator is the pair: the two runners that DO exist must both be
-  // found, or this is measuring a broken path rather than an absent runner.
+  // The denominator is the three task runners: all three must be where this
+  // looks, or the section is measuring a broken path rather than a
+  // containment property.
   const runners = [
     ['python/runner.py', existsSync(join(process.cwd(), 'python', 'runner.py'))],
     ['typescript/runner.ts', existsSync(TS_RUNNER)],
+    ['ruby/runner.rb', existsSync(RUBY_RUNNER)],
   ]
   ok(
-    'both known task runners are where this check looks (positive control)',
+    'all three out-of-process task runners are where this check looks (positive control)',
     runners.every(([, found]) => found),
     runners.map(([p, found]) => `${p}=${found ? 'found' : 'MISSING'}`).join(' ')
   )
-  const rubyRunners = ['ruby/runner.rb', 'ruby/runner.lic', 'lich/runner.rb'].filter((p) =>
-    existsSync(join(process.cwd(), ...p.split('/')))
+
+  if (!RUBY) {
+    skip(
+      'ruby E7 containment',
+      `no working Ruby found; tried ${rubyCandidates().join(', ')}. ` +
+        `ruby/runner.rb exists, so this is a missing interpreter and not a missing runner. ` +
+        `Set DRC_RUBY to a ruby executable to run it. This is not a pass.`
+    )
+  } else {
+    // ------------------------------------------------------------------
+    // The shim, measured against what our own scripts call.
+    // ------------------------------------------------------------------
+    const shimOut = spawnSync(RUBY, [RUBY_RUNNER, '--shim'], { encoding: 'utf8', timeout: 60000 })
+    let shim = null
+    try {
+      shim = JSON.parse(shimOut.stdout || '{}')
+    } catch {
+      shim = null
+    }
+    ok(
+      'the shim prints its own surface, and every entry has a method behind it',
+      shimOut.status === 0 && shim && Array.isArray(shim.missing) && shim.missing.length === 0 && shim.methods > 50,
+      shim ? `${shim.methods} stub methods, ${shim.missing.length} advertised with nothing behind them` : (shimOut.stderr || '').slice(0, 200)
+    )
+
+    // Derived, not asserted: Ruby's own parser says which Lich names
+    // `companion_bridge.lic` calls, and the shim is checked against that. A
+    // grep could not tell a call from a word in a comment, and this list is
+    // the whole reason to believe the shim is the right size.
+    const BRIDGE = join(process.cwd(), 'lich-scripts', 'companion_bridge.lic')
+    const surfaceOut = spawnSync(RUBY, [RUBY_RUNNER, '--surface', BRIDGE], { encoding: 'utf8', timeout: 60000 })
+    let surface = null
+    try {
+      surface = JSON.parse(surfaceOut.stdout || '{}')
+    } catch {
+      surface = null
+    }
+    const provided = new Set(shim ? shim.surface.functions : [])
+    if (shim) for (const [c, methods] of Object.entries(shim.surface.constants)) for (const m of methods) provided.add(`${c}.${m}`)
+    const wanted = surface ? [...surface.functions, ...surface.constants] : []
+    const uncovered = wanted.filter((w) => !provided.has(w))
+    ok(
+      'the shim covers every Lich name companion_bridge.lic actually calls',
+      surface !== null && wanted.length >= 60 && uncovered.length === 0,
+      `${wanted.length} calls found by Ruby's parser, ${uncovered.length} uncovered${uncovered.length ? `: ${uncovered.join(', ')}` : ''}`
+    )
+    // The negative control for that check: a name nothing provides must show
+    // up as uncovered, or the comparison is a set that can only be empty.
+    ok(
+      'and that comparison can fail (negative control)',
+      !provided.has('DRParanoia.definitely_not_a_real_call'),
+      'a fabricated Lich name is not in the shim, so an uncovered call would be reported'
+    )
+
+    // ------------------------------------------------------------------
+    // The fixtures. Each is one containment mechanism, run for real.
+    // ------------------------------------------------------------------
+    const fixtureResults = []
+    const runFixture = (script, timeout = 10, wall = 60000) => {
+      const home = rubySandbox()
+      const r = rubyRun({ home, script, timeout, wall })
+      fixtureResults.push(script)
+      return r
+    }
+
+    const control = runFixture('control_good.lic')
+    ok(
+      'the known-good control runs clean under the runner (denominator)',
+      control.spawn.status === 0 && control.result && control.result.violations.length === 0 && control.result.errors.length === 0,
+      control.result ? `exit ${control.spawn.status}, ${control.result.echoed.length} echoed, ${control.result.violations.length} violations` : (control.stderr || control.text).slice(0, 200)
+    )
+    ok(
+      'and what it tried to send is recorded rather than sent',
+      control.result?.sent?.some((s) => s.via === 'fput' && s.text === 'kill rat'),
+      JSON.stringify(control.result?.sent ?? [])
+    )
+    ok(
+      'and a write INSIDE the sandbox is allowed, so the guard is a fence and not a wall',
+      control.result?.echoed?.some((line) => line.includes('control_note.txt') && line.includes('control ran')),
+      control.result?.echoed?.find((l) => l.includes('control_note')) ?? 'no line about the note'
+    )
+
+    const escapeFile = runFixture('escape_file.lic')
+    ok(
+      'a candidate reading outside the sandbox is a violation naming the path, not a crash',
+      escapeFile.result !== null &&
+        escapeFile.spawn.status === 3 &&
+        escapeFile.result.violations.some((v) => v.includes('File.read') && v.includes('outside the sandbox')),
+      escapeFile.result ? `exit ${escapeFile.spawn.status}: ${escapeFile.result.violations.join(' | ').slice(0, 150)}` : (escapeFile.stderr || escapeFile.text).slice(0, 200)
+    )
+    ok(
+      'and the candidate could not swallow it with a bare rescue',
+      escapeFile.result !== null && !escapeFile.result.echoed.some((l) => l.includes('swallowed')),
+      JSON.stringify(escapeFile.result?.echoed ?? [])
+    )
+
+    const escapeSocket = runFixture('escape_socket.lic')
+    ok(
+      'a candidate opening a socket is a violation naming the host, not a NameError',
+      escapeSocket.result !== null &&
+        escapeSocket.spawn.status === 3 &&
+        escapeSocket.result.violations.some((v) => v.includes('TCPSocket.new') && v.includes('example.invalid')),
+      escapeSocket.result ? `exit ${escapeSocket.spawn.status}: ${escapeSocket.result.violations.join(' | ').slice(0, 150)}` : (escapeSocket.stderr || escapeSocket.text).slice(0, 200)
+    )
+
+    const escapeRequire = runFixture('escape_require.lic')
+    ok(
+      'the restricted load path refuses a require that is not on the allowlist',
+      escapeRequire.result !== null &&
+        escapeRequire.spawn.status === 3 &&
+        escapeRequire.result.violations.some((v) => v.includes('require') && v.includes('socket')),
+      escapeRequire.result ? `exit ${escapeRequire.spawn.status}: ${escapeRequire.result.violations.join(' | ').slice(0, 150)}` : (escapeRequire.stderr || escapeRequire.text).slice(0, 200)
+    )
+
+    // The wall runs far longer than the runner's own limit, so a run that
+    // needs killing from outside is distinguishable from one that reported
+    // its own timeout. That is what the sabotage below turns on.
+    const looping = runFixture('loop_forever.lic', 2, 45000)
+    ok(
+      'a candidate that loops forever is reported as a timeout by the runner itself',
+      looping.result !== null && looping.result.timedOut === true && looping.spawn.status === 4,
+      looping.result ? `exit ${looping.spawn.status}, timedOut=${looping.result.timedOut}, errors=${JSON.stringify(looping.result.errors)}` : `NO JSON RESULT - the child was killed from outside: ${(looping.stderr || looping.text).slice(0, 200)}`
+    )
+    ok(
+      'and what it had already tried survives the clock',
+      looping.result?.sent?.some((s) => s.text === 'search corpse'),
+      JSON.stringify(looping.result?.sent ?? [])
+    )
+
+    // ------------------------------------------------------------------
+    // The flags are a mechanism, so they are checked and not trusted.
+    // ------------------------------------------------------------------
+    {
+      const home = rubySandbox()
+      const withGems = spawnSync(RUBY, [RUBY_RUNNER, '--sandbox', home, '--script', 'control_good.lic'], { encoding: 'utf8', timeout: 60000 })
+      ok(
+        'the runner refuses to start without -W0 --disable-gems, naming what is missing',
+        withGems.status === 2 && /--disable-gems/.test(withGems.stderr || ''),
+        `exit ${withGems.status}: ${(withGems.stderr || '').trim().slice(0, 120)}`
+      )
+
+      const outside = spawnSync(
+        RUBY,
+        ['-W0', '--disable-gems', RUBY_RUNNER, '--sandbox', home, '--script', join('..', '..', 'control_good.lic')],
+        { encoding: 'utf8', timeout: 60000 }
+      )
+      ok(
+        'and refuses a script path that climbs out of the sandbox',
+        outside.status === 2 && /outside the sandbox|no such script/.test(outside.stderr || ''),
+        `exit ${outside.status}: ${(outside.stderr || '').trim().slice(0, 120)}`
+      )
+    }
+
+    ok(
+      `every containment fixture ran: ${fixtureResults.length} of ${readdirSync(RUBY_FIXTURES).filter((f) => f.endsWith('.lic')).length}`,
+      fixtureResults.length === readdirSync(RUBY_FIXTURES).filter((f) => f.endsWith('.lic')).length,
+      fixtureResults.join(', ')
+    )
+  }
+}
+
+console.log('-- the containment dispatcher picks by language, where the wrong answer is available --')
+{
+  // A chooser tested against a population with one option tests that the code
+  // executes, which was never in doubt. Both runners exist and both can be
+  // handed the other language's candidate, so the wrong answer is reachable.
+  ok(
+    'ruby is dispatched to ruby/runner.rb',
+    containmentDriverFor('ruby')?.runner === 'ruby/runner.rb',
+    String(containmentDriverFor('ruby')?.runner)
   )
   ok(
-    'no out-of-process Ruby runner exists, so the Ruby skip above is still true',
-    rubyRunners.length === 0,
-    rubyRunners.length === 0
-      ? 'checked 3 candidate paths, none present'
-      : `${rubyRunners.join(', ')} now exists - the skip reason is STALE, wire the fixture`
+    'typescript is dispatched to typescript/runner.ts',
+    containmentDriverFor('typescript')?.runner === 'typescript/runner.ts',
+    String(containmentDriverFor('typescript')?.runner)
   )
+  ok(
+    'python is dispatched to python/runner.py',
+    containmentDriverFor('python')?.runner === 'python/runner.py',
+    String(containmentDriverFor('python')?.runner)
+  )
+  ok(
+    'a language with no driver gets nothing rather than somebody else`s',
+    containmentDriverFor('perl') === null && containmentDriverFor('') === null,
+    'perl and "" both resolve to no driver'
+  )
+
+  if (!RUBY) {
+    skip('the dispatcher choosing wrongly is detectable', `no working Ruby found; tried ${rubyCandidates().join(', ')}. This is not a pass.`)
+  } else {
+    // The half that makes the three checks above worth anything: if the two
+    // drivers were interchangeable, choosing between them would not matter.
+    const crossDir = join(ROOT, 'e7-cross')
+    mkdirSync(crossDir, { recursive: true })
+    const licPath = join(crossDir, 'crosscheck.lic')
+    const tsPath = join(crossDir, 'crosscheck.ts')
+    copyFileSync(join(RUBY_FIXTURES, 'control_good.lic'), licPath)
+    writeFileSync(tsPath, '/** A task that behaves. */\nexport function main(): void {\n  console.log("cross: finished")\n}\n', 'utf8')
+
+    const rubyOnRuby = containmentDriverFor('ruby').drive(licPath)
+    ok('the Ruby driver passes a Ruby candidate', rubyOnRuby[0]?.status === 'pass', `${rubyOnRuby[0]?.status}: ${String(rubyOnRuby[0]?.detail).slice(0, 120)}`)
+
+    const tsOnRuby = containmentDriverFor('typescript').drive(licPath)
+    ok(
+      'the TypeScript driver does NOT pass a Ruby candidate',
+      tsOnRuby[0]?.status !== 'pass',
+      `${tsOnRuby[0]?.status}: ${String(tsOnRuby[0]?.detail).slice(0, 120)}`
+    )
+
+    const rubyOnTs = containmentDriverFor('ruby').drive(tsPath)
+    ok(
+      'and the Ruby driver does NOT pass a TypeScript candidate',
+      rubyOnTs[0]?.status !== 'pass',
+      `${rubyOnTs[0]?.status}: ${String(rubyOnTs[0]?.detail).slice(0, 120)}`
+    )
+  }
 }
 
 console.log('-- a patch that breaks the file is still a candidate, with the failure recorded --')
@@ -776,7 +1094,10 @@ const candidates = existsSync(join(APP_DATA, 'script-candidates'))
 ok('candidates were written somewhere real', candidates.length >= 3, `${candidates.length} candidate files under ${APP_DATA}: ${candidates.join(', ')}`)
 ok('no candidate was ever written into a script directory', readdirSync(join(SCRIPT_ROOT, 'ruby')).every((f) => !f.includes('patched')), readdirSync(join(SCRIPT_ROOT, 'ruby')).join(', '))
 
-const FLOOR = 55
+// Sized well below the real count so it catches an empty or truncated run and
+// never needs touching otherwise. Raised from 55 when the Ruby E7 section
+// stopped being a skip and became real checks.
+const FLOOR = 95
 ok(`at least ${FLOOR} checks ran, so an empty run cannot pass`, pass + fail >= FLOOR, `${pass + fail} checks`)
 
 rmSync(ROOT, { recursive: true, force: true })

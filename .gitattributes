@@ -24,3 +24,9 @@
 # Pinning it makes the checkout deterministic, so two machines comparing this
 # file are comparing its content rather than each other's git settings.
 *.lic text eol=lf
+
+# And `.rb` for the same reason, added with `ruby/runner.rb` (H9). A `.lic` and
+# a `.rb` here are the same thing - Ruby, loaded by Ruby - so pinning one and
+# letting the other inherit `core.autocrlf` would leave the half-hour above
+# waiting to happen again in the file next door.
+*.rb text eol=lf

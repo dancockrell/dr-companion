@@ -1,0 +1,18 @@
+# A candidate that never finishes.
+#
+# The commonest way an AI-written repair to a hunting script goes wrong is not
+# a syntax error - `ruby -c` catches those - it is a loop whose exit condition
+# the patch removed. Under Lich that script runs until somebody notices. Under
+# containment the wall clock ends it and the result says `timedOut`, with the
+# commands it had already tried still in `sent`, which is the part a reviewer
+# needs in order to see what it was doing when the clock ran out.
+
+echo 'loop_forever: starting'
+
+fput 'search corpse'
+
+loop do
+  # No pause: pausing is recorded and returns at once under the shim, so a
+  # sleep here would be measuring the shim rather than the wall clock.
+  Time.now
+end
