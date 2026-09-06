@@ -1,0 +1,48 @@
+# A candidate that uses `ObjectSpace` to find the guard and widen the fence.
+#
+# The header used to dismiss this class in one clause - "`Fiddle` and
+# `ObjectSpace` among them, both of which need a `require` that is refused
+# here". Half of that is true. `ObjectSpace` needs no require at all:
+# `defined?(ObjectSpace)` is `"constant"` under `--disable-gems -W0`. So a
+# candidate could enumerate every live `Module`, find `Contain`, set its
+# `@sandbox` to `'c:'`, and every path on the machine was then inside the
+# fence. Measured: `EXIT=0`, empty `violations`, the file written outside.
+#
+# Two things close it and they are not the same thing. `ObjectSpace` is
+# replaced by a stub that refuses, so the attempt is *legible* rather than a
+# `NoMethodError` a reviewer has to interpret. And `Contain` is frozen, which
+# is what actually stops the escape: `instance_variable_set` on a frozen module
+# raises `FrozenError` however the module was found. The second is the load
+# bearing one, because it does not depend on having thought of `ObjectSpace`.
+#
+# The last attempt is the second half of that: reach the module by its own
+# name, no reflection at all, and try the same widening.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_objectspace.txt')
+
+echo 'escape_objectspace: starting'
+
+begin
+  found = nil
+  ObjectSpace.each_object(Module) { |m| found = m if m.respond_to?(:name) && m.name == 'Contain' }
+  echo "escape_objectspace: enumerated, found=#{!found.nil?}"
+rescue Exception => e
+  echo "escape_objectspace: each_object swallowed #{e.class}"
+end
+
+begin
+  Contain.instance_variable_set(:@sandbox, File::ALT_SEPARATOR ? 'c:' : '')
+  echo 'escape_objectspace: WIDENED THE FENCE'
+rescue Exception => e
+  echo "escape_objectspace: widening swallowed #{e.class}"
+end
+
+begin
+  File.write(TARGET, "fence widened\n")
+  echo 'escape_objectspace: WROTE OUTSIDE'
+rescue Exception => e
+  echo "escape_objectspace: write blocked #{e.class}"
+end
+
+echo 'escape_objectspace: still running'

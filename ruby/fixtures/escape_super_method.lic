@@ -1,0 +1,44 @@
+# A candidate that reaches past the filesystem guard for the definition it
+# shadows, and then for the guard module itself.
+#
+# `IO.method(:write).super_method` wrote a file outside the sandbox while the
+# guard was a prepended module: `EXIT=0`, empty `violations`, the file on disk.
+# The same call now finds nothing underneath - the original was removed, not
+# covered up - so `super_method` returns nil and there is nothing to call.
+#
+# The second attempt is the same idea aimed one level up: reach into the
+# anonymous guard and delete the checking method. `File.singleton_class` is
+# frozen once the guards are installed, so Ruby refuses with a `FrozenError`
+# naming the class, which is a thing a reviewer can read.
+#
+# Neither attempt produces a `violations` entry, and that is honest rather than
+# a gap: nothing was refused, because after the replacement there is no
+# original to reach and no method to remove. What the harness asserts is that
+# no file appeared outside and that the echoed lines name the mechanism.
+#
+# Every attempt below rescues `Exception` and not `StandardError`, and that is
+# the opposite of `escape_file.lic`'s deliberate bare rescue. `Contain::Violation`
+# descends from `Exception`, so a `rescue StandardError` here would let the
+# first refusal unwind the whole script and the later attempts would never run -
+# and a class that never executed reads exactly like a class that was refused.
+# The suite asserts a violation for each attempt, so each has to reach.
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_super_method.txt')
+
+echo 'escape_super_method: starting'
+
+begin
+  IO.method(:write).super_method.call(TARGET, "under the guard\n")
+  echo 'escape_super_method: SUPER_METHOD WROTE IT'
+rescue Exception => e
+  echo "escape_super_method: super_method swallowed #{e.class}"
+end
+
+begin
+  File.singleton_class.send(:remove_method, :delete)
+  echo 'escape_super_method: REMOVED THE GUARD METHOD'
+rescue Exception => e
+  echo "escape_super_method: remove_method swallowed #{e.class}"
+end
+
+echo 'escape_super_method: still running'

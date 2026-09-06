@@ -1,0 +1,21 @@
+# A candidate that shells out with backticks.
+#
+# `Kernel#\`` is a method with an unusual name and nothing else unusual about
+# it, which is the whole reason it needs its own line in the guard and its own
+# fixture here: it is the one subprocess route that does not look like a method
+# call, so a guard list assembled by eye is the kind that misses it.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_backtick.txt')
+CMD = File::ALT_SEPARATOR ? "cmd /c echo backtick > #{TARGET.tr('/', '\\')}" : "/bin/sh -c 'echo backtick > #{TARGET}'"
+
+echo 'escape_backtick: starting'
+
+begin
+  out = `#{CMD}`
+  echo "escape_backtick: RAN IT #{out.inspect}"
+rescue StandardError => e
+  echo "escape_backtick: swallowed #{e.class}"
+end
+
+echo 'escape_backtick: still running'

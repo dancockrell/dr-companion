@@ -1,0 +1,44 @@
+# A candidate that writes through a link inside the sandbox to a directory
+# outside it.
+#
+# #460's first finding, and the one with a real fix. `Contain.normalize` used
+# `File.expand_path`, which is *lexical*: it does not touch the filesystem and
+# does not resolve junctions or symlinks. So `<sandbox>/jlink/PWN.txt` expanded
+# to a name under the sandbox, passed the string comparison, and the write
+# landed wherever the link pointed. Measured end to end: `EXIT=0`, empty
+# `violations`, the file outside. The header claimed the opposite in as many
+# words - "symlink-shaped tricks all resolve before the comparison" - which is
+# the part that stops the next reader checking.
+#
+# The harness creates `jlink` at test time and removes it afterwards: a
+# junction on Windows (`mklink /J`), a symlink on Linux (`ln -s`). Neither
+# needs a privilege the CI runner lacks.
+#
+# **The first two echoed lines are this fixture's denominator.** If the link is
+# not there, the write is refused because the path resolves nowhere - which
+# looks exactly like the guard working and is not it. The harness asserts that
+# `link resolves outside=true` before it believes the refusal.
+
+LINK = File.join(__dir__, 'jlink')
+TARGET = File.join(LINK, 'ESCAPED_junction.txt')
+
+echo 'escape_junction: starting'
+begin
+  # `File.realpath` on the link itself, compared against the sandbox this
+  # script is sitting in. Both are computed here rather than assumed.
+  resolved = File.realpath(LINK)
+  here = File.realpath(__dir__)
+  outside = !resolved.downcase.start_with?(here.downcase)
+  echo "escape_junction: link present=true resolves outside=#{outside}"
+rescue StandardError => e
+  echo "escape_junction: link present=false (#{e.class}) resolves outside=false"
+end
+
+begin
+  File.write(TARGET, "written through a link\n")
+  echo 'escape_junction: WROTE IT'
+rescue StandardError => e
+  echo "escape_junction: swallowed #{e.class}"
+end
+
+echo 'escape_junction: still running'

@@ -30,7 +30,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { findPython, pythonCandidates } from './find-python.mjs'
@@ -116,6 +116,13 @@ const RUBY_STREAM = join(RUBY_FIXTURES, 'stream.txt')
  * suite's own `rmSync(ROOT)` takes it, and outside APP_DATA so the
  * candidate-count denominator at the end never sees these files. */
 const RUBY_CONTAINMENT = join(ROOT, 'e7-ruby')
+/** The one directory outside every Ruby sandbox that the escape fixtures aim
+ * at. Each writes `ESCAPED_<class>.txt` here if its guard fails, so "did
+ * anything get out" is one `readdirSync` rather than a different check per
+ * fixture, and a fixture that escapes is a FAIL and not a note. It is a
+ * sibling of the `run-N` sandboxes and still under ROOT, so the suite's own
+ * cleanup takes it. */
+const RUBY_OUTSIDE = join(RUBY_CONTAINMENT, 'outside')
 let rubyContainmentRuns = 0
 /** Where the contained TypeScript runner and its throwaway task tree live.
  * Under ROOT so the suite's own `rmSync(ROOT)` takes it, and outside APP_DATA
@@ -760,15 +767,87 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
     )
 
     // ------------------------------------------------------------------
-    // The fixtures. Each is one containment mechanism, run for real.
+    // The fixtures. Each is one containment mechanism, run for real, and one
+    // of the escape classes review pass 7 (#460) ran by hand against the
+    // shipped runner. One fixture per class on purpose: `Contain::Violation`
+    // descends from `Exception` and unwinds the whole script, so two classes in
+    // one file means the second never executes - and a class that never ran
+    // reads exactly like a class that was refused.
+    //
+    // The instrument is not the exit code. Every escape fixture writes
+    // `ESCAPED_<class>.txt` into RUBY_OUTSIDE if its guard fails, and the
+    // harness lists that directory after each run. An unguarded script doing
+    // `File.write`, `system` and `IO.popen` into that directory was run first
+    // and all three landed, so an empty listing here means a guard stopped
+    // something rather than that this check cannot see a write.
     // ------------------------------------------------------------------
     const fixtureResults = []
-    const runFixture = (script, timeout = 10, wall = 60000) => {
-      const home = rubySandbox()
-      const r = rubyRun({ home, script, timeout, wall })
-      fixtureResults.push(script)
-      return r
+    const escapeTable = []
+    const rubyEscaped = () => (existsSync(RUBY_OUTSIDE) ? readdirSync(RUBY_OUTSIDE).filter((f) => f.startsWith('ESCAPED')) : [])
+
+    /** A link inside the sandbox that resolves outside it: a junction on
+     * Windows, a symlink on Linux, neither of which needs a privilege the CI
+     * runner lacks. Created at test time and removed straight afterwards, so
+     * nothing link-shaped is ever committed or left behind. The mechanism goes
+     * into the check's detail line, which is how a CI log says which of the two
+     * actually ran on that platform. */
+    const rubyMakeLink = (home) => {
+      const link = join(home, 'jlink')
+      if (process.platform === 'win32') {
+        const r = spawnSync('cmd', ['/c', 'mklink', '/J', link, RUBY_OUTSIDE], { encoding: 'utf8', timeout: 30000 })
+        return { link, kind: 'junction (mklink /J)', made: r.status === 0, detail: ((r.stdout || '') + (r.stderr || '')).trim() }
+      }
+      try {
+        symlinkSync(RUBY_OUTSIDE, link, 'dir')
+        return { link, kind: 'symlink (ln -s)', made: true, detail: `${link} -> ${RUBY_OUTSIDE}` }
+      } catch (e) {
+        return { link, kind: 'symlink (ln -s)', made: false, detail: String(e && e.message) }
+      }
     }
+    /** `rmdir` and not `rmSync`, because a recursive delete through a junction
+     * deletes what it points at. Everything here is under ROOT and goes anyway,
+     * but a cleanup that follows a link is a habit worth not having. */
+    const rubyRemoveLink = (link) => {
+      try {
+        if (process.platform === 'win32') spawnSync('cmd', ['/c', 'rmdir', link], { encoding: 'utf8', timeout: 30000 })
+        else unlinkSync(link)
+      } catch {
+        // The suite's own rmSync(ROOT) takes whatever is left.
+      }
+    }
+
+    const runFixture = (script, { timeout = 10, wall = 60000, link = false } = {}) => {
+      mkdirSync(RUBY_OUTSIDE, { recursive: true })
+      for (const f of rubyEscaped()) rmSync(join(RUBY_OUTSIDE, f), { force: true })
+      // What `escape_load.lic` tries to load. Written before every run and
+      // checked afterwards: a `load` refused because the file was not there
+      // would say nothing at all about the load guard.
+      writeFileSync(join(RUBY_OUTSIDE, 'payload.rb'), 'PAYLOAD_RAN = true\n')
+      const home = rubySandbox()
+      const linked = link ? rubyMakeLink(home) : null
+      const r = rubyRun({ home, script, timeout, wall })
+      if (linked && linked.made) rubyRemoveLink(linked.link)
+      const landed = rubyEscaped()
+      fixtureResults.push(script)
+      escapeTable.push({ script, exit: r.spawn.status, violations: r.result ? r.result.violations.length : -1, landed })
+      return { ...r, home, landed, linked, payloadIntact: existsSync(join(RUBY_OUTSIDE, 'payload.rb')) }
+    }
+
+    /** Every escape fixture's shared shape: refused, named, and nothing on disk
+     * outside the sandbox. All the needles are required, so a check cannot pass
+     * on a violation belonging to a different class than the one under test -
+     * which is how `escape_kernel_modfunc.lic` used to look refused when only
+     * the first of its three attempts had run. */
+    const refused = (r, ...needles) =>
+      r.result !== null &&
+      r.spawn.status === 3 &&
+      r.landed.length === 0 &&
+      needles.every((n) => r.result.violations.some((v) => v.includes(n)))
+    const say = (r) =>
+      r.result
+        ? `exit ${r.spawn.status}, landed=[${r.landed.join(', ')}], violations=${r.result.violations.join(' | ').slice(0, 220)}`
+        : `NO JSON RESULT: ${(r.stderr || r.text).slice(0, 200)}`
+    const echoed = (r) => JSON.stringify(r.result ? r.result.echoed : []).slice(0, 260)
 
     const control = runFixture('control_good.lic')
     ok(
@@ -822,7 +901,7 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
     // The wall runs far longer than the runner's own limit, so a run that
     // needs killing from outside is distinguishable from one that reported
     // its own timeout. That is what the sabotage below turns on.
-    const looping = runFixture('loop_forever.lic', 2, 45000)
+    const looping = runFixture('loop_forever.lic', { timeout: 2, wall: 45000 })
     ok(
       'a candidate that loops forever is reported as a timeout by the runner itself',
       looping.result !== null && looping.result.timedOut === true && looping.spawn.status === 4,
@@ -857,6 +936,161 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
         `exit ${outside.status}: ${(outside.stderr || '').trim().slice(0, 120)}`
       )
     }
+
+    // ------------------------------------------------------------------
+    // #460: the escape classes, one fixture each, all measured. Four of these
+    // were open when review pass 7 ran them by hand and six more turned up
+    // while closing those; the runner's header carries the before/after table.
+    // ------------------------------------------------------------------
+
+    // 1b/1c. The module-function forms of the load path. `Kernel.load` of an
+    // absolute path outside the sandbox EXECUTED the payload before this, and
+    // `Kernel.require` raised a silent LoadError that no report mentioned.
+    const escapeLoad = runFixture('escape_load.lic')
+    ok(
+      "the load guard covers Kernel's own copies, not only the bare forms",
+      refused(escapeLoad, 'load:', 'payload.rb', 'require: socket'),
+      say(escapeLoad)
+    )
+    ok(
+      'and the payload it was asked to load was really there (instrument)',
+      escapeLoad.payloadIntact && !(escapeLoad.result?.echoed ?? []).some((l) => l.includes('LOADED IT')),
+      `payload.rb still on disk=${escapeLoad.payloadIntact}; ${echoed(escapeLoad)}`
+    )
+
+    // 2. The junction. `File.expand_path` is lexical, so this wrote outside the
+    // sandbox through a path that read as being inside it.
+    const escapeJunction = runFixture('escape_junction.lic', { link: true })
+    ok(
+      `a link inside the sandbox that resolves outside it was created for this run: ${escapeJunction.linked?.kind}`,
+      escapeJunction.linked?.made === true &&
+        (escapeJunction.result?.echoed ?? []).some((l) => l.includes('link present=true resolves outside=true')),
+      `${escapeJunction.linked?.kind}: made=${escapeJunction.linked?.made} ${escapeJunction.linked?.detail?.slice(0, 120)}; ${echoed(escapeJunction)}`
+    )
+    ok(
+      'and a write through it is a violation naming the RESOLVED target, not a pass',
+      refused(escapeJunction, 'File.write', 'resolves to', 'outside the sandbox'),
+      say(escapeJunction)
+    )
+
+    // 3, 4, 5. The subprocess routes, each on its own so none is shadowed by
+    // another raising first.
+    const escapePopen = runFixture('escape_popen.lic')
+    ok('IO.popen is refused and nothing is written outside', refused(escapePopen, 'IO.popen', 'ESCAPED_popen'), say(escapePopen))
+
+    const escapeBacktick = runFixture('escape_backtick.lic')
+    ok('backticks are refused and nothing is written outside', refused(escapeBacktick, 'Kernel#`', 'ESCAPED_backtick'), say(escapeBacktick))
+
+    const escapeSystem = runFixture('escape_system.lic')
+    ok('a bare system() is refused and nothing is written outside', refused(escapeSystem, 'Kernel#system', 'ESCAPED_system'), say(escapeSystem))
+
+    const escapeSpawn = runFixture('escape_spawn.lic')
+    ok('Process.spawn is refused and nothing is written outside', refused(escapeSpawn, 'Process.spawn', 'ESCAPED_spawn'), say(escapeSpawn))
+    ok(
+      'and Method#super_method past the guard lands on another guard, not on the original',
+      (escapeSpawn.result?.echoed ?? []).some((l) => l.includes('super_method swallowed Contain::Violation')) &&
+        (escapeSpawn.result?.violations.length ?? 0) >= 2,
+      echoed(escapeSpawn)
+    )
+
+    // fork gets its own fixture for the reason pass 7 named about itself: in a
+    // combined attempt Process.spawn raised first and fork never executed, so
+    // the class was reported refused without having run.
+    const escapeFork = runFixture('escape_fork.lic')
+    ok(
+      'fork is refused by this file and not by the platform',
+      refused(escapeFork, 'Process.fork', 'Kernel#fork'),
+      say(escapeFork)
+    )
+
+    // 5b/5c. The widest gap #460 left open: the guard was a module prepended to
+    // Object, and module_function had already given Kernel its own singleton
+    // copies, which are not in Object's ancestors at all.
+    const escapeModfunc = runFixture('escape_kernel_modfunc.lic')
+    ok(
+      'Kernel.system, Kernel.spawn and an unbound Kernel#system are all refused',
+      refused(escapeModfunc, 'Kernel#system', 'Kernel#spawn') && (escapeModfunc.result?.violations.length ?? 0) >= 3,
+      say(escapeModfunc)
+    )
+
+    // 6. ObjectSpace needs no require, so the header's dismissal of it was
+    // wrong; freezing Contain is what actually stops the widening.
+    const escapeObjectSpace = runFixture('escape_objectspace.lic')
+    ok(
+      'ObjectSpace is a violation a reviewer can read, not a NoMethodError',
+      refused(escapeObjectSpace, 'ObjectSpace.each_object', 'File.write'),
+      say(escapeObjectSpace)
+    )
+    ok(
+      'and widening the fence by instance_variable_set raises FrozenError',
+      (escapeObjectSpace.result?.echoed ?? []).some((l) => l.includes('widening swallowed FrozenError')),
+      echoed(escapeObjectSpace)
+    )
+
+    // 7. The guard's own methods, and the constant they hang from.
+    const escapeDisarm = runFixture('escape_disarm.lic')
+    ok(
+      'redefining the guard raises before the escape, which is still refused',
+      refused(escapeDisarm, 'File.write', 'ESCAPED_disarm'),
+      say(escapeDisarm)
+    )
+    ok(
+      'and the mechanism is Ruby freezing the module, named in the report',
+      (escapeDisarm.result?.echoed ?? []).some((l) => l.includes('redefinition swallowed FrozenError')) &&
+        (escapeDisarm.result?.echoed ?? []).some((l) => l.includes('removed the Contain constant')),
+      echoed(escapeDisarm)
+    )
+    ok(
+      'and removing the Contain constant still leaves one JSON object to read',
+      escapeDisarm.result !== null && (escapeDisarm.result?.errors ?? []).every((e) => !e.includes('at_exit')),
+      `${escapeDisarm.result ? 'parsed' : 'NO JSON'}; errors=${JSON.stringify(escapeDisarm.result?.errors ?? []).slice(0, 200)}`
+    )
+
+    // 8. The reporting hole. Nothing escaped here before either - the guards
+    // never tear down - but the object a reviewer reads said violations: [].
+    const escapeAtExit = runFixture('escape_atexit.lic')
+    ok(
+      'a violation raised inside at_exit reaches the JSON instead of vanishing',
+      refused(escapeAtExit, 'File.write', 'ESCAPED_atexit') &&
+        (escapeAtExit.result?.errors ?? []).some((e) => e.includes('at_exit')),
+      say(escapeAtExit)
+    )
+    ok(
+      'and the handler really ran (denominator: a marker written inside the sandbox)',
+      existsSync(join(escapeAtExit.home, 'atexit_ran.txt')),
+      `${join(escapeAtExit.home, 'atexit_ran.txt')} exists=${existsSync(join(escapeAtExit.home, 'atexit_ran.txt'))}`
+    )
+
+    // 9b/9c. Kernel#open, the pipe form of it, and the definition the guard
+    // used to be merely sitting on top of.
+    const escapeKernelOpen = runFixture('escape_kernel_open.lic')
+    ok(
+      "Kernel#open outside the sandbox is refused, and so is open('|cmd')",
+      refused(escapeKernelOpen, 'Kernel#open', 'is a pipe, not a path'),
+      say(escapeKernelOpen)
+    )
+
+    const escapeSuper = runFixture('escape_super_method.lic')
+    ok(
+      'IO.method(:write).super_method has nothing to call and nothing is written outside',
+      escapeSuper.result !== null &&
+        escapeSuper.landed.length === 0 &&
+        (escapeSuper.result?.echoed ?? []).some((l) => l.includes('super_method swallowed NoMethodError')) &&
+        (escapeSuper.result?.echoed ?? []).some((l) => l.includes('remove_method swallowed FrozenError')),
+      `${say(escapeSuper)}; ${echoed(escapeSuper)}`
+    )
+
+    // The hard rule, and the one that cannot be satisfied by a check nobody
+    // wrote: whatever the individual assertions above say, nothing may be on
+    // disk outside the sandboxes. A class that escapes is a FAIL here.
+    const gotOut = escapeTable.filter((e) => e.landed.length > 0)
+    ok(
+      `no escape fixture put a file outside its sandbox: ${escapeTable.length} classes run`,
+      gotOut.length === 0 && escapeTable.length >= 15,
+      gotOut.length
+        ? `ESCAPED: ${gotOut.map((e) => `${e.script} -> ${e.landed.join(', ')}`).join('; ')}`
+        : escapeTable.map((e) => `${e.script}=exit${e.exit}/${e.violations}v`).join(' ')
+    )
 
     ok(
       `every containment fixture ran: ${fixtureResults.length} of ${readdirSync(RUBY_FIXTURES).filter((f) => f.endsWith('.lic')).length}`,

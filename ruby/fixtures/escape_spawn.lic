@@ -1,0 +1,45 @@
+# A candidate that shells out with `Process.spawn`, and then reaches past the
+# guard for the definition it shadows.
+#
+# The second half is the one that mattered. While the guards were prepended
+# modules, `Process.method(:spawn).super_method` walked straight past the guard
+# to the original and started a process: measured, `EXIT=0`, empty
+# `violations`, and the file on disk outside the sandbox. `super_method` is not
+# an exotic trick, it is documented core reflection, and no prepend can defend
+# against it because the thing being guarded is still there underneath by
+# construction. The guards replace their methods now, so the original is gone
+# and `super_method` finds whatever is above it in the ancestor chain instead -
+# which for `Process.spawn` is `Kernel#spawn`, also replaced, so the second
+# attempt is refused rather than merely failing to find anything. (For
+# `IO.write` in `escape_super_method.lic` there is nothing above it at all and
+# `super_method` returns nil. Both are measured; neither was predicted
+# correctly the first time, which is why the fixtures assert what happened
+# rather than what ought to.)
+#
+# Every attempt below rescues `Exception` and not `StandardError`, and that is
+# the opposite of `escape_file.lic`'s deliberate bare rescue. `Contain::Violation`
+# descends from `Exception`, so a `rescue StandardError` here would let the
+# first refusal unwind the whole script and the later attempts would never run -
+# and a class that never executed reads exactly like a class that was refused.
+# The suite asserts a violation for each attempt, so each has to reach.
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_spawn.txt')
+CMD = File::ALT_SEPARATOR ? "cmd /c echo spawn > #{TARGET.tr('/', '\\')}" : "/bin/sh -c 'echo spawn > #{TARGET}'"
+
+echo 'escape_spawn: starting'
+
+begin
+  Process.spawn(CMD)
+  echo 'escape_spawn: SPAWNED IT'
+rescue Exception => e
+  echo "escape_spawn: spawn swallowed #{e.class}"
+end
+
+begin
+  Process.method(:spawn).super_method.call(CMD)
+  echo 'escape_spawn: SUPER_METHOD RAN IT'
+rescue Exception => e
+  echo "escape_spawn: super_method swallowed #{e.class}"
+end
+
+echo 'escape_spawn: still running'

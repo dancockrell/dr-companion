@@ -1,0 +1,30 @@
+# A candidate that defers its escape to `at_exit`.
+#
+# #460's fourth finding, and the only one of the four that was never an escape.
+# The guards do not tear down, so the write was blocked the whole time. What
+# was missing was any trace of it: `result.emit` runs before the interpreter
+# fires `at_exit` handlers, so the JSON a reviewer reads said `violations: []`
+# and `EXIT=0` about a run that had a containment violation in it. A clean
+# report and a report that missed something were indistinguishable, which is
+# the shape of every bug this suite exists to catch.
+#
+# The runner registers its own `at_exit` first, which means it runs last -
+# handlers fire in reverse order of registration - sees that the violation list
+# grew after the first object went out, prints a corrected object and exits 3.
+#
+# The marker written *inside* the sandbox is this fixture's denominator: it
+# proves the handler ran at all. Without it, a handler that never fired and a
+# handler whose escape was blocked look identical from outside.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_atexit.txt')
+MARKER = File.join(__dir__, 'atexit_ran.txt')
+
+echo 'escape_atexit: starting'
+
+at_exit do
+  File.write(MARKER, "at_exit ran\n")
+  File.write(TARGET, "written from at_exit\n")
+end
+
+echo 'escape_atexit: registered, finishing normally'
