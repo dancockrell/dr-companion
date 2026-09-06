@@ -1968,9 +1968,38 @@ mod tests {
         let sal = pending_launch_file("late");
         let opener = std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(1500));
-            let l = std::net::TcpListener::bind(("127.0.0.1", port)).expect("late bind");
-            // Hold it open long enough for the dial to connect.
-            let _ = l.accept();
+            // Retried, and the failure names the port rather than the dial.
+            //
+            // `a_closed_port` frees this number before the test starts, and the
+            // opener claims it back a second and a half later. On a machine
+            // running several sessions and a hundred and sixty test suites at
+            // once, something else can take an ephemeral port inside that
+            // window - which used to surface as `expect("late bind")` panicking
+            // in this thread and the *dial* then failing, so the message a
+            // reader got was "a listener that opens at 1.5s is attached to",
+            // pointing at the code under test rather than at the fixture.
+            //
+            // Seen once, in a `npm run gate` run where 167 other suites were
+            // live; never in six consecutive standalone runs. The retry
+            // recovers the common case, where whatever took it is short-lived,
+            // and the message below makes the remaining case legible instead of
+            // sending somebody to debug `dial_with_retry`.
+            let mut last = None;
+            for _ in 0..40 {
+                match std::net::TcpListener::bind(("127.0.0.1", port)) {
+                    Ok(l) => {
+                        // Hold it open long enough for the dial to connect.
+                        let _ = l.accept();
+                        return;
+                    }
+                    Err(e) => last = Some(e),
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            panic!(
+                "could not reclaim 127.0.0.1:{port} for the late listener - \
+                 something else on this machine took it: {last:?}"
+            );
         });
 
         let started = std::time::Instant::now();
