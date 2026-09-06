@@ -11,8 +11,26 @@
  */
 export const GROUND_KINDS: string[]
 export const BLOCK_KINDS: string[]
+export const GROUND_LADDER: string[]
 export const GROUND_RULES: string[]
+export const THRESHOLD_DIRECTIONS: Set<string>
+export const COHORT_MAJORITY_NUMERATOR: number
+export const COHORT_MAJORITY_DENOMINATOR: number
 export const COMPASS_SIDES: string[]
+export function ruleStrength(rule: string | null | undefined): number
+export function placeCohorts(
+  rooms: { id: number; place?: string | null; exits?: { dir: string; to: number }[] }[]
+): { place: string; ids: number[] }[]
+export function unifyPlaceCohort(
+  ids: number[],
+  decidedOf: (id: number) => { kind: string; rule: string }
+): {
+  state: 'agreed' | 'unified' | 'held'
+  kind: string | null
+  count?: number
+  reason?: string
+  changed: { id: number; from: string; to: string }[]
+}
 export function blockKindFor(groundKind: string): string
 export function groundKindFromText(text: string | null | undefined): string | null
 export function groundKindFromZoneName(name: string | null | undefined): string | null

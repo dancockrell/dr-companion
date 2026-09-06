@@ -33,10 +33,16 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   BLOCK_KINDS,
+  COHORT_MAJORITY_DENOMINATOR,
+  COHORT_MAJORITY_NUMERATOR,
   GROUND_KINDS,
   GROUND_RULES,
+  THRESHOLD_DIRECTIONS,
   blockKindFor,
+  placeCohorts,
   primitivesFor,
+  ruleStrength,
+  unifyPlaceCohort,
 } from '../src/lib/world-content-rules.mjs'
 
 const MAP_DIR = 'src/data/map'
@@ -228,6 +234,216 @@ ok(
   'the ground-to-block map is total over the ground vocabulary',
   GROUND_KINDS.every((kind) => BLOCK_KINDS.includes(blockKindFor(kind))),
   `${GROUND_KINDS.length} ground kinds -> ${BLOCK_KINDS.length} block kinds`
+)
+
+// ------------------------------------------------- 6. place cohorts
+//
+// Fixtures rather than the shipped map, because these properties are about what
+// the rule does with an input and the shipped map cannot be asked for a 1:1
+// split on demand. Every fixture is named in its check, so a sabotage says which
+// one it broke rather than only that something went red.
+//
+// Section 7 then re-derives the cohorts from `src/data/map` and the committed
+// content: the fixtures prove the rule, that proves the artefact was built by
+// it.
+
+const cohortRoom = (id, place, exits = []) => ({ id, place, exits })
+const answers = (table) => (id) => table[id]
+
+// A `go` exit is a doorway, not a walk edge, and a threshold is exactly where
+// the ground changes. Sabotage: count `go` as a walk edge and this says 1.
+const doorFixture = [
+  cohortRoom(1, 'Tunnel', [{ dir: 'go', to: 2 }]),
+  cohortRoom(2, 'Tunnel', [{ dir: 'go', to: 1 }]),
+]
+const doorCohorts = placeCohorts(doorFixture)
+ok(
+  'fixture door: two same-place rooms joined only by a go exit are two cohorts',
+  doorCohorts.length === 2 && doorCohorts.every((cohort) => cohort.ids.length === 1),
+  `${doorCohorts.length} cohorts, sizes ${doorCohorts.map((c) => c.ids.length).join('/')} (thresholds: ${[...THRESHOLD_DIRECTIONS].join(' ')})`
+)
+
+// The same pair joined by a compass move is one cohort, so the check above is
+// measuring the threshold rather than an empty graph.
+const walkFixture = [
+  cohortRoom(1, 'Tunnel', [{ dir: 'north', to: 2 }]),
+  cohortRoom(2, 'Tunnel', [{ dir: 'south', to: 1 }]),
+]
+const walkCohorts = placeCohorts(walkFixture)
+ok(
+  'fixture walk: the same pair joined by a compass move is one cohort',
+  walkCohorts.length === 1 && walkCohorts[0].ids.length === 2,
+  `${walkCohorts.length} cohorts, sizes ${walkCohorts.map((c) => c.ids.length).join('/')}`
+)
+
+// A place name is not a place: a room of another name between two namesakes
+// does not join them, which is what stops ten zones' worth of "Tunnel" voting
+// together.
+const namesakeFixture = [
+  cohortRoom(1, 'Tunnel', [{ dir: 'north', to: 2 }]),
+  cohortRoom(2, 'Bar', [
+    { dir: 'north', to: 3 },
+    { dir: 'south', to: 1 },
+  ]),
+  cohortRoom(3, 'Tunnel', [{ dir: 'south', to: 2 }]),
+]
+const namesakeCohorts = placeCohorts(namesakeFixture)
+ok(
+  'fixture namesake: one place name either side of another place is two cohorts',
+  namesakeCohorts.length === 3 && namesakeCohorts.every((cohort) => cohort.ids.length === 1),
+  `${namesakeCohorts.length} cohorts, sizes ${namesakeCohorts.map((c) => c.ids.length).join('/')}`
+)
+
+const twoThirds = unifyPlaceCohort(
+  [1, 2, 3],
+  answers({
+    1: { kind: 'street', rule: 'neighbour' },
+    2: { kind: 'street', rule: 'neighbour' },
+    3: { kind: 'grass', rule: 'neighbour' },
+  })
+)
+ok(
+  'fixture two-thirds: 2 of 3 on the same rule unifies the third',
+  twoThirds.state === 'unified' && twoThirds.kind === 'street' && twoThirds.changed.length === 1,
+  `${twoThirds.state} to ${twoThirds.kind}, ${twoThirds.changed.length} room(s) moved`
+)
+
+// "Via Iltesh": two rooms, one street and one grass, both decided by
+// propagation, and nothing in the data prefers either.
+const evenSplit = unifyPlaceCohort(
+  [1, 2],
+  answers({ 1: { kind: 'street', rule: 'neighbour' }, 2: { kind: 'grass', rule: 'neighbour' } })
+)
+ok(
+  'fixture even-split: a 1 of 2 tie is held, not unified',
+  evenSplit.state === 'held' && evenSplit.reasonKey === 'tie' && evenSplit.changed.length === 0,
+  `${evenSplit.state}: ${evenSplit.reason ?? ''}`
+)
+
+// Between a tie and two thirds is a band that is a majority and is not enough.
+// This is the fixture a lowered gate breaks: 3 of 5 passes a bare majority.
+const shortMajority = unifyPlaceCohort(
+  [1, 2, 3, 4, 5],
+  answers({
+    1: { kind: 'street', rule: 'neighbour' },
+    2: { kind: 'street', rule: 'neighbour' },
+    3: { kind: 'street', rule: 'neighbour' },
+    4: { kind: 'grass', rule: 'neighbour' },
+    5: { kind: 'grass', rule: 'neighbour' },
+  })
+)
+ok(
+  'fixture short-majority: 3 of 5 is a majority, is under two thirds, and is held',
+  shortMajority.state === 'held' &&
+    shortMajority.reasonKey === 'below two thirds' &&
+    COHORT_MAJORITY_NUMERATOR * 5 > COHORT_MAJORITY_DENOMINATOR * 3,
+  `${shortMajority.state}: ${shortMajority.reason ?? ''} (gate ${COHORT_MAJORITY_NUMERATOR}/${COHORT_MAJORITY_DENOMINATOR})`
+)
+
+// A minority decided by a stronger rule outranks the cohort: a room whose own
+// title says water is not overruled by neighbour-decided streets.
+const strongerMinority = unifyPlaceCohort(
+  [1, 2, 3],
+  answers({
+    1: { kind: 'street', rule: 'neighbour' },
+    2: { kind: 'street', rule: 'neighbour' },
+    3: { kind: 'water', rule: 'title' },
+  })
+)
+ok(
+  'fixture stronger-minority: a title-decided room survives a neighbour-decided majority',
+  strongerMinority.state === 'held' &&
+    strongerMinority.reasonKey === 'a minority room outranks the majority' &&
+    ruleStrength('title') < ruleStrength('neighbour'),
+  `${strongerMinority.state}: ${strongerMinority.reason ?? ''}`
+)
+
+// The same shape the other way round does unify, so the check above is measuring
+// the ladder rather than refusing every three-room cohort.
+const weakerMinority = unifyPlaceCohort(
+  [1, 2, 3],
+  answers({
+    1: { kind: 'street', rule: 'title' },
+    2: { kind: 'street', rule: 'title' },
+    3: { kind: 'water', rule: 'neighbour' },
+  })
+)
+ok(
+  'fixture weaker-minority: a neighbour-decided room does not survive a title-decided majority',
+  weakerMinority.state === 'unified' && weakerMinority.changed.length === 1,
+  `${weakerMinority.state} to ${weakerMinority.kind}`
+)
+
+const unknownMajority = unifyPlaceCohort(
+  [1, 2, 3],
+  answers({
+    1: { kind: 'unknown', rule: 'unknown' },
+    2: { kind: 'unknown', rule: 'unknown' },
+    3: { kind: 'street', rule: 'neighbour' },
+  })
+)
+ok(
+  'fixture unknown-majority: a mostly-unknown cohort is held, never unified to unknown',
+  unknownMajority.state === 'held' && unknownMajority.reasonKey === 'majority unknown',
+  `${unknownMajority.state}: ${unknownMajority.reason ?? ''}`
+)
+
+// ------------------------------- 7. the committed content agrees with the rule
+
+const cohortIndex = index.cohorts ?? null
+let cohortRuled = 0
+let cohortUnknown = 0
+for (const zone of mapZones) {
+  const content = JSON.parse(readFileSync(join(WORLD_DIR, `${zone.id}.json`), 'utf8'))
+  for (const room of content.rooms) {
+    if (room.rule !== 'cohort') continue
+    cohortRuled += 1
+    if (room.ground === 'unknown') cohortUnknown += 1
+  }
+}
+ok(
+  'the content publishes what the cohort pass did, and the rooms bear it out',
+  cohortIndex != null && cohortIndex.changedRooms > 0 && cohortRuled === cohortIndex.changedRooms,
+  cohortIndex
+    ? `index says ${cohortIndex.changedRooms} rooms moved, ${cohortRuled} carry rule "cohort"; ${cohortIndex.unified} cohorts unified, ${cohortIndex.held} held ${JSON.stringify(cohortIndex.heldBy)}`
+    : 'index.cohorts is absent'
+)
+ok(
+  'the cohort pass never publishes an unknown, so it cannot raise the unknown share',
+  cohortUnknown === 0 && cohortRuled > 0,
+  `${cohortUnknown} of ${cohortRuled} cohort-decided rooms are unknown`
+)
+ok(
+  'and it left fewer same-place name groups disagreeing than it found',
+  cohortIndex != null && cohortIndex.nameGroupsSplitAfter < cohortIndex.nameGroupsSplitBefore,
+  cohortIndex
+    ? `${cohortIndex.nameGroupsSplitBefore} split before the pass, ${cohortIndex.nameGroupsSplitAfter} after`
+    : 'index.cohorts is absent'
+)
+
+// Re-derive the cohorts from the map and the committed content and hold the
+// artefact to the numbers the index claims. A hand-edited ground kind shows up
+// here as a cohort that disagrees and was never held.
+let derivedDisagreeing = 0
+let derivedCohorts = 0
+for (const zone of mapZones) {
+  const content = JSON.parse(readFileSync(join(WORLD_DIR, `${zone.id}.json`), 'utf8'))
+  const groundOf = new Map(content.rooms.map((room) => [room.id, room.ground]))
+  for (const cohort of placeCohorts(zone.rooms ?? [])) {
+    derivedCohorts += 1
+    if (cohort.ids.length < 2) continue
+    if (new Set(cohort.ids.map((id) => groundOf.get(id))).size > 1) derivedDisagreeing += 1
+  }
+}
+ok(
+  'every cohort left disagreeing in the committed content is one the pass held on purpose',
+  cohortIndex != null &&
+    derivedCohorts === cohortIndex.total &&
+    derivedDisagreeing === cohortIndex.held &&
+    derivedCohorts > 1000,
+  cohortIndex
+    ? `${derivedCohorts} cohorts re-derived (index ${cohortIndex.total}), ${derivedDisagreeing} still disagree (index held ${cohortIndex.held})`
+    : 'index.cohorts is absent'
 )
 
 console.log(`\n${pass + fail} checked, ${fail} failed`)

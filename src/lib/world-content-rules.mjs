@@ -174,7 +174,51 @@ const ZONE_PATTERNS = [
  * town squares alike. Admitting the coherent ones and demoting the rest is
  * what makes "colour first" true rather than merely stated.
  */
-export const GROUND_RULES = ['colour', 'title', 'label', 'zone', 'neighbour', 'unknown']
+export const GROUND_LADDER = ['colour', 'title', 'label', 'zone', 'neighbour', 'unknown']
+
+/**
+ * Every name a record's `rule` field can carry.
+ *
+ * `cohort` is not a rung of the ladder and is deliberately listed after it. The
+ * ladder is a sequence of questions asked of a room that has no answer yet;
+ * `cohort` runs once every room has one and can only ever *replace* an answer
+ * the ladder already gave (see `unifyPlaceCohorts` below). Putting it in the
+ * ladder would make `ruleStrength` claim a cohort answer is stronger or weaker
+ * than a title, a comparison that never happens and would be wrong either way.
+ *
+ * It is also not called `place`, and that is worth a sentence because a rule by
+ * that name used to sit here. The old one asked whether the map's `place`
+ * *text* named a ground kind, decided 0 rooms of 17,750, and was deleted. This
+ * one reads no text at all: it asks which rooms of one place are walkable to
+ * each other. Reusing the name would make `git log -S place` land on two
+ * unrelated things.
+ */
+export const GROUND_RULES = [...GROUND_LADDER, 'cohort']
+
+/**
+ * How far down the ladder a rule sits: 0 is strongest, and anything not on the
+ * ladder is weaker than everything on it.
+ *
+ * This is what makes "a room decided by its title outranks a cohort decided by
+ * propagation" a rule rather than a preference. The ladder order is already the
+ * pipeline's statement about which evidence it trusts more, so reading it again
+ * here means there is one such statement rather than two.
+ */
+export function ruleStrength(rule) {
+  const index = GROUND_LADDER.indexOf(rule)
+  return index < 0 ? GROUND_LADDER.length : index
+}
+
+/**
+ * The exits that are a doorway rather than a compass bearing.
+ *
+ * `src/lib/mapData.ts::kindOfExit` already reads `go` and `out` this way and
+ * calls the result `enter`. It lives here because three things need the same
+ * answer — neighbour propagation's two phases, the exit-graph adjudication the
+ * builder prints under `--control`, and place cohorts below — and a third copy
+ * of it is the drift this shared file exists to prevent.
+ */
+export const THRESHOLD_DIRECTIONS = new Set(['go', 'out'])
 
 /** First matching pattern in a list, or null. */
 function firstMatch(patterns, text) {
@@ -340,4 +384,170 @@ export function primitivesFor({ blockKind, tags, boundaryEdges }) {
   if (tags.includes('bridge')) items.push({ kind: 'bridge-span-5m', role: 'landform' })
   if (boundaryEdges.length) items.push({ kind: 'rough-edge-boundary-kit', role: 'boundary' })
   return items
+}
+
+// ---------------------------------------------------------- place cohorts
+
+/**
+ * How much of a cohort has to agree before the rest is overruled.
+ *
+ * Two thirds, written as a fraction rather than 0.667 so the comparison is
+ * integer arithmetic and a rebuild cannot drift on a rounding difference.
+ *
+ * Not a bare majority, for the reason the colour gate is 0.75 rather than 0.60:
+ * a signal has to be *better* than what it pre-empts, not merely more often
+ * right than wrong. Every room in a cohort already has an answer from the
+ * ladder, so this rule only ever destroys evidence — it has to be paying for
+ * that. A 6:5 cohort would overwrite five rooms on the strength of one, and the
+ * shape it is meant to fix ("Via Iltesh is a street for nine rooms and grass
+ * for one") is nowhere near that close.
+ *
+ * Measured over the shipped content: at two thirds this unifies 41 cohorts and
+ * moves 79 rooms. At a bare majority it moves considerably more, and the cases
+ * it picks up are the ones where the map genuinely changes underfoot partway
+ * along a named run.
+ */
+export const COHORT_MAJORITY_NUMERATOR = 2
+export const COHORT_MAJORITY_DENOMINATOR = 3
+
+/**
+ * The maximal runs of one named place that a player can walk between without
+ * opening anything.
+ *
+ * The unit this pass needs is not the place *name*. `place` is also the room's
+ * own sub-name, so "Bar", "Lounge" and "Entrance" recur across unrelated
+ * buildings and ten zones share a "Tunnel". Grouping by name alone would put
+ * every tunnel in the game in one cohort and hand the majority of them to
+ * whichever zone happens to have the most rooms.
+ *
+ * So a cohort is a connected component of the subgraph induced on the rooms of
+ * one place inside one zone, over walk exits only — the same edge set
+ * `THRESHOLD_DIRECTIONS` defines for neighbour propagation's first phase and
+ * for the door-graph adjudication. A place name spanning two components is two
+ * places, which is the correct answer: two unconnected rooms called "Tunnel" in
+ * one zone have nothing to say to each other.
+ *
+ * Edges are the induced ones — a walk exit between two rooms *of this place*.
+ * A path that leaves the place and comes back does not join the two halves,
+ * because the rooms in between are evidence that it is not one continuous
+ * stretch of the same ground.
+ *
+ * Components come out in first-appearance order over `rooms`, and each one's
+ * ids in the order they appear there, so a rebuild is byte-identical.
+ *
+ * @param rooms `[{ id, place, exits: [{ dir, to }] }]` for one zone.
+ * @returns `[{ place, ids }]`, every room with a place name in exactly one.
+ */
+export function placeCohorts(rooms) {
+  const placeOf = new Map()
+  for (const room of rooms) if (room.place) placeOf.set(room.id, room.place)
+  const adjacency = new Map()
+  for (const id of placeOf.keys()) adjacency.set(id, [])
+  for (const room of rooms) {
+    const place = placeOf.get(room.id)
+    if (place == null) continue
+    for (const exit of room.exits ?? []) {
+      if (THRESHOLD_DIRECTIONS.has(exit.dir)) continue
+      if (placeOf.get(exit.to) !== place) continue
+      adjacency.get(room.id).push(exit.to)
+      adjacency.get(exit.to).push(room.id)
+    }
+  }
+  const order = new Map()
+  rooms.forEach((room, index) => order.set(room.id, index))
+  const seen = new Set()
+  const cohorts = []
+  for (const room of rooms) {
+    if (!room.place || seen.has(room.id)) continue
+    const ids = []
+    const stack = [room.id]
+    seen.add(room.id)
+    while (stack.length) {
+      const id = stack.pop()
+      ids.push(id)
+      for (const next of adjacency.get(id) ?? []) {
+        if (seen.has(next)) continue
+        seen.add(next)
+        stack.push(next)
+      }
+    }
+    ids.sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0))
+    cohorts.push({ place: room.place, ids })
+  }
+  return cohorts
+}
+
+/**
+ * The decision for one cohort: unify to the majority kind, or say why not.
+ *
+ * Three states rather than two. A cohort is `agreed` (nothing to do),
+ * `unified` (the majority is decisive and the minority is overruled), or `held`
+ * with a reason. A held cohort keeps every room exactly as the ladder left it —
+ * the pass never invents an answer and never destroys one it cannot justify.
+ *
+ * Decisive means all three of:
+ *
+ *   1. the majority kind is not `unknown`. Unifying *to* unknown would raise
+ *      the unknown share to tidy up a disagreement, which is trading a real
+ *      classification for a blank;
+ *   2. it holds at least two thirds of the cohort, and strictly more than any
+ *      other kind — a 1:1 split is a tie and a tie is not a majority;
+ *   3. no minority room was decided by a rule stronger than the strongest rule
+ *      behind the majority. This is the clause that stops the pass being a
+ *      blanket cohort unification. A room whose own title says "Wyvern Bridge"
+ *      against nine neighbours-decided street rooms keeps its bridge; the
+ *      ladder already ranks a title above propagation and this reads that
+ *      ranking rather than inventing a second one. In the shipped content this
+ *      clause alone holds twelve cohorts back, nearly all of them one
+ *      colour-decided interior standing in a title-decided street — a shop the
+ *      cartographer coloured, on a road the cartographer named.
+ *
+ * Ties in the vote count break on nothing: they are held. Ties in the *sort*
+ * break on the ground-kind vocabulary's own order, the way neighbour
+ * propagation's do, so the reported majority of a held tie is stable.
+ *
+ * @param ids room ids in the cohort.
+ * @param decidedOf `(id) => { kind, rule }` as the ladder left it.
+ */
+export function unifyPlaceCohort(ids, decidedOf) {
+  const answers = ids.map((id) => ({ id, ...decidedOf(id) }))
+  const votes = new Map()
+  for (const answer of answers) votes.set(answer.kind, (votes.get(answer.kind) ?? 0) + 1)
+  if (votes.size < 2) return { state: 'agreed', kind: answers[0]?.kind ?? null, changed: [] }
+  const ranked = [...votes].sort(
+    (a, b) => b[1] - a[1] || GROUND_KINDS.indexOf(a[0]) - GROUND_KINDS.indexOf(b[0])
+  )
+  const [kind, count] = ranked[0]
+  // `reasonKey` is the stable one: it is what the builder tallies and what the
+  // test names, so a reason that acquires a room count in its prose does not
+  // silently become fifteen different reasons in the report.
+  const held = (reasonKey, reason) => ({ state: 'held', kind, count, reasonKey, reason, changed: [] })
+  if (kind === 'unknown') return held('majority unknown', 'the majority kind is unknown')
+  if (ranked[1][1] === count) return held('tie', `a tie: ${count} of ${ids.length} each way, no kind holds a majority`)
+  if (count * COHORT_MAJORITY_DENOMINATOR < ids.length * COHORT_MAJORITY_NUMERATOR) {
+    return held('below two thirds', `the majority is ${count} of ${ids.length}, under two thirds`)
+  }
+  let majorityStrength = ruleStrength(null)
+  for (const answer of answers) {
+    if (answer.kind !== kind) continue
+    majorityStrength = Math.min(majorityStrength, ruleStrength(answer.rule))
+  }
+  const minority = answers.filter((answer) => answer.kind !== kind)
+  const stronger = minority.filter((answer) => ruleStrength(answer.rule) < majorityStrength)
+  if (stronger.length) {
+    return held(
+      'a minority room outranks the majority',
+      `${stronger.length} minority room(s) decided by a stronger rule than the majority's ${GROUND_LADDER[majorityStrength]} (${[
+        ...new Set(stronger.map((answer) => `${answer.kind}/${answer.rule}`)),
+      ]
+        .sort()
+        .join(' ')})`
+    )
+  }
+  return {
+    state: 'unified',
+    kind,
+    count,
+    changed: minority.map((answer) => ({ id: answer.id, from: answer.kind, to: kind })),
+  }
 }
