@@ -42,6 +42,7 @@ import {
   OBSERVATION_COMMAND_TYPES,
   TERMINAL_SUGGESTION_STATUSES,
 } from '../src/lib/aiSuggestions.ts'
+import { validateGameActionCommand } from '../src/lib/gameCommand.ts'
 import {
   bumpStateVersion,
   currentStateVersion,
@@ -140,6 +141,58 @@ console.log('\n-- a proposal the boundary could not send is refused as data --')
 
   const control = propose(h, { exactCommand: 'look chest\nlook table' })
   ok('an embedded newline is refused', control.ok === false)
+}
+
+console.log('\n-- the card cannot be handed a string that reads as something else --')
+{
+  // #401: `look my ring <U+202E>rob the bank` was accepted at creation, so the
+  // card rendered `look my ring knab eht bor` while `textContent` still
+  // equalled `exactCommand`. The panel was honest; the string was not. The
+  // property asserted here is not about markup - it is that no such string can
+  // reach the store, so there is nothing for a card to render. Built from code
+  // points rather than pasted, so the case survives any editor or tool.
+  const RTLO = String.fromCodePoint(0x202e)
+  const DECEPTIVE = [
+    ['U+202E', 0x202e, 'right-to-left override'],
+    ['U+200B', 0x200b, 'zero width space'],
+    ['U+2066', 0x2066, 'left-to-right isolate'],
+    ['U+00AD', 0x00ad, 'soft hyphen'],
+    ['U+200D', 0x200d, 'zero width joiner'],
+    ['U+2028', 0x2028, 'line separator'],
+    ['U+E000', 0xe000, 'private use'],
+    ['U+0430', 0x0430, 'cyrillic homoglyph of a'],
+  ]
+  for (const [label, code, name] of DECEPTIVE) {
+    const h = harness()
+    const created = propose(h, {
+      exactCommand: `look my ring ${String.fromCodePoint(code)}rob the bank`,
+    })
+    ok(`${label} (${name}) is refused at creation`, created.ok === false, created.reason)
+    ok(`${label} refusal says why, in words a card can show`,
+      created.ok === false && typeof created.reason === 'string' &&
+      created.reason.includes(label) && /cannot carry/.test(created.reason),
+      created.reason)
+    ok(`${label} leaves nothing for a card to render`,
+      h.store.all().length === 0 && h.store.live() === null)
+    ok(`${label} sent nothing while refusing`, h.sent.length === 0)
+  }
+
+  // The general form, so a future acceptance path cannot slip past the table
+  // above: whatever the store holds, the boundary would still send unchanged.
+  const h = harness()
+  propose(h, { exactCommand: `look my ring ${RTLO}rob the bank` })
+  propose(h, { exactCommand: 'look iron chest' })
+  ok('one of those two was recorded, so the sweep below has something to check',
+    h.store.all().length === 1, `${h.store.all().length} stored`)
+  const unsendable = h.store.all().filter((s) => {
+    try {
+      return validateGameActionCommand(s.exactCommand) !== s.exactCommand
+    } catch {
+      return true
+    }
+  })
+  ok('every stored suggestion carries a command the boundary would still send',
+    unsendable.length === 0, unsendable.map((s) => s.exactCommand).join(', '))
 }
 
 console.log('\n-- a declared type that disagrees with the command is refused --')

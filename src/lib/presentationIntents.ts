@@ -24,8 +24,9 @@
  * 2. The socket is token-authenticated loopback (`bridge_token.rs`'s threat
  *    model), so it is not open to anything that has not read the token file.
  * 3. `requestGameAction` re-validates client-side anyway
- *    (`validateGameActionCommand`: no separators, no control characters,
- *    non-empty, length-capped) rather than trusting steps 1 and 2.
+ *    (`validateGameActionCommand`: printable ASCII only, so no separators, no
+ *    control or format characters and nothing that renders as something other
+ *    than itself; non-empty; length-capped) rather than trusting steps 1 and 2.
  *
  * The re-validation in 3 is deliberate duplication. Rust guarantees the
  * string came from a snapshot; it does not guarantee the snapshot's own exit
