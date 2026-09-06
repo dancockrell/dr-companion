@@ -65,13 +65,21 @@ pub const EACCESS_ENDPOINT: (&str, u16) = ("eaccess.play.net", 7910);
 ///
 /// This is the accessor `eaccess.rs` (N1) calls. A second declaration of the
 /// host anywhere else would be a fork, and the two would drift.
-pub fn eaccess_endpoint() -> (String, u16) {
+pub fn eaccess_endpoint() -> Result<(String, u16), String> {
     let host = std::env::var("DRC_EACCESS_HOST").unwrap_or_else(|_| EACCESS_ENDPOINT.0.to_string());
-    let port = std::env::var("DRC_EACCESS_PORT")
-        .ok()
-        .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(EACCESS_ENDPOINT.1);
-    (host, port)
+    // A value that was set and cannot be parsed is an error naming itself, not
+    // a quiet fall back to 7910. N1 tightened this: a knob whose wrong value is
+    // silently ignored is one nobody can prove they connected through, and
+    // every run "exercising" it would have passed on the default that happened
+    // to work.
+    let port = match std::env::var("DRC_EACCESS_PORT") {
+        Ok(raw) if !raw.trim().is_empty() => raw
+            .trim()
+            .parse::<u16>()
+            .map_err(|_| format!("DRC_EACCESS_PORT is not a port number: {raw}"))?,
+        _ => EACCESS_ENDPOINT.1,
+    };
+    Ok((host, port))
 }
 
 /// A password, held in memory for the length of one login and no longer.
@@ -212,7 +220,7 @@ mod tests {
         // The env-var overrides are process-global, so they are not exercised
         // here; `eaccess.rs`'s own suite aims a run at a deliberately wrong
         // port and requires the failure to name it (N1).
-        let (host, port) = eaccess_endpoint();
+        let (host, port) = eaccess_endpoint().expect("no malformed override is set in this case");
         if std::env::var("DRC_EACCESS_HOST").is_err() {
             assert_eq!(host, EACCESS_ENDPOINT.0);
         }

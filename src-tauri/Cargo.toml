@@ -44,6 +44,19 @@ zip = { version = "8", default-features = false, features = ["deflate"] }
 # UI thread - see lich.rs. "macros" for tokio::join!. Tauri supplies the
 # runtime itself; these are the pieces this crate names directly.
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
+# The EAccess account login (eaccess.rs) is a raw TLS socket to
+# eaccess.play.net:7910, not HTTP, so reqwest cannot carry it. Both of these
+# are already in Cargo.lock at these versions as reqwest's own rustls-tls
+# dependencies, so naming them here adds no crate to the lock and no new
+# licence - both are MIT OR Apache-2.0 OR ISC. `default-features = false` with
+# the "ring" provider is what is already built: `aws-lc-rs` is not in the lock
+# and enabling it by default would add one.
+rustls = { version = "0.23", default-features = false, features = [
+  "ring",
+  "std",
+  "tls12",
+] }
+webpki-roots = "1"
 
 [target.'cfg(windows)'.dependencies]
 # One call: GetDiskFreeSpaceExW, so a multi-gigabyte music install refuses

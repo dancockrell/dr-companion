@@ -126,7 +126,7 @@ same list and are checked in the same two directions, so a socket cannot be
 described here without existing in the code, or exist in the code without
 being described here.
 
-The scan currently matches 74 lines across 340 source
+The scan currently matches 74 lines across 341 source
 files, plus 1 declared non-URL endpoint line(s), and
 finds 9 hosts, which is the number of sections above. It cannot
 tell a request from a link - both are an `https://` in a file - so that

@@ -113,7 +113,17 @@ trust-on-every-use — on a mismatch it logs and re-downloads the pin, and the
 looks, and Lane N does not reproduce it (see §3.1).
 
 Reads are `conn.sysread(8192)` (`eaccess.rb:232-234`, `PACKET_SIZE = 8192` at
-`:22`). Every send is `conn.puts "…\n"`, so each frame ends `\n\n`.
+`:22`). Every send is `conn.puts "…\n"`.
+
+**Corrected 6 Sep 2026 by N1, measured rather than reasoned.** This sentence
+used to end "so each frame ends `\n\n`", and that is wrong: Ruby's `IO#puts`
+does not add a newline to a string that already ends with one, so **each frame
+ends with a single `\n`**. Measured with Lich's own interpreter,
+`C:\Ruby4Lich5\4.0.6\bin\ruby.exe`, where `io.puts "K\n"` writes exactly
+`[75, 10]`. `PLAN_TO_1_0.md`'s N1 `do:` repeats the old claim and is stale the
+same way; N1's `done:` line records it. The check that keeps the code on the
+measurement rather than on this document is
+`eaccess::tests::frames_end_with_one_newline`.
 
 ### 2.2 The sequence
 
