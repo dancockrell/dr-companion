@@ -675,7 +675,6 @@ export interface AppState {
   setConsoleOpen: (v: boolean) => void
   clearRunaway: () => void
   setFrontend: (id: string) => void
-  simulateConnect: () => void
   connectBridge: () => void
   disconnectBridge: () => void
   setBridgeMode: (m: 'mock' | 'live') => void

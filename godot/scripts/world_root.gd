@@ -140,11 +140,17 @@ func _apply_detail_window(origin_id: String) -> void:
 	# A loaded cell is always at distance 0 from itself, so an empty window for
 	# one is not a small budget - it is the policy having failed to answer, and
 	# the whole board then draws nothing. That is what issue #376 looked like
-	# from here: a GDScript runtime error inside `detail_window()` returned null,
-	# this Dictionary came back empty, and nineteen cells mounted no content at
-	# all while the console carried one line about a String constructor. An empty
-	# window for a cell that is *not* in the manifest is the honest answer and is
-	# left alone.
+	# from here: a GDScript runtime error inside `detail_window()`, which is
+	# declared `-> Dictionary`, so the raise hands this caller a
+	# default-constructed *empty* Dictionary rather than null. That is precisely
+	# why the guard below can fire. Had null come back, the typed assignment on
+	# the first line of this function would have aborted the caller before
+	# reaching here ("Trying to assign value of type 'Nil' to a variable of type
+	# 'Dictionary'"), and the `push_error` would be dead code. Measured on Godot
+	# 4.3 `v4.3.stable.official.77dcf97d8` headless, both directions, in review
+	# pass 4 on PR #377. So: nineteen cells mounted no content at all while the
+	# console carried one line about a String constructor. An empty window for a
+	# cell that is *not* in the manifest is the honest answer and is left alone.
 	if requested_ids.is_empty() and WorldManifestLoader.has_cell(origin_id):
 		push_error("WorldRoot: the detail window for '%s' came back empty although it is a loaded cell, so no cell will mount any primitive and the board will draw nothing. CellVisibilityPolicy.detail_window() failed rather than returning a small budget." % origin_id)
 	var requested: Dictionary = {}

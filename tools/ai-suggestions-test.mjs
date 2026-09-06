@@ -729,7 +729,12 @@ if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)
 }
-console.log(`${pass} checked, ${fail} failed`)
+// `total`, not `pass`. The denominator has to be the number of checks that
+// ran, or it shrinks by one for every failure and the line quietly reports a
+// smaller suite on exactly the run where you most want to know the size did
+// not change. Clean and one-assertion-broken must print the same number here;
+// only `failed` moves.
+console.log(`${total} checked, ${fail} failed`)
 if (fail > 0) {
   console.error('FAILED')
   process.exit(1)
