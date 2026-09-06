@@ -12,6 +12,7 @@ pub mod node;
 pub mod pause;
 pub mod presentation_bridge;
 pub mod python;
+pub mod sal;
 pub mod script_api;
 pub mod scripts;
 pub mod setup;
