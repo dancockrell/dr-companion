@@ -1,12 +1,14 @@
 # The Crossing Geometric World Kit
 
 Status: **supporting prop-and-grammar brief**
-Style: original, cute, block-built tabletop fantasy; **not photorealism**
+Style: detailed painted tabletop fantasy, complete exterior models, layered
+materials and full authored geometry. The earlier cute/block-built simplification
+is superseded by the user-accepted shared river-port building treatment (6 September).
 Purpose: give an environment artist, asset store curator, or Asset Maker a
 repeatable prop vocabulary for scene plates assembled around the existing room
 graph.
 
-> **Production reset (2026-09-03):** the primary visual unit is a coherent
+> **Historical composition brief (2026-09-03):** the primary visual unit is a coherent
 > 20–30m tabletop *assembly* on a cheap, matte colored ground plane, with broad
 > environment masses and loose scatter props. It uses a tabletop camera and
 > painted-resin material language—not a literal felt, cloth, blanket, or mat
@@ -20,6 +22,12 @@ graph.
 
 This is a city kit, not a set of room pictures. A room is made by combining
 several pieces. Repetition is desirable; sameness is not.
+
+Current implementation checkpoint: [Town Green native content](verification/crossing-native-content.md).
+The cards below remain demand/evidence records, not a delivered-model inventory.
+Permanent half-open demonstration houses are not the production exterior standard.
+The current viewer's small published footprints still constrain these first
+compositions; a continuous 20–30m assembly has not been implemented by this pass.
 
 ## Non-negotiable: every room description drives an individual recipe
 

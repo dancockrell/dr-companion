@@ -226,9 +226,19 @@ on purpose, so nobody mistakes this for further along than it is:
 
 ## Shared reusable asset library
 
+**6 September content update:** six exact, description-hash-bound Town Green
+compositions now mount through `ContentRegistry.build_cell`. They replace the
+generic primitive stack only for matching rooms, using a seven-model native subset
+of the shared environment catalog. These are partial authored compositions, not a
+completed Crossing or final asset admission. The earlier "only neutral foundation
+content" limitation above is superseded for these six rooms only.
+See [the rendered verification and limitations](../docs/verification/crossing-native-content.md).
+
 The viewer consumes the common resource library through the Git submodule at
-`godot/shared-assets`; it deliberately does not copy source models into DR
-Companion. The first foundation roles parse their exact approved GLB sources
+`godot/shared-assets` for the older foundation roles. The Town Green subset is
+instead packaged locally from a pinned shared catalog revision; its provenance,
+native textures and hashes travel with it. This avoids importing the entire
+library just to draw seven models. The first foundation roles parse their exact approved GLB sources
 directly, so they do not require Godot to import the whole catalog. Initialise
 the submodule after checkout with:
 

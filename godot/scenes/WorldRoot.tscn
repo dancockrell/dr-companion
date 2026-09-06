@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://c3wr0v0f0dr1w"]
+[gd_scene load_steps=10 format=3 uid="uid://c3wr0v0f0dr1w"]
 
 [ext_resource type="Script" path="res://scripts/world_root.gd" id="1_worldroot"]
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="2_camdir"]
@@ -9,8 +9,22 @@
 [ext_resource type="Script" path="res://scripts/exit_anchor_layer.gd" id="7_exits"]
 [ext_resource type="Script" path="res://scripts/world_inspector.gd" id="8_inspector"]
 
+[sub_resource type="Environment" id="Environment_tabletop"]
+background_mode = 1
+background_color = Color(0.06, 0.07, 0.09, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.72, 0.79, 0.89, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 2
+ssao_enabled = true
+ssao_radius = 0.6
+ssao_intensity = 1.4
+
 [node name="WorldRoot" type="Node3D"]
 script = ExtResource("1_worldroot")
+
+[node name="TabletopEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_tabletop")
 
 [node name="CameraDirector" type="Camera3D" parent="."]
 script = ExtResource("2_camdir")

@@ -94,6 +94,11 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 		var rotated_depth: float = absf(sin(yaw)) * dimensions[0] + absf(cos(yaw)) * dimensions[2]
 		var factor := minf(size.x * placement.envelope[0] / rotated_width, size.z * placement.envelope[1] / rotated_depth)
 		model.scale = Vector3.ONE * factor
+		if placement.assetId.ends_with(".cobble-street") or placement.assetId.ends_with(".dirt-path"):
+			# Ground patches have declared independent width/depth. Uniform fitting
+			# shrank a narrow strip to a small square instead of covering its envelope.
+			model.scale.x = size.x * placement.envelope[0] / dimensions[0]
+			model.scale.z = size.z * placement.envelope[1] / dimensions[2]
 		model.rotation.y = yaw
 		model.position = Vector3(placement.center[0] * size.x, ground_top + placement.lift, placement.center[1] * size.z)
 		if placement.assetId.ends_with(".grass-verge"):

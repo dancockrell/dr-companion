@@ -18,9 +18,13 @@ tabletop world with one fixed-view orthographic isometric camera:
 3. **Room/tactical distance:** a cutaway room table with occupants, clickable
    items, exit anchors, range/readiness state, and event-driven battle effects.
 
-This is intentionally a cute, original geometric tabletop fantasy world. It is
-not photorealistic, historical reconstruction, simulated collision combat, or
-a copy of another game's visual system.
+The earlier cute/geometric simplification is superseded by the accepted detailed
+painted-tabletop models: weathered masonry, timber, layered roofs and foliage,
+and complete exterior structures. Do not reduce detail without measured need.
+The cutaway language above describes possible interior inspection, not permanent
+half-open production houses. This is not historical reconstruction or simulated
+collision combat. See the [current Town Green content checkpoint](verification/crossing-native-content.md)
+for actual delivered scope and the remaining composition/scale gap.
 
 ### The 3D world is a MUD projection, not a simulation
 
