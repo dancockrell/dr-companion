@@ -140,8 +140,10 @@ export function SafetyFooter() {
    *
    * Two halves that can disagree, which is issue #462: the Rust lane holds
    * every command it can see, and it cannot see travel - `map_walk` starts
-   * `go2` inside Lich and never enters the lane. So this reads three states,
-   * never two, and `pauseStatus.ts` owns the classification.
+   * `go2` inside Lich and never enters the lane. So this reads four states,
+   * never two, and `pauseStatus.ts` owns the classification - including the
+   * cell where the bridge is holding and this app never asked, which is the
+   * one #487 found rendering nothing at all.
    *
    * Subscribed rather than read once: `requestPauseAll` is also reachable from
    * the Command Palette, and this bar has to show a pause it did not press.
@@ -389,11 +391,14 @@ export function SafetyFooter() {
           </span>
         )}
 
-        {/* Pause, in three states rather than two. Shown only while paused:
-            "Running" as a permanent badge would be furniture, and the one
-            reading worth a player's attention is the unconfirmed one, where
-            this app is holding what it can hold and something that can move
-            the character has not said it heard. */}
+        {/* Pause, as all four cells of "did this app ask" x "is the bridge
+            holding" - see pauseStatus.ts. Rendered for every cell but
+            `running`: a permanent "Running" badge would be furniture, while
+            `paused-by-bridge` is the cell this bar used to render nothing at
+            all for, and it is exactly where travel is refused with no
+            explanation anywhere on screen (#487). The Resume button in this
+            same bar lifts it, and works whether or not this app asked for the
+            pause - `requestResumeAll` sends the bridge's `resume` either way. */}
         {pause.state !== 'running' && (
           <span
             className={cn(

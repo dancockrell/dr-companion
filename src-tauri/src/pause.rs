@@ -33,19 +33,38 @@
 //! way. `tools/pause-reaches-travel-test.mjs` derives the set of movers from
 //! the bridge's own dispatch table and fails when one of them is not held.
 //!
-//! # One flag, one owner - and one mirror that must be able to disagree
+//! # Who owns "paused": the bridge does. This lane mirrors it
 //!
-//! The flag lives in the lane, because that is the thing that has to consult
-//! it on every pick, and a second copy here would be two things answering one
-//! question. These commands set and read it; nothing else writes it.
+//! Stated plainly because it was stated the other way round and shipped, and
+//! issue #487 is what that cost. **The bridge owns Pause. This process holds
+//! its own lane and mirrors the bridge's latch; it does not decide it.**
 //!
-//! The bridge's latch is not a second copy of it. It is a different process's
-//! answer to the same question, and it can honestly differ - an older bridge
-//! has no latch at all, and a disconnected one has said nothing. The UI reads
-//! the pair as three states rather than two (`src/lib/pauseStatus.ts`):
-//! running, paused with the bridge confirming, and paused with nothing having
-//! confirmed. Folding the third into either of the first two is the lie this
-//! whole comment is a correction of.
+//! The argument is enforcement, not deference. `map_walk` starts `go2` inside
+//! Lich, and a Lich script or a person at the `;` prompt can pause and unpause
+//! that walker with nothing here hearing a word. This process cannot stop
+//! them, so a design in which this process is the owner is a design in which
+//! the owner cannot enforce its own decision - and the UI built on that told
+//! the player "Paused, bridge confirmed" while the character crossed a zone.
+//! The bridge is the process that can actually hold a walker, so it is the
+//! authority; it now reconciles its latch against the scripts it suspended
+//! rather than reporting a flag somebody set (`reconcile_pause!`, bridge
+//! 0.14.0).
+//!
+//! Mechanically the flag still lives in the lane, because that is the thing
+//! that has to consult it on every pick, and a second copy here would be two
+//! things answering one question. These commands set and read it; nothing else
+//! writes it. What #487 changed is the direction of the first read:
+//! `src/lib/bridgePauseRelay.ts` adopts `status.pauseLatched` on connect, so an
+//! app relaunched while the bridge is still holding starts held instead of
+//! starting at this file's default and calling that "Running".
+//!
+//! The two answers must still be able to differ, and the UI reads the pair as
+//! four states rather than two (`src/lib/pauseStatus.ts`): running, paused with
+//! the bridge confirming, paused with nothing having confirmed, and the bridge
+//! holding while this app never asked. Folding any cell into another is the lie
+//! this whole comment is a correction of - its previous version folded the
+//! fourth into "running", which rendered no chip at all while travel was being
+//! refused.
 //!
 //! # Delayed, never dropped
 //!
