@@ -180,6 +180,20 @@ func _run() -> void:
 	check(content.build_room_composition(cells["1-371"]) == null, "Self or forward support reference refuses composition")
 	supply_recipe.pieces[3].support.pieceIndex = 1
 	check(JSON.stringify(cells) == original, "Composition never changes room positions exits or state")
+	var workshop: Node3D = content.build_room_composition(cells["1-193"])
+	var workshop_exits: Dictionary = workshop.get_meta("exit_anchors", {})
+	check(workshop_exits.has("out") and workshop_exits.has("go bellows room") and workshop_exits.size() == 2, "Workroom binds exactly its two real commands")
+	check(workshop.get_child(1).get_meta("asset_id") == "painted-river-port.anvil", "Workroom uses the native anvil, not shop display furniture")
+	for first in range(1, 8):
+		var a := _bounds(workshop.get_child(first), workshop)
+		for second in range(first + 1, 8):
+			var b := _bounds(workshop.get_child(second), workshop)
+			check(not a.intersects(b), "Workshop furniture has no intersecting measured bounds")
+	content.set_interior_inspection(workshop, true)
+	check(not workshop.get_child(workshop.get_child_count() - 1).visible, "Workroom ceiling opens for inspection")
+	content.set_interior_inspection(workshop, false)
+	check(workshop.get_child(workshop.get_child_count() - 1).visible, "Workroom ceiling restores outside inspection")
+	workshop.free()
 	print("%d checked, %d failed" % [checked, failed])
 	quit(1 if failed else 0)
 

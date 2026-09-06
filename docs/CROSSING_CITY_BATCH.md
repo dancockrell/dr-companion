@@ -10,7 +10,7 @@ Run: node tools/build-crossing-city-batch.mjs. Add --check-complete for the rele
 - directedExits: 2389
 - descriptions: 840
 - missingDescriptions: 220
-- partialRecipes: 22
+- partialRecipes: 23
 - complete: 0
 - compassMismatches: 493
 - sourceCompassMismatches: 2

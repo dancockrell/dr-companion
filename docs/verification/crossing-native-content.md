@@ -2,6 +2,24 @@
 
 ## Scope supersession: all Crossing, one batch
 
+### Tembeg workroom assembly
+
+Room 1-193 now uses its own description hash to admit a compact enclosed
+workshop: native anvil, three workbenches, three tool racks, 9m shell and
+reversible ceiling/near-wall inspection. Exactly the existing `out` and
+`go bellows room` commands receive doorway sockets. This does not establish
+cross-room physical alignment or put bellows in the wrong room. The floor
+material, wall finish and shell dimensions are explicit presentation inferences.
+
+The shared pack now selects 35 models. Its pin advances to 84847094; the
+catalog scene/report are unchanged from a3b714f, and only the existing native
+anvil is newly selected. No character models are imported. Dedicated tests
+check the two commands, anvil identity, furniture bounds and inspection
+restoration. Initial rack/bench intersections were caught and corrected.
+The anvil remains too small for the described massive centerpiece, and tools,
+repair workpieces, wall/ceiling finish and adjacent bellows-room assembly
+remain incomplete. This is the 23rd partial recipe, not a completed room.
+
 ### Gameplay-distance surface aliasing
 
 The Trollferry paving/deck diagnostic captures now isolate ambient occlusion,

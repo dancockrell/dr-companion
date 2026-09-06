@@ -639,6 +639,52 @@
 		},
 		{
 			"admissionStatus": "candidate",
+			"assetId": "painted-river-port.anvil",
+			"assetKind": "model",
+			"bounds": {
+				"min": [
+					-0.595000028610229,
+					0.0,
+					-0.360000044107437
+				],
+				"size": [
+					1.19000005722046,
+					1.14999997615814,
+					0.720000088214874
+				]
+			},
+			"buildingStandard": "User accepted first-batch building treatment on 2026-09-06; runtime admission remains separate",
+			"collisionPolicy": "not supplied; visual envelope is not navigation",
+			"domain": "neutral_prop",
+			"forwardAxis": "-Z",
+			"geometryGlb": "anvil.glb",
+			"licenseStatus": "project-authored geometry; material source licenses listed separately",
+			"lodPolicy": "full authored geometry; no decimation",
+			"materialSlots": [
+				"oak",
+				"iron"
+			],
+			"meshInstances": 5.0,
+			"nativeNode": "painted_anvil",
+			"pivotPolicy": "bottom-center of measured visual envelope",
+			"provenanceId": "local-river-port-kit",
+			"reviewStatus": "needs visual polish and consumer semantic review",
+			"scaleMeters": 1.0,
+			"selectionHook": "assetId",
+			"sha256": "12346c209de4e1b259bb9886d09aa98fc98d17c6b3f62a7ec6152030ab00b238",
+			"sockets": {
+				"strike": [
+					0.204999983310699,
+					1.08000004291534,
+					0.0
+				]
+			},
+			"statusHook": "consumer-owned",
+			"thumbnailPolicy": "fixed three-quarter front and rear; fitted to measured bounds",
+			"triangles": 1092.0
+		},
+		{
+			"admissionStatus": "candidate",
 			"assetId": "painted-river-port.tool-rack",
 			"assetKind": "model",
 			"bounds": {
@@ -2072,8 +2118,8 @@
 		}
 	],
 	"repository": "https://github.com/dancockrell/shared-game-environment-library",
-	"revision": "a3b714f07edfc6ff4055ebf5c535a3f03efc2695",
-	"runtimeSha256": "45e07157e00669bed39d6a9f5469aeed2c8b390452d19d2521cdebf7b340de97",
+	"revision": "84847094c1c714db86bbc8a789a13c5cb647e22e",
+	"runtimeSha256": "73ee85d6dbfbeffd43daccc09cae580fcbb6b44ec6ed79e4bc5a4b1ad0d9dfe7",
 	"sourceSha256": "ecbf5468d80915f17e02d2f6f20bd50105fe03841c2d256ff1b846164299e342",
 	"transformation": "Native subset only; textures and full geometry preserved"
 }

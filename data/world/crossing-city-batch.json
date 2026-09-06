@@ -6,7 +6,7 @@
     "directedExits": 2389,
     "descriptions": 840,
     "missingDescriptions": 220,
-    "partialRecipes": 22,
+    "partialRecipes": 23,
     "complete": 0,
     "compassMismatches": 493,
     "sourceCompassMismatches": 2
@@ -23330,10 +23330,38 @@
           "status": "requires-design-review"
         }
       ],
-      "currentModels": [],
+      "currentModels": [
+        "painted-river-port.cobble-plaza",
+        "painted-river-port.anvil",
+        "painted-river-port.workbench",
+        "painted-river-port.workbench",
+        "painted-river-port.workbench",
+        "painted-river-port.tool-rack",
+        "painted-river-port.tool-rack",
+        "painted-river-port.tool-rack",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.timber-doorway-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.timber-doorway-section",
+        "painted-river-port.plaster-wall-section",
+        "painted-river-port.plank-approach"
+      ],
       "currentSurfaces": [],
-      "recipeStatus": "unbuilt",
-      "remainingRecipeWork": [],
+      "recipeStatus": "partial-authored",
+      "remainingRecipeWork": [
+        "bespoke massive anvil proportions",
+        "additional repair tools and work-in-progress armor",
+        "reviewed wall and ceiling finishes",
+        "connected bellows-room assembly",
+        "cross-room doorway alignment"
+      ],
       "connections": [
         {
           "command": "out",
