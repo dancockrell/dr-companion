@@ -483,6 +483,57 @@ file rather than asserting the format.
   matters. `storage.ts` reports a quota failure rather than swallowing it, so
   the failure is visible; the number is not known.
 
+## 10. What Q1 actually landed, where it differs from the design above
+
+Written by the increment rather than left for a reader to discover, because
+§9's rule cuts both ways: a design page that still describes what was planned
+is a claim, and the code is the check.
+
+- **The five recovered parsers live inside `playerConfigImport.ts`**, not in
+  five restored modules. They are verbatim from `2327a971^` minus each
+  module's `load*Config()`, which called `read_genie_config` directly and is
+  the live read this lane removes. One consumer, one copy.
+- **`resolveHighlights` and `resolveAliases` shipped in Q1, not Q2/Q3.**
+  Q1's own `verify:` requires that nothing reads a Genie config leaf any more,
+  which means `useHighlights` and `useAliases` had to change source in this
+  increment; a hook reading the store needs the resolver, and leaving Q2 to
+  write a second one later is the fork the whole lane is avoiding. Q2 and Q3
+  extend these (preset editing, refusal display, `variables` on
+  `expandAlias`); they do not replace them. `paint()` and `expandAlias` are
+  untouched, and every consumer of both hooks is untouched.
+- **`migratePlayerConfig` returns four states, not three**: `absent`,
+  `current`, `migrated`, `refused`. The design asked for three so that
+  "nothing to migrate" and "could not read this" differ; separating `current`
+  from `migrated` is the same argument applied once more, and the panel prints
+  whichever it got.
+- **A newer version is refused and the key is left untouched.** Overwriting a
+  config written by a build the player has since downgraded from is the data
+  loss the refusal exists to prevent.
+- **A failed write is not kept in memory.** `setDomain` returns the storage
+  result and does not update its cache when the write failed, so what the
+  panel shows is what is actually durable.
+- **`pinsFile.ts` is the one remaining `read_genie_config` caller** and it
+  reads the pins file, not a config leaf. Q5 moves it to the app's own data
+  directory; `tools/player-config-test.mjs` names it in an allowlist of two so
+  the list cannot quietly grow.
+- **Known parser edge, asserted rather than left to be found:** a `#macro`
+  whose command itself contains braces (`#class {combat} on`) parses its
+  second group short, because the recovered parser matches `{...}`
+  non-greedily. No line in the 95-entry real file does this - Genie writes
+  `#class combat on` - and `tools/player-config-import-test.mjs` records the
+  behaviour so the next person meets it as a known edge.
+- **Measured against the real config on the machine this was written on**
+  (`C:/Genie4/Config`, never committed): 31 presets, 58 highlights, 356
+  aliases, 95 macros, 34 of 46 variables. `substitutes.cfg` and `gags.cfg` are
+  still empty there, so their formats are still inferred, exactly as §6.1
+  says. 87 of 356 aliases and 25 of 95 macros carry Genie script and import
+  switched off with their text intact.
+- **`tools/doc-claims-test.mjs`'s "the Genie config editor stays deleted" was
+  turned the right way up.** It asserted that `src/components/config` did not
+  exist, which is the mechanism rather than the property; it now asserts that
+  nothing in that directory writes into a Genie install. The one-caller check
+  on `saveGenieConfig` is unchanged and still passes its sabotage.
+
 Where this document and a check disagree, **the check is right and this page
 is stale.** The checks are the `verify:` lines of Q1–Q6 in
 `docs/PLAN_TO_1_0.md`.

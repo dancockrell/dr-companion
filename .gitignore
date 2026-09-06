@@ -93,3 +93,8 @@ tools/lich-credentials.txt
 # Derived at release time by tools/build-release-config.mjs from
 # tauri.conf.json plus the exported viewer. Generated, never edited.
 src-tauri/tauri.release.conf.json
+
+# Sabotage mutants, written inside the repo so they can resolve node_modules
+# and removed by the suite that made them; ignored so a crashed run cannot be
+# committed by accident.
+tools/.sabotage-*

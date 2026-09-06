@@ -153,6 +153,13 @@ const DESCRIBES = {
   'drc.ai-claims.v1': 'Candidate claims the AI worker proposed, with their evidence references, producer and review state. Candidates only: nothing here is map, pin or bestiary data until a person promotes it.',
   'drc.ai-evidence.v1': 'Journal events an AI job or candidate claim cites, copied so the evidence outlives the journal that recorded it. Game text only where an event already carried it; nothing new is captured for this.',
   'drc.ai-cursor.v1': 'How far the AI worker had read when its window was last rebuilt, tagged with the run that wrote it so a later run ignores it. Two numbers and a tag; no game text.',
+  'drc.player-config.presets.v1': 'Colour presets a highlight can name. Part of the player config store (one key per domain), which is separate from the preferences key on purpose: a config of hundreds of rules should not be rewritten every time a volume slider moves.',
+  'drc.player-config.highlights.v1': 'The colour and sound rules for game text. Read by the game pane through useHighlights; this replaced reading them out of a Genie install, so a machine with no Genie has highlights.',
+  'drc.player-config.aliases.v1': 'Short words that expand into commands, read by the command bar through useAliases.',
+  'drc.player-config.macros.v1': 'Keys bound to a list of commands, with their modifiers.',
+  'drc.player-config.substitutes.v1': 'Text rewritten before a line is shown. A display rule: the raw transcript keeps the original.',
+  'drc.player-config.gags.v1': 'Lines hidden from the game pane. Also a display rule, for the same reason.',
+  'drc.player-config.variables.v1': 'Values an alias or a macro can use as $name. Genie bookkeeping (room ids, its clock) is deliberately not imported here.',
   'drc.nudge.v1': 'Visit counts behind the "you keep coming back here, pin it?" nudge, per profile.',
 }
 

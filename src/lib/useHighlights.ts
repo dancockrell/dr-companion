@@ -1,85 +1,50 @@
 /**
- * The player's highlight config, loaded once and shared.
+ * The player's highlight rules, read from the app's own store.
  *
- * Two panes paint game text now - the main window and the channel tabs - and
- * each loading its own copy would mean two parses of the same file, two
- * moments where they could disagree, and a config reload that fixed one of
- * them. A highlight means one thing everywhere or it means nothing.
+ * This used to read `read_genie_config('highlights.cfg')`, which meant a
+ * player with no Genie install had no highlights and no way to make one. It
+ * reads `playerConfig.ts` now (Q1, Lane Q); Genie's file is read exactly once,
+ * by an import the player asks for, and never again by the running app.
+ *
+ * The signature is deliberately unchanged, so `GameLineRow`,
+ * `HighlightedText`, `GameSignals`, `BattleColumn` and `GameChatColumn` are
+ * untouched by the change of source: what a highlight *is* did not change,
+ * only where it comes from.
  *
  * Module-level rather than a context, because there is exactly one config per
  * running app and threading a provider through the tree to say so would be
  * ceremony around a constant.
  */
 import { useEffect, useState } from 'react'
-import { parseHighlights, type Highlight } from './highlights.ts'
-import { invokeTauri, isTauri } from './tauri.ts'
+import { resolveHighlights, type Highlight } from './highlights.ts'
+import { loadPlayerConfig, subscribePlayerConfig } from './playerConfig.ts'
 
-let cached: Highlight[] | null = null
-let note = ''
-let inFlight: Promise<void> | null = null
-const listeners = new Set<() => void>()
-
-async function load() {
-  if (!isTauri()) {
-    cached = []
-    note = 'No highlights in a browser: the config lives beside Genie.'
-    return
-  }
-  try {
-    const cfg = (await invokeTauri('read_genie_config', { leaf: 'highlights.cfg' })) as {
-      found: boolean
-      text: string
-      note: string
-    }
-    if (!cfg.found) {
-      cached = []
-      note = cfg.note
-      return
-    }
-    const { entries, skipped } = parseHighlights(cfg.text)
-    cached = entries
-    // Genie drops malformed entries in silence, which is the single failure
-    // dr-genie-settings/validate.mjs exists to catch. Inheriting the format is
-    // not a reason to inherit the bug.
-    note = skipped.length
-      ? `${entries.length} highlights, ${skipped.length} skipped`
-      : `${entries.length} highlights`
-  } catch (e) {
-    cached = []
-    note = String(e)
-  }
+/**
+ * What the hook returns, without being a hook.
+ *
+ * Exported so a check can drive the store and observe the runtime, rather than
+ * observing a resolver call it wrote itself and calling that the same thing.
+ */
+export function currentHighlights(): { highlights: Highlight[]; note: string } {
+  const cfg = loadPlayerConfig()
+  const { entries, refused } = resolveHighlights(cfg)
+  // The denominator, not only the count that loaded. A resolver that refused
+  // half the rules and one that worked print the same thing otherwise, and
+  // Genie's own silence about the rules it drops is the failure this app
+  // declined to inherit along with the format.
+  const note = refused.length
+    ? `${entries.length} of ${cfg.highlights.length} highlights, ${refused.length} refused`
+    : `${entries.length} of ${cfg.highlights.length} highlights`
+  return { highlights: entries, note }
 }
 
 export function useHighlights(): { highlights: Highlight[]; note: string } {
   const [, bump] = useState(0)
-
-  useEffect(() => {
-    const fn = () => bump((n) => n + 1)
-    listeners.add(fn)
-
-    if (cached === null && !inFlight) {
-      inFlight = load().finally(() => {
-        inFlight = null
-        for (const l of listeners) l()
-      })
-    }
-
-    return () => {
-      listeners.delete(fn)
-    }
-  }, [])
-
-  return { highlights: cached ?? [], note }
+  useEffect(() => subscribePlayerConfig(() => bump((n) => n + 1)), [])
+  return currentHighlights()
 }
 
-/** Read the config again, for when it has been edited. */
-export function reloadHighlights() {
-  cached = null
-  note = ''
-  if (!inFlight) {
-    inFlight = load().finally(() => {
-      inFlight = null
-      for (const l of listeners) l()
-    })
-  }
+/** Every refusal, for the editor to show beside the rule that caused it. */
+export function highlightRefusals(): Array<{ id: string; why: string }> {
+  return resolveHighlights(loadPlayerConfig()).refused
 }

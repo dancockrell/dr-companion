@@ -58,6 +58,15 @@ export interface PanelDataContract {
 }
 
 export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
+  config: {
+    purpose:
+      "The player's own rules - highlights, aliases, macros, substitutes, gags, presets and variables - and the one-time import of an existing Genie config. Works with nothing connected: these are the player's settings, not a reading of a live character.",
+    dataNeeded: [
+      'drc.player-config.<domain>.v1 (via playerConfig.ts)',
+      'read_genie_config (import only, on request)',
+    ],
+    requiresLiveCharacter: false,
+  },
   scene: {
     purpose:
       "The scene editor - what the room the character is standing in looks like on the board, and how to correct the batch that classified all 17,750 of them. Works offline: the batch's answers are committed data and the overrides are local, so a room can be edited from the place search with no character at all.",

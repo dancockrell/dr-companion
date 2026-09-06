@@ -687,14 +687,30 @@ const pkg = JSON.parse(read('package.json'))
   // export (Dan's ask, 30 Aug 2026), which writes a DR Companion YAML into
   // that folder rather than editing anything Genie wrote. A second caller
   // appearing is how the editor would come back, one save at a time.
+  //
+  // **This check changed shape on 6 Sep 2026 (Q1), and the change is worth
+  // reading before trusting either version.** It used to assert that
+  // `src/components/config` did not exist. That was right while no config
+  // editor was allowed at all, and it encoded the mechanism rather than the
+  // property: the name says "no editor writes into a Genie install" and the
+  // body said "no directory of that name". Lane Q builds an editor for the
+  // app's *own* rules in exactly that directory, so the old body would have
+  // had to be deleted to make the increment pass, which is the shape of a test
+  // being edited to fit a change rather than judging it. It is turned the
+  // right way up instead: the directory may exist, and nothing in it may write
+  // to a Genie install.
+  const configEditor = scanned
+    .map((f) => f.replace(/\\/g, '/'))
+    .filter((f) => f.startsWith('src/components/config/'))
   ok(
-    'the Genie config editor stays deleted',
-    !existsSync('src/components/config'),
-    existsSync('src/components/config') ? 'src/components/config is back' : ''
+    'the config editor writes the app store, never a Genie install',
+    configEditor.every((f) => !/saveGenieConfig|write_genie_config/.test(read(f))),
+    configEditor.length ? `${configEditor.length} file(s) checked` : 'no config editor present'
   )
   ok(
-    'control: the directory check can see a directory that is there',
-    existsSync('src/components/shared')
+    'control: the scan can see the config editor that is there',
+    !existsSync('src/components/config') || configEditor.length >= 1,
+    `${configEditor.length} files under src/components/config`
   )
   // `scanned` came from `join`, so it carries this platform's separator.
   // Normalise before comparing, or the check passes or fails by OS.

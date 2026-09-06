@@ -39,6 +39,11 @@ export type PanelId =
   // The scene editor: what the room the character is in looks like, and how to
   // disagree with the batch that decided it.
   | 'scene'
+  // The player's own rules: highlights, aliases, macros, substitutes, gags,
+  // presets and variables. Reachable as `?view=panel&id=config`; deliberately
+  // not in any mode's default order, like `scene` - it is a thing you open,
+  // not a thing you watch.
+  | 'config'
   // The room, the game text and the command line, as one panel.
   // Rendered as a fixed column in the normal layout; it becomes a panel in
   // freeform, where there are no columns to put it in.

@@ -36,8 +36,8 @@ password in a settings file, obfuscated or not, is a plaintext password with a
 decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
-30 keys, owned by 26 files, found by scanning
-307 source files.
+37 keys, owned by 27 files, found by scanning
+310 source files.
 
 ## The keys
 
@@ -66,6 +66,13 @@ decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 | `drc.nudge.v1` | Visit counts behind the "you keep coming back here, pin it?" nudge, per profile. | `src/lib/pinNudge.ts` |
 | `drc.off-highlight-classes.v1` | Highlight classes the player has switched off, kept out of the shared highlight file so a shared set is not edited by toggling one. | `src/lib/offClasses.ts` |
 | `drc.pins.v1` | Map pins the player placed, per profile. | `src/lib/mapPins.ts` |
+| `drc.player-config.aliases.v1` | Short words that expand into commands, read by the command bar through useAliases. | `src/lib/playerConfig.ts` |
+| `drc.player-config.gags.v1` | Lines hidden from the game pane. Also a display rule, for the same reason. | `src/lib/playerConfig.ts` |
+| `drc.player-config.highlights.v1` | The colour and sound rules for game text. Read by the game pane through useHighlights; this replaced reading them out of a Genie install, so a machine with no Genie has highlights. | `src/lib/playerConfig.ts` |
+| `drc.player-config.macros.v1` | Keys bound to a list of commands, with their modifiers. | `src/lib/playerConfig.ts` |
+| `drc.player-config.presets.v1` | Colour presets a highlight can name. Part of the player config store (one key per domain), which is separate from the preferences key on purpose: a config of hundreds of rules should not be rewritten every time a volume slider moves. | `src/lib/playerConfig.ts` |
+| `drc.player-config.substitutes.v1` | Text rewritten before a line is shown. A display rule: the raw transcript keeps the original. | `src/lib/playerConfig.ts` |
+| `drc.player-config.variables.v1` | Values an alias or a macro can use as $name. Genie bookkeeping (room ids, its clock) is deliberately not imported here. | `src/lib/playerConfig.ts` |
 | `drc.player-marker.v1` | The icon and colour of the player marker on the map. | `src/lib/playerMarker.ts` |
 | `drc.portrait.v1` | The portrait chosen for each character. | `src/lib/portraits.ts` |
 | `drc.quickswitch.v3` | What is pinned to the Quick Switch bar and in what order: tasks (with their language), commands and raw scripts. | `src/lib/quickSwitch.ts` |

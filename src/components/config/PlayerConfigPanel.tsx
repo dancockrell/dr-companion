@@ -1,0 +1,248 @@
+/**
+ * The player config panel: one tab per domain, and the Genie import.
+ *
+ * The shell, deliberately. Q1 owns the store, the schema, the migration and
+ * the import; Q2, Q3, Q4 and Q6 fill the tabs. Every tab therefore names the
+ * increment that will fill it rather than showing an empty form, so the gap is
+ * on screen where a player and a session can both see it, instead of only in a
+ * planning document.
+ *
+ * Reachable as `?view=panel&id=config`, like every other dockable panel.
+ */
+import { useState, type ChangeEvent } from 'react'
+import {
+  DOMAINS,
+  loadPlayerConfig,
+  mergeImported,
+  playerConfigMigrations,
+  resetPlayerConfigCache,
+  savePlayerConfig,
+  storageKeyFor,
+  usePlayerConfig,
+  type Domain,
+} from '../../lib/playerConfig.ts'
+import {
+  GENIE_LEAF_ORDER,
+  importGenieConfig,
+  type GenieLeaf,
+  type ImportReport,
+} from '../../lib/playerConfigImport.ts'
+import { invokeTauri, isTauri } from '../../lib/tauri.ts'
+
+const TAB_LABEL: Record<Domain, string> = {
+  presets: 'Presets',
+  highlights: 'Highlights',
+  aliases: 'Aliases',
+  macros: 'Macros',
+  substitutes: 'Substitutes',
+  gags: 'Gags',
+  variables: 'Variables',
+}
+
+/** What each tab will hold, and which increment builds it. Named on screen so
+ *  a missing editor reads as unbuilt rather than as broken. */
+const TAB_PLACEHOLDER: Record<Domain, string> = {
+  presets: 'Colour presets a highlight can name. The editor arrives with Q2.',
+  highlights: 'Colour and sound rules for game text. The editor arrives with Q2.',
+  aliases: 'Short words that expand into commands. The editor arrives with Q3.',
+  macros: 'Keys that send a list of commands. The editor arrives with Q3.',
+  substitutes: 'Text rewritten before it is shown. The editor arrives with Q4.',
+  gags: 'Lines hidden from the game pane. The editor arrives with Q4.',
+  variables: 'Values an alias or a macro can use as $name. The editor arrives with Q3.',
+}
+
+interface Loaded {
+  files: Partial<Record<GenieLeaf, string>>
+  from: string
+}
+
+export function PlayerConfigPanel() {
+  const config = usePlayerConfig()
+  const [tab, setTab] = useState<Domain>('highlights')
+  const [report, setReport] = useState<ImportReport | null>(null)
+  const [applied, setApplied] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  // Not memoised on `config`: every read is served from the store's own cache,
+  // and a memo keyed on a value this component already re-renders for is a
+  // second cache that can disagree with the first.
+  const migrations = playerConfigMigrations()
+
+  const runImport = (loaded: Loaded) => {
+    const { config: imported, report: next } = importGenieConfig(loaded.files)
+    setReport(next)
+    if (next.refused) {
+      setApplied(null)
+      return
+    }
+    const { config: merged, report: merge } = mergeImported(loadPlayerConfig(), imported)
+    const write = savePlayerConfig(merged)
+    resetPlayerConfigCache()
+    const added = DOMAINS.reduce((n, d) => n + merge.added[d], 0)
+    const duplicates = DOMAINS.reduce((n, d) => n + merge.duplicates[d], 0)
+    setApplied(
+      write.ok
+        ? `Added ${added} rules from ${loaded.from}. ${duplicates} were already here and were left alone.`
+        : `Could not save: ${write.failures.map((f) => `${f.domain} (${f.message})`).join(', ')}`
+    )
+  }
+
+  const importFromInstall = async () => {
+    setBusy(true)
+    try {
+      const files: Partial<Record<GenieLeaf, string>> = {}
+      for (const leaf of GENIE_LEAF_ORDER) {
+        const cfg = (await invokeTauri('read_genie_config', { leaf })) as {
+          found: boolean
+          text: string
+          note: string
+        }
+        if (cfg.found) files[leaf] = cfg.text
+      }
+      runImport({ files, from: 'your Genie install' })
+    } catch (e) {
+      setApplied(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const importFromFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    const picked = [...(event.target.files ?? [])]
+    if (picked.length === 0) return
+    setBusy(true)
+    try {
+      const files: Partial<Record<GenieLeaf, string>> = {}
+      for (const file of picked) {
+        const leaf = GENIE_LEAF_ORDER.find((l) => l === file.name)
+        if (leaf) files[leaf] = await file.text()
+      }
+      runImport({ files, from: `${picked.length} files you picked` })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2 text-sm" data-testid="player-config-panel">
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Player config">
+        {DOMAINS.map((domain) => (
+          <button
+            key={domain}
+            type="button"
+            role="tab"
+            aria-selected={tab === domain}
+            data-testid={`config-tab-${domain}`}
+            onClick={() => setTab(domain)}
+            className={
+              'rounded border px-2 py-1 text-xs ' +
+              (tab === domain
+                ? 'border-accent text-accent'
+                : 'border-border text-ink-muted hover:text-ink')
+            }
+          >
+            {TAB_LABEL[domain]} ({config[domain].length})
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded border border-border p-2" data-testid={`config-body-${tab}`}>
+        <p className="text-ink-muted">{TAB_PLACEHOLDER[tab]}</p>
+        <p className="mt-1 text-xs text-ink-faint">
+          {config[tab].length} stored in <code>{storageKeyFor(tab)}</code>. Read:{' '}
+          {migrations[tab].status}
+          {migrations[tab].migrated ? `, ${migrations[tab].migrated} migrated` : ''}
+          {migrations[tab].dropped.length ? `, ${migrations[tab].dropped.length} unreadable` : ''}.
+        </p>
+        {migrations[tab].why && (
+          <p className="mt-1 text-xs text-warn" data-testid="config-refused">
+            {migrations[tab].why}
+          </p>
+        )}
+      </div>
+
+      <div className="rounded border border-border p-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">
+          Import from Genie
+        </h3>
+        <p className="mt-1 text-xs text-ink-muted">
+          Reads your Genie config files once and copies the rules in here. Nothing is written back
+          to Genie, and a rule that is already here is left alone.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {isTauri() && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void importFromInstall()}
+              data-testid="config-import-install"
+              className="rounded border border-border px-2 py-1 text-xs hover:bg-surface-overlay"
+            >
+              Import from my Genie install
+            </button>
+          )}
+          <label className="text-xs text-ink-muted">
+            <span className="mr-2">Or pick the cfg files:</span>
+            <input
+              type="file"
+              multiple
+              accept=".cfg"
+              data-testid="config-import-files"
+              onChange={(e) => void importFromFiles(e)}
+            />
+          </label>
+        </div>
+
+        {applied && (
+          <p className="mt-2 text-xs text-ink" data-testid="config-import-applied">
+            {applied}
+          </p>
+        )}
+
+        {report && (
+          <div className="mt-2" data-testid="config-import-report">
+            {report.refused && (
+              <p className="text-xs text-warn" data-testid="config-import-refused">
+                {report.refused}
+              </p>
+            )}
+            <table className="mt-1 w-full text-xs">
+              <thead className="text-ink-faint">
+                <tr>
+                  <th className="text-left">File</th>
+                  <th className="text-right">Lines</th>
+                  <th className="text-right">Parsed</th>
+                  <th className="text-right">Imported</th>
+                  <th className="text-right">Skipped</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.perFile.map((f) => (
+                  <tr key={f.leaf} data-testid={`config-import-row-${f.leaf}`}>
+                    <td className="text-left">{f.leaf}</td>
+                    <td className="text-right">{f.found ? f.lines : 'not found'}</td>
+                    <td className="text-right">{f.found ? f.parsed : '-'}</td>
+                    <td className="text-right">{f.found ? f.imported : '-'}</td>
+                    <td className="text-right">{f.found ? f.skipped.length : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {report.perFile.some((f) => f.skipped.length > 0) && (
+              <ul className="mt-1 list-disc pl-4 text-xs text-warn">
+                {report.perFile.flatMap((f) =>
+                  f.skipped.map((s) => <li key={`${f.leaf}-${s}`}>{`${f.leaf}: ${s}`}</li>)
+                )}
+              </ul>
+            )}
+            <h4 className="mt-2 text-xs font-semibold text-ink-faint">What did not come across</h4>
+            <ul className="list-disc pl-4 text-xs text-ink-muted" data-testid="config-unsupported">
+              {report.unsupported.map((u) => (
+                <li key={u}>{u}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

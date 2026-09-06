@@ -22,8 +22,15 @@
  * so on - is a Genie *variable*, not an alias argument. This module has no
  * variable engine and does not invent one; those tokens pass through
  * verbatim, same as any other alias this table has no entry for.
+ *
+ * The live source is no longer that file. `playerConfig.ts` holds the
+ * player's aliases and `resolveAliases` below turns them into the `Alias[]`
+ * `expandAlias` takes; `playerConfigImport.ts` reads `aliases.cfg` once, on an
+ * import the player asks for. `loadAliasConfig` is gone with the live read
+ * (Q1, Lane Q): a client that needed Genie installed to have an alias is the
+ * gap that lane exists to close.
  */
-import { invokeTauri, isTauri } from './tauri.ts'
+import type { PlayerConfig } from './playerConfig.ts'
 
 export interface Alias {
   name: string
@@ -162,45 +169,31 @@ export function expandAlias(
   return { text: current, expanded: true, chain, capped: true }
 }
 
-export interface AliasConfig {
-  entries: Alias[]
-  note: string
-}
-
 /**
- * Read and parse `Config/aliases.cfg`, the same way `useHighlights.ts` reads
- * `highlights.cfg` - through `read_genie_config`, which resolves the leaf
- * against Genie's real config directory rather than this app's own.
+ * Store rules to the runtime `Alias[]` `expandAlias` already takes.
  *
- * A plain async function, not a hook: this file owns the parsing logic only,
- * not the call site or any component state. Whoever wires this into the send
- * path decides whether it is cached, reloaded, or read fresh each time.
+ * The one resolver for this domain, and it is the one the runtime calls
+ * (`useAliases` -> `GameCommandBar`). Disabled rules are dropped and named, so
+ * the editor Q3 builds can say why a rule it can see is not firing rather than
+ * leaving a player to wonder.
+ *
+ * `sourceLine` survives as an index because `Alias` still declares it and
+ * `expandAlias` never reads it; it is no longer an offset into a file, and
+ * nothing addresses a rule by it any more - an editor patches by
+ * `AliasRule.id`.
  */
-export async function loadAliasConfig(): Promise<AliasConfig> {
-  if (!isTauri()) {
-    return { entries: [], note: 'No aliases in a browser: the config lives beside Genie.' }
-  }
-  try {
-    const cfg = (await invokeTauri('read_genie_config', { leaf: 'aliases.cfg' })) as {
-      found: boolean
-      text: string
-      note: string
+export function resolveAliases(cfg: Pick<PlayerConfig, 'aliases'>): {
+  entries: Alias[]
+  refused: Array<{ id: string; why: string }>
+} {
+  const entries: Alias[] = []
+  const refused: Array<{ id: string; why: string }> = []
+  cfg.aliases.forEach((rule, index) => {
+    if (!rule.enabled) {
+      refused.push({ id: rule.id, why: `"${rule.name}" is switched off` })
+      return
     }
-    if (!cfg.found) {
-      return { entries: [], note: cfg.note }
-    }
-    const { entries, skipped } = parseAliases(cfg.text)
-    // Assert the denominator, not just the count that parsed: a parser that
-    // silently drops half the file and one that works look identical if all
-    // you print is "N aliases loaded". Genie itself drops malformed alias
-    // lines in silence, and inheriting the format is not a reason to
-    // inherit that failure.
-    const nonBlank = cfg.text.split('\n').filter((l) => l.trim().length > 0).length
-    const note = skipped.length
-      ? `${entries.length} of ${nonBlank} non-blank lines parsed, ${skipped.length} skipped`
-      : `${entries.length} of ${nonBlank} non-blank lines parsed`
-    return { entries, note }
-  } catch (e) {
-    return { entries: [], note: String(e) }
-  }
+    entries.push({ name: rule.name, expansion: rule.expansion, sourceLine: index })
+  })
+  return { entries, refused }
 }
