@@ -79,6 +79,15 @@ pub enum LoginCode {
     /// One code because there is one thing the player does about all three,
     /// and the detail says which happened.
     LichDidNotStart,
+    /// The account login worked and this app did **not** start Lich, because
+    /// one is already running.
+    ///
+    /// Distinct from [`Self::LichDidNotStart`] because the two want opposite
+    /// things from the player (issue #488 §3). "Did not start" is a fault to
+    /// diagnose; this is a Lich that is up and can be attached to, which is
+    /// the ordinary state after the app was closed while the character stayed
+    /// logged in. Sending it to the diagnostic was the defect.
+    LichAlreadyRunning,
     /// No password was sent and none is stored for this account.
     PasswordNeeded,
     /// A password *was* loaded from Windows Credential Manager and the account
@@ -106,7 +115,7 @@ impl LoginCode {
     /// The denominator for the fixture test: a code added to the enum and not
     /// to this array leaves the fixture short, and the test that counts it
     /// goes red naming the shortfall.
-    pub const ALL: [LoginCode; 12] = [
+    pub const ALL: [LoginCode; 13] = [
         LoginCode::BadCredentials,
         LoginCode::AccountLockedOrExpired,
         LoginCode::AccountRefused,
@@ -116,6 +125,7 @@ impl LoginCode {
         LoginCode::ObscuredByteOutOfRange,
         LoginCode::Network,
         LoginCode::LichDidNotStart,
+        LoginCode::LichAlreadyRunning,
         LoginCode::PasswordNeeded,
         LoginCode::StoredPasswordRejected,
         LoginCode::Internal,
@@ -134,6 +144,7 @@ impl LoginCode {
             LoginCode::ObscuredByteOutOfRange => "obscured_byte_out_of_range",
             LoginCode::Network => "network",
             LoginCode::LichDidNotStart => "lich_did_not_start",
+            LoginCode::LichAlreadyRunning => "lich_already_running",
             LoginCode::PasswordNeeded => "password_needed",
             LoginCode::StoredPasswordRejected => "stored_password_rejected",
             LoginCode::Internal => "internal",
@@ -168,6 +179,12 @@ impl LoginFailure {
     /// The launcher half: Lich could not be started, exited, or never listened.
     pub fn lich_did_not_start(message: impl Into<String>) -> Self {
         Self::new(LoginCode::LichDidNotStart, message)
+    }
+
+    /// The account login worked and a Lich was already up, so this app started
+    /// none. See [`LoginCode::LichAlreadyRunning`].
+    pub fn lich_already_running(message: impl Into<String>) -> Self {
+        Self::new(LoginCode::LichAlreadyRunning, message)
     }
 
     /// Nothing was typed and nothing is stored.
@@ -273,6 +290,9 @@ mod tests {
         out.push(LoginFailure::lich_did_not_start(
             "Lich started and then exited with code 1 without opening its detachable port.",
         ));
+        out.push(LoginFailure::lich_already_running(
+            "a Lich is already running, so this app did not start a second one",
+        ));
         out.push(LoginFailure::password_needed("demo"));
         out.push(LoginFailure::stored_password_rejected(
             "the account name or password was not accepted (PASSWORD)",
@@ -374,13 +394,50 @@ export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
         let rendered = render_fixture(&failures);
 
         let path = std::path::Path::new("..").join("src/lib/loginErrorFixtures.ts");
-        if std::env::var("DRC_WRITE_LOGIN_FIXTURE").is_ok_and(|v| v == "1") {
+
+        // Read **before** any write (issue #488 §5). The old order was write,
+        // then read, then compare - so a run with `DRC_WRITE_LOGIN_FIXTURE=1`
+        // set both repaired the drift and passed, in the same run, and a drift
+        // nobody was ever told about is exactly the state this test exists to
+        // make impossible. That is the pattern #464 gated everywhere else,
+        // arriving in the test that guards the contract.
+        //
+        // A missing file is a real "cannot tell" and not a drift, so it keeps
+        // its own message: an empty string would compare unequal and report
+        // drift for a file that is not there.
+        let before = std::fs::read_to_string(&path).ok();
+
+        let asked_to_write = std::env::var("DRC_WRITE_LOGIN_FIXTURE").is_ok_and(|v| v == "1");
+        let drifted = before.as_deref().map(|c| c.replace("\r\n", "\n")) != Some(rendered.clone());
+
+        if asked_to_write && drifted {
             std::fs::create_dir_all(path.parent().expect("a parent")).expect("the fixture dir");
             std::fs::write(&path, &rendered).expect("the fixture writes");
-        }
-        let current = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            // Written, and still a failure. A regeneration is a repair, and a
+            // repair is a thing a person has to see and commit; a green run
+            // here would mean the drift left no trace anywhere. Running the
+            // suite again without the variable is what passes, and that pass
+            // is the proof the repair worked.
             panic!(
-                "{} is missing ({e}); regenerate with DRC_WRITE_LOGIN_FIXTURE=1 cargo test",
+                "{} had drifted and DRC_WRITE_LOGIN_FIXTURE=1 has just rewritten it. \
+                 Commit the regenerated file and run the tests again without that \
+                 variable set; this run does not pass on a fixture it repaired itself.",
+                path.display()
+            );
+        }
+        if asked_to_write {
+            // Asked to write, nothing to write. Said out loud so a regeneration
+            // that turns out to be a no-op is visible, rather than looking like
+            // a successful repair.
+            eprintln!(
+                "login_error: DRC_WRITE_LOGIN_FIXTURE=1 but {} was already current; nothing written",
+                path.display()
+            );
+        }
+
+        let current = before.unwrap_or_else(|| {
+            panic!(
+                "{} is missing; regenerate with DRC_WRITE_LOGIN_FIXTURE=1 cargo test",
                 path.display()
             )
         });

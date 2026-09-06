@@ -15,6 +15,7 @@
  * See docs/ENGINE.md.
  */
 import { listenTauri, invokeTauri, isTauri } from './tauri.ts'
+import { INSTANCES } from '../data/instances.ts'
 import { feed, newStreamState, looksTagged, characterState } from './gameStream.ts'
 import type { StreamCharacterState } from '../types/stream'
 import { validateGameCommand } from './gameCommand.ts'
@@ -561,6 +562,29 @@ function adopt(next: LinkState): LinkState {
  * anybody pays (issue #458).
  */
 export const LICH_STARTUP_WAIT_MS = 20_000
+
+/**
+ * The port the app attaches to when it started Lich itself, or when a Lich is
+ * already up.
+ *
+ * Taken from the instance table rather than retyped. `instances.ts` says of
+ * itself that "a second copy of four port numbers is a second thing to forget
+ * to update", and `lich.rs`'s `DETACHABLE_PORT` claims to be "one number in one
+ * place"; `tools/detachable-port-test.mjs` holds that line.
+ *
+ * Moved here from `GameConnectionBar.tsx` (#488): the sign-in screen needs the
+ * same number for its "Attach to it" offer, and a second derivation beside this
+ * one is the fork this comment exists to prevent. Prime by id, not
+ * `INSTANCES[0]`, so a reordered table cannot silently change which game the
+ * attach box defaults to.
+ */
+export const DEFAULT_ATTACH_PORT = String(
+  INSTANCES.find((i) => i.id === 'Prime')?.port ??
+    // Unreachable while Prime is in the table, and a thrown error in a render
+    // is worse than a wrong default, so this degrades rather than crashes -
+    // `instanceForPort` will label whatever it gets.
+    INSTANCES[0]!.port,
+)
 
 /**
  * Attach to Lich's detachable-client port.

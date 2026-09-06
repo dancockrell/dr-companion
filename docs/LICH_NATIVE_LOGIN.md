@@ -923,7 +923,69 @@ Port and environment contract:
 
 ---
 
-## 9. Where this document is wrong first
+## 9. What happens to Lich when the app closes
+
+Issue #488 §3. The behaviour was already what the design wanted; what it did not
+have was a sentence anywhere, or a check, and a Lich handle nobody owned is a
+Lich handle a future tidy-up quietly changes.
+
+**Nothing on the exit path ends a Lich by itself.** Not `RunEvent::Exit`, not a
+dropped `Child`, not a crash, not a kill. A Lich this app started is a character
+somebody is playing, and closing a companion window is not a request to log them
+out. That is the same rule the code has always stated for a Lich it did *not*
+start ("this app does not end a Lich it did not start ending", `lich.rs`), and
+`--detachable-client` exists precisely so the two can come apart.
+
+The contrast to keep in view is `viewer.rs`, which **is** killed on exit and
+should stay that way: a 3D viewer with no app behind it is furniture connected
+to nothing, and a Lich with no app behind it is a live game session. Do not make
+the two consistent.
+
+### The one place the player is asked
+
+Closing the window raises `CloseRequested`. If - and only if - this app started
+a Lich and that Lich is still running, Rust holds the window shut
+(`api.prevent_close()`), emits `lich-close-prompt`, and the webview asks:
+
+| answer | command | what happens |
+|---|---|---|
+| **Leave it running** (default) | `lich_release` | the handle is given up, the process is untouched, any pending `.sal` keeps its existing owners |
+| **Stop Lich** | `lich_stop` | killed **by the handle**, never by image name, and the pending `.sal` is shredded with it |
+
+Whichever is chosen, `close_main_window` finishes the close - `destroy`, not
+`close`, so `CloseRequested` does not fire again and ask twice.
+
+Every path that is *not* that prompt produces the "leave it running" outcome:
+a crash, a taskkill, a webview that never answers, and an emit that fails (which
+closes rather than trapping the player in a window that will not shut).
+
+### And the next start offers to attach
+
+A Lich left running is found on the next sign-in by the existing already-running
+detection. That refusal used to arrive as `lich_did_not_start`, whose player
+sentence is *"The sign-in worked but Lich did not start. Use 'Why won't it start?'
+below to find out why."* - a diagnostic, for a Lich that is running perfectly
+well. It has its own code now, `lich_already_running`, and the sign-in screen
+offers **Attach to the Lich that is running** instead.
+
+### How to check it rather than believe it
+
+```
+cd src-tauri && cargo test --lib lich::tests::stopping_lich
+cd src-tauri && cargo test --lib lich::tests::leaving_lich
+npm run test:lich-lifetime
+```
+
+The two Rust cases drive a loopback stand-in (`ping -n 60 127.0.0.1`), assert it
+is alive before doing anything, and then ask **tasklist** whether the pid is
+still there - the outcome, not what `stop` said about itself. The Node suite
+holds the webview half and the source properties, including that the exit
+handler still names no Lich. Where this prose and those commands disagree, the
+commands are right and this section is stale.
+
+---
+
+## 10. Where this document is wrong first
 
 The parts most likely to rot, so the next reader knows where to look:
 
@@ -932,6 +994,9 @@ The parts most likely to rot, so the next reader knows where to look:
 - **§7's inferred list is the honest boundary.** Items 1 and 2 are the two that
   decide whether the design works as written, and both are measured by an
   increment rather than argued here.
+- **§9 is the one section with commands rather than claims.** If it and the
+  tests disagree, edit the section. It was written that way on purpose
+  (`CLAUDE.md` §19).
 - **§6's "not in scope" list is a boundary, not a verdict.** If Dan answers the
   §10 question by retiring the Genie config editor, this section is stale the
   same day and should be rewritten rather than appended to.

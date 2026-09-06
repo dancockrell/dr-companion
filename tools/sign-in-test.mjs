@@ -125,6 +125,12 @@ const REQUIRED_KINDS = [
   // which since #459 meant deleting the entry from Windows Credential Manager
   // for a code nobody has ever observed.
   'account_refused',
+  // And one more #488 §3 forced, from the launcher half rather than the
+  // protocol. `lich_did_not_start` sends a player to "Why won't it start?";
+  // this is a Lich that started perfectly well and is already running, and the
+  // specification half of it is that the screen offers to attach to that Lich
+  // rather than to diagnose it.
+  'lich_already_running',
 ]
 
 /**
@@ -148,6 +154,10 @@ const REQUIRED_CODES = [
   'obscured_byte_out_of_range',
   'network',
   'lich_did_not_start',
+  // #488 §3: the app started no Lich because one is already up. A separate
+  // code from `lich_did_not_start` because the two want opposite things from
+  // the player - attach, or diagnose.
+  'lich_already_running',
   'password_needed',
   'stored_password_rejected',
   'internal',

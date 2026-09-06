@@ -27,6 +27,7 @@ export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
   { code: "obscured_byte_out_of_range", message: "the login server's key does not encode this password at position 7" },
   { code: "network", message: "could not reach eaccess.play.net:7910: could not connect: connection refused" },
   { code: "lich_did_not_start", message: "Lich started and then exited with code 1 without opening its detachable port." },
+  { code: "lich_already_running", message: "a Lich is already running, so this app did not start a second one" },
   { code: "password_needed", message: "no password was sent and none is saved for demo" },
   { code: "stored_password_rejected", message: "the saved password was refused and has been removed (the account name or password was not accepted (PASSWORD))" },
   { code: "internal", message: "the sign-in task did not finish: task panicked" },

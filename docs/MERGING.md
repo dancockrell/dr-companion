@@ -108,6 +108,30 @@ cmd //c "rmdir C:\\Users\\Admin\\dev\\wt-<id>\\node_modules"
 git -C /c/Users/Admin/dev/dr-companion worktree remove /c/Users/Admin/dev/wt-<id>
 ```
 
+## Regenerating `src/lib/loginErrorFixtures.ts`
+
+It is generated from the Rust types by `login_error.rs`'s
+`the_fixture_is_the_real_serialisation`, and checked in. Regenerate it whenever
+you add, remove or rename a `LoginCode`, or change any message an
+`EAccessError` prints:
+
+```
+cd src-tauri && DRC_WRITE_LOGIN_FIXTURE=1 cargo test --lib login_error
+```
+
+**That run fails on purpose** (issue #488 §5). It rewrites the file and then
+reports that it did, because a run that both repairs a drift and passes leaves
+no trace of the drift anywhere - the pattern #464 gated everywhere else,
+arriving in the test that guards the contract. Commit the regenerated file and
+run the tests again *without* the variable; that pass is the proof the repair
+worked.
+
+Never hand-edit the file. `npm run test:login-fixture` compares it against the
+Rust source in four directions - the code vocabulary, both sides of the
+boundary, the rendering, and whether each message is a shape any Rust format
+string can print - so a hand edit reddens on the TypeScript side, naming the
+TypeScript file.
+
 ## Related
 
 - `docs/TESTING.md` — what the suites are, and the negative suites the gate

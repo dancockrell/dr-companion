@@ -184,11 +184,12 @@ const retiredBlackScrims = componentSources.filter(({ text }) =>
 )
 check(
   'modal backdrops use one semantic scrim token',
-  // 8, not 9, since N6: `config/ConfigManagerSheet.tsx` was one of them and it
-  // is deleted. Kept exact rather than loosened to `>=` - the point of the
-  // number is that a new modal has to come here and say so, and a floor would
-  // let one arrive with a raw scrim as long as the semantic ones outnumbered it.
-  css.includes('--color-scrim: rgb(0 0 0 / 0.5)') && modalScrims.length === 8 && retiredBlackScrims.length === 0,
+  // 9 since #488: `shared/LichClosePrompt.tsx` is the ninth, and it was 8 after
+  // N6 deleted `config/ConfigManagerSheet.tsx`. Kept exact rather than loosened
+  // to `>=` - the point of the number is that a new modal has to come here and
+  // say so, and a floor would let one arrive with a raw scrim as long as the
+  // semantic ones outnumbered it.
+  css.includes('--color-scrim: rgb(0 0 0 / 0.5)') && modalScrims.length === 9 && retiredBlackScrims.length === 0,
   `${modalScrims.length} semantic modal scrims; ${retiredBlackScrims.length} raw black scrims`
 )
 

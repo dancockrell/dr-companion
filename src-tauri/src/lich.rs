@@ -615,7 +615,130 @@ const LAUNCH_FILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(
 /// The [`std::process::Child`] is held rather than only the pid because a pid
 /// can be recycled: asking the handle is the only answer that cannot name
 /// somebody else's process.
-static SPAWNED_LICH: std::sync::Mutex<Option<std::process::Child>> = std::sync::Mutex::new(None);
+static SPAWNED_LICH: LichProcess = LichProcess(std::sync::Mutex::new(None));
+
+/// The one owner of the [`std::process::Child`] this app spawned.
+///
+/// A named type rather than a bare `Mutex<Option<Child>>` because #488 §3 was
+/// less a bug than an *unowned* handle: nothing could say what happened to it
+/// on exit, because nothing was responsible for it. Every read and every
+/// decision about that child now goes through one of the four methods below,
+/// so "what happens to Lich when the app closes" has a place to be answered
+/// and a place to be tested.
+///
+/// A `static` rather than Tauri managed state, on purpose.
+/// `game_link::dial_once` passes [`spawned_lich_status`] as a plain `&dyn Fn`
+/// with no `AppHandle` anywhere near it, so a managed copy would be a *second*
+/// owner beside this one, and two owners of one process eventually disagree
+/// (`CLAUDE.md` §0). One owner, reachable from both.
+///
+/// # The lifetime, stated
+///
+/// A static is never dropped, and dropping a `Child` does not kill the process
+/// in any case. So with nothing else done, Lich outlives the app - which is
+/// what this codebase wants and says in three other places ([`launch_lich_using`]
+/// below, `docs/PLAN_TO_1_0.md`, and the whole point of `--detachable-client`),
+/// and never said about this handle. `docs/LICH_NATIVE_LOGIN.md` §9 is the
+/// sentence; [`LichProcess::stop`] and [`LichProcess::release`] are the two
+/// answers to the question the app asks on close.
+pub struct LichProcess(std::sync::Mutex<Option<std::process::Child>>);
+
+/// What [`LichProcess::stop`] did, so a caller can say which rather than guess.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StopOutcome {
+    /// Nothing to stop: this app did not start a Lich, or a previous stop or
+    /// release already gave the handle up.
+    NotOurs,
+    /// It had already exited by itself. Nothing was killed.
+    AlreadyGone,
+    /// It was running and this app ended it.
+    Killed,
+}
+
+impl LichProcess {
+    /// Take ownership of a newly spawned child.
+    ///
+    /// A previous child is *released*, never killed - see
+    /// [`LichProcess::release`]. In practice there is never one, because both
+    /// launch paths refuse while a Lich is running.
+    fn hold(&self, child: std::process::Child) {
+        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
+    }
+
+    /// Non-blocking: what the held child is doing. See [`spawned_lich_status`].
+    fn status(&self) -> SpawnedLich {
+        let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(child) = guard.as_mut() else {
+            return SpawnedLich::NotOurs;
+        };
+        match child.try_wait() {
+            Ok(Some(status)) => SpawnedLich::Exited(status.code()),
+            Ok(None) => SpawnedLich::Running,
+            // The handle itself failed. Reporting `Exited` here would tell a
+            // player Lich died on the strength of a broken instrument, so this
+            // says only what is certain: nothing useful is known about it.
+            Err(_) => SpawnedLich::NotOurs,
+        }
+    }
+
+    /// End the Lich this app started, and forget it.
+    ///
+    /// Killed **by the handle**, never by image name: more than one Lich can
+    /// be running on this machine and a name-based kill would take somebody
+    /// else's character offline. Same rule as `viewer::close_viewer`, for the
+    /// same reason.
+    ///
+    /// Any pending launch file goes with it: a Lich that is being ended has no
+    /// further use for a one-shot game key, and leaving it to the 120-second
+    /// backstop would mean a key on disk after the thing it was written for is
+    /// gone. Shredded after the lock is dropped, because
+    /// `shred_pending_launch_files` takes a different lock and holding two is
+    /// how an ordering bug gets in.
+    fn stop(&self) -> StopOutcome {
+        let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let outcome = match guard.as_mut() {
+            None => StopOutcome::NotOurs,
+            Some(child) => match child.try_wait() {
+                // Already gone is the ordinary case when the player closed
+                // Lich themselves; `kill` errors on it and there is nothing to
+                // be done about that.
+                Ok(Some(_)) => StopOutcome::AlreadyGone,
+                _ => {
+                    let killed = child.kill().is_ok();
+                    let _ = child.wait();
+                    if killed {
+                        StopOutcome::Killed
+                    } else {
+                        StopOutcome::AlreadyGone
+                    }
+                }
+            },
+        };
+        *guard = None;
+        drop(guard);
+        shred_pending_launch_files();
+        outcome
+    }
+
+    /// Give up the handle without touching the process.
+    ///
+    /// The other half of the choice, and the default one: the player is in the
+    /// middle of a session, and closing this app is not a reason to log their
+    /// character out. Returns whether there was anything to release, so
+    /// "released one" and "there was none" are different observations.
+    ///
+    /// The launch file is deliberately *not* shredded here. Releasing ends
+    /// nothing; `dial_with_retry` and the 120-second backstop own that file and
+    /// both still apply to a Lich that is still running.
+    fn release(&self) -> bool {
+        self.0
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+            .is_some()
+    }
+}
 
 /// What the Lich this app started is doing.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -637,18 +760,73 @@ pub enum SpawnedLich {
 /// a live one, so this is safe to call from a dial loop several times a
 /// second.
 pub fn spawned_lich_status() -> SpawnedLich {
-    let mut guard = SPAWNED_LICH.lock().unwrap_or_else(|e| e.into_inner());
-    let Some(child) = guard.as_mut() else {
-        return SpawnedLich::NotOurs;
-    };
-    match child.try_wait() {
-        Ok(Some(status)) => SpawnedLich::Exited(status.code()),
-        Ok(None) => SpawnedLich::Running,
-        // The handle itself failed. Reporting `Exited` here would tell a
-        // player Lich died on the strength of a broken instrument, so this
-        // says only what is certain: nothing useful is known about it.
-        Err(_) => SpawnedLich::NotOurs,
+    SPAWNED_LICH.status()
+}
+
+/// What the app tells the webview about the Lich it started.
+///
+/// Two booleans rather than the enum, because the webview asks one question -
+/// *is there a running Lich that closing this app would abandon* - and a
+/// serialised three-way enum would make every caller re-derive it. `ours` is
+/// false for a Lich the player started themselves, which this app never had a
+/// handle on and must never presume to end.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, Default)]
+pub struct OwnedLich {
+    /// This app started a Lich and still holds its handle.
+    pub ours: bool,
+    /// That Lich is still running.
+    pub running: bool,
+    /// It has exited, with this code where the platform gave one.
+    pub exit_code: Option<i32>,
+}
+
+/// Whether closing the app right now would leave a Lich this app started.
+///
+/// The one thing the close prompt is allowed to key on. A prompt shown for a
+/// Lich the player started themselves would be offering to end a session this
+/// app has no business ending, and a prompt shown for an exited one would be
+/// asking about a process that is not there.
+///
+/// Deliberately **not** a `#[tauri::command]`. `lib.rs` calls it from the
+/// `CloseRequested` handler and sends the answer with the event, so the webview
+/// is told rather than asked - and a command nothing invokes is a noodle to
+/// nowhere (`CLAUDE.md` §0), which `tools/tauri-command-callers-test.mjs`
+/// catches.
+pub fn lich_owned_status() -> OwnedLich {
+    match SPAWNED_LICH.status() {
+        SpawnedLich::NotOurs => OwnedLich::default(),
+        SpawnedLich::Running => OwnedLich {
+            ours: true,
+            running: true,
+            exit_code: None,
+        },
+        SpawnedLich::Exited(code) => OwnedLich {
+            ours: true,
+            running: false,
+            exit_code: code,
+        },
     }
+}
+
+/// "Stop Lich": end the one this app started, and say what that did.
+///
+/// One of the two answers to the close prompt (#488 §3). The player chose
+/// this, which is the only thing that ever ends a Lich from this app: nothing
+/// on the exit path kills one by itself, and a crash or a kill leaves it
+/// running on purpose.
+#[tauri::command]
+pub fn lich_stop() -> StopOutcome {
+    SPAWNED_LICH.stop()
+}
+
+/// "Leave it running": give up the handle and touch nothing.
+///
+/// The other answer, and the default. Returns whether there was a handle to
+/// give up so that a caller can tell "let a running Lich go" from "there was
+/// nothing there", which are the same silence otherwise.
+#[tauri::command]
+pub fn lich_release() -> bool {
+    SPAWNED_LICH.release()
 }
 
 /// Serialises every test that touches the pending-launch-file list.
@@ -660,6 +838,14 @@ pub fn spawned_lich_status() -> SpawnedLich {
 /// harness rather than on the code under test.
 #[cfg(test)]
 pub(crate) static LAUNCH_FILE_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Serialises every test that puts a child into [`SPAWNED_LICH`].
+///
+/// Same reason as the lock above: the handle is process-global and cargo runs
+/// tests in threads, so without this a case asserting "the handle is gone" can
+/// be looking at one another case has just taken.
+#[cfg(test)]
+pub(crate) static LICH_PROCESS_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Put a path on the pending-launch-file list, for tests in other modules.
 ///
@@ -706,24 +892,53 @@ fn spawn_shred_timer(after: std::time::Duration) {
 /// `main.rb:842-857`, so the app's own successful attach is a sound and
 /// externally observable "safe now" - with [`LAUNCH_FILE_TIMEOUT`] behind it
 /// for the case where the attach never happens.
-pub fn launch_lich_with_launch_data(fields: &[(String, String)]) -> Result<LaunchOutcome, String> {
+///
+/// # Why this returns a `LoginFailure` rather than a `String`
+///
+/// Issue #488 §3. Every failure here used to be flattened by the one caller
+/// into [`crate::login_error::LoginCode::LichDidNotStart`], whose player
+/// sentence sends them to a diagnostic - which is right for a Lich that
+/// crashed and wrong for the commonest case on this path, a Lich that is
+/// already up because the app was closed and reopened while the character
+/// stayed logged in. That is not a fault to diagnose, it is a Lich to attach
+/// to, and it now has its own code so the screen can offer that.
+pub fn launch_lich_with_launch_data(
+    fields: &[(String, String)],
+) -> Result<LaunchOutcome, LoginFailure> {
     let s = lich_status_blocking();
 
-    let launcher = s.launcher.ok_or("Could not find lich.rbw")?;
-    let ruby = s
-        .ruby
-        .ok_or("Could not find Ruby, which Lich needs to run")?;
+    let launcher = s
+        .launcher
+        .ok_or_else(|| LoginFailure::lich_did_not_start("Could not find lich.rbw"))?;
+    let ruby = s.ruby.ok_or_else(|| {
+        LoginFailure::lich_did_not_start("Could not find Ruby, which Lich needs to run")
+    })?;
 
     // Refuse rather than race - see `launch_lich` for why, and note that on
     // this path a second Lich would also mean a second launch file.
-    if s.running_known && s.running {
-        return Err(
-            "Lich looks like it is already running. Close it first, or use the one that is up."
-                .into(),
-        );
+    if let Some(refusal) = already_running_refusal(s.running_known, s.running) {
+        return Err(refusal);
     }
 
-    launch_lich_using(&ruby, &launcher, fields)
+    launch_lich_using(&ruby, &launcher, fields).map_err(LoginFailure::lich_did_not_start)
+}
+
+/// Whether a Lich is already up, and therefore what to tell the player.
+///
+/// Its own function so all three states can be driven in a test. The whole
+/// point of #488 §3's second half is *which* of them refuses, and on a machine
+/// with a real Lich installed the caller above cannot be aimed at any of them
+/// on purpose.
+///
+/// Only when we actually know. `running_known` false is "the process list could
+/// not be read", which is neither permission to start a second Lich nor a
+/// reason to claim one is up - so it does not refuse, exactly as before.
+fn already_running_refusal(running_known: bool, running: bool) -> Option<LoginFailure> {
+    (running_known && running).then(|| {
+        LoginFailure::lich_already_running(
+            "a Lich is already running, so this app did not start a second one",
+        )
+    })
 }
 
 /// [`launch_lich_with_launch_data`] with the interpreter and launcher already
@@ -797,10 +1012,10 @@ fn launch_lich_using(
 
     let pid = child.id();
     // Held so the attach retry can tell "Lich is still booting" from "Lich
-    // exited" - see [`SPAWNED_LICH`] and issue #458. A previous child is
+    // exited" - see [`LichProcess`] and issue #458. A previous child is
     // dropped here, which on every platform this ships to detaches rather
     // than kills: this app does not end a Lich it did not start ending.
-    *SPAWNED_LICH.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
+    SPAWNED_LICH.hold(child);
 
     Ok(LaunchOutcome {
         pid: Some(pid),
@@ -941,7 +1156,10 @@ pub(crate) fn launch_with<T: eaccess::Transport>(
     // `LaunchData`'s inner `Vec<(String, String)>` is exactly what
     // `sal::write_temp` accepts, so there is one type for this and
     // `eaccess.rs` owns it.
-    launch_lich_with_launch_data(&data.0).map_err(LoginFailure::lich_did_not_start)
+    // Already a `LoginFailure`, and deliberately not re-wrapped: #488 §3 was
+    // an "already running" refusal arriving as `lich_did_not_start`, which
+    // pointed the player at a diagnostic when the answer was Attach.
+    launch_lich_with_launch_data(&data.0)
 }
 
 /// Where the password for a sign-in came from.
@@ -1872,5 +2090,272 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(20));
         }
         panic!("the backstop left {} on disk", path.display());
+    }
+
+    // -----------------------------------------------------------------------
+    // What happens to Lich when the app closes. Issue #488 §3.
+    //
+    // A loopback stand-in throughout: `ping -n 60 127.0.0.1` is a real child
+    // process, on every Windows, that lives long enough to be found alive and
+    // dies when it is killed. No Ruby, no Lich, and nothing that could touch a
+    // session somebody is playing.
+    //
+    // Every one of these asserts the **outcome** - whether the operating
+    // system still lists the pid - rather than what `stop` or `release`
+    // returned about itself. A `StopOutcome::Killed` from a function that
+    // killed nothing reads identically to one that worked.
+    // -----------------------------------------------------------------------
+
+    /// A child that will still be there in a moment. Returns it with its pid.
+    #[cfg(windows)]
+    fn loopback_stand_in() -> std::process::Child {
+        Command::new("ping")
+            .args(["-n", "60", "127.0.0.1"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .expect("the loopback stand-in starts")
+    }
+
+    /// Does the operating system still list this pid?
+    ///
+    /// Asked of the OS rather than of the handle we just used, because the
+    /// handle is the thing under test. `None` where the question could not be
+    /// asked at all, which is not the same answer as "gone" - a test that read
+    /// a broken tasklist as a successful kill would be certifying nothing.
+    #[cfg(windows)]
+    fn pid_listed(pid: u32) -> Option<bool> {
+        let out = Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+            .output()
+            .ok()?;
+        let listed = String::from_utf8_lossy(&out.stdout);
+        if listed.trim().is_empty() {
+            return None;
+        }
+        Some(listed.contains(&format!("\"{pid}\"")))
+    }
+
+    /// Wait for a pid to disappear, so a kill is not raced against a check.
+    #[cfg(windows)]
+    fn wait_for_exit(pid: u32) -> bool {
+        for _ in 0..100 {
+            if pid_listed(pid) == Some(false) {
+                return true;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        false
+    }
+
+    /// "Stop Lich" ends the process this app started, and takes the launch
+    /// file with it.
+    ///
+    /// The controls are the whole test. The stand-in is asserted alive and the
+    /// launch file asserted on disk *before* the stop, because "gone" is
+    /// equally true of a process that never started and a file that was never
+    /// written - and a `stop` that did nothing would pass without them.
+    #[test]
+    #[cfg(windows)]
+    fn stopping_lich_ends_the_process_and_shreds_the_launch_file() {
+        let _held = LICH_PROCESS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let _pending = LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        let child = loopback_stand_in();
+        let pid = child.id();
+        SPAWNED_LICH.hold(child);
+
+        let path = std::env::temp_dir().join(format!("drc-stop-{pid}.sal"));
+        std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
+        remember_launch_file_for_test(path.clone());
+
+        // Controls, before anything is stopped.
+        assert_eq!(
+            pid_listed(pid),
+            Some(true),
+            "control: the stand-in is running before the stop"
+        );
+        assert_eq!(
+            SPAWNED_LICH.status(),
+            SpawnedLich::Running,
+            "control: the handle agrees it is running"
+        );
+        assert!(path.exists(), "control: the launch file is on disk");
+
+        assert_eq!(SPAWNED_LICH.stop(), StopOutcome::Killed);
+
+        assert!(wait_for_exit(pid), "the stand-in survived a stop");
+        assert!(
+            !path.exists(),
+            "the launch file outlived the Lich it was for"
+        );
+        assert_eq!(
+            SPAWNED_LICH.status(),
+            SpawnedLich::NotOurs,
+            "the handle is given up as well as the process"
+        );
+    }
+
+    /// "Leave it running" gives up the handle and touches nothing.
+    ///
+    /// The negative control for the case above, and the behaviour the app has
+    /// on every path that is not the close prompt: a crash, a kill, or a
+    /// webview that never answers all end here. The stand-in is killed at the
+    /// end by the pid this test started - never by image name, which on this
+    /// machine would reach other sessions' processes.
+    #[test]
+    #[cfg(windows)]
+    fn leaving_lich_running_releases_the_handle_and_the_process_survives() {
+        let _held = LICH_PROCESS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let _pending = LAUNCH_FILE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        let child = loopback_stand_in();
+        let pid = child.id();
+        SPAWNED_LICH.hold(child);
+
+        let path = std::env::temp_dir().join(format!("drc-release-{pid}.sal"));
+        std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
+        remember_launch_file_for_test(path.clone());
+
+        assert_eq!(
+            pid_listed(pid),
+            Some(true),
+            "control: the stand-in is running before the release"
+        );
+
+        assert!(SPAWNED_LICH.release(), "there was a handle to release");
+
+        assert_eq!(
+            pid_listed(pid),
+            Some(true),
+            "releasing the handle ended the process; it must not"
+        );
+        assert!(
+            path.exists(),
+            "releasing shredded the launch file; the Lich that needs it is \
+             still running and the attach and the backstop still own it"
+        );
+        assert_eq!(
+            SPAWNED_LICH.status(),
+            SpawnedLich::NotOurs,
+            "the handle is gone even though the process is not"
+        );
+
+        // Clean up by the pid this test launched, never by image name.
+        let _ = Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/F"])
+            .output();
+        assert!(wait_for_exit(pid), "the stand-in outlived its own test");
+        assert_eq!(shred_pending_launch_files(), 1);
+    }
+
+    /// Releasing twice, and releasing nothing, are different answers.
+    ///
+    /// A `release` that always said `true` would make the test above pass
+    /// while reporting a handle it never had.
+    #[test]
+    #[cfg(windows)]
+    fn releasing_nothing_says_there_was_nothing() {
+        let _held = LICH_PROCESS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        // Whatever a previous case left, so this starts from empty.
+        SPAWNED_LICH.release();
+        assert!(!SPAWNED_LICH.release());
+        assert_eq!(SPAWNED_LICH.stop(), StopOutcome::NotOurs);
+    }
+
+    /// A Lich that has already exited is not something this app killed.
+    ///
+    /// Three states, not two: `stop` has to be able to say "there was nothing
+    /// to stop", "it was already gone" and "I ended it", or a caller reporting
+    /// what happened is guessing at two thirds of it.
+    #[test]
+    #[cfg(windows)]
+    fn stopping_a_lich_that_already_exited_says_so_rather_than_killed() {
+        let _held = LICH_PROCESS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        SPAWNED_LICH.release();
+
+        let child = Command::new("cmd")
+            .args(["/C", "exit", "0"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .expect("the stand-in starts");
+        let pid = child.id();
+        SPAWNED_LICH.hold(child);
+        assert!(wait_for_exit(pid), "control: the stand-in exits by itself");
+
+        assert!(
+            matches!(SPAWNED_LICH.status(), SpawnedLich::Exited(_)),
+            "control: the handle sees the exit"
+        );
+        assert_eq!(SPAWNED_LICH.stop(), StopOutcome::AlreadyGone);
+        assert_eq!(SPAWNED_LICH.status(), SpawnedLich::NotOurs);
+    }
+
+    /// The webview is told about a running Lich only when there is one to be
+    /// told about.
+    #[test]
+    #[cfg(windows)]
+    fn the_close_prompt_is_only_offered_for_a_running_lich_this_app_started() {
+        let _held = LICH_PROCESS_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        SPAWNED_LICH.release();
+
+        assert_eq!(
+            lich_owned_status(),
+            OwnedLich::default(),
+            "a Lich the player started themselves is not ours to end"
+        );
+
+        let child = loopback_stand_in();
+        let pid = child.id();
+        SPAWNED_LICH.hold(child);
+        let asked = lich_owned_status();
+        assert!(asked.ours && asked.running, "{asked:?}");
+
+        assert_eq!(SPAWNED_LICH.stop(), StopOutcome::Killed);
+        assert!(wait_for_exit(pid));
+        assert_eq!(
+            lich_owned_status(),
+            OwnedLich::default(),
+            "nothing left to ask about once it has been stopped"
+        );
+    }
+
+    /// The refusal a running Lich produces is the one that offers Attach.
+    ///
+    /// #488 §3: this arrived as `lich_did_not_start`, whose player sentence
+    /// sends them to "Why won't it start?" - a diagnostic for a Lich that is
+    /// running perfectly well. The three states are driven here because the
+    /// caller cannot be aimed at them on a machine that has Lich installed.
+    #[test]
+    fn a_lich_that_is_already_up_is_an_attach_offer_and_not_a_diagnostic() {
+        let refusal =
+            already_running_refusal(true, true).expect("a known-running Lich refuses the launch");
+        assert_eq!(refusal.code, "lich_already_running");
+        assert_ne!(
+            refusal.code, "lich_did_not_start",
+            "the diagnostic sentence is the wrong thing to show for a Lich that is up"
+        );
+
+        // The two states that must not refuse, and the second is the reason
+        // this is a three-way question: an unreadable process list is not
+        // evidence that a Lich is running.
+        assert!(already_running_refusal(true, false).is_none());
+        assert!(
+            already_running_refusal(false, true).is_none(),
+            "an unknown process list must not be reported as a running Lich"
+        );
     }
 }

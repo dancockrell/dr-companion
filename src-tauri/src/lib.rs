@@ -169,6 +169,26 @@ fn panel_windows(app: tauri::AppHandle) -> Vec<String> {
         .collect()
 }
 
+/// Finish closing the main window once the Lich close prompt has been answered.
+///
+/// `destroy`, not `close`: `close` raises `CloseRequested` again and the
+/// handler in `run` would ask the same question a second time. Destroy skips
+/// it, which is right here because the question has just been answered.
+///
+/// Its own command rather than folded into `lich_stop` / `lich_release`,
+/// because those two are about a process and this is about a window - and a
+/// "stop Lich" that also closed the app would be doing two things under one
+/// name. It is also why the capability file does not need `core:window:
+/// allow-destroy`: nothing but this command can close the window, and it can
+/// only do it to `main`.
+#[tauri::command]
+fn close_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("there is no main window to close")?;
+    window.destroy().map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -197,6 +217,8 @@ pub fn run() {
             lich::lich_status,
             lich::frontend_conflict_status,
             lich::launch_lich,
+            lich::lich_stop,
+            lich::lich_release,
             lich::lich_login_characters,
             lich::lich_login_launch,
             lich_health::lich_health,
@@ -214,6 +236,7 @@ pub fn run() {
             setup::run_installer,
             app_data_path,
             bridge_default_url,
+            close_main_window,
             set_always_on_top,
             open_panel_window,
             close_panel_window,
@@ -286,6 +309,46 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_title("DR Companion");
+
+                // The Lich close prompt (issue #488 §3).
+                //
+                // Nothing on the exit path ends a Lich by itself, and that is
+                // deliberate: a Lich this app started is a character somebody
+                // is playing, and closing a companion window is not a request
+                // to log them out. But the app *did* start it, so walking away
+                // in silence is not right either - it leaves a process the
+                // player never chose to keep.
+                //
+                // So the close asks, once, and only when there is something to
+                // ask about: a Lich this app started that is still running. The
+                // question itself is the webview's, because it is a question,
+                // and Rust exposes the two answers as `lich_stop` and
+                // `lich_release`. Whichever the player picks, the frontend
+                // closes the window, and this handler does not fire a second
+                // time because by then `lich_owned_status().running` is false.
+                //
+                // Crash, kill, or a webview that never answers: Lich survives,
+                // which is the same outcome as "leave it running" and the
+                // reason the next start offers Attach rather than a refusal.
+                let close_handle = window.clone();
+                window.on_window_event(move |event| {
+                    if let WindowEvent::CloseRequested { api, .. } = event {
+                        let owned = lich::lich_owned_status();
+                        if owned.ours && owned.running {
+                            api.prevent_close();
+                            // If this emit fails there is no prompt and the
+                            // window would be stuck shut, so a failure closes
+                            // rather than traps: an unanswerable question is
+                            // worse than an unasked one.
+                            if close_handle.emit("lich-close-prompt", owned).is_err() {
+                                eprintln!(
+                                    "warning: could not ask about the running Lich; closing and leaving it running"
+                                );
+                                let _ = close_handle.destroy();
+                            }
+                        }
+                    }
+                });
 
                 // Wide enough for the layout it actually has.
                 //
@@ -430,6 +493,14 @@ pub fn run() {
             // it, connected to nothing, and Task Manager is the only way to be
             // rid of it. Killed by the handle we hold, never by image name -
             // several sessions run on this machine.
+            //
+            // Lich is deliberately **not** here, and the contrast is the whole
+            // point (issue #488 §3). A viewer with no app is furniture; a Lich
+            // with no app is a character still logged into the game. So Lich
+            // outlives this process unless the player said otherwise at the
+            // close prompt above, and `lich::LichProcess` documents that
+            // lifetime. Do not "make the two consistent": that would log a
+            // player out.
             if matches!(event, tauri::RunEvent::Exit) {
                 use tauri::Manager;
                 viewer::close_viewer(&app.state::<viewer::ViewerProcess>());
