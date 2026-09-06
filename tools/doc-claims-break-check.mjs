@@ -30,6 +30,25 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { watchTree } from './break-check-tree.mjs'
 
+/**
+ * The gate's own stage count, read from `tools/gate.mjs` rather than typed.
+ *
+ * `doc-claims-test.mjs` names those two checks `<doc> quotes the real stage
+ * count (<n>)`, where `<n>` is `EXPECTED_STAGES`. Writing that number into the
+ * `expect` fields below made them go stale the first time a stage was added
+ * (#488, which took the gate from ten stages to eleven): the sabotage still
+ * reddened the right check, and this file said it had not, because the name it
+ * was looking for no longer existed. A break-check that cries wolf on a correct
+ * tree is worth nothing, so the number comes from the same place the test's
+ * does.
+ */
+const STAGE_COUNT = readFileSync('tools/gate.mjs', 'utf8').match(/^const EXPECTED_STAGES = (\d+)$/m)?.[1]
+if (!STAGE_COUNT) {
+  console.error('ABORT: EXPECTED_STAGES did not parse out of tools/gate.mjs; the two stage-count cases')
+  console.error('       below would look for a check name that cannot exist, and report a false failure.')
+  process.exit(2)
+}
+
 const CASES = [
   {
     file: 'docs/TESTING.md',
@@ -217,18 +236,18 @@ const CASES = [
     // finding that rots. A merger told to look for a number the gate no longer
     // prints learns to skip the line, which is worse than no instruction.
     file: 'docs/MERGING.md',
-    from: 'gate ok: 10 of 10 stages ran',
+    from: 'gate ok: 11 of 11 stages ran',
     to: 'gate ok: 7 of 7 stages ran',
-    expect: 'docs/MERGING.md quotes the real stage count (10)',
+    expect: `docs/MERGING.md quotes the real stage count (${STAGE_COUNT})`,
   },
   {
     // The same, from the other document. Both are asserted separately on
     // purpose: one check covering "some document quotes it" would stay green
     // with either of them wrong.
     file: '.github/PULL_REQUEST_TEMPLATE.md',
-    from: '`gate ok: 10 of 10 stages ran`',
+    from: '`gate ok: 11 of 11 stages ran`',
     to: '`gate ok: 7 of 7 stages ran`',
-    expect: '.github/PULL_REQUEST_TEMPLATE.md quotes the real stage count (10)',
+    expect: `.github/PULL_REQUEST_TEMPLATE.md quotes the real stage count (${STAGE_COUNT})`,
   },
   {
     // The link, not the content. `docs/MERGING.md` is the only copy of the
