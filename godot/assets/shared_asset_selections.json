@@ -716,7 +716,7 @@
       "placementPolicy": "normalized tabletop composition, not measured geography",
       "missing": [
         "weapon inventory meshes",
-        "pine bench replacement",
+        "pine bench",
         "finished interior walls"
       ],
       "pieces": [
@@ -758,19 +758,6 @@
           ],
           "lift": 0.02,
           "yawDegrees": 90
-        },
-        {
-          "assetId": "painted-river-port.stone-bench",
-          "center": [
-            0.32,
-            0.18
-          ],
-          "envelope": [
-            0.25,
-            0.2
-          ],
-          "lift": 0.02,
-          "yawDegrees": 0
         }
       ]
     },

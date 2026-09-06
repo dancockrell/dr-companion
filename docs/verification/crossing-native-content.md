@@ -33,7 +33,7 @@ still unfinished.** Loading all rooms is not the same as finishing their art.
   description. Paraphrased room-specific visual evidence is linked to
   [Milgrym's Weapons](https://elanthipedia.play.net/Milgrym%27s_Weapons) and
   [Tembeg's Armory](https://elanthipedia.play.net/Tembeg%27s_Armory).
-- **382 Godot checks across 18 scripts pass**. Geometry-drift gate: 27 checks
+- **381 Godot checks across 18 scripts pass**. Geometry-drift gate: 27 checks
   pass. Fixture contract, geometric briefs and primitive-world tests were rerun.
   The first PR's red gate was repaired; no unrelated tests were suppressed.
 
@@ -48,9 +48,9 @@ still unfinished.** Loading all rooms is not the same as finishing their art.
 ![Full graph overview; not finished city art](crossing-native-world.png)
 
 The market is still a furnishing study, not a finished crowded market. Shop
-fixtures still lack their inventory and finished enclosing architecture. A stone
-bench in the weaponsmith study is an explicitly unfinished material substitution,
-not an assertion that the source's pine bench is stone. Do not admit these sets
+fixtures still lack their inventory and finished enclosing architecture. The
+weaponsmith's pine bench remains missing; a stone substitute seen in the first
+review was removed rather than admitted as an inaccurate literal asset. Do not admit these sets
 as lore-complete production scenes.
 
 ### Remaining work toward the complete vertical slice

@@ -2,8 +2,8 @@
   "schema_version": 1,
   "task_id": "crossing-native-content",
   "agent": "codex",
-  "summary": "Expand Crossing assets, full-zone authoring coverage and confirmed live content integration",
-  "status": "active",
+  "summary": "Published incremental Crossing expansion: full graph, live identity enrichment, 14 partial sets and 17 shared models; complete vertical slice remains unfinished",
+  "status": "completed",
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T03:00:00Z",
   "paths": [
@@ -26,7 +26,15 @@
     "tools/build-primitive-world-manifest.mjs",
     "tools/build-godot-mock-fixture.mjs",
     "godot/scripts/world_manifest_loader.gd",
-    "godot/tests/crossing_world_test.gd"
+    "godot/tests/crossing_world_test.gd",
+    "godot/scripts/camera_director.gd",
+    "godot/tests/camera_director_test.gd",
+    "data/art/room-place-map.json",
+    "data/art/room-prompts-priority.json",
+    "docs/verification/crossing-native-armory-approach.png",
+    "docs/verification/crossing-native-bazaar.png",
+    "docs/verification/crossing-native-weaponsmith.png",
+    "docs/verification/crossing-native-world.png"
   ],
   "coordination": {
     "depends_on": [],
@@ -34,7 +42,15 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": null,
-    "checks": []
+    "commit": "f2f6e04b, 228d6c15, 240cb161; final audit commit follows",
+    "checks": [
+      "Godot full suite: 381 checks across 18 scripts passed after removal of inaccurate bench",
+      "npm run build passed",
+      "27 board geometry drift checks passed",
+      "Fixture contract: 61 passed, one non-applicable generated-live-artifact rule not checked",
+      "Geometric briefs and primitive world tests passed",
+      "Six real viewer room captures plus full graph overview inspected",
+      "Full visual slice, live character traversal and dense performance acceptance NOT COMPLETE"
+    ]
   }
 }
