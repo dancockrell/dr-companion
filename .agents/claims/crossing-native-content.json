@@ -7,6 +7,12 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "src/lib/world-content-rules.mjs",
+    "src/data/world/",
+    "tools/build-world-content.mjs",
+    "tools/world-content-test.mjs",
+    "tools/world-content-residue.csv",
+    "docs/WORLD_CONTENT_INTEGRATION.md",
     "docs/verification/crossing-native-room-1-326.png",
     "docs/verification/crossing-native-room-1-226.png",
     "docs/verification/crossing-native-room-1-227.png",

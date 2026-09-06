@@ -34,6 +34,25 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 14,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -221,6 +240,29 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 12,
+        "ground": "street",
+        "rule": "neighbour",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "east",
+          "southeast",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -372,6 +414,29 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 13,
+        "ground": "grass",
+        "rule": "neighbour",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "east",
+          "southeast",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -523,6 +588,28 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 15,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -695,6 +782,25 @@
         "landmark"
       ],
       "spatialMode": "interior-cutaway",
+      "cartographicContent": {
+        "id": 16,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "southeast",
+          "southwest"
+        ]
+      },
       "palette": "warm-interior",
       "board": {
         "footprint": {
@@ -878,6 +984,28 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 17,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -1053,6 +1181,29 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 22,
+        "ground": "street",
+        "rule": "neighbour",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "southeast",
+          "south",
+          "southwest",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -1204,6 +1355,27 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 23,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "southeast",
+          "south",
+          "southwest",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -1366,6 +1538,30 @@
         "unresolved"
       ],
       "spatialMode": "unresolved",
+      "cartographicContent": {
+        "id": 24,
+        "ground": "path",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
@@ -1512,6 +1708,28 @@
         "unresolved"
       ],
       "spatialMode": "unresolved",
+      "cartographicContent": {
+        "id": 40,
+        "ground": "street",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "southeast",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
@@ -1671,6 +1889,31 @@
         "interior"
       ],
       "spatialMode": "interior-cutaway",
+      "cartographicContent": {
+        "id": 191,
+        "ground": "interior",
+        "rule": "colour",
+        "block": "building-interior",
+        "landmark": "weapon",
+        "classification": {
+          "tags": [
+            "interior"
+          ],
+          "specialKinds": [],
+          "spatialMode": "interior-cutaway",
+          "tier": "feature"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "warm-interior",
       "board": {
         "footprint": {
@@ -1812,6 +2055,31 @@
         "interior"
       ],
       "spatialMode": "interior-cutaway",
+      "cartographicContent": {
+        "id": 192,
+        "ground": "interior",
+        "rule": "colour",
+        "block": "building-interior",
+        "landmark": "armor",
+        "classification": {
+          "tags": [
+            "interior"
+          ],
+          "specialKinds": [],
+          "spatialMode": "interior-cutaway",
+          "tier": "feature"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "warm-interior",
       "board": {
         "footprint": {
@@ -1959,6 +2227,27 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 225,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "southwest",
+          "west"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -2129,6 +2418,29 @@
         "landmark"
       ],
       "spatialMode": "waterfront",
+      "cartographicContent": {
+        "id": 264,
+        "ground": "grass",
+        "rule": "neighbour",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "northwest"
+        ]
+      },
       "palette": "river-blue-green",
       "board": {
         "footprint": {
@@ -2284,6 +2596,30 @@
         "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 371,
+        "ground": "interior",
+        "rule": "title",
+        "block": "building-interior",
+        "landmark": "performance",
+        "classification": {
+          "tags": [
+            "interior"
+          ],
+          "specialKinds": [],
+          "spatialMode": "interior-cutaway",
+          "tier": "feature"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -2431,6 +2767,31 @@
         "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 377,
+        "ground": "grass",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": "performance",
+        "classification": {
+          "tags": [
+            "ordinary"
+          ],
+          "specialKinds": [],
+          "spatialMode": "exterior-cell",
+          "tier": "ordinary"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -2579,6 +2940,31 @@
         "landmark"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 379,
+        "ground": "street",
+        "rule": "title",
+        "block": "outdoor-open",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "market"
+          ],
+          "specialKinds": [
+            "market"
+          ],
+          "spatialMode": "exterior-cell",
+          "tier": "special"
+        },
+        "boundaryEdges": [
+          "northeast",
+          "east",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
@@ -2748,6 +3134,31 @@
         "landmark"
       ],
       "spatialMode": "waterfront",
+      "cartographicContent": {
+        "id": 467,
+        "ground": "water",
+        "rule": "title",
+        "block": "water",
+        "landmark": null,
+        "classification": {
+          "tags": [
+            "water"
+          ],
+          "specialKinds": [],
+          "spatialMode": "waterfront",
+          "tier": "feature"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "river-blue-green",
       "board": {
         "footprint": {
@@ -2901,6 +3312,31 @@
         "ordinary"
       ],
       "spatialMode": "exterior-cell",
+      "cartographicContent": {
+        "id": 853,
+        "ground": "cave",
+        "rule": "title",
+        "block": "cave",
+        "landmark": "portal",
+        "classification": {
+          "tags": [
+            "interior"
+          ],
+          "specialKinds": [],
+          "spatialMode": "interior-cutaway",
+          "tier": "feature"
+        },
+        "boundaryEdges": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest"
+        ]
+      },
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {

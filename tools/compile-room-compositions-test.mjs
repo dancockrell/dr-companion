@@ -26,6 +26,10 @@ for (const recipe of generated) {
   }
 }
 const cell=world.cells.find(c=>c.id===generated[0].cellId)
+assert(world.cells.every(c=>c.cartographicContent?.id===c.roomId), 'All Crossing cells join their own cartographic record')
+const locker=world.cells.find(c=>c.id==='1-326')
+assert.equal(locker.cartographicContent.block,'building-interior')
+assert.equal(result.roomCompositions.find(r=>r.cellId==='1-326').pieces[0].surfaceKind,'interior-floor-5m')
 const single={...world,cells:[cell]}, empty={...selections,roomCompositions:[]}
 for (const lore of ['There is no workbench here.','A distant anvil stands beyond the window.','An anvil is depicted on the sign.']) {
   assert.equal(compileRoomCompositions(single,{...sources,[cell.sourceDescriptionId]:{room:cell.roomId,lore}},empty,provenance).report.generatedRooms,0)

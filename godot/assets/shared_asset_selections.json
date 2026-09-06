@@ -3260,8 +3260,8 @@
       "cellId": "1-1027",
       "descriptionHash": "f20c288a5e843a39",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "74ff9c315d08bb3d65613bbf562d5eefe1ff1bdaf41b6f971cc2d9c8e215bb06",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "8b710a877b06787590730e697d8dca503c780a8c9192e67badca2deb600325c3",
       "requiredExits": [
         {
           "move": "go obsidian entryway",
@@ -3283,7 +3283,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -3323,8 +3323,8 @@
       "cellId": "1-326",
       "descriptionHash": "c684a708fb52632a",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "1f6a78fa3717e49e4c5fdb9ed7a59ecf58ceac916b6cc2d82d53c517977b9ec0",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "f4f8d6e9a5f9dd704f493df7acd528ac280a464b7a39b9b696bd38fcfd6d2121",
       "requiredExits": [
         {
           "move": "out",
@@ -3386,8 +3386,8 @@
       "cellId": "1-334",
       "descriptionHash": "09bf4fcc1a14ad58",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "2cc26ed66eecf60c85d40c0d63bb972189f2208058a304367114a6db06206d7a",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "e1d9d1edda11700a54742e9f19222897ebf8cdc0b31e0c1342701ad24ead5c16",
       "requiredExits": [
         {
           "move": "go fros door",
@@ -3449,8 +3449,8 @@
       "cellId": "1-348",
       "descriptionHash": "172e3290cd189a44",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "491a1839b115f4e3ad15f3f27f70e000a62c71ff7e99e1023d662ee042c2a928",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "10aa050995b6dc8c6235d80d4b30ea0a7144a6ea03a5d68578ad9c3256964777",
       "requiredExits": [
         {
           "move": "go low building",
@@ -3527,8 +3527,8 @@
       "cellId": "1-378",
       "descriptionHash": "1753c37a7dc9be4e",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "8ea2a10adf7e04b22cf948a65455c0441b943005721938483c7f76b0c242818b",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "808205c2492edb21002d158d3063bde837e8c6a6ec5ef41f96ad61d98f2213e3",
       "requiredExits": [
         {
           "move": "go archway",
@@ -3550,7 +3550,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -3590,8 +3590,8 @@
       "cellId": "1-432",
       "descriptionHash": "16a2c2113d7358a2",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "ec94bead7c128211a5ee14a20f3fa1154f0bcb18da171857b138e5cf56436fed",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "9c37a7e530296458bbca0350aed1ce22179d749eecb011bf95a242efaebc837e",
       "requiredExits": [
         {
           "move": "go wide arch",
@@ -3658,8 +3658,8 @@
       "cellId": "1-469",
       "descriptionHash": "22efbd94d5bbf7c2",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "3e8c26895930bc2ee1d90d88f84e1b063fa8420a6e3965c2404b10a5592f495f",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "3e437cb27e76ed01b5eb18179b77bdf1a2e796637bd7523376672ec997760f4e",
       "requiredExits": [
         {
           "move": "west",
@@ -3686,7 +3686,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -3726,8 +3726,8 @@
       "cellId": "1-687",
       "descriptionHash": "0d36136e0a0e760e",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "fa9aacfab0fee3533e4301c8a2f117f9c00b49aa6a04c22f313cf573ca8d59f8",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "1dbb976c6bdb242ed3bce8fa7160d1abfd1df6cd3a7b21ea84b88a45577dcdd4",
       "requiredExits": [
         {
           "move": "go archway",
@@ -3789,8 +3789,8 @@
       "cellId": "1-690",
       "descriptionHash": "0c9c16adaba0e2ac",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "3c68b76b6b17ed1f1970d11ee3d0092e3a3e48860851f4d38093da345c9630dc",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "b9d2691b4f8d47b89a38484dbaed2479b994d33888ca6dc0715028d29af143aa",
       "requiredExits": [
         {
           "move": "go archway",
@@ -3852,8 +3852,8 @@
       "cellId": "1-700",
       "descriptionHash": "24d71b5ea2ae85f5",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "a1aacdf115b1fe60a68dd463deb35b4b547dda4ce7beb4ef154a72d894f5c5b1",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "9db30ca3bd25e0e3daabeecb3b132c25356ef82326c7b8c219e94c9afe8ac879",
       "requiredExits": [
         {
           "move": "go main bar",
@@ -3875,7 +3875,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -3915,8 +3915,8 @@
       "cellId": "1-703",
       "descriptionHash": "a266d8b0f67e1439",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "fccbc98b41073335d85818d7d822e43b3bdc18e6b962aa9b3000e4494a27315a",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "ebd10e6bb50bf7e2a11d4501790abf50c2206290832c4bfaf4dc53277132a1ae",
       "requiredExits": [
         {
           "move": "out",
@@ -3938,7 +3938,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -3978,8 +3978,8 @@
       "cellId": "1-757",
       "descriptionHash": "d347654a688911ae",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "48b3c2a8233a23568f241f24cbe395b8e9b5cc14621b7a5aa42f2713c32f89a5",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "373820c0a98ddbd27121d7358938156831faaaed8fed78f8ae17cbdfc5a4d996",
       "requiredExits": [
         {
           "move": "east",
@@ -4051,8 +4051,8 @@
       "cellId": "1-786",
       "descriptionHash": "c962aa10b50e8bc6",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "85fb588d592c25910fcfdf4426f130b3b4fd2c7a81c7a252ba435b4648aaf8ee",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "ca17d60e25c9c29177027b78d0747ce7a866f7564052162010fc94d39576d187",
       "requiredExits": [
         {
           "move": "go flame-shaped opening",
@@ -4074,7 +4074,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -4114,8 +4114,8 @@
       "cellId": "1-897",
       "descriptionHash": "7552c8be7c279ff0",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "32fdb53477869ffbd37c24f6dbc1a2120be4a812cb21c3cc2ebb5091623d70a2",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "54601c085bfc890f9157e73987f699cd83461f82f89432d356a60a33ee183dc3",
       "requiredExits": [
         {
           "move": "out",
@@ -4137,7 +4137,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -4177,8 +4177,8 @@
       "cellId": "1-908",
       "descriptionHash": "0204653e25bdf82e",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "a02e4f50aea77cffee8dc1fb688ebbc930e382427d6a48817ebe010b3719114f",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "e9075a6d730080f310f35b6c26223e68be4a07be63695bbb7434e1951081a58b",
       "requiredExits": [
         {
           "move": "go arch",
@@ -4200,7 +4200,7 @@
       ],
       "pieces": [
         {
-          "surfaceKind": "terrain-cell-5m",
+          "surfaceKind": "interior-floor-5m",
           "center": [
             0,
             0
@@ -4240,8 +4240,8 @@
       "cellId": "1-922",
       "descriptionHash": "6aa6302c63b777a8",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "5c73981bb294558c5b8cba78c94e17c32e3d4605c7a16f89e4c6606ba650ee9c",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "6956a63586a3a1580a60e64f63a336c6083d74ab19f03c388f948aab7229ccae",
       "requiredExits": [
         {
           "move": "go oak door",
@@ -4303,8 +4303,8 @@
       "cellId": "1-927",
       "descriptionHash": "ec0699bf97a49ae3",
       "status": "partial-generated-review-required",
-      "generatedBy": "bounded-furnishing-v3",
-      "inputHash": "e82896983a875863994469843777235740e8c7ec1d94fb110f1e3bc2012c03ab",
+      "generatedBy": "bounded-furnishing-v4",
+      "inputHash": "aa3ddbecb9ee86a976c144b370e070141be61ea45338cec2aae03ac89ca09ed5",
       "requiredExits": [
         {
           "move": "south",

@@ -14,6 +14,11 @@ const reviewPath = join(outputDir, `${zone}-primitive-world-review.md`)
 execFileSync(process.execPath, ['tools/build-geometric-room-briefs.mjs'], { stdio: 'inherit' })
 execFileSync(process.execPath, ['tools/build-crossing-primitive-registry.mjs'], { stdio: 'inherit' })
 const catalogue = JSON.parse(readFileSync(briefsPath, 'utf8'))
+// The imported all-world compiler owns cartographic classification. Keep it
+// separate from stronger room prose and never let it alter routes or source IDs.
+execFileSync(process.execPath, ['--experimental-strip-types', 'tools/build-world-content.mjs'], { stdio: 'pipe' })
+const cartography = JSON.parse(readFileSync(join('src/data/world', `${zone}.json`), 'utf8'))
+const cartographyByRoom = new Map(cartography.rooms.map(room => [room.id, room]))
 const primitiveRegistry = JSON.parse(readFileSync(join(outputDir, 'crossing-primitive-registry.json'), 'utf8'))
 const primitiveIds = new Set(primitiveRegistry.assets.map((asset) => asset.id))
 const cellsForZone = catalogue.roomBriefs
@@ -89,6 +94,7 @@ const cells = cellsForZone.map((cell) => ({
   tier: cell.classification.tier,
   tags: cell.classification.tags,
   spatialMode: cell.classification.spatialMode,
+  cartographicContent: cartographyByRoom.get(cell.roomId) ?? null,
   palette: palette(cell),
   board: boardLayoutFor(cell),
   primitives: primitiveRecipe(cell),

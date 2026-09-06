@@ -5,7 +5,7 @@
 ### Batch composition compiler checkpoint
 
 The existing city batch command now compiles actual roomCompositions, not just
-an inventory. The current bounded-furnishing-v3 rule set generates 17 partial
+an inventory. The current bounded-furnishing-v4 rule set generates 17 partial
 compositions while retaining 26 authored overrides. It consumes the existing
 source descriptions, authoritative world cells and selected native asset bounds;
 the existing SharedAssetContent renderer remains the sole composition renderer.
@@ -45,9 +45,10 @@ Concurrent work discovered on origin/feat/world-content-pipeline at 9491201a
 adds all-zone cartographic ground/block classification in world-content-rules.mjs
 and build-world-content.mjs. This checkpoint does not duplicate that classifier:
 it adds native furnishing composition to the existing renderer. The concurrent
-classification work is not integrated or validated here yet. Reconcile its
-structural classification and boundary outputs before adding a new structural
-classifier; preserve description evidence as the stronger room-specific source.
+classification work has now been integrated into the existing primitive-world
+build and independently tested. See WORLD_CONTENT_INTEGRATION.md one directory
+above for the exact source commit, evidence precedence and remaining risks.
+Its boundary hints are not yet admitted as physical walls or shorelines.
 
 ### Typed architectural exit correction
 

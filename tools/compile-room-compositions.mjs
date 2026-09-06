@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const COMPILER_VERSION = 'bounded-furnishing-v3'
+export const COMPILER_VERSION = 'bounded-furnishing-v4'
 const prefix='painted-river-port.'
 // Literal supported nouns only. This is a candidate compiler, not a claim that
 // matching prose proves material, count, local position or artistic completion.
@@ -53,9 +53,9 @@ export function compileRoomCompositions(world,sources,selections,provenance) {
     if (!wanted.length) continue
     const requiredExits=cell.exits.map(e=>({move:e.move,targetCellId:e.targetCellId,boardAnchor:e.boardAnchor}))
     const approaches=requiredExits.flatMap(e=>e.boardAnchor ? [e.boardAnchor] : [{x:width/2,z:0},{x:-width/2,z:0},{x:0,z:depth/2},{x:0,z:-depth/2}])
-    const inputHash=digest([COMPILER_VERSION,cell.sourceDescriptionHash,description,cell.board,requiredExits,wanted.map(w=>available.get(w.assetId)??w.assetId),selections.nativeCatalog.revision])
+    const inputHash=digest([COMPILER_VERSION,cell.sourceDescriptionHash,description,cell.board,cell.cartographicContent,requiredExits,wanted.map(w=>available.get(w.assetId)??w.assetId),selections.nativeCatalog.revision])
     if (old.get(cell.id)?.inputHash===inputHash) { generated.push(old.get(cell.id)); reused++; continue }
-    const interior=cell.spatialMode==='interior-cutaway' || /\b(?:stone|tiled|wooden|onyx)[ -]floor\b/i.test(description)
+    const interior=cell.spatialMode==='interior-cutaway' || cell.cartographicContent?.block==='building-interior' || /\b(?:stone|tiled|wooden|onyx)[ -]floor\b/i.test(description)
     const pieces=[{surfaceKind:interior?'interior-floor-5m':'terrain-cell-5m',center:[0,0],envelope:[1,1],lift:0,role:'base',color:'#72716b'}]
     const occupied=[{minX:-2,maxX:2,minZ:-2,maxZ:2}]
     for (const spawn of cell.board.spawnPoints ?? []) occupied.push({minX:spawn.anchor.x-.7,maxX:spawn.anchor.x+.7,minZ:spawn.anchor.z-.7,maxZ:spawn.anchor.z+.7})
