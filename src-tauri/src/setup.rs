@@ -445,6 +445,52 @@ pub(crate) fn rank_lich_installs(ruby_path: Option<&str>) -> Vec<PathBuf> {
     installs
 }
 
+/// What the Lich row says once the machine has been looked at.
+///
+/// `installs` is `rank_lich_installs`' output, best first; empty means none was
+/// found. Pure, so the wording can be tested without a filesystem.
+///
+/// The found case used to be the bare word "Found", which is also what the
+/// badge beside it says, so the row repeated itself and named nothing. Where
+/// Lich is matters here more than it looks: Ruby4Lich5's own installer defaults
+/// to the Desktop rather than `C:\Ruby4Lich5\Lich5` (see
+/// `docs/verification/first-run-2026-09-05.md`, Defect 2), so the folder a
+/// player ends up with is often not the one this repository's documentation
+/// used to assume, and the bridge script goes wherever this row points.
+pub(crate) fn lich_detail(installs: &[PathBuf]) -> String {
+    let Some(best) = installs.first() else {
+        return "Not installed. It runs alongside your frontend, and your \
+                existing scripts keep working exactly as they do now."
+            .into();
+    };
+
+    if installs.len() == 1 {
+        return format!("Found in {}", pretty_path(best));
+    }
+
+    // Naming the extras matters more than it looks. The bridge script gets
+    // copied into one `scripts\` folder, and if that is not the one the
+    // frontend launches, everything looks installed and nothing happens.
+    format!(
+        "Found {} on this machine. Using {}, because it sits with the Ruby \
+         that will run it. Also here: {}. Point your frontend at that one: \
+         the bridge script goes there, and launching a different Lich just \
+         means nothing happens.",
+        if installs.len() == 2 {
+            "two".into()
+        } else {
+            format!("{}", installs.len())
+        },
+        pretty_path(best),
+        installs
+            .iter()
+            .skip(1)
+            .map(|p| pretty_path(p))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
 fn parse_ruby_major(version_text: &str) -> Option<u32> {
     // "ruby 4.0.5 (2026-...) [x64-mingw-ucrt]"
     let after = version_text.split_whitespace().nth(1)?;
@@ -1341,33 +1387,8 @@ pub async fn plan_setup_inner(
         // app's plumbing, not a toolchain anyone has to adopt.
         label: "Lich 5 (this app's engine)".into(),
         presence: lich_found.is_some().into(),
-        detail: match &lich_found {
-            // Naming the extras matters more than it looks. The bridge script
-            // gets copied into one `scripts\` folder, and if that is not the
-            // one the frontend launches, everything looks installed and
-            // nothing happens.
-            Some(_) if lich_installs.len() > 1 => format!(
-                "Found {} on this machine. Using the one above, because it sits \
-                 with the Ruby that will run it. Also here: {}. Point your \
-                 frontend at the one above — the bridge script goes there, and \
-                 launching a different Lich just means nothing happens.",
-                if lich_installs.len() == 2 {
-                    "two".into()
-                } else {
-                    format!("{}", lich_installs.len())
-                },
-                lich_installs
-                    .iter()
-                    .skip(1)
-                    .map(|p| pretty_path(p))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-            Some(_) => "Found".into(),
-            None => "Not installed. It runs alongside your frontend, and your \
-                     existing scripts keep working exactly as they do now."
-                .into(),
-        },
+        // Says where, not just that. See `lich_detail`.
+        detail: lich_detail(&lich_installs),
         // Shown in the connect guide and pasted into `#config lichpath`, so
         // it should read the way it reads in Explorer. We build candidate
         // paths from a list of spellings ("lich5", "Lich5"), and the one that
@@ -2304,5 +2325,81 @@ mod genie_roots_tests {
         // it fresh on every read/write rather than caching, so two different
         // answers would mean the search itself is nondeterministic.
         assert_eq!(roots, genie_roots());
+    }
+}
+
+#[cfg(test)]
+mod lich_row_tests {
+    use super::*;
+
+    /// The case the clean-VM run actually produced.
+    ///
+    /// Ruby4Lich5's "Lich5 Folder Location" page defaults to the Desktop and
+    /// labels that option as preferred for the other game, so this is where a
+    /// player who clicks Next through the defaults ends up. Detection handles
+    /// it; the row used to answer "Found" and leave the folder to be inferred
+    /// from a separate line. See docs/verification/first-run-2026-09-05.md.
+    #[test]
+    fn a_desktop_lich_is_reported_with_its_path() {
+        let desktop = PathBuf::from(r"C:\Users\tester\Desktop\Lich5");
+        let detail = lich_detail(std::slice::from_ref(&desktop));
+        assert!(
+            detail.contains(&pretty_path(&desktop)),
+            "the row must say where it found Lich, got: {detail}"
+        );
+        assert_ne!(detail, "Found", "the bare word is what this replaced");
+    }
+
+    /// Not the Desktop one, so the test above cannot be passing on a hardcoded
+    /// string: the same call has to produce a different folder.
+    #[test]
+    fn the_installers_other_option_is_reported_the_same_way() {
+        let ruby4lich5 = PathBuf::from(r"C:\Ruby4Lich5\Lich5");
+        let detail = lich_detail(std::slice::from_ref(&ruby4lich5));
+        assert!(detail.contains(&pretty_path(&ruby4lich5)), "got: {detail}");
+        assert!(
+            !detail.contains("Desktop"),
+            "a detail that names a folder nobody has is worse than none: {detail}"
+        );
+    }
+
+    /// `ComponentCard` drops its own path line when the detail already carries
+    /// the path, so the two sides have to agree on the exact spelling. If they
+    /// stop agreeing the card shows the folder twice, which is the noise that
+    /// suppression exists to remove.
+    #[test]
+    fn the_detail_carries_the_same_string_the_path_field_does() {
+        let dir = PathBuf::from(r"C:\Users\tester\Desktop\Lich5");
+        // What `plan_setup` puts in `ComponentPlan::path`: the parent of the
+        // located lich.rbw, run through the same formatter.
+        let path_field = dir
+            .join("lich.rbw")
+            .parent()
+            .map(pretty_path)
+            .expect("lich.rbw has a parent");
+        assert!(lich_detail(std::slice::from_ref(&dir)).contains(&path_field));
+    }
+
+    /// Nothing found is not a folder. A path in this string would be a claim
+    /// about a place that does not exist.
+    #[test]
+    fn nothing_found_says_so_and_names_no_folder() {
+        let detail = lich_detail(&[]);
+        assert!(detail.starts_with("Not installed"), "got: {detail}");
+        assert!(!detail.contains(":\\"), "got: {detail}");
+    }
+
+    /// Two installs is a normal outcome, not an edge case: install Lich by
+    /// hand, later run Ruby4Lich5, and there are two. Both must be named, and
+    /// the chosen one must be identified by folder rather than by "the one
+    /// above", which stopped being true the moment the path line moved.
+    #[test]
+    fn two_installs_name_the_chosen_one_and_the_other() {
+        let chosen = PathBuf::from(r"C:\Ruby4Lich5\Lich5");
+        let other = PathBuf::from(r"C:\Users\tester\Desktop\Lich5");
+        let detail = lich_detail(&[chosen.clone(), other.clone()]);
+        assert!(detail.contains(&pretty_path(&chosen)), "got: {detail}");
+        assert!(detail.contains(&pretty_path(&other)), "got: {detail}");
+        assert!(detail.contains("two"), "got: {detail}");
     }
 }

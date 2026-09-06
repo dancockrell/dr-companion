@@ -907,6 +907,18 @@ that produces no useful error.
 Default paths from the same page, which also improved detection:
 `C:\Ruby4Lich5\Lich5\lich.rbw` with Ruby at `C:\Ruby4Lich5\X.X.X\bin\rubyw.exe`.
 
+That is one of two places Lich legitimately lives, and it is **not** the one a
+new install usually gets. Ruby4Lich5's "Select Additional Tasks - Lich5 Folder
+Location" page offers `C:\Ruby4Lich5\Lich5`, which it labels as preferred for
+DragonRealms, and the Desktop (`%USERPROFILE%\Desktop\Lich5`), which it labels
+as preferred for Gemstone IV **and which is the default**. Measured on a clean
+VM on 5 September 2026: taking the default put Lich on the Desktop, and this
+app found it and installed the bridge there
+(`docs/verification/first-run-2026-09-05.md`, Defect 2). So read any
+`C:\Ruby4Lich5\Lich5` in this repository as "wherever the Ruby4Lich5 installer
+put it", and let `rank_lich_installs` answer it rather than a written path.
+Ruby stays under `C:\Ruby4Lich5` either way; only Lich moves.
+
 ### Genie 5 is too new to recommend to a newcomer
 
 An earlier pass marked Genie 5 portable as the suggested download, on the

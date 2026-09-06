@@ -121,6 +121,7 @@
   "test:map-walk",
   "test:map-nearest",
   "test:verified-claim",
+  "test:setup-guidance",
   "test:test-controller",
   "test:needs-env",
   "test:scrollable-region",

@@ -24,6 +24,7 @@ import {
 import { Button } from '../shared/Button.tsx'
 import {
   formatBytes,
+  RUBY4LICH5_FOLDER_NOTE,
   type ComponentPlan,
   type DownloadOption,
   type Progress,
@@ -94,7 +95,10 @@ export function ComponentCard({
         </div>
 
         <p className="text-xs text-ink-muted leading-snug">{plan.detail}</p>
-        {plan.path && (
+        {/* Skipped when the detail already names it. The Lich row says where
+            it was found rather than the bare word "Found", and printing the
+            same path twice in one card is noise. */}
+        {plan.path && !plan.detail.includes(plan.path) && (
           <p className="text-xs text-ink-faint break-all font-mono">
             {plan.path}
           </p>
@@ -293,6 +297,18 @@ export function ComponentCard({
                       <p className="text-xs text-ink-muted leading-snug pl-3.5">
                         {o.note}
                       </p>
+
+                      {/* "It asks its own questions" is true and unhelpful on
+                        * its own: one of those questions defaults to the other
+                        * game's layout and says so on the page. Shown while
+                        * the option is selected, so it is read before the
+                        * download and still there when "Run the installer"
+                        * appears. See RUBY4LICH5_FOLDER_NOTE. */}
+                      {o.after === 'installer' && (
+                        <p className="text-xs text-ink-muted leading-snug pl-3.5">
+                          {RUBY4LICH5_FOLDER_NOTE}
+                        </p>
+                      )}
 
                       {/* BSD-3-Clause requires attribution and the licence
                         * text to travel with a redistributed binary - see

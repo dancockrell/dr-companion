@@ -150,6 +150,30 @@ export async function revealFile(path: string): Promise<void> {
   await invokeTauri('reveal_file', { path })
 }
 
+/**
+ * What to answer on Ruby4Lich5's folder question.
+ *
+ * Its "Select Additional Tasks - Lich5 Folder Location" page defaults to the
+ * Desktop and labels that option "preferred for Gemstone IV". This is a
+ * DragonRealms client, so a player clicking Next through the defaults is told
+ * by a page we sent them to that they picked the other game's layout. Observed
+ * on a clean VM, 5 Sep 2026 (docs/verification/first-run-2026-09-05.md,
+ * Defect 2).
+ *
+ * Nothing is broken by either answer: that run took the Desktop default and
+ * detection found Lich there and installed the bridge correctly. So this says
+ * both work rather than pushing anyone back through an installer they have
+ * already finished.
+ *
+ * Here rather than inline in the card so it can be asserted as a value.
+ */
+export const RUBY4LICH5_FOLDER_NOTE =
+  'One of its questions is where to put Lich: the Desktop default, which it ' +
+  'labels as preferred for Gemstone IV, or C:\\Ruby4Lich5\\Lich5, which it ' +
+  'labels as preferred for DragonRealms. Both work with this app. The second ' +
+  'keeps Lich beside the Ruby that runs it. If you already picked Desktop, ' +
+  'leave it: this app finds either.'
+
 /** Separate from downloading, on purpose. Running something is its own yes. */
 export async function runInstaller(path: string): Promise<void> {
   await invokeTauri('run_installer', { path })

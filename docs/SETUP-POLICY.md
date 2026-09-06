@@ -175,6 +175,18 @@ itself. Pointing at their installer is better than inventing our own Ruby
 layout, because it is the thing their community supports and troubleshoots. We
 download it, verify it, and hand it to you. It asks its own questions.
 
+One of them needs an answer from us, because that page answers it wrong for
+this game. Its **"Select Additional Tasks - Lich5 Folder Location"** step offers
+`C:\Ruby4Lich5\Lich5`, labelled preferred for DragonRealms, and the Desktop,
+labelled preferred for Gemstone IV and **selected by default**. Both of these
+work with this app. On a clean VM the default was taken deliberately: Lich
+landed on the Desktop, detection found it, and the bridge installed there
+(`docs/verification/first-run-2026-09-05.md`, Defect 2). The Ruby4Lich5 option
+keeps Lich beside the Ruby that runs it, so that is the one the Ruby row
+suggests; anyone who has already clicked past it should leave it alone. Nothing
+in this app is written against either path, and the row now says so before you
+open the installer.
+
 ## What the app never does
 
 - Install or modify Ruby system-wide
