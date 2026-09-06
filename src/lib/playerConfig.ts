@@ -665,42 +665,116 @@ export function identityOf(domain: Domain, rule: Rule): string {
   }
 }
 
+/**
+ * What a merge may do with a rule that is already here under the same
+ * identity, and what it does with rules the incoming set does not mention.
+ *
+ * - `keep-mine` leaves it alone. This is what a second Genie import does: the
+ *   player has edited these since, and Genie's file is the older opinion.
+ * - `update` takes the incoming fields, keeping the local id so anything
+ *   holding that id still resolves. This is what importing a config document
+ *   the player carried from their other machine does.
+ * - `replace-all` is `update` plus deletion: what the document does not carry
+ *   is removed. Destructive on purpose, so it is a separate word rather than
+ *   an option flag on the other two, and the panel confirms it before running.
+ */
+export type MergeMode = 'keep-mine' | 'update' | 'replace-all'
+
+/**
+ * Four numbers per domain, and they are exhaustive on purpose: every entry in
+ * the incoming set lands in exactly one of `added`, `updated` or `unchanged`,
+ * so `added + updated + unchanged` equals what the document held for that
+ * domain. A report whose counts do not sum to the file is a report that lost
+ * something quietly, which is the thing this whole surface exists to prevent -
+ * `tools/player-config-transfer-test.mjs` asserts the sum rather than trusting
+ * it. `removed` is about what was here, not about what arrived, and is zero
+ * outside `replace-all`.
+ */
 export interface MergeReport {
   added: Record<Domain, number>
-  duplicates: Record<Domain, number>
+  updated: Record<Domain, number>
+  unchanged: Record<Domain, number>
+  removed: Record<Domain, number>
+}
+
+/** Everything but the generated id, which is per-machine and is not part of
+ *  whether two rules say the same thing. */
+function sameRule(a: Rule, b: Rule): boolean {
+  const strip = (r: Rule) => {
+    const { id: _id, ...rest } = r as Rule & { id: string }
+    return JSON.stringify(Object.fromEntries(Object.entries(rest).sort(([x], [y]) => (x < y ? -1 : 1))))
+  }
+  return strip(a) === strip(b)
 }
 
 /**
- * Add imported rules to what is already stored, skipping the ones already
- * there by identity. Pure; the caller writes.
+ * Merge an incoming config into what is already stored, by identity. Pure; the
+ * caller writes.
+ *
+ * One merge, three modes, rather than one merge for the Genie import and a
+ * second for the config document: they differ only in what happens on an
+ * identity collision, and two implementations of "is this the same rule" would
+ * eventually disagree about it. `identityOf` is that judgement and it is
+ * already one function.
  */
 export function mergeImported(
   current: PlayerConfig,
-  imported: PlayerConfig
+  imported: PlayerConfig,
+  mode: MergeMode = 'keep-mine'
 ): { config: PlayerConfig; report: MergeReport } {
   const config = emptyPlayerConfig()
   const report: MergeReport = {
     added: {} as Record<Domain, number>,
-    duplicates: {} as Record<Domain, number>,
+    updated: {} as Record<Domain, number>,
+    unchanged: {} as Record<Domain, number>,
+    removed: {} as Record<Domain, number>,
   }
   for (const domain of DOMAINS) {
     const held = current[domain] as Rule[]
-    const seen = new Set(held.map((r) => identityOf(domain, r)))
-    const out = [...held]
+    const byIdentity = new Map(held.map((r) => [identityOf(domain, r), r]))
+    const incoming = new Map<string, Rule>()
     let added = 0
-    let duplicates = 0
+    let updated = 0
+    let unchanged = 0
+
+    // Build the result in the order the player already had, so an update does
+    // not reorder somebody's list under them, then append what is new.
+    const out: Rule[] = [...held]
     for (const rule of imported[domain] as Rule[]) {
-      if (seen.has(identityOf(domain, rule))) {
-        duplicates += 1
+      const identity = identityOf(domain, rule)
+      incoming.set(identity, rule)
+      const mine = byIdentity.get(identity)
+      if (!mine) {
+        byIdentity.set(identity, rule)
+        out.push(rule)
+        added += 1
         continue
       }
-      seen.add(identityOf(domain, rule))
-      out.push(rule)
-      added += 1
+      if (mode === 'keep-mine' || sameRule(mine, rule)) {
+        unchanged += 1
+        continue
+      }
+      // The local id survives an update: it is this machine's handle on the
+      // rule, and anything holding it (a preset a highlight names, a matched
+      // id in a preview) would otherwise be repointed at nothing.
+      const merged = { ...rule, id: mine.id } as Rule
+      out[out.indexOf(mine)] = merged
+      byIdentity.set(identity, merged)
+      updated += 1
     }
-    ;(config[domain] as Rule[]) = out
+
+    let removed = 0
+    let kept = out
+    if (mode === 'replace-all') {
+      kept = out.filter((r) => incoming.has(identityOf(domain, r)))
+      removed = out.length - kept.length
+    }
+
+    ;(config[domain] as Rule[]) = kept
     report.added[domain] = added
-    report.duplicates[domain] = duplicates
+    report.updated[domain] = updated
+    report.unchanged[domain] = unchanged
+    report.removed[domain] = removed
   }
   return { config, report }
 }

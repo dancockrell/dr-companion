@@ -56,14 +56,34 @@ try {
 
   const before = await b.eval('document.body.innerText')
   check('an empty store reads as absent rather than as an error', /Read: absent/.test(before))
-  // The default tab is `highlights`, which has an editor now. A tab that does
-  // not is what this check is about, so it looks at one: an unbuilt tab has to
-  // read as unbuilt rather than as broken. Q2 pointed this at `aliases`, and
-  // Q3 built that tab, so it moves to one of the two Q4 still owes rather than
-  // being deleted - the property outlives whichever tab happens to be last.
-  await b.click('[data-testid="config-tab-substitutes"]')
-  const unbuilt = await b.eval('document.body.innerText')
-  check('an unbuilt tab names the increment that will fill it', /editor arrives with Q4/.test(unbuilt))
+  /*
+   * This used to check that an unbuilt tab named the increment that would
+   * fill it - Q2 pointed it at `aliases`, Q3 built that and moved it to
+   * `substitutes`, and Q4 built the last two. There is no unbuilt tab left, so
+   * the check that would still pass is the wrong one: it asserted a promise,
+   * and the property it was protecting is that a tab is never blank. That is
+   * what is asserted now, over every one of the seven, and it reddens if a tab
+   * renders nothing rather than only if a placeholder loses its wording.
+   */
+  let blank = []
+  let measured = []
+  for (const domain of DOMAINS) {
+    await b.click(`[data-testid="config-tab-${domain}"]`)
+    const body = await b.eval(`document.querySelector('[data-testid="config-body-${domain}"]')?.innerText ?? ""`)
+    measured.push(body.trim().length)
+    if (body.trim().length < 40) blank.push(`${domain} (${body.trim().length} chars)`)
+  }
+  check('every one of the seven tabs renders something', blank.length === 0, blank.join(', '))
+  // Two controls, because "nothing was blank" is equally true of a scan that
+  // measured nothing. One shows the measure really read seven bodies and got
+  // real numbers; the other shows the same read returns 0 for a body that is
+  // not there, which is the value that would have failed the check above.
+  check('control: it measured seven bodies, none of them empty', measured.length === 7 && Math.min(...measured) > 0, measured.join('/'))
+  check(
+    'control: the same read returns 0 for a tab body that is not there',
+    (await b.eval('(document.querySelector(\'[data-testid="config-body-nonesuch"]\')?.innerText ?? "").length')) === 0
+  )
+  await b.click('[data-testid="config-tab-highlights"]')
   await b.click('[data-testid="config-tab-highlights"]')
   check('nothing is stored before anything is imported', (await b.eval("localStorage.getItem('drc.player-config.aliases.v1')")) === null)
 
@@ -342,6 +362,61 @@ try {
 
   await b.screenshot(out('player-config-2026-09-06-macros.png'))
   console.log(`wrote ${out('player-config-2026-09-06-macros.png')}`)
+
+  /*
+   * Q6: export, edit, import, read the report.
+   *
+   * Chrome is not the app, so `Save to my folder` is deliberately absent here
+   * and the textarea is the path exercised - which is also the path a player
+   * uses to mail their config to somebody. The file buttons go through
+   * `playerFiles.ts` and are covered by
+   * `tools/player-config-transfer-test.mjs` against a fake of the Rust side.
+   *
+   * The edit is made to the *text*, not to the store, so what is imported is a
+   * document that did not come out of this machine - which is the case the
+   * feature exists for.
+   */
+  const exported = await b.eval('document.querySelector(\'[data-testid="config-export-text"]\')?.value ?? ""')
+  check('the export area holds a document', exported.length > 100, `${exported.length} characters`)
+  const doc = JSON.parse(exported)
+  check('with the header both exports of this app carry', doc.version === 1 && doc.provenance === 'player', JSON.stringify({ v: doc.version, p: doc.provenance }))
+  check('and all seven kinds of rule in it', DOMAINS.every((d) => Array.isArray(doc[d])), DOMAINS.map((d) => `${d} ${doc[d]?.length}`).join(', '))
+
+  // One rule added, one rule broken. The broken one must be refused by name
+  // and must not stop the other.
+  doc.aliases.push({ id: 'ali-new', enabled: true, source: 'player', name: 'fromfile', expansion: 'bow' })
+  doc.gags.push({ id: 'gag-bad', enabled: true, source: 'player', pattern: 'a(', regex: true })
+  doc.provenance = 'the other machine'
+
+  await b.run(`
+    const area = document.querySelector('[data-testid="config-import-text"]');
+    const set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+    set.call(area, ${JSON.stringify(JSON.stringify(doc, null, 2))});
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+    return area.value.length;
+  `)
+  await b.eval('document.querySelector(\'[data-testid="config-import-apply"]\').click()')
+  await new Promise((r) => setTimeout(r, 300))
+
+  const transferNote = await b.eval('document.querySelector(\'[data-testid="config-transfer-note"]\')?.innerText ?? ""')
+  const transferReport = await b.eval('document.querySelector(\'[data-testid="config-transfer-report"]\')?.innerText ?? ""')
+  check('the import says it ran', /Imported from/.test(transferNote), JSON.stringify(transferNote))
+  check('the report is on screen', transferReport.length > 0, `${transferReport.length} characters`)
+  check('and names where the document came from', /the other machine/.test(transferReport), transferReport.split('\n')[0])
+  check('the new alias is reported as added', /1 added/.test(transferReport), transferReport.split('\n')[0])
+  check('the broken gag is refused by name', /gag-bad/.test(transferReport), transferReport.replace(/\n/g, ' | ').slice(0, 200))
+  check('with a reason a person can act on', /Unterminated group|Invalid regular expression/.test(transferReport))
+  check(
+    'and the refusal cost one rule, not the document',
+    JSON.parse(await b.eval("localStorage.getItem('drc.player-config.aliases.v1')")).entries.some((e) => e.name === 'fromfile')
+  )
+  check(
+    'the gag that was already good is still stored',
+    JSON.parse(await b.eval("localStorage.getItem('drc.player-config.gags.v1')")).entries.every((e) => e.id !== 'gag-bad')
+  )
+
+  await b.screenshot(out('player-config-2026-09-06-transfer.png'))
+  console.log(`wrote ${out('player-config-2026-09-06-transfer.png')}`)
 } finally {
   await b.close()
 }

@@ -185,6 +185,8 @@
     "test:macro-dry-run": "node tools/macro-dry-run-test.mjs",
     "test:player-config": "node tools/player-config-test.mjs",
     "test:player-config-import": "node tools/player-config-import-test.mjs",
+    "test:player-config-transfer": "node tools/player-config-transfer-test.mjs",
+    "test:player-config-transfer-break": "node tools/player-config-transfer-break-check.mjs",
     "test:line-rules": "node --experimental-test-module-mocks tools/line-rules-test.mjs",
     "test:off-classes": "node tools/off-classes-test.mjs",
     "test:stream": "node tools/stream-test.mjs",

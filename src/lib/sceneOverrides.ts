@@ -39,6 +39,7 @@
 import registry from '../data/sceneRegistry.json' with { type: 'json' }
 import { blockKindFor, spatialModeFor, tierFor } from './world-content-rules.mjs'
 import { readJSON, writeJSONVerified, type StorageWriteResult } from './storage.ts'
+import { readEnvelope, shortenValue, type ExportEnvelope } from './exportEnvelope.ts'
 import type { RoomContent } from './worldContent.ts'
 
 export const SCENE_STORAGE_KEY = 'drc.scene.v1'
@@ -380,11 +381,11 @@ export interface SceneRefusal {
   reason: string
 }
 
-/** So a refusal about a 1 MB key does not itself carry a megabyte. */
-function shorten(value: unknown, limit = 48): string {
-  const text = typeof value === 'string' ? value : JSON.stringify(value) ?? String(value)
-  return text.length <= limit ? text : `${text.slice(0, limit)}… (${text.length} characters)`
-}
+/** So a refusal about a 1 MB key does not itself carry a megabyte. The
+ *  implementation moved to `exportEnvelope.ts` when the player config export
+ *  needed the same bound; this is the name the rest of this file calls it by,
+ *  not a second copy. */
+const shorten = shortenValue
 
 /**
  * The typed shape of a placed primitive, and nothing else on the object.
@@ -550,26 +551,24 @@ function undrawable(field: SceneField, value: unknown): string {
  * ever written. When there is a version 2, the migration goes in this function,
  * ahead of the set parse, and this comment is how the next person knows that is
  * where it belongs rather than in a second reader beside it.
+ *
+ * The four header refusals themselves are `exportEnvelope.ts`'s since Q6, and
+ * the wording is unchanged - the player config export needed the identical
+ * checks, and writing them twice would have been two opinions about what a
+ * valid document header is. `migratable` is empty here because it is true: no
+ * older scene format has ever existed.
  */
 export function parseSceneOverrides(
   file: unknown,
   options: { knownRooms?: ReadonlySet<string> | null } = {}
 ): { ok: true; parsed: SceneParsedSet } | { ok: false; reason: string } {
-  if (file == null || typeof file !== 'object' || Array.isArray(file))
-    return { ok: false, reason: `That is not a scene export: it is ${shorten(file)}.` }
+  const header = readEnvelope(file, {
+    kind: 'a scene export',
+    version: SCENE_LIMITS.formatVersion,
+    provenanceChars: SCENE_LIMITS.valueChars,
+  })
+  if (!header.ok) return { ok: false, reason: header.reason }
   const envelope = file as Partial<SceneExport>
-  if (!('version' in envelope))
-    return { ok: false, reason: `That file has no version. A scene export says version ${SCENE_LIMITS.formatVersion}.` }
-  if (envelope.version !== SCENE_LIMITS.formatVersion)
-    return {
-      ok: false,
-      reason: `That file says version ${shorten(envelope.version)}. This build reads version ${SCENE_LIMITS.formatVersion} and has no way to migrate from ${shorten(envelope.version)}.`,
-    }
-  if (typeof envelope.provenance !== 'string' || envelope.provenance.length === 0 || envelope.provenance.length > SCENE_LIMITS.valueChars)
-    return {
-      ok: false,
-      reason: `That file has no provenance saying where it came from. A scene export says provenance "player".`,
-    }
   return {
     ok: true,
     parsed: parseSceneOverrideSet(envelope.overrides, { requireDrawable: true, knownRooms: options.knownRooms }),
@@ -719,9 +718,8 @@ export function resolveSceneForRoom(roomId: string, guess: RoomContent | null): 
  * type-only until #461, which is the state where a field's existence is doing
  * no work at all.
  */
-export interface SceneExport {
+export interface SceneExport extends ExportEnvelope {
   version: 1
-  provenance: string
   overrides: SceneOverrides
 }
 

@@ -19,7 +19,7 @@ This is the current target, not a claim that every board feature has shipped. Ol
 The exact feature set changes quickly, but the major systems are now represented directly in the repository and its test suite:
 
 - live game-state and stream handling through Lich;
-- full text-client presentation, including highlights, aliases, macros, variables, substitutes and gags;
+- full text-client presentation, including highlights, aliases, macros, variables, substitutes and gags, which are the app's own and are edited in the app: you do not need Genie installed to have any of them, an existing Genie config can be imported once, and the whole set exports to one JSON file in the app's data folder (`%LOCALAPPDATA%\DR Companion Data\config\player-config.json`) that you can carry to another machine. `docs/PLAYER_CONFIG.md` is the format;
 - map data, paths, pins, trail state, quick travel and room/place handling;
 - room and creature art pipelines and indexes;
 - sound, ambient audio and alerts;

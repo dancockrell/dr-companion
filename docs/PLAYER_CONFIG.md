@@ -655,6 +655,130 @@ is a claim, and the code is the check.
   screen under their rule list, rather than leaving the caveat in this
   document where the person meeting a mis-parsed import is not looking.
 
+## 13. What Q6 landed: the whole store as one document
+
+The last increment of Lane Q. Export writes every domain to one file; import
+reads it back, merges by identity, and reports what it did with every entry it
+was given.
+
+### 13.1 The file
+
+`app_data_dir()/config/player-config.json`, beside `dr-companion-pins.yaml`,
+written through `writePlayerFile` and read through `readPlayerFile` — the
+surface Q5 built and §8.1 says Q6 writes through. There is no second writer,
+and `tools/player-config-transfer-test.mjs` reads the shipping module to say so
+rather than inferring it from a fake.
+
+The shape is §4.2's, with one field ahead of it:
+
+```json
+{
+  "version": 1,
+  "provenance": "player",
+  "presets": [ … ], "highlights": [ … ], "aliases": [ … ],
+  "macros": [ … ], "substitutes": [ … ], "gags": [ … ], "variables": [ … ]
+}
+```
+
+`provenance` says what the file is — `player` for one a person exported — so a
+reader who finds one on disk knows without opening the payload. It is the same
+field, read by the same function, as the scene editor's export (#468): both
+headers are `src/lib/exportEnvelope.ts`'s `readEnvelope`, which is where
+`parseSceneOverrides`' four refusals moved to, wording unchanged. Writing them
+a second time for this document would have been a second opinion about what a
+valid header is, and the day a version 2 arrives the two would have disagreed
+about it.
+
+The bytes are deterministic: two-space JSON, a trailing newline, fields in the
+order above, and every entry rebuilt through the store's own reader on the way
+out so an editor's key order cannot show up as a diff. Export, import into an
+empty store, export again, and the strings are equal — asserted as strings,
+because comparing parsed objects would pass against an exporter whose key order
+wandered.
+
+### 13.2 The report
+
+Per domain, and exhaustive against the file:
+
+| Column | What it counts |
+|---|---|
+| In file | Entries the document carried for that domain. The denominator. |
+| Added | No rule of that identity was here. |
+| Updated | One was, and the document's body differs. The local id survives. |
+| Same | One was, and it says the same thing. |
+| Refused | This build will not store it. Named, with the reason. |
+| Removed | Was here, the document does not carry it. Only `Replace all`. |
+
+**`added + updated + unchanged + refused` equals `in file`, for every domain.**
+That is the property, not a nicety: a report whose numbers do not add up is how
+a rule goes missing while the screen says the import worked, and the check
+asserts the sum rather than trusting it.
+
+Identity is `identityOf` — an alias's name, a highlight's type and pattern, a
+macro's key and modifiers — the same function the Genie import already merged
+by. One merge with three modes rather than two merges: `keep-mine` for a second
+Genie import (the player has edited these since, and Genie's file is the older
+opinion), `update` for a config document, `replace-all` for a deliberate
+overwrite, which the panel confirms before running. Two implementations of "is
+this the same rule" would eventually disagree.
+
+A fourth outcome is reported beside the four counts and is not folded into
+them: a rule **kept and switched off**. An alias whose expansion is Genie
+script, or a macro one of whose commands is, is stored with its text intact and
+`enabled: false` — exactly what the editors do with the same rule — and the
+player is told, because otherwise it reads as the import half-working. A
+document this app wrote never contains one switched on, so a round trip does
+not trip over it; a hand-edited one can, and has its own case.
+
+### 13.3 One validator, not a second one
+
+Every entry goes through `migratePlayerConfig`, the store's own reader, and
+then through the predicate the matching editor calls before it saves:
+
+| Domain | Asked | From |
+|---|---|---|
+| highlights | `compilePattern` | Q2, `highlights.ts` |
+| substitutes, gags | `ruleRefusal` | Q4, `lineRules.ts` |
+| aliases, macros | `isGenieScript` | Q3, `playerConfig.ts` |
+| variables | `isBookkeepingVariable` | Q3, `playerConfig.ts` |
+
+A rule this app would refuse to let a player type is a rule it refuses to
+import, and it says so naming the domain and the id. The check reads the
+transfer module and asserts it names each of those functions and constructs no
+`RegExp` of its own, with a positive control on the same scan.
+
+A refusal costs one entry, never the document: a broken pattern in one domain
+is refused by name while the other six import in full. A parser that gave up on
+the whole file would satisfy "the bad rule did not get in" perfectly and lose
+the player everything else.
+
+### 13.4 Two windows
+
+The export reads the file and writes it in the same breath, passing what it
+just read as `expectedPrevious`. A second window of this app exporting from a
+view taken before the first one wrote is refused **by name**, the first
+window's file is still on disk, and the refusal is recoverable: the same window
+succeeds once it has re-read. That is Q5's compare-and-swap with its second
+caller.
+
+### 13.5 Not done here
+
+Named rather than folded into the above.
+
+- The report is shown after the import runs, not before it. The panel computes
+  the merge once and writes the config that computation produced, so the counts
+  on screen are the counts of the run that happened — but there is no
+  "show me and let me decide" step. `Replace all`, the only mode that can
+  delete anything, takes a second click instead.
+- `reveal_file` is registered and would open the folder from the panel. The
+  transfer section reports the path in its note and does not offer the button;
+  that is a UI increment nobody has claimed, and it is the same gap the map
+  panel's export still has.
+- Nothing here was verified against a running desktop app. Every claim is
+  `node tools/player-config-transfer-test.mjs`, the browser harness against the
+  dev server, or a read of the tree. The app-data path itself is exercised
+  through a fake of `player_files.rs`; the real one is `cargo test player_files`.
+
 Where this document and a check disagree, **the check is right and this page
 is stale.** The checks are the `verify:` lines of Q1–Q6 in
 `docs/PLAN_TO_1_0.md`.

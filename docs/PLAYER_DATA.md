@@ -37,15 +37,15 @@ decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
 38 keys, owned by 28 files, found by scanning
-322 source files.
+325 source files.
 
 ## Files you asked for
 
-Separately from all of the above, the app writes 1 file
+Separately from all of the above, the app writes 2 files
 into its own data directory, and only when you press a button that says so.
-It lives in the `config` folder under
+They live in the `config` folder under
 `DR Companion Data` - the same directory the table above means by "the app's
-own data directory", and it is yours to
+own data directory", and they are yours to
 open, copy, hand to somebody else, or delete.
 
 Nothing outside that folder is written: **this app does not write into a Genie
@@ -54,6 +54,7 @@ install.** It still reads one, once, if you import a config from it.
 | File | What it is | Written by |
 |---|---|---|
 | `dr-companion-pins.yaml` | Every map pin you placed, for every character, as YAML you can read and edit. Written only when you press Export in the map panel, never on its own. Overwriting it keeps a `.bak` of the previous version beside it, and a second window of the app cannot silently overwrite an export you just made. | `src/lib/pinsFile.ts` |
+| `player-config.json` | Your whole player config - presets, highlights, aliases, macros, substitutes, gags and variables - as one JSON file you can read, edit and carry to another machine. Written only when you press Save in the config panel, never on its own. It is a copy: the rules the app actually runs from are the seven browser keys below, and importing this file is what puts them back. Overwriting it keeps a `.bak` beside it, and a second window of the app cannot silently overwrite a save you just made. | `src/lib/playerConfigTransfer.ts` |
 
 ## The keys
 

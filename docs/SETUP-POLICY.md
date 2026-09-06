@@ -235,6 +235,22 @@ you asked for: the bridge script into Lich's `scripts\`, plugins into Genie's
 `Plugins\`, and maps into Genie's `Maps\`. Every one of those paths is shown on
 the card before you agree, and nothing outside them is ever touched.
 
+**It no longer writes into a Genie install at all.** It used to: the config
+editors edited Genie's own `Config\*.cfg` files. Your highlights, aliases,
+macros, variables, substitutes, gags and presets are the app's own now, and
+they live in the app's data folder:
+
+```
+%LOCALAPPDATA%\DR Companion Data\config\
+    player-config.json        all seven kinds of rule, one file
+    dr-companion-pins.yaml    your map pins
+```
+
+Both are written only when you press Export or Save, never on their own, and
+overwriting either keeps a `.bak` of the previous version beside it. Your
+Genie config is read once if you ask for an import and is never written to.
+`docs/PLAYER_CONFIG.md` is the file format and what an import reports.
+
 ## If you would rather do it yourself
 
 Nothing here is required. Install Ruby and Lich however you like, drop
