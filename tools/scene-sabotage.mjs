@@ -171,9 +171,17 @@ const cases = [
     // that changes nothing must never be allowed to read as a pass.
     //
     // Adding a row rather than deleting one, so exactly one check reddens.
-    // Deleting `105-47` would have made both directions of the comparison fail
-    // at once; `1-1` is a room the batch classifies, so it is in the CSV and
-    // not in the coverage list, and only the first direction can see it.
+    // `1-1` is a room the batch classifies, so it is in the CSV and not in the
+    // coverage list, and only the first direction can see it.
+    //
+    // This comment used to add "deleting `105-47` would have made both
+    // directions fail at once", and that is wrong - measured, by doing it.
+    // Removing a row can only shrink the CSV side, so it cannot add to
+    // `missingFromPanel`; direction 1 stays green and only direction 2 goes
+    // red. So the deletion was never the over-broad case this passed it over
+    // as: it is the precisely-aimed case the *other* direction did not have,
+    // which is why case 12 below now exists. A guess about which check a
+    // sabotage reddens is the one thing this harness must never take on trust.
     name: '11. the committed residue drifts from the committed content',
     file: 'tools/world-content-residue.csv',
     from: 'cellId,zone,zoneName,title,colour,label,place',
@@ -181,7 +189,48 @@ const cases = [
     runner: 'scene',
     expect: "FAIL every row of the residue CSV is a room the panel's coverage list offers",
   },
+  {
+    // The other direction of the same comparison, which had no case at all
+    // until review pass 7 measured case 11's claim. `scene-editor-test.mjs`
+    // asserts both directions separately and only one of them had ever been
+    // shown able to fail; a check nobody has watched go red is a check nobody
+    // has checked.
+    //
+    // Expressed as `deleteLine` rather than a `from`/`to` pair on purpose. The
+    // pair would have to carry the row's own line terminator, this file is
+    // CRLF today and nothing in `.gitattributes` pins `.csv`, so a hardcoded
+    // `\r\n` is a case that ABORTs on the first clone with a different
+    // `core.autocrlf` - trap 22, and the same trap case 11's comment above
+    // already records being bitten by. `deleteLine` reads the ending out of
+    // the file instead, so there is no escape to get right.
+    name: '12. a residue row is dropped and the coverage list still names its room',
+    file: 'tools/world-content-residue.csv',
+    deleteLine: '105-47,',
+    runner: 'scene',
+    expect: 'FAIL and the coverage list names nothing the residue CSV does not',
+  },
 ]
+
+/**
+ * Remove the one line beginning `prefix`, terminator and all.
+ *
+ * Returns the new text, or `null` with the reason when the line is absent or
+ * not unique - either of which must abort the case rather than rewrite the
+ * file into something that proves a different thing.
+ *
+ * The terminator comes from the file (trap 22): a fragment built with `\n`
+ * matches nothing in a CRLF checkout, the replacement changes nothing, and the
+ * run reads exactly like proof.
+ */
+function withoutLine(text, prefix) {
+  const eol = text.includes('\r\n') ? '\r\n' : '\n'
+  const lines = text.split(eol)
+  const hits = lines.filter((l) => l.startsWith(prefix))
+  if (hits.length !== 1) {
+    return { text: null, why: `${hits.length} line(s) begin ${JSON.stringify(prefix)}, need exactly 1` }
+  }
+  return { text: lines.filter((l) => !l.startsWith(prefix)).join(eol), why: '' }
+}
 
 const skipGodot = process.argv.includes('--no-godot')
 const selected = cases.filter((c) => !(skipGodot && c.runner === 'godot'))
@@ -190,12 +239,24 @@ const skipped = cases.length - selected.length
 let misses = 0
 for (const c of selected) {
   const before = readFileSync(c.file, 'utf8')
-  if (!before.includes(c.from)) {
-    console.log(`ABORT ${c.name}: anchor not found, so this case proves nothing`)
-    misses += 1
-    continue
+  let sabotaged
+  if (c.deleteLine) {
+    const cut = withoutLine(before, c.deleteLine)
+    if (cut.text === null) {
+      console.log(`ABORT ${c.name}: ${cut.why}, so this case proves nothing`)
+      misses += 1
+      continue
+    }
+    sabotaged = cut.text
+  } else {
+    if (!before.includes(c.from)) {
+      console.log(`ABORT ${c.name}: anchor not found, so this case proves nothing`)
+      misses += 1
+      continue
+    }
+    sabotaged = before.replace(c.from, c.to)
   }
-  writeFileSync(c.file, before.replace(c.from, c.to))
+  writeFileSync(c.file, sabotaged)
   const after = readFileSync(c.file, 'utf8')
   if (after === before) {
     console.log(`ABORT ${c.name}: the file did not change`)
