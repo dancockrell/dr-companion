@@ -3,7 +3,7 @@
   "task_id": "crossing-native-content",
   "agent": "codex",
   "summary": "Published incremental Crossing expansion: full graph, live identity enrichment, 14 partial sets and 17 shared models; complete vertical slice remains unfinished",
-  "status": "active",
+  "status": "completed",
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T03:00:00Z",
   "paths": [
@@ -43,8 +43,9 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": "f2f6e04b, 228d6c15, 240cb161; final audit commit follows",
+    "commit": "00577603 (support-socket checkpoint only; full Crossing slice remains unfinished)",
     "checks": [
+      "Support-socket continuation: 389 Godot checks and 27 geometry drift checks passed; native Supply Stand capture inspected; pushed 00577603",
       "Godot full suite: 381 checks across 18 scripts passed after removal of inaccurate bench",
       "npm run build passed",
       "27 board geometry drift checks passed",
