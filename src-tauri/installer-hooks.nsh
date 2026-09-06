@@ -91,7 +91,25 @@
     ;
     ; Under the checkbox only. Unticked, this folder is the user's browser
     ; profile and theirs to keep.
+    ; $R7 is one of NSIS's ten shared registers and this macro is inserted
+    ; into Tauri's own `Section Uninstall`, so it is saved and restored: what
+    ; the generated installer.nsi keeps there then cannot matter. It keeps
+    ; nothing there today. The check rather than the claim - the generated
+    ; installer is rewritten by every `npm run tauri:build`, so re-run it
+    ; after one rather than trusting this paragraph:
+    ;
+    ;   D=src-tauri/target/release/nsis/x64
+    ;   grep -c 'R7' $D/installer.nsi $D/utils.nsh   # 0 and 0
+    ;   grep -c 'R0' $D/installer.nsi                # 31 - the positive control
+    ;   grep -n 'NSIS_HOOK_POSTUNINSTALL' $D/installer.nsi
+    ;
+    ; Read 6 Sep 2026 against the file @tauri-apps/cli 2.11.4 generated:
+    ; $R0-$R4 and $R6 are used, $R7 is not, and `Section Uninstall` itself
+    ; holds only $0 across the NSIS_HOOK_POSTUNINSTALL insertion point.
+    ; tools/bundle-test.mjs asserts every $R register this file writes is
+    ; pushed before its first use and popped after its last.
     ${If} $DeleteAppDataCheckboxState = 1
+      Push $R7
       StrCpy $R7 0
       drc_webview_retry:
         IfFileExists "$LOCALAPPDATA\${BUNDLEID}" 0 drc_webview_gone
@@ -108,6 +126,7 @@
           DetailPrint "DR Companion: application data removed on retry $R7."
         ${EndIf}
       drc_webview_done:
+      Pop $R7
     ${EndIf}
   ${EndIf}
 !macroend

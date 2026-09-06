@@ -28,10 +28,21 @@ import { gzipSync } from 'node:zlib'
 
 const DIST = 'dist/assets'
 let fails = 0
+let notChecked = 0
 
+// Three states, not two. `ok === 'unknown'` means the check could not be
+// carried out - an input that is not there, a construct the reader does not
+// model - and it prints NOT CHECKED rather than either colour. Folding that
+// into a pass is where a suite starts lying: an absent result and a negative
+// one are indistinguishable unless they are made to print differently, and it
+// is the absent one that looks like success. `tools/run-tests.mjs` reads the
+// words NOT CHECKED out of this output and refuses to say "all passed" over a
+// suite that printed them.
 function check(label, ok, detail = '') {
-  console.log(`${ok ? 'OK  ' : 'FAIL'} ${label}${detail ? `: ${detail}` : ''}`)
-  if (!ok) fails++
+  const tag = ok === 'unknown' ? 'NOT CHECKED' : ok ? 'OK  ' : 'FAIL'
+  console.log(`${tag} ${label}${detail ? `: ${detail}` : ''}`)
+  if (ok === 'unknown') notChecked++
+  else if (!ok) fails++
 }
 
 let files
@@ -342,7 +353,20 @@ check(
 check(`and ${HOOKS_NSH} exists`, existsSync(HOOKS_NSH))
 
 if (existsSync(HOOKS_NSH)) {
-  const nsh = readFileSync(HOOKS_NSH, 'utf8').split(String.fromCharCode(92)).join('/')
+  // Backslashes become forward slashes, and CRLF becomes LF. The second half
+  // is not cosmetic: this repo is a CRLF checkout, and a per-line
+  // `replace(/;.*$/, '')` silently does nothing against it, because JS `.`
+  // does not match `\r` and `$` without `/m` is the end of the whole string.
+  // Comment stripping was therefore a no-op on every line of the real hook
+  // while passing on every `\n`-joined fixture - the walk read comments as
+  // statements and a trailing comment would have ridden along inside a
+  // condition. Normalising once, here, is cheaper than getting the regex
+  // right in three places.
+  const nsh = readFileSync(HOOKS_NSH, 'utf8')
+    .split(String.fromCharCode(92))
+    .join('/')
+    .split('\r\n')
+    .join('\n')
   const setupRs = readFileSync('src-tauri/src/setup.rs', 'utf8')
 
   // The folder, taken from the Rust that builds it rather than restated here.
@@ -514,6 +538,175 @@ if (existsSync(HOOKS_NSH)) {
   // question, because NSIS puts no bound on how far away the `${If}` is - so
   // the guards are read structurally, by walking LogicLib nesting, and the
   // walk is then run against a deliberately unguarded copy.
+  // ---- the walk itself, before anything is read through it ---------------
+  //
+  // The walk is the instrument every guard answer below is read through, and
+  // the hook is one sample it happens to get right. These are the shapes it
+  // has to get right in general, written as `.nsh` fixtures rather than
+  // files, and each asserts which conditions are *guaranteed* where a
+  // statement sits - never which tokens happen to appear nearby, which is the
+  // thing the old walk was really answering.
+  const marks = (source) => {
+    const { scoped, unknown } = nshWalk(source)
+    const found = {}
+    for (const { line, frames } of scoped) {
+      const m = /^MARK\s+(\S+)/.exec(line)
+      if (m) found[m[1]] = guaranteedConditions(frames).sort()
+    }
+    return { found, unknown }
+  }
+  const walkFixtures = [
+    ['a plain ${If}', ['${If} $A = 1', '  MARK inside', '${EndIf}', 'MARK after'], { inside: ['$A = 1'], after: [] }],
+    [
+      'an ${If} with an ${Else}',
+      ['${If} $A = 1', '  MARK then', '${Else}', '  MARK otherwise', '${EndIf}'],
+      { then: ['$A = 1'], otherwise: [] },
+    ],
+    [
+      'an ${If}/${ElseIf}/${Else} chain',
+      ['${If} $A = 1', '  MARK a', '${ElseIf} $B = 1', '  MARK b', '${Else}', '  MARK c', '${EndIf}'],
+      { a: ['$A = 1'], b: ['$B = 1'], c: [] },
+    ],
+    [
+      'an ${If} nested inside an ${If}',
+      ['${If} $A = 1', '  ${If} $B = 1', '    MARK both', '  ${EndIf}', '  MARK outer', '${EndIf}'],
+      { both: ['$A = 1', '$B = 1'], outer: ['$A = 1'] },
+    ],
+    [
+      'an ${If} nested inside an ${Else}',
+      [
+        '${If} $A = 1',
+        '  MARK then',
+        '${Else}',
+        '  ${If} $B = 1',
+        '    MARK inner',
+        '  ${EndIf}',
+        '  MARK outer',
+        '${EndIf}',
+      ],
+      { then: ['$A = 1'], inner: ['$B = 1'], outer: [] },
+    ],
+    [
+      'an ${AndIf} chain',
+      ['${If} $A = 1', '${AndIf} $B = 1', '  MARK both', '${EndIf}'],
+      { both: ['$A = 1', '$B = 1'] },
+    ],
+    [
+      'an ${OrIf} chain, where neither disjunct is guaranteed on its own',
+      ['${If} $A = 1', '${OrIf} $B = 1', '  MARK either', '${EndIf}'],
+      { either: [] },
+    ],
+    [
+      'an ${OrIf} chain where one condition is in every disjunct',
+      ['${If} $A = 1', '${AndIf} $C = 1', '${OrIf} $A = 1', '${AndIf} $D = 1', '  MARK a', '${EndIf}'],
+      { a: ['$A = 1'] },
+    ],
+    [
+      'trailing comments on the branch and the statement',
+      ['${If} $A = 1 ; because', '  MARK inside ; here', '${EndIf}'],
+      { inside: ['$A = 1'] },
+    ],
+  ]
+  for (const [name, source, expected] of walkFixtures) {
+    const { found, unknown } = marks(source.join('\n'))
+    const want = Object.fromEntries(Object.entries(expected).map(([k, v]) => [k, [...v].sort()]))
+    const same =
+      Object.keys(want).length === Object.keys(found).length &&
+      Object.entries(want).every(([k, v]) => JSON.stringify(found[k]) === JSON.stringify(v))
+    check(
+      `the walk reads ${name}`,
+      unknown.length === 0 && same,
+      unknown.length
+        ? `unexpectedly undetermined: ${unknown.map((u) => u.why).join('; ')}`
+        : `got ${JSON.stringify(found)} / wanted ${JSON.stringify(want)}`,
+    )
+  }
+
+  // Its own regression: the fixtures above are `\n`-joined and the real hook
+  // is a CRLF checkout, so a comment strip that only works on `\n` passes
+  // every fixture and does nothing to the file the checks are actually about.
+  check(
+    'the walk strips comments from CRLF lines as well as LF ones',
+    marks(['${If} $A = 1 ; why', '  MARK inside ; here', '${EndIf}'].join('\r\n')).found.inside?.join() ===
+      '$A = 1',
+    JSON.stringify(marks(['${If} $A = 1 ; why', '  MARK inside ; here', '${EndIf}'].join('\r\n')).found),
+  )
+
+  // And the three states, because two of them are not enough. A construct the
+  // walk does not model must not be read as "no guard here" or as "guarded" -
+  // both are answers it has not earned.
+  const undeterminedFixtures = [
+    ['an unmodelled block construct', ['${Unless} $A = 1', '  MARK x', '${EndUnless}'], 'Unless'],
+    ['an ${If} that is never closed', ['${If} $A = 1', '  MARK x'], 'left open'],
+    ['an ${EndIf} with nothing open', ['MARK x', '${EndIf}'], 'no open'],
+    ['an ${Else} after an ${Else}', ['${If} $A = 1', '${Else}', '${Else}', '${EndIf}'], 'after an'],
+    ['an ${AndIf} inside an ${Else}', ['${If} $A = 1', '${Else}', '${AndIf} $B = 1', '${EndIf}'], 'inside an'],
+  ]
+  for (const [name, source, needle] of undeterminedFixtures) {
+    const { unknown } = nshWalk(source.join('\n'))
+    check(
+      `the walk refuses to answer over ${name}`,
+      unknown.length > 0 && unknown.some((u) => u.why.includes(needle)),
+      unknown.map((u) => u.why).join('; ') ||
+        'the walk answered anyway, so an unmodelled construct would pass silently',
+    )
+  }
+  const undeterminedRows = nshGuardChecks(
+    ['${Select} $A', '  RMDir /r "$LOCALAPPDATA/x"', '${EndSelect}'].join('\n'),
+  )
+  check(
+    // Deliberately not spelling the two words the runner scans for: this line
+    // is a check that passes, and `run-tests.mjs` reads them out of any line
+    // to decide a suite skipped part of its job. A label that says them would
+    // file this suite as partial on every clean run, which is a false skip
+    // report - and a skip list that cries wolf gets skimmed on the day the
+    // hook really does carry a construct the walk cannot read.
+    'and an unmodelled construct leaves the guard answers undetermined rather than green',
+    undeterminedRows.length > 0 &&
+      undeterminedRows.every(([, ok]) => ok !== true) &&
+      undeterminedRows.filter(([, ok]) => ok === 'unknown').length >= 2,
+    undeterminedRows.map(([label, ok]) => `${label} = ${ok}`).join(' | '),
+  )
+
+  // ---- the shared registers ----------------------------------------------
+  //
+  // `$R0`-`$R9` belong to whoever is running, and this macro is inserted into
+  // Tauri's own `Section Uninstall`. Anything the hook writes there has to be
+  // put back. The generated installer.nsi never touches `$R7` today - the
+  // command that establishes that is recorded in the hook, beside the
+  // register it is about - so the Push/Pop is belt and braces, and that is
+  // the point of it: it stops the answer depending on a bundler version
+  // nobody is going to re-check.
+  const registerBalance = (text) => {
+    const lines = text.split('\n').map((l) => l.replace(/\r/g, '').replace(/;.*$/, '').trim())
+    const written = new Set()
+    for (const l of lines) {
+      const m = /^(?:StrCpy|IntOp|IntFmt|StrLen|ReadEnvStr|ReadRegStr|ReadINIStr|GetFullPathName)\s+(\$R\d)\b/i.exec(l)
+      if (m) written.add(m[1])
+    }
+    return [...written].map((reg) => {
+      const uses = lines.map((l, i) => [l, i]).filter(([l]) => l.includes(reg)).map(([, i]) => i)
+      const first = lines[uses[0]]
+      const last = lines[uses[uses.length - 1]]
+      return { reg, ok: first === `Push ${reg}` && last === `Pop ${reg}`, first, last }
+    })
+  }
+  const balance = registerBalance(nsh)
+  check(
+    'every shared $R register the hook writes is pushed before its first use and popped after its last',
+    balance.length > 0 && balance.every((b) => b.ok),
+    balance.length
+      ? balance.map((b) => `${b.reg}: first "${b.first}", last "${b.last}"`).join(' | ')
+      : 'no $R register is written at all - which is not the hook that exists, so this saw nothing',
+  )
+  const unsaved = registerBalance(['StrCpy $R7 0', 'IntOp $R7 $R7 + 1'].join('\n'))
+  const saved = registerBalance(['Push $R7', 'StrCpy $R7 0', 'Pop $R7'].join('\n'))
+  check(
+    'and that check goes red on a register written without being saved',
+    unsaved.length === 1 && !unsaved[0].ok && saved.length === 1 && saved[0].ok,
+    'negative control: an unwrapped StrCpy $R7 / positive control: the same wrapped',
+  )
+
   for (const [label, ok, detail] of nshGuardChecks(nsh)) check(label, ok, detail)
 
   // The saboteur. That walk is the newest code in this file and the only part
@@ -544,21 +737,73 @@ if (existsSync(HOOKS_NSH)) {
       : '',
   )
   const sabotaged = nshGuardChecks(unguarded)
-  const red = sabotaged.filter(([, ok]) => !ok).map(([label]) => label)
+  const red = sabotaged.filter(([, ok]) => ok !== true).map(([label]) => label)
   const expectedRed = sabotaged
     .map(([label]) => label)
     .filter((label) => label.endsWith('is behind the checkbox'))
   check(
     'and exactly the checkbox-guard checks go red on it',
-    expectedRed.length === 2 &&
+    // Counted against the recursive deletes actually in the hook rather than
+    // against a hard-coded 2. The literal was what caught the `${Else}`
+    // saboteur below when it was first tried, and it caught it for the wrong
+    // reason: a third delete appearing is an incidental count change, and the
+    // guard inversion it was hiding was reported green throughout.
+    expectedRed.length === recursiveTargets(nsh).length &&
+      expectedRed.length > 0 &&
       red.length === expectedRed.length &&
       expectedRed.every((label) => red.includes(label)),
     `red: ${red.join('; ') || 'nothing'} / expected: ${expectedRed.join('; ') || 'nothing'}`,
   )
   check(
     'while the nesting walk itself stays green, so the red above is about guards',
-    sabotaged.some(([label, ok]) => ok && label.startsWith('the LogicLib nesting')),
+    sabotaged.some(([label, ok]) => ok === true && label.startsWith('the LogicLib nesting')),
   )
+
+  // The second and third saboteurs, and they are the ones this walk was
+  // rewritten for. Both put a recursive delete of the WebView2 profile in a
+  // branch that runs when the checkbox is *clear*, keeping the nesting
+  // balanced so the failure cannot arrive as a parse error wearing the same
+  // colour. The old walk called both of them "behind the checkbox".
+  //
+  // Applied to a string, never to the file on disk, so there is no window in
+  // which a real hook is broken; the md5 below says that rather than
+  // promising it.
+  const injectBranch = (branchLine) => {
+    const lines = nsh.split('\n')
+    const at = lines.findIndex((l) => /RMDir\s+\/r\s+"[^"]*\/downloads"/i.test(l))
+    if (at < 0) return null
+    lines.splice(at + 1, 0, branchLine, `      RMDir /r "${bundleDirToken}"`)
+    return { text: lines.join('\n'), injectedLineNo: at + 3 }
+  }
+  for (const [what, branchLine] of [
+    ['an ${Else} branch', '    ${Else}'],
+    ['an ${ElseIf} branch', '    ${ElseIf} $PassiveMode = 1'],
+  ]) {
+    const injected = injectBranch(branchLine)
+    check(
+      `the ${what} saboteur was injected`,
+      Boolean(injected),
+      injected
+        ? `a delete of ${bundleDirToken} now sits at line ${injected.injectedLineNo}`
+        : 'the downloads delete was not found, so nothing below proves anything',
+    )
+    if (!injected) continue
+    const rows = nshGuardChecks(injected.text)
+    const checkboxRows = rows.filter(([label]) => label.endsWith('is behind the checkbox'))
+    const redRows = checkboxRows.filter(([, ok]) => ok !== true).map(([label]) => label)
+    check(
+      `a recursive delete of the WebView2 profile inside ${what} is not reported as behind the checkbox`,
+      checkboxRows.length === recursiveTargets(nsh).length + 1 &&
+        redRows.length === 1 &&
+        redRows[0].startsWith(`line ${injected.injectedLineNo}:`) &&
+        redRows[0].includes(bundleDirToken),
+      `${checkboxRows.length} deletes seen, red: ${redRows.join('; ') || 'nothing - the walk would have shipped it'}`,
+    )
+    check(
+      `and the nesting walk stays green over ${what}, so that red is about guards`,
+      rows.some(([label, ok]) => ok === true && label.startsWith('the LogicLib nesting')),
+    )
+  }
   check(
     'the hook file on disk is unchanged by this test',
     md5(readFileSync(HOOKS_NSH)) === beforeMd5,
@@ -567,10 +812,125 @@ if (existsSync(HOOKS_NSH)) {
 }
 
 /**
- * The guard checks, as a function so the same walk can be pointed at a
- * sabotaged copy. Returns `[label, ok, detail]` triples rather than calling
- * `check` itself, so the sabotage run can read its results instead of
- * printing them.
+ * The LogicLib walk: for every statement in an `.nsh`, which conditions are
+ * *guaranteed true* where it sits.
+ *
+ * NSIS puts no bound on how far away a statement's `${If}` is, so the guards
+ * around a `RMDir /r` cannot be read by grepping a few lines of context. They
+ * have to be read structurally, and "guaranteed" is the whole of it.
+ *
+ * The version this replaces modelled only `${If}`, `${AndIf}`, `${OrIf}` and
+ * `${EndIf}`. `${Else}` and `${ElseIf}` fell through as ordinary statements,
+ * so the frame stayed on the stack unchanged and everything in an else branch
+ * was tagged with the condition it is the negation of. An independent review
+ * of #372 put `RMDir /r "$LOCALAPPDATA\${BUNDLEID}"` - a recursive delete of
+ * the user's WebView2 browser profile - inside the `${Else}` of the checkbox
+ * guard, and this walk reported it "is behind the checkbox". Green, on a hook
+ * that deletes the profile precisely when the box is clear. The suite exited
+ * 1, but on a hard-coded count of how many deletes there were, which is an
+ * incidental assertion catching an incidental change; the inversion itself
+ * was reported as correct.
+ *
+ * The model now:
+ *
+ * - a frame's conditions are a disjunction of conjunctions. `${If} A`
+ *   `${AndIf} B` `${OrIf} C` is `[[A, B], [C]]`, and a condition counts as
+ *   guaranteed only if it appears in *every* group - so `${OrIf}` stops
+ *   licensing a claim about either disjunct on its own.
+ * - `${Else}` replaces the frame's conditions with nothing at all. An else
+ *   branch guarantees no positive condition of its own `${If}`, which is
+ *   exactly the claim that was being made falsely.
+ * - `${ElseIf} C` replaces them with `[[C]]`. The negations of the earlier
+ *   branches hold there too and are dropped, because dropping them only ever
+ *   weakens what is claimed.
+ * - a nested `${If}` in either branch pushes its own frame, so an inner
+ *   condition is guaranteed inside an else branch even though the outer one
+ *   is not.
+ *
+ * Anything else opening a line with `${Something}` - `${Unless}`,
+ * `${Select}`, `${Switch}`, a macro this walk has never seen - is not guessed
+ * at, and neither is an unbalanced block. Both go in `unknown`, and every
+ * guard answer downstream then reports NOT CHECKED naming the line rather
+ * than passing. A walk that cannot say which branch a statement is in has to
+ * say so: "nothing is wrong" and "I could not tell" are different results,
+ * and it is the second one that goes silent.
+ *
+ * `text` is the hook with backslashes already turned into forward slashes.
+ */
+function nshWalk(text) {
+  const stack = []
+  const scoped = []
+  const unknown = []
+  let lineNo = 0
+  for (const raw of text.split('\n')) {
+    lineNo++
+    // `\r` first: `.` does not match it and `$` is the end of the whole
+    // string, so on a CRLF line the comment strip below is a silent no-op.
+    const line = raw.replace(/\r/g, '').replace(/;.*$/, '').trim()
+    if (!line) continue
+    const macro = /^\$\{([A-Za-z]+)\}/.exec(line)?.[1]
+    const condition = line.replace(/^\$\{[A-Za-z]+\}\s*/, '').trim()
+    const top = stack[stack.length - 1]
+    const cannot = (why) => unknown.push({ lineNo, line, why })
+
+    if (macro === 'If') {
+      stack.push({ or: [[condition]], opened: line })
+    } else if (macro === 'AndIf' || macro === 'OrIf') {
+      if (!top) cannot(`\${${macro}} with no open \${If}`)
+      else if (top.or === null) cannot(`\${${macro}} inside an \${Else} branch`)
+      else if (macro === 'AndIf') top.or[top.or.length - 1].push(condition)
+      else top.or.push([condition])
+    } else if (macro === 'Else' || macro === 'ElseIf') {
+      if (!top) cannot(`\${${macro}} with no open \${If}`)
+      else if (top.or === null) cannot(`\${${macro}} after an \${Else}`)
+      else top.or = macro === 'Else' ? null : [[condition]]
+    } else if (macro === 'EndIf') {
+      if (!top) cannot('${EndIf} with no open ${If}')
+      else stack.pop()
+    } else if (macro) {
+      cannot(`\${${macro}} is a block construct this walk does not model`)
+    } else {
+      scoped.push({
+        line,
+        lineNo,
+        frames: stack.map((f) => (f.or === null ? null : f.or.map((group) => group.slice()))),
+      })
+    }
+  }
+  for (const frame of stack) unknown.push({ lineNo: 0, line: frame.opened, why: 'left open at end of file' })
+  return { scoped, unknown }
+}
+
+/**
+ * The conditions guaranteed true where a statement sits: one that appears in
+ * every OR-group of some enclosing frame. A `null` frame is an else branch
+ * and contributes nothing, which is the point.
+ */
+function guaranteedConditions(frames) {
+  const out = []
+  for (const or of frames) {
+    if (!or || or.length === 0) continue
+    for (const cond of or[0]) {
+      if (or.every((group) => group.includes(cond))) out.push(cond)
+    }
+  }
+  return out
+}
+
+/** Human-readable form of the same frames, for the detail line only. */
+function describeFrames(frames) {
+  return (
+    frames
+      .map((or) => (or === null ? '${Else} branch' : or.map((g) => g.join(' ${AndIf} ')).join(' ${OrIf} ')))
+      .join(' / ') || 'no enclosing condition at all'
+  )
+}
+
+/**
+ * The guard checks, as a function so the same walk can be pointed at
+ * sabotaged copies. Returns `[label, ok, detail]` triples - `ok` is `true`,
+ * `false`, or the string `'unknown'` - rather than calling `check` itself, so
+ * a sabotage run can read its results instead of printing them.
  *
  * `text` is the hook with backslashes already turned into forward slashes.
  */
@@ -578,51 +938,47 @@ function nshGuardChecks(text) {
   const results = []
   const say = (label, ok, detail = '') => results.push([label, ok, detail])
 
-  // LogicLib nesting: `${If}` opens a frame, `${AndIf}`/`${OrIf}` extend the
-  // open one, `${EndIf}` closes it. Every other statement is tagged with the
-  // conditions in scope where it sits.
-  const stack = []
-  const scoped = []
-  let balanced = true
-  for (const raw of text.split('\n')) {
-    const line = raw.replace(/;.*$/, '').trim()
-    if (/^\$\{If\}/.test(line)) stack.push([line])
-    else if (/^\$\{(AndIf|OrIf)\}/.test(line)) {
-      if (stack.length === 0) balanced = false
-      else stack[stack.length - 1].push(line)
-    } else if (/^\$\{EndIf\}/.test(line)) {
-      if (stack.length === 0) balanced = false
-      else stack.pop()
-    } else if (line) {
-      scoped.push({ line, guards: stack.flat().join(' ') })
-    }
-  }
+  const { scoped, unknown } = nshWalk(text)
+  const undetermined = unknown.length > 0
+  const why = unknown
+    .map((u) => `${u.lineNo ? `line ${u.lineNo}` : 'end of file'}: ${u.why} (${u.line})`)
+    .join('; ')
+
   // The denominator, and it is the number that goes to zero when the walk
   // breaks: with a broken parser every "is it guarded" answer below would be
   // a statement about this function rather than about the hook.
   say(
     'the LogicLib nesting in the hook parses and balances',
-    balanced && stack.length === 0 && scoped.length > 10,
-    `${scoped.length} statements read, ${stack.length} conditions left open, balanced=${balanced}`,
+    undetermined ? 'unknown' : scoped.length > 10,
+    undetermined
+      ? `the walk could not place every statement - ${why}`
+      : `${scoped.length} statements read, every block opened and closed`,
   )
 
   const destructive = scoped.filter(({ line }) => /^RMDir\s+\/r\s/i.test(line))
   say(
     'the walk found every recursive delete in the hook',
     destructive.length >= 2,
-    `${destructive.length} found: ${destructive.map((d) => d.line).join(' | ')}`,
+    `${destructive.length} found: ${destructive.map((d) => `line ${d.lineNo} ${d.line}`).join(' | ')}`,
   )
-  for (const { line, guards } of destructive) {
-    const named = line.replace(/\s+/g, ' ')
+  for (const { line, lineNo, frames } of destructive) {
+    // The line number is part of the label because two of these can be the
+    // same text - the hook deletes the WebView2 profile in one place and the
+    // `${Else}` saboteur adds a second - and a set comparison over duplicate
+    // labels cannot say which one went red.
+    const named = `line ${lineNo}: ${line.replace(/\s+/g, ' ')}`
+    const guaranteed = guaranteedConditions(frames)
+    const under = (re) => guaranteed.some((c) => re.test(c))
+    const detail = undetermined ? `the walk could not place this line - ${why}` : describeFrames(frames)
     say(
       `${named} is behind the checkbox`,
-      /\$DeleteAppDataCheckboxState\s*=\s*1/.test(guards),
-      guards || 'no enclosing condition at all',
+      undetermined ? 'unknown' : under(/\$DeleteAppDataCheckboxState\s*=\s*1/),
+      detail,
     )
     say(
       `${named} is behind the update guard`,
-      /\$UpdateMode\s*<>\s*1/.test(guards),
-      guards || 'no enclosing condition at all',
+      undetermined ? 'unknown' : under(/\$UpdateMode\s*<>\s*1/),
+      detail,
     )
   }
 
@@ -638,6 +994,7 @@ function nshGuardChecks(text) {
 }
 
 console.log('')
-if (fails > 0) console.log(`${fails} FAILED`)
+if (fails > 0) console.log(`${fails} FAILED${notChecked > 0 ? `, and ${notChecked} thing(s) NOT CHECKED` : ''}`)
+else if (notChecked > 0) console.log(`no failures, but ${notChecked} thing(s) NOT CHECKED`)
 else console.log('all passed')
 process.exit(fails === 0 ? 0 : 1)
