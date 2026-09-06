@@ -265,10 +265,12 @@ EOF
 )"
 ```
 
-There are no checks to wait for (trap 21): `gh pr checks <n>` reports none,
-and that is indistinguishable from checks that have not started. The green
-`npm run gate` above is the whole gate, so merge with
-`gh pr merge <n> --squash --delete-branch`; then trap 13.
+Then merge. Everything from here — the squash merge, deleting the remote
+branch when the local step declines to, and verifying the change by content
+rather than by SHA — is **[`docs/MERGING.md`](MERGING.md)**, which is its only
+copy. There are no checks to wait for (trap 21): `gh pr checks <n>` reports
+none, and that is indistinguishable from checks that have not started. The
+green `npm run gate` above is the whole gate.
 
 Redirect to a file and read `$?` rather than piping: a pipe reports the last
 command's status, so `npm run gate | tail` is always a success.
@@ -276,6 +278,12 @@ command's status, so `npm run gate | tail` is always a success.
 ---
 
 ## 3. Lanes, dependencies, conflict matrix
+
+**Merging is [`docs/MERGING.md`](MERGING.md).** One page: worktree, `npm run
+gate`, rebase, push, `gh pr create`, `gh pr merge --squash --delete-branch`,
+deleting the remote branch by API when the local step declines, and verifying
+by content. It is not repeated here — two documents describing one procedure
+disagree eventually, and then both are wrong.
 
 | Lane | Theme | Primary files | Hard depends-on |
 |---|---|---|---|

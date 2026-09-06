@@ -48,6 +48,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { findRuby, notCheckedMessage } from './find-ruby.mjs'
+import { watchTree } from './break-check-tree.mjs'
 
 const TARGET = 'lich-scripts/companion_bridge.lic'
 /**
@@ -83,6 +84,11 @@ for (const path of [TARGET, RELAY]) {
 }
 const text = TARGETS[TARGET].text
 const NL = TARGETS[TARGET].NL
+
+// The "before" reading, taken before anything is damaged: this asserts that
+// the run changed nothing, not that the checkout was tidy. See
+// tools/break-check-tree.mjs.
+const treeBack = watchTree([TARGET])
 
 let checks = 0
 let failures = 0
@@ -245,7 +251,18 @@ for (const c of CASES) {
   console.log(`   (in ${path})`)
   const count = t.text.split(c.from).length - 1
   ok(count === 1, `the fragment is present exactly once (found ${count})`)
-  if (count !== 1) continue
+  if (count !== 1) {
+    // A hard abort naming the anchor, not a failed check the run walks past.
+    // An anchor that has drifted is repaired by finding where the line went,
+    // and a bare count sends nobody looking - `first-screen-break-check.mjs`
+    // lost its second case that way from #409 to #489. Nothing after this
+    // point would mean anything either: every later case would be measuring a
+    // file this one did not damage.
+    console.log(`ABORT ${c.name}: anchor ${JSON.stringify(c.from)}`)
+    console.log('      find where it went (git log -S) and move the anchor; do not delete the case.')
+    restore()
+    process.exit(treeBack(1))
+  }
 
   const damaged = t.text.replace(c.from, c.to)
   ok(damaged !== t.text, 'and the sabotage actually changes the file')
@@ -294,4 +311,7 @@ console.log(
   `${notChecked ? `\nno failures, but ${notChecked} not checked` : ''}` +
     (failures ? `\n${failures} of ${checks} failed` : `\nall ${checks} break-check assertions passed`)
 )
-process.exitCode = failures ? 1 : 0
+// git, not this file's own bookkeeping. The per-case sha256 proves each
+// restore reproduced the bytes it read; only git can see something left
+// behind, and this file is installed into a live Lich.
+process.exitCode = treeBack(failures ? 1 : 0)

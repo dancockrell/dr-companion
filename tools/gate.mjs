@@ -81,7 +81,7 @@ import { join, resolve } from 'node:path'
 // drift, and then the gate and the tool it runs would disagree about whether
 // there is an engine — which is the worst possible thing for them to disagree
 // about, because one of them decides whether the other gets to run at all.
-import { findGodot, godotCandidates } from './godot-tests.mjs'
+import { findGodotDetailed, godotCandidates, godotNotFoundReason } from './godot-tests.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
@@ -176,12 +176,17 @@ function godotProcessCount() {
  */
 function godotStage() {
   const candidates = godotCandidates(godotBinary || process.env.GODOT4 || '')
-  const found = findGodot(candidates)
+  const detail = findGodotDetailed(candidates)
+  const found = detail.found
   if (!found) {
+    // Three states, not two. "Nothing ran at all" and "something ran and is not
+    // the engine this project declares" call for opposite things from whoever
+    // is standing here, and until #489 this sentence said "no Godot 4.3
+    // binary" over a version nothing had ever looked at — a claim the gate was
+    // making on the strength of an exit code. `godotNotFoundReason` writes the
+    // right one of the three; the only thing added here is the gate's own seam.
     return {
-      notRun:
-        `no Godot 4.3 binary; looked at ${candidates.join(', ')} — set GODOT4 to one ` +
-        `(the gate's own seam is DRC_GATE_GODOT)`,
+      notRun: `${godotNotFoundReason(detail, candidates)} — set GODOT4 to one (the gate's own seam is DRC_GATE_GODOT)`,
     }
   }
   const running = godotProcessCount()
@@ -227,6 +232,38 @@ const STAGES = [
     cmd: cargo,
     args: ['test', '--manifest-path', cargoManifest],
   },
+  // ---------------------------------------------------------------- the
+  // negative suites. Each of these damages tracked source on purpose, runs the
+  // suite that is meant to catch it, and restores the file — verified by hash
+  // and, since #489, by `git status` over the paths it touched
+  // (tools/break-check-tree.mjs).
+  //
+  // They live here rather than in `tools/test-suites.json` for the reason each
+  // one's header gives: `node tools/run-tests.mjs` is run constantly and
+  // concurrently, and a harness that writes to `src/` must never be one of
+  // several things running at once. The gate is a single-lane, pre-merge
+  // ritual, which is exactly the condition they need. Before #489 that
+  // reasoning had been used to justify registering them nowhere at all, and
+  // `first-screen-break-check.mjs` sat with a dead anchor from #409 to #489
+  // — its abort would have fired the whole time, and nothing ever ran it.
+  // A negative suite nobody runs is the same absence as no negative suite,
+  // with more reassurance attached.
+  //
+  // `tools/needs-env.mjs` now asserts that every `tools/*-break-check.*` is
+  // named here or reached by the full suite, so the next one cannot be
+  // forgotten the way these were.
+  {
+    name: 'break-first-screen',
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'first-screen-break-check.mjs')],
+  },
+  {
+    name: 'break-doc-claims',
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'doc-claims-break-check.mjs')],
+  },
   {
     name: 'godot',
     precheck: godotStage,
@@ -236,6 +273,19 @@ const STAGES = [
     shell: false,
     cmd: process.execPath,
     args: [resolve(root, 'tools', 'godot-tests.mjs')],
+  },
+  {
+    name: 'break-bridge-client',
+    // The same precheck as the Godot stage, and for the same two reasons: this
+    // harness runs a `.gd` test through the engine, so a missing or wrong-
+    // version engine must reach the summary as NOT RUN rather than as a
+    // failure, and the ceiling on how many engines are already up applies to
+    // it exactly as it applies to the suite. `GODOT4` is handed down so it
+    // does not search again and cannot pick a different answer.
+    precheck: godotStage,
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'bridge-client-null-target-break-check.mjs')],
   },
 ]
 
@@ -255,12 +305,27 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 7
+const EXPECTED_STAGES = 10
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */
 const NOT_COVERED = [
   ['installer', 'npm run tauri:build', 'a 217 MB build; release work only, see docs/RELEASE.md'],
+  // The two negative suites that cannot live in the list above, each with the
+  // reason stated rather than left to be noticed. Before #489 neither was
+  // named anywhere a runner or a reader would meet it, which made them
+  // indistinguishable from harnesses nobody had thought about.
+  [
+    'break-lane',
+    'node tools/command-lane-break-check.mjs',
+    'damages src-tauri/src/command_gate.rs and runs cargo six times between edits: minutes, ' +
+      'and any other session building this tree during them compiles a deliberately broken file',
+  ],
+  [
+    'break-sign-in',
+    'python tools/sign-in-break-check.py',
+    'drives a browser against the running app, and needs Python; run it by hand from docs/TESTING.md',
+  ],
 ]
 
 /**

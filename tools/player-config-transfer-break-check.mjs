@@ -39,6 +39,7 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
+import { watchTree } from './break-check-tree.mjs'
 
 const SUITE = 'tools/player-config-transfer-test.mjs'
 const CR = String.fromCharCode(13)
@@ -107,6 +108,11 @@ const CASES = [
  * indented under each case so the runner does not read another suite's
  * failures as this one's.
  */
+// The "before" reading, taken before anything is damaged: this asserts that
+// the run changed nothing, not that the checkout was tidy. See
+// tools/break-check-tree.mjs.
+const treeBack = watchTree([...new Set(CASES.map((c) => c.file))])
+
 let bad = 0
 let checked = 0
 const note = (s) => console.log(s)
@@ -132,9 +138,17 @@ for (const c of CASES) {
   const lf = original.split(CR).join('')
   const hits = lf.split(c.find).length - 1
   note(`\n== ${c.label} (${c.file})`)
-  // A sabotage that changes nothing must abort naming the reason, never pass.
+  // A sabotage that changes nothing must abort naming the reason, never pass —
+  // and naming the anchor, not only the file. An anchor that has drifted is
+  // repaired by finding where the line went; "0 match(es)" sends nobody
+  // looking. `first-screen-break-check.mjs`'s second case sat dead from #409
+  // to #489 for exactly this reason.
   ok(`  its anchor is in ${c.file} exactly once`, hits === 1, `${hits} match(es); nothing was changed`)
-  if (hits !== 1) continue
+  if (hits !== 1) {
+    console.log(`ABORT ${c.label}: anchor ${JSON.stringify(c.find)}`)
+    console.log('      find where it went (git log -S) and move the anchor; do not delete the case.')
+    process.exit(treeBack(1))
+  }
   const mutated = lf.split(c.find).join(c.replace)
   const restore = () => writeFileSync(c.file, original)
   writeFileSync(c.file, original.includes(CR) ? mutated.split('\n').join(`${CR}\n`) : mutated)
@@ -167,4 +181,6 @@ if (CASES.length < 4 || checked < 14) {
   console.log(`FAIL ${CASES.length} sabotages and ${checked} checks; this file has never had fewer than 4 and 14`)
   process.exit(1)
 }
-process.exit(bad ? 1 : 0)
+// git, not this file's own bookkeeping: the md5 per case proves each restore
+// reproduced the bytes it read, and only git can see anything left behind.
+process.exit(treeBack(bad ? 1 : 0))

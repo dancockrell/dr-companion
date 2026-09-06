@@ -28,6 +28,7 @@
 import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { watchTree } from './break-check-tree.mjs'
 
 const CASES = [
   {
@@ -211,7 +212,40 @@ const CASES = [
       'every retired-instruction exemption still earns itself',
     ],
   },
+  {
+    // The merge ritual's stage count, which is the half of #489's fourth
+    // finding that rots. A merger told to look for a number the gate no longer
+    // prints learns to skip the line, which is worse than no instruction.
+    file: 'docs/MERGING.md',
+    from: 'gate ok: 10 of 10 stages ran',
+    to: 'gate ok: 7 of 7 stages ran',
+    expect: 'docs/MERGING.md quotes the real stage count (10)',
+  },
+  {
+    // The same, from the other document. Both are asserted separately on
+    // purpose: one check covering "some document quotes it" would stay green
+    // with either of them wrong.
+    file: '.github/PULL_REQUEST_TEMPLATE.md',
+    from: '`gate ok: 10 of 10 stages ran`',
+    to: '`gate ok: 7 of 7 stages ran`',
+    expect: '.github/PULL_REQUEST_TEMPLATE.md quotes the real stage count (10)',
+  },
+  {
+    // The link, not the content. `docs/MERGING.md` is the only copy of the
+    // ritual, so a `CONTRIBUTING.md` that stops naming it makes the ritual
+    // unreachable from the file GitHub puts in front of a contributor - and
+    // nothing about the page itself would look wrong.
+    file: 'CONTRIBUTING.md',
+    from: '[docs/MERGING.md](docs/MERGING.md)',
+    to: '[the merge ritual](docs/MERGING-not-a-real-page.md)',
+    expect: 'CONTRIBUTING.md points at the merge ritual',
+  },
 ]
+
+// The "before" reading, taken before anything is damaged: this asserts that
+// the run changed nothing, not that the checkout was tidy. See
+// tools/break-check-tree.mjs.
+const treeBack = watchTree([...new Set(CASES.map((c) => c.file ?? c.create))])
 
 const md5 = (s) => createHash('md5').update(s).digest('hex')
 
@@ -280,4 +314,8 @@ for (const c of CASES) {
 }
 
 console.log(`\n${CASES.length} sabotages across ${new Set(CASES.map((c) => c.file ?? c.create)).size} files; ${bad} did not redden exactly the checks they named`)
-process.exit(bad ? 1 : 0)
+// Every path this run wrote to, asked of git rather than of this file's own
+// bookkeeping: the md5 comparisons above prove each restore reproduced the
+// bytes it read, and only git knows whether anything else was left behind.
+// See tools/break-check-tree.mjs.
+process.exit(treeBack(bad ? 1 : 0))

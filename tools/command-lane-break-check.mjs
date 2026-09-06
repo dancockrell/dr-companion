@@ -36,6 +36,7 @@
  */
 import { readFileSync, writeFileSync, utimesSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { watchTree } from './break-check-tree.mjs'
 import { execFileSync } from 'node:child_process'
 
 const TARGET = 'src-tauri/src/command_gate.rs'
@@ -60,8 +61,16 @@ function restore() {
   utimesSync(TARGET, when, when)
 }
 
+// The "before" reading, taken before anything is damaged: this asserts that
+// the run changed nothing, not that the checkout was tidy. See
+// tools/break-check-tree.mjs.
+const treeBack = watchTree([TARGET])
+
 process.on('exit', () => {
   const now = createHash('sha256').update(readFileSync(TARGET)).digest('hex')
+  // git as well as the hash: the hash proves this file came back, and only git
+  // can see anything else this run left behind. See tools/break-check-tree.mjs.
+  if (now === originalHash && treeBack(0) !== 0) process.exitCode = 1
   if (now !== originalHash) {
     // Loud, and not a silent repair: if this line ever prints, the run above
     // must not be believed either.
