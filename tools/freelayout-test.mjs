@@ -10,13 +10,16 @@ import { readFileSync } from 'node:fs'
 
 const m = await import('../src/lib/freeLayout.ts')
 
+let checked = 0
 let fails = 0
 const check = (label, got, want) => {
+  checked++
   const ok = JSON.stringify(got) === JSON.stringify(want)
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(50)} ${JSON.stringify(got)}`)
 }
 const ok = (label, cond, detail = '') => {
+  checked++
   if (!cond) fails++
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${label.padEnd(50)} ${detail}`)
 }
@@ -134,5 +137,21 @@ ok('canvas chrome sits above a contained panel stacking context',
   /className="absolute inset-0 z-10"/.test(canvasSource) &&
   /zIndex: dragging \? 9999 : 10 \+/.test(canvasSource))
 
-console.log(fails ? `\n${fails} failed` : '\nall passed')
-process.exit(fails ? 1 : 0)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 20
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)

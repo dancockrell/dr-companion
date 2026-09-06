@@ -10,8 +10,10 @@ import { readFileSync } from 'node:fs'
 const data = JSON.parse(readFileSync('src/data/bestiary.json', 'utf8'))
 const raw = JSON.parse(readFileSync('data/elanthipedia/bestiary.json', 'utf8'))
 
+let checked = 0
 let fails = 0
 const check = (label, got, want) => {
+  checked++
   const ok = JSON.stringify(got) === JSON.stringify(want)
   if (!ok) fails++
   console.log(`${ok ? 'OK  ' : 'FAIL'} ${label.padEnd(54)} ${JSON.stringify(got)}`)
@@ -39,6 +41,7 @@ for (const noun of ['troll', 'goblin', 'creature', 'bear']) {
   )
   // If the candidates disagreed on level, the index must not carry one.
   const ok = levels.size <= 1 || entry.level === undefined
+  checked++
   if (!ok) fails++
   console.log(
     `${ok ? 'OK  ' : 'FAIL'} ${noun.padEnd(12)} ${levels.size} distinct levels -> index level ${JSON.stringify(entry.level)}`
@@ -83,5 +86,21 @@ const trimmed = 'a kobold which appears dead'
   .replace(/\s+which appears dead$/, '')
 check('dead kobold finds the kobold', data.byName[trimmed]?.level, 4)
 
-console.log(fails ? `\n${fails} failed` : '\nall passed')
-process.exit(fails ? 1 : 0)
+console.log('')
+// Far below the real count on purpose: a tripwire for a truncated or
+// half-loaded run, not a regression test on the number of cases.
+const MIN_EXPECTED = 4
+if (checked < MIN_EXPECTED) {
+  console.error(`FAILED: only ${checked} checks ran, expected at least ${MIN_EXPECTED}`)
+  process.exit(1)
+}
+// `checked`, not a pass count: the denominator has to be the number of
+// checks that ran, or it shrinks by one per failure and reports a smaller
+// suite on exactly the run where you need to know the size did not change.
+console.log(`${checked} checked, ${fails} failed`)
+if (fails) {
+  console.error('FAILED')
+  process.exit(1)
+}
+console.log('all passed')
+process.exit(0)
