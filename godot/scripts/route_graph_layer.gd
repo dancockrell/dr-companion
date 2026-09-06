@@ -22,7 +22,7 @@ const TETHER_COLORS := {
 	"other": Color(0.46, 0.52, 0.56, 0.66),
 }
 
-func render_routes(cells: Dictionary) -> void:
+func render_routes(cells: Dictionary, focus_id: String = "") -> void:
 	_clear()
 	var route_meshes: Dictionary = {}
 	var rendered_pairs: Dictionary = {}
@@ -37,6 +37,10 @@ func render_routes(cells: Dictionary) -> void:
 				continue
 			var target_id := str(exit.get("targetCellId", ""))
 			if target_id.is_empty() or not cells.has(target_id):
+				continue
+			# Room framing shows only incident connections. The full graph remains
+			# available in world/route framing; this never filters legal commands.
+			if not focus_id.is_empty() and source_id != focus_id and target_id != focus_id:
 				continue
 			var pair_key := _undirected_pair_key(source_id, target_id)
 			if rendered_pairs.has(pair_key):

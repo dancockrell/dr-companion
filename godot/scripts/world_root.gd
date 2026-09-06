@@ -318,6 +318,7 @@ func _focus_room(room_id: String, mode: int) -> void:
 	if cell.is_empty():
 		return
 	camera.focus_on(mode, _cell_position(cell))
+	route_graph.render_routes(WorldManifestLoader.cells, room_id if mode == camera.Mode.ROOM else "")
 
 ## Public camera controls for the host UI. They do not mutate MUD state and
 ## do not change the detail budget: world view keeps the local bubble mounted
@@ -329,6 +330,7 @@ func focus_world_view() -> void:
 	for cell in WorldManifestLoader.cells.values():
 		positions.append(_cell_position(cell))
 	camera.frame_world_positions(positions)
+	route_graph.render_routes(WorldManifestLoader.cells)
 
 func focus_current_room_view() -> void:
 	var room_id: String = BridgeClient.current_snapshot.get("currentRoomId", "")

@@ -7,6 +7,9 @@
   "claimed_at": "2026-09-06T03:00:00Z",
   "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "godot/scripts/route_graph_layer.gd",
+    "godot/scripts/world_root.gd",
+    "godot/tests/route_graph_layer_test.gd",
     "tools/board-geometry-drift-test.mjs",
     "godot/scripts/exit_anchor_layer.gd",
     "godot/tests/exit_anchor_layer_test.gd",
@@ -59,8 +62,9 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": "Included in this checkpoint",
+    "commit": "Native-scale floor repetition and socket-bound approaches: included in this checkpoint",
     "checks": [
+      "Continuation: 774 Godot checks and 27 geometry checks passed; twelve room captures plus overview regenerated; Town Green North inspected",
       "459 Godot checks across 18 scripts passed",
       "27 geometry drift checks passed",
       "Presentation bridge and primitive-world checks passed",

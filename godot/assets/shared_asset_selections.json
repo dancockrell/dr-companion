@@ -156,7 +156,8 @@
             0.33
           ],
           "lift": 0.02,
-          "yawDegrees": 0
+          "yawDegrees": 0,
+          "approachTo": 1
         }
       ],
       "status": "partial-authored",
@@ -466,7 +467,8 @@
             0.33
           ],
           "lift": 0.02,
-          "yawDegrees": 0
+          "yawDegrees": 0,
+          "approachTo": 1
         }
       ],
       "status": "partial-authored",

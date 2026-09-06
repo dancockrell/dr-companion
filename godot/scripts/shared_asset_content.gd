@@ -82,7 +82,24 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 	holder.set_meta("review_status", recipe.status)
 	holder.set_meta("missing_content", recipe.missing)
 	holder.set_meta("description_hash", recipe.descriptionHash)
-	for placement in recipe.pieces:
+	for authored_placement in recipe.pieces:
+		var placement: Dictionary = authored_placement.duplicate(true)
+		if placement.has("approachTo"):
+			# Only the authored south-facing straight approach is supported here.
+			# Derive its endpoint from the already fitted building's entrance.
+			var building_index := int(placement.approachTo)
+			if building_index < 0 or building_index >= holder.get_child_count():
+				holder.free()
+				return null
+			var building: Node3D = holder.get_child(building_index)
+			var building_record: Dictionary = _native_records[building.get_meta("asset_id")]
+			var socket: Array = building_record.get("sockets", {}).get("entrance", [])
+			if socket.size() != 3:
+				holder.free()
+				return null
+			var entrance := building.transform * Vector3(socket[0], socket[1], socket[2])
+			placement.center = [entrance.x / size.x, (entrance.z + size.z * 0.5) * 0.5 / size.z]
+			placement.envelope = [placement.envelope[0], (size.z * 0.5 - entrance.z) / size.z]
 		var record: Dictionary = _native_records.get(placement.assetId, {})
 		if record.is_empty():
 			holder.free()
@@ -104,7 +121,7 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 			model.scale.z = size.z * placement.envelope[1] / dimensions[2]
 		model.rotation.y = yaw
 		model.position = Vector3(placement.center[0] * size.x, ground_top + placement.lift, placement.center[1] * size.z)
-		if placement == recipe.pieces[0]:
+		if authored_placement == recipe.pieces[0]:
 			# This ground kit is rectangular. Fill the published footprint exactly;
 			# keep its top at the height already used by tokens and exit anchors.
 			model.scale.x = size.x * placement.envelope[0] / dimensions[0]
@@ -131,7 +148,47 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 			model.position.y += float(placement.lift)
 		model.visible = true
 		model.set_meta("asset_id", placement.assetId)
+		if placement.assetId.ends_with(".plank-approach") or placement.assetId.ends_with(".cobble-street") or placement.assetId.ends_with(".cobble-plaza"):
+			# Repeat bounded source modules, never turn one plank into a room-wide beam.
+			var tiled := _tile_ground(model, record, size, placement, ground_top, authored_placement == recipe.pieces[0])
+			model.free()
+			model = tiled
 		holder.add_child(model)
+	return holder
+
+func _tile_ground(source: Node3D, record: Dictionary, room_size: Vector3, placement: Dictionary, top: float, base: bool) -> Node3D:
+	var holder := Node3D.new()
+	holder.name = "RepeatedGround"
+	holder.set_meta("asset_id", placement.assetId)
+	holder.set_meta("repeated_ground", true)
+	var dims: Array = record.bounds.size
+	var low: Array = record.bounds.min
+	var yaw := deg_to_rad(float(placement.yawDegrees))
+	# Envelopes are world-aligned; authored ground uses cardinal rotations.
+	var width: float = room_size.x * placement.envelope[0]
+	var depth: float = room_size.z * placement.envelope[1]
+	if absf(sin(yaw)) > 0.5:
+		var swap := width
+		width = depth
+		depth = swap
+	var columns := maxi(1, ceili(width / float(dims[0])))
+	var rows := maxi(1, ceili(depth / float(dims[2])))
+	var tile_width := width / columns
+	var tile_depth := depth / rows
+	holder.rotation.y = yaw
+	holder.position = Vector3(placement.center[0] * room_size.x, top + float(placement.lift), placement.center[1] * room_size.z)
+	for column in columns:
+		for row in rows:
+			var tile := source.duplicate() as Node3D
+			tile.rotation = Vector3.ZERO
+			tile.scale = Vector3.ONE
+			tile.scale.x = tile_width / float(dims[0])
+			tile.scale.z = tile_depth / float(dims[2])
+			tile.position = Vector3(
+				-width * 0.5 + column * tile_width - float(low[0]) * tile.scale.x,
+				-float(low[1]) - (float(dims[1]) if base else 0.0),
+				-depth * 0.5 + row * tile_depth - float(low[2]) * tile.scale.z)
+			holder.add_child(tile)
 	return holder
 
 func shared_asset_status() -> Dictionary:

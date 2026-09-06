@@ -2,6 +2,33 @@
 
 ## Current: description-led buildings and larger, compact rooms
 
+### Continuation: native-scale ground and connected approaches
+
+Plank approaches and cobbled streets/plazas now repeat bounded modules to fill
+their declared footprint. Each copy retains native height and is never enlarged
+horizontally; only a small fit-down distributes an integer number of modules
+across the requested envelope. This replaces the rejected room-wide stretched
+planks and oversized paving. Mesh resources remain shared, but additional
+instances have a rendering cost: dense-scene performance is still unverified.
+
+The armorer and weaponsmith approach endpoints now derive from their fitted
+building entrance sockets and run to the room edge. This is visual composition,
+not an invented exit or navigation mesh. The straight south-facing approach
+contract is deliberately limited to these two authored recipes; arbitrary
+curved or rotated path routing is not implemented.
+
+Room framing displays only graph segments incident to that room. World and route
+framing restore the full graph, while the exact command list stays unchanged.
+This removes unrelated city-wide lines crossing the local scene without removing
+topology. Repeated curbs, overly regular board patterns, sparse interiors and
+unfinished grass/mud treatment still need art work. No new source models or paid
+services were used in this continuation.
+
+Continuation validation: 774 checks across 18 Godot scripts and 27 geometry
+drift checks passed. Twelve room captures and the overview were regenerated;
+Town Green North was inspected at gameplay framing. The optional legacy shared
+submodule warning persists for fallback rocks, not the packaged native catalog.
+
 This section supersedes the counts, dimensions and cyan-marker presentation in
 the historical checkpoints below. The Crossing vertical slice remains unfinished.
 

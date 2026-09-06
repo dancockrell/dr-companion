@@ -35,6 +35,10 @@ func _run() -> void:
 		check(node.get_child_count() == recipe.pieces.size(), "All declared pieces mounted")
 		var size = registry.block_size_metres(cell)
 		for model in node.get_children():
+			if model.has_meta("repeated_ground"):
+				check(model.get_child_count() > 0, "Repeated ground has real source modules")
+				for tile in model.get_children():
+					check(tile.scale.x <= 1.001 and tile.scale.z <= 1.001 and is_equal_approx(tile.scale.y, 1.0), "Ground modules preserve native height and never stretch horizontally")
 			var bounds := _bounds(model, node)
 			check(bounds.position.x >= -size.x/2 - 0.001 and bounds.end.x <= size.x/2 + 0.001 and bounds.position.z >= -size.z/2 - 0.001 and bounds.end.z <= size.z/2 + 0.001, "Full visual geometry stays within published footprint")
 			var shells := model.find_children("CompleteExterior", "Node3D", true, false)
@@ -53,6 +57,17 @@ func _run() -> void:
 		changed.id = "unrelated-room"
 		check(content.build_room_composition(changed) == null, "Similar text cannot assign another room's geometry")
 	check(content.build_room_composition(cells["1-467"]) == null, "Unknown pond remains unresolved")
+	for room_id in ["1-14", "1-225"]:
+		var approach_room: Node3D = content.build_room_composition(cells[room_id])
+		var building: Node3D = approach_room.get_child(1)
+		var building_record: Dictionary = content._native_records[building.get_meta("asset_id")]
+		var socket: Array = building_record.sockets.entrance
+		var entrance := building.transform * Vector3(socket[0], socket[1], socket[2])
+		var path := _bounds(approach_room.get_child(4), approach_room)
+		check(absf(path.position.z - entrance.z) < 0.001, "Approach starts at fitted entrance socket, not a guessed offset")
+		check(absf(path.end.z - registry.block_size_metres(cells[room_id]).z * 0.5) < 0.001, "Approach reaches the published room edge")
+		check(absf(path.get_center().x - entrance.x) < 0.001, "Approach is centered on actual entrance")
+		approach_room.free()
 	var bazaar: Node3D = content.build_room_composition(cells["1-379"])
 	var bazaar_width: float = registry.block_size_metres(cells["1-379"]).x
 	for index in range(1, bazaar.get_child_count()):
