@@ -9,7 +9,7 @@
  *
  * Reachable as `?view=panel&id=config`, like every other dockable panel.
  */
-import { useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent, type ReactElement } from 'react'
 import {
   DOMAINS,
   loadPlayerConfig,
@@ -28,6 +28,8 @@ import {
   type ImportReport,
 } from '../../lib/playerConfigImport.ts'
 import { invokeTauri, isTauri } from '../../lib/tauri.ts'
+import { HighlightsTab } from './HighlightsTab.tsx'
+import { PresetsTab } from './PresetsTab.tsx'
 
 const TAB_LABEL: Record<Domain, string> = {
   presets: 'Presets',
@@ -40,15 +42,29 @@ const TAB_LABEL: Record<Domain, string> = {
 }
 
 /** What each tab will hold, and which increment builds it. Named on screen so
- *  a missing editor reads as unbuilt rather than as broken. */
+ *  a missing editor reads as unbuilt rather than as broken. A tab whose editor
+ *  exists keeps its line as the tab's one-sentence description; `TAB_EDITOR`
+ *  below is what decides whether a tab is a form or a promise. */
 const TAB_PLACEHOLDER: Record<Domain, string> = {
-  presets: 'Colour presets a highlight can name. The editor arrives with Q2.',
-  highlights: 'Colour and sound rules for game text. The editor arrives with Q2.',
+  presets: 'Colour presets a highlight can name.',
+  highlights: 'Colour and sound rules for game text.',
   aliases: 'Short words that expand into commands. The editor arrives with Q3.',
   macros: 'Keys that send a list of commands. The editor arrives with Q3.',
   substitutes: 'Text rewritten before it is shown. The editor arrives with Q4.',
   gags: 'Lines hidden from the game pane. The editor arrives with Q4.',
   variables: 'Values an alias or a macro can use as $name. The editor arrives with Q3.',
+}
+
+/**
+ * The tabs that have an editor, and what it is.
+ *
+ * A record rather than a switch in the body, so "which tabs are built" is one
+ * readable line and a tab that is still a placeholder is visibly absent from
+ * it rather than being the default branch of something.
+ */
+const TAB_EDITOR: Partial<Record<Domain, () => ReactElement>> = {
+  presets: PresetsTab,
+  highlights: HighlightsTab,
 }
 
 interface Loaded {
@@ -66,6 +82,7 @@ export function PlayerConfigPanel() {
   // and a memo keyed on a value this component already re-renders for is a
   // second cache that can disagree with the first.
   const migrations = playerConfigMigrations()
+  const Editor = TAB_EDITOR[tab]
 
   const runImport = (loaded: Loaded) => {
     const { config: imported, report: next } = importGenieConfig(loaded.files)
@@ -145,8 +162,12 @@ export function PlayerConfigPanel() {
         ))}
       </div>
 
-      <div className="rounded border border-border p-2" data-testid={`config-body-${tab}`}>
+      <div
+        className="flex min-h-0 flex-col rounded border border-border p-2"
+        data-testid={`config-body-${tab}`}
+      >
         <p className="text-ink-muted">{TAB_PLACEHOLDER[tab]}</p>
+        {Editor && <Editor />}
         <p className="mt-1 text-xs text-ink-faint">
           {config[tab].length} stored in <code>{storageKeyFor(tab)}</code>. Read:{' '}
           {migrations[tab].status}

@@ -171,6 +171,51 @@ function slowestProbeMs(re: RegExp): number {
 }
 
 /**
+ * The one gate a pattern passes before anything runs it.
+ *
+ * `parseHighlights` (a Genie file), `resolveHighlights` (the store) and the
+ * editor's save all ask the same question - is this pattern safe to run once
+ * per rendered line - and asking it three ways is how a rule refused at load
+ * gets accepted at save and freezes the game pane anyway. So it is asked
+ * once, here, and the callers differ only in what they do with the answer.
+ *
+ * Two states, and the second is the point: a pattern that compiles is not a
+ * pattern that is safe to run, so a refusal carries the measured time rather
+ * than a category. See PATTERN_BUDGET_MS.
+ */
+export function compilePattern(
+  type: HighlightType,
+  pattern: string
+): { ok: true; re?: RegExp } | { ok: false; why: string } {
+  if (!pattern) return { ok: false, why: 'empty pattern' }
+  if (type !== 'regexp') return { ok: true }
+
+  let re: RegExp
+  try {
+    // Compiled here, so a broken pattern is reported at load or at save
+    // rather than failing silently on every line forever. Genie is .NET and
+    // this is JavaScript; close enough for what these use, and a pattern that
+    // fails to compile in either is certainly wrong.
+    re = new RegExp(pattern)
+  } catch (e) {
+    return { ok: false, why: (e as Error).message }
+  }
+
+  // Compiling is not the same as being safe to run. See PATTERN_BUDGET_MS.
+  const worst = slowestProbeMs(re)
+  if (worst > PATTERN_BUDGET_MS) {
+    return {
+      ok: false,
+      why:
+        `took ${worst.toFixed(0)}ms on a 22-character probe ` +
+        '(nested quantifiers backtrack exponentially); it would freeze the game pane, ' +
+        'so it is not loaded',
+    }
+  }
+  return { ok: true, re }
+}
+
+/**
  * Parse a Genie config.
  *
  * Skips what it does not understand rather than throwing, because that is what
@@ -218,29 +263,13 @@ export function parseHighlights(text: string): { entries: Highlight[]; skipped: 
       sourceLine: lineNo,
     }
 
-    if (type === 'regexp') {
-      try {
-        // Compiled once, here, so a broken pattern is reported at load rather
-        // than failing silently on every line forever. Genie is .NET and this
-        // is JavaScript; close enough for what these use, and a pattern that
-        // fails to compile in either is certainly wrong.
-        entry.re = new RegExp(pattern)
-      } catch (e) {
-        skipped.push(`${line} - ${(e as Error).message}`)
-        continue
-      }
-
-      // Compiling is not the same as being safe to run. See PATTERN_BUDGET_MS.
-      const worst = slowestProbeMs(entry.re)
-      if (worst > PATTERN_BUDGET_MS) {
-        skipped.push(
-          `${line} - pattern took ${worst.toFixed(0)}ms on a 22-character probe ` +
-            '(nested quantifiers backtrack exponentially); it would freeze the game pane, ' +
-            'so it is not loaded'
-        )
-        continue
-      }
+    // The same gate the store and the editor go through. See compilePattern.
+    const compiled = compilePattern(entry.type, pattern)
+    if (!compiled.ok) {
+      skipped.push(`${line} - ${compiled.why}`)
+      continue
     }
+    if (compiled.re) entry.re = compiled.re
 
     entries.push(entry)
   }
@@ -391,27 +420,123 @@ export function resolveHighlights(cfg: {
       sourceLine: index,
     }
 
-    if (rule.type === 'regexp') {
-      try {
-        entry.re = new RegExp(rule.pattern)
-      } catch (e) {
-        refused.push({ id: rule.id, why: (e as Error).message })
-        return
-      }
-      const worst = slowestProbeMs(entry.re)
-      if (worst > PATTERN_BUDGET_MS) {
-        refused.push({
-          id: rule.id,
-          why:
-            `took ${worst.toFixed(0)}ms on a 22-character probe (nested quantifiers ` +
-            'backtrack exponentially); it would freeze the game pane, so it is not loaded',
-        })
-        return
-      }
+    const compiled = compilePattern(rule.type, rule.pattern)
+    if (!compiled.ok) {
+      refused.push({ id: rule.id, why: compiled.why })
+      return
     }
+    if (compiled.re) entry.re = compiled.re
 
     entries.push(entry)
   })
 
   return { entries, refused }
+}
+
+/**
+ * What a new rule or preset gets before the player picks a colour.
+ *
+ * Here rather than in the tab that uses it because `tools/color-token-test.mjs`
+ * ratchets raw colour literals in `src/components`, and rightly: a colour
+ * typed into a component is a colour that can disagree with the same colour
+ * typed into another one. This is not a theme token - it is a seed value for
+ * the player's own data, which is why it is a constant in this module rather
+ * than an entry in `src/index.css`.
+ */
+export const DEFAULT_HIGHLIGHT_COLOUR = '#66DDFF'
+
+/**
+ * `#rrggbb` if this value is one, otherwise null.
+ *
+ * A real `presets.cfg` holds CSS colour names as well as hex, and
+ * `<input type="color">` accepts only the second. Three states collapsed to
+ * two would mean showing a swatch that silently says black for `wheat`, so a
+ * caller gets null and shows the text instead of a wrong colour.
+ */
+export function asHexColour(value: string): string | null {
+  const v = value.trim()
+  if (v.length !== 7 || v[0] !== '#') return null
+  for (const ch of v.slice(1)) {
+    const hex = '0123456789abcdefABCDEF'
+    if (!hex.includes(ch)) return null
+  }
+  return v.toLowerCase()
+}
+
+/**
+ * Every highlight that names this preset.
+ *
+ * The editor refuses to delete a preset while this is non-empty, and prints
+ * the rules rather than the count alone: "3 highlights use it" is a fact the
+ * player cannot act on, and going and finding them by hand is exactly the
+ * work the message is supposed to save.
+ *
+ * `resolveHighlights` already survives a dangling reference - the rule renders
+ * in the default colour and appears in `refused` - so this is not load-bearing
+ * for correctness. It is load-bearing for not silently changing how seven
+ * lines look because one preset went away.
+ */
+export function highlightsUsingPreset(
+  presetId: string,
+  highlights: readonly HighlightStoreRule[]
+): HighlightStoreRule[] {
+  return highlights.filter((h) => h.presetId === presetId)
+}
+
+/** How many recent game lines the editor's preview runs the rules over. */
+export const HIGHLIGHT_PREVIEW_LINES = 200
+
+/**
+ * What the editor's preview shows when nothing is attached.
+ *
+ * Captured off the wire, not invented: text somebody assumed DragonRealms
+ * looks like is how a GemStone mindstate ladder ended up in a DragonRealms
+ * config once already.
+ *
+ * In this module rather than in the tab that renders it, for two reasons that
+ * are the same reason. `tools/highlight-test.mjs` runs `paint()` over exactly
+ * these strings and compares the result to what the browser put on screen, and
+ * it cannot import a `.tsx` file to get them - a second copy in the test would
+ * be a check that the test agrees with itself. And a `.tsx` exporting
+ * constants beside a component breaks fast refresh, which the linter says out
+ * loud.
+ */
+export const HIGHLIGHT_PREVIEW_SAMPLE: readonly string[] = [
+  'Obvious paths: north, east, southwest.',
+  'You notice as a black lynx pads into the area.',
+  'Wipsy just arrived.',
+  'You are bleeding from a wound in your left leg.',
+  'GENIE HAS FLAGGED YOU AS IDLE, PLEASE RESPOND!',
+  'You feel fully attuned to the mana streams again.',
+]
+
+/**
+ * May this preset be deleted, and if not, exactly which rules stop it.
+ *
+ * Pure, and here rather than inside the tab, because the message is the
+ * product. "3 highlights use it" is a fact the player cannot act on; going and
+ * finding those three by hand is the work the refusal is supposed to save. A
+ * message assembled inside a component is also a message no check can read,
+ * and this one has a property worth asserting: the count and every rule.
+ *
+ * `resolveHighlights` already survives a dangling reference - the rule renders
+ * in the default colour and appears in `refused` - so this is not load-bearing
+ * for correctness. It is load-bearing for not silently changing how seven
+ * lines look because one preset went away.
+ */
+export function refuseDeletingPreset(
+  preset: { id: string; name: string },
+  highlights: readonly HighlightStoreRule[]
+): { ok: true } | { ok: false; why: string; users: HighlightStoreRule[] } {
+  const users = highlightsUsingPreset(preset.id, highlights)
+  if (users.length === 0) return { ok: true }
+  return {
+    ok: false,
+    users,
+    why:
+      `"${preset.name}" is used by ${users.length} ` +
+      `${users.length === 1 ? 'highlight' : 'highlights'}: ` +
+      users.map((h) => `${h.type} "${h.pattern}"`).join(', ') +
+      '. Point those at another preset first, or give them their own colour.',
+  }
 }
