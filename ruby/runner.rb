@@ -4,7 +4,7 @@
 # Run one Lich script out of process, in a sandbox, and report what it tried
 # to do.
 #
-#     ruby -W0 --disable-gems ruby/runner.rb --sandbox DIR --script NAME.lic
+#     ruby -W0 --disable-gems ruby/runner.rb --sandbox DIR --script NAME.lic #          [--fixture F] [--timeout S] [--ledger LEDGER.jsonl]
 #     ruby ruby/runner.rb --shim                 the stub API surface, as JSON
 #     ruby ruby/runner.rb --surface FILE.lic     the Lich surface FILE calls
 #
@@ -58,11 +58,35 @@
 #   9c  `IO.method(:write).super_method`         ESCAPED, wrote      refused
 #   --  `Object.remove_const(:Contain)`          no JSON at all      reported
 #
+# Review pass 8 (#486) ran five more against the shipped runner, four of which
+# got a clean verdict past it. The first three are one defect - the object the
+# caller judged was produced inside the process being judged - and the fix for
+# all three is that the record and the verdict now leave the process as they
+# are made, into a ledger the candidate cannot reach. See `open_ledger!`.
+#
+#   #   class                                    before (#486)       now
+#   10  `Contain.violations.clear`               ESCAPED, exit 0     recorded, exit 3
+#   11  `exit!` after forging on `STDOUT`        ESCAPED, exit 0     refused; no verdict
+#   12  `Contain.watchdog.kill` then sleep       no JSON at all      parent kills, FAIL
+#   13  `Dir.new` / `Dir.home` / `File::Stat`    ESCAPED, listed     refused
+#   13b `Dir.new` INSIDE the sandbox             allowed             still allowed
+#   --  a candidate `at_exit` printing last      last object won     stdout is advisory
+#
+# TOCTOU on `File.realpath` was run too and is genuinely closed: a real
+# junction, a direct write through it refused by resolved name, and a
+# 400-iteration two-thread race between a write and a rename over the resolved
+# parent landed nothing. `File.rename` and `File.symlink` resolve both ends, so
+# moving a link is itself a violation and a candidate has no primitive to
+# change resolution inside the check/use window.
+#
 # # What "contained" means here, mechanism by mechanism
 #
 # Each of these is a separate, removable block below, because a containment
-# property nobody can switch off is a property nobody can prove works. The
-# suite sabotages them one at a time.
+# property nobody can switch off is a property nobody can prove works.
+# `tools/ai-script-repair-break-check.mjs` removes them one at a time and
+# asserts which checks go red. Until #486 that harness did not exist and this
+# paragraph was a claim; the five sabotages had been run by hand and had left
+# nothing behind, which is the same defect as a check nobody wrote.
 #
 #   * **No interpreter conveniences.** `-W0 --disable-gems`. Checked rather
 #     than assumed - the run refuses to start without them and says which was
@@ -89,9 +113,19 @@
 #   * **No reflection route back to the guard.** `ObjectSpace`, `TracePoint`
 #     and `RubyVM` are replaced by stubs that refuse, and the guard module and
 #     every singleton class it owns are frozen.
-#   * **A wall clock.** A watchdog thread ends the run at `--timeout` seconds
-#     and emits the result it has, so a candidate that loops forever is
-#     reported as a timeout rather than as a hung child nobody can read.
+#   * **A wall clock, and it is the parent's.** A watchdog thread ends the run
+#     at `--timeout` seconds and emits the result it has, so a candidate that
+#     loops forever is reported as a timeout rather than as a hung child nobody
+#     can read. That thread is a convenience: `Contain.watchdog.kill` used to
+#     stop it and produce no JSON at all, so the clock the *verdict* depends on
+#     is the caller's wall - `--timeout` plus a grace window - and a run the
+#     caller had to kill has no verdict in the ledger, which is a FAIL naming
+#     that fact and never a pass.
+#   * **A record and a verdict the candidate cannot write.** Every violation is
+#     appended to the `--ledger` file as it is raised, and the result object is
+#     written there too, each line stamped with a nonce the parent seeded and
+#     the candidate cannot read. That file is the caller's authority. Stdout is
+#     advisory, because everything on stdout was forgeable and was forged.
 #
 # A violation raises `Contain::Violation`, which descends from `Exception`
 # rather than `StandardError` on purpose: a candidate wrapping its escape in
@@ -163,11 +197,16 @@
 #     refused, and `$LOAD_PATH` is empty - but a Ruby build carrying it
 #     preloaded would not be stopped by anything here.
 #   * The candidate is evaluated in `TOPLEVEL_BINDING`, so it shares this
-#     file's toplevel locals and can read them with `binding`. The things worth
-#     protecting are no longer among them - the result object, the watchdog and
-#     the violation list live on the frozen `Contain` module, so a candidate
-#     cannot swap the reporter or kill the clock - but a determined script can
-#     still read a path or two out of the binding.
+#     file's toplevel locals and can read them with `binding`. This paragraph
+#     used to say the things worth protecting were no longer among them,
+#     "so a candidate cannot swap the reporter or kill the clock", and #486
+#     killed the clock by reading `Contain.watchdog` off the frozen module -
+#     `Thread#kill` is not a mutation, so freezing never applied to it. The
+#     honest statement is the other way round: a candidate CAN stop this
+#     process's watchdog and CAN empty this process's idea of the result, and
+#     neither reaches the ledger the verdict is read from. `hard_exit` is
+#     among those locals too, so a determined script can still leave without
+#     running the reporter - and leaving without a verdict is a FAIL.
 #
 # Where that stops being good enough the answer is a real sandbox at the OS
 # level, not more monkey-patching, and this comment is the marker for it.
@@ -184,9 +223,14 @@
 # left to interleave with that object, so the caller parses one thing. The one
 # exception is a violation raised inside a candidate's `at_exit`, which happens
 # *after* the object has gone out: a corrected second object is printed after
-# it and the exit code changes. The caller reads the last object on stdout.
-# The alternative was a first object saying `violations: []` about a run that
-# had one, which is the shape of every bug this file's tests exist to catch.
+# it and the exit code changes.
+#
+# None of that is the verdict any more. #486 pointed out that a candidate's own
+# `at_exit` runs after the runner's first emit and can print a forged object
+# last, and that a candidate which erases the record first loses the exit code
+# as well - so "the caller reads the last object on stdout" was a rule a
+# candidate could satisfy. The same JSON now also goes to the `--ledger` file,
+# with a nonce, and that is what the caller judges. Stdout is for a person.
 #
 # Exit codes: 0 ran clean, 3 violation, 4 timeout, 5 the script raised,
 # 2 the runner was called wrong.
@@ -219,11 +263,40 @@ module Contain
   # Everything the runner needs before the guards go up, kept in one place so
   # the order is obvious: read the world, then close the door.
   class << self
-    attr_reader :sandbox, :violations, :notes, :result, :watchdog
+    # `sandbox` and `result` only. #486's first and third findings were both
+    # this one line: `freeze` on a module is shallow, so `attr_reader
+    # :violations` handed out the live array and `Contain.violations.clear`
+    # erased the record (`violations: []`, `EXIT=0`, a clean verdict for a run
+    # that had a violation in it), while `Thread#kill` is not a mutation of a
+    # frozen module, so `Contain.watchdog.kill` stopped the clock and the run
+    # produced no JSON at all.
+    #
+    # Frozen copies close the in-process half. The half that matters is that
+    # neither array is what the caller's verdict is built from any more - see
+    # `open_ledger!` below.
+    attr_reader :sandbox, :result
+
+    def violations
+      (@violations || []).dup.freeze
+    end
+
+    def notes
+      (@notes || []).dup.freeze
+    end
+
+    # The clock this runner uses to tidy up after itself. A candidate can still
+    # reach this, and pretending otherwise is what the old header did; what has
+    # changed is that stopping it buys the candidate the parent's grace window
+    # and nothing else, because the wall the verdict depends on is the parent's
+    # and a run the parent had to kill has no verdict at all.
+    def stop_watchdog!
+      @watchdog&.kill
+    end
 
     def arm(sandbox)
       @violations = []
       @notes = []
+      @guarded = []
       lexical = canonical(File.expand_path(sandbox.to_s))
       @sandbox = resolve(sandbox)
       return false if @sandbox.nil?
@@ -244,6 +317,66 @@ module Contain
     def stow(result: nil, watchdog: nil)
       @result = result if result
       @watchdog = watchdog if watchdog
+    end
+
+    # A no-op until `open_ledger!` replaces it, so the runner still works when
+    # somebody runs it by hand with no parent to report to.
+    def ledger!(_kind, _fields = {})
+      false
+    end
+
+    # The parent's record, and the reason the accessors above stopped being the
+    # interesting part.
+    #
+    # #486 got a forged clean verdict past this runner three separate ways, and
+    # all three were one defect: the object the caller judged was produced
+    # inside the process being judged. `Contain.violations.clear` erased the
+    # record; `exit!` skipped the reporter and left a forged object as the only
+    # thing on stdout; a candidate's `at_exit` could print *after* the real
+    # result, and the caller read the last object it saw.
+    #
+    # So the record leaves the process as it is made. `--ledger PATH` names a
+    # file the parent created OUTSIDE every sandbox and seeded with a nonce.
+    # This runner reads the nonce before the guards go up and stamps every line
+    # it appends with it. The candidate can neither read the file - it is
+    # outside the fence, and every read-shaped entry point is guarded - nor
+    # guess the nonce, which is in no argument, no environment variable and no
+    # local it can name. So it cannot erase a violation already written and it
+    # cannot write a verdict of its own. Stdout is unchanged and advisory.
+    #
+    # The handle lives in this closure and in no instance variable on purpose:
+    # freezing a module stops `instance_variable_set` and does nothing about
+    # `instance_variable_get`, and an `@ledger` a candidate could read is an IO
+    # it could close.
+    def open_ledger!(path)
+      return false if path.nil? || path.to_s.empty?
+
+      first =
+        begin
+          File.open(path, 'r') { |f| f.gets }
+        rescue StandardError
+          nil
+        end
+      return false if first.nil?
+
+      record =
+        begin
+          JSON.parse(first)
+        rescue StandardError
+          nil
+        end
+      nonce = record.is_a?(Hash) ? record['nonce'] : nil
+      return false if nonce.nil? || nonce.to_s.empty?
+
+      io = File.open(path, 'a')
+      define_singleton_method(:ledger!) do |kind, fields = {}|
+        io.puts(JSON.generate({ 't' => kind, 'nonce' => nonce }.merge(fields)))
+        io.flush
+        true
+      rescue StandardError
+        false
+      end
+      true
     end
 
     # One spelling of a path, for comparing and for printing. Lexical, and
@@ -295,6 +428,11 @@ module Contain
     # record survives a candidate that catches and continues.
     def violation!(operation, detail)
       message = "#{operation}: #{detail}"
+      # Out of the process first, then into the local copy, then raised. The
+      # order is the whole point: whatever the candidate does to the copy - and
+      # it can no longer do anything, but that is a second line of defence and
+      # not the first - the parent already has this line.
+      ledger!('violation', 'message' => message)
       @violations << message
       raise Violation, message
     end
@@ -364,6 +502,10 @@ module Contain
       original = sc.instance_method(name)
       sc.send(:remove_method, name) if sc.instance_methods(false).include?(name) || sc.private_instance_methods(false).include?(name)
       sc.send(:define_method, name) { |*args, **kwargs, &block| handler.call(self, original, args, kwargs, block) }
+      # The register `guard_coverage` compares Ruby's own answer against.
+      # Keyed on the module the method is installed on, which is not always the
+      # one a script names: `File.read` is `IO`'s.
+      (@guarded ||= []) << "#{mod}.#{name}"
       true
     end
 
@@ -378,10 +520,61 @@ module Contain
       true
     end
 
+    # The denominator for "no filesystem outside the sandbox", and the answer
+    # to #486's fourth finding.
+    #
+    # That finding was not that one method had been forgotten. It was that the
+    # lists in this file are typed by hand and nothing had ever compared them
+    # against what `File`, `IO`, `Dir` and `File::Stat` actually provide. So
+    # this asks Ruby: every singleton method those four own, **plus the two
+    # inherited constructors** - `Dir.new` and `File::Stat.new` are `Class#new`
+    # and appear in no `singleton_methods(false)` list, which is precisely why
+    # they were missed - minus the ones named below that take no path and can
+    # disclose none. Whatever is left must resolve to a method installed here.
+    #
+    # `unguarded` is reported in the result and asserted empty by the suite, so
+    # a method in that set with no guard is a red test rather than a note
+    # somebody writes later. `examined` is the count that goes to zero if this
+    # ever stops enumerating anything, which is the failure a coverage check
+    # cannot otherwise tell from success.
+    PURE_PATH_ARITHMETIC = {
+      # String arithmetic, and the first three are what `Contain.resolve`
+      # itself calls - guarding them would be an infinite loop, not a fence.
+      'File' => %i[absolute_path absolute_path? basename dirname expand_path extname
+                   fnmatch fnmatch? join path realdirpath realpath split umask],
+      # `select` waits on IO objects it is handed; `try_convert` is a cast.
+      'IO' => %i[select try_convert],
+      # The working directory is the sandbox.
+      'Dir' => %i[pwd getwd],
+      'File::Stat' => [],
+    }.freeze
+
+    COVERED_MODULES = { 'File' => File, 'IO' => IO, 'Dir' => Dir, 'File::Stat' => File::Stat }.freeze
+
+    def guard_coverage
+      examined = 0
+      unguarded = []
+      installed = @guarded || []
+      COVERED_MODULES.each do |label, mod|
+        pure = PURE_PATH_ARITHMETIC.fetch(label)
+        ((mod.singleton_methods(false) + [:new]).uniq.sort - pure).each do |name|
+          examined += 1
+          owner =
+            begin
+              mod.method(name).owner.to_s.sub(/\A#<Class:/, '').sub(/>\z/, '')
+            rescue StandardError
+              nil
+            end
+          unguarded << "#{label}.#{name} (defined on #{owner || 'nothing resolvable'})" unless owner && installed.include?("#{owner}.#{name}")
+        end
+      end
+      { 'examined' => examined, 'guarded' => examined - unguarded.length, 'unguarded' => unguarded }
+    end
+
     # Close the door on the guard itself. Everything above must already be
     # installed, and every object the runner needs must already be stowed.
     def seal!
-      [File, IO, Dir, Process, Kernel].each { |m| m.singleton_class.freeze }
+      [File, File::Stat, IO, Dir, Process, Kernel].each { |m| m.singleton_class.freeze }
       Kernel.freeze
       freeze
       singleton_class.freeze
@@ -390,7 +583,9 @@ module Contain
 end
 
 # --------------------------------------------------------------------------
-# GUARD: the filesystem. Removing this block is the suite's first sabotage.
+# GUARD: the filesystem. `tools/ai-script-repair-break-check.mjs` case 1 puts
+# `Contain.resolve` back on the lexical `File.expand_path` and watches the
+# junction fixture escape.
 # --------------------------------------------------------------------------
 module Contain
   # Where each of these is actually defined, which is not where a script names
@@ -418,7 +613,18 @@ module Contain
   FILE_TWO_PATH_OPS = %i[rename symlink link identical?].freeze
   DIR_PATH_OPS = %i[mkdir rmdir delete unlink open children entries each_child foreach chdir exist? empty?].freeze
   DIR_GLOB_OPS = %i[glob []].freeze
-  DIR_REFUSED = %i[chroot for_fd].freeze
+  # `home` takes no path and answers with one, and the answer is outside the
+  # sandbox by construction - #486's fourth finding included `Dir.home` giving
+  # up `C:/Users/Admin` with an empty violation list. `fchdir` and `for_fd`
+  # re-point the process at a descriptor no check here ever saw.
+  DIR_REFUSED = %i[chroot for_fd fchdir home].freeze
+  # `Dir.new` and `File::Stat.new` are `Class#new`: inherited rather than
+  # owned, absent from `singleton_methods(false)`, and absent from every list
+  # in this file until #486. `Dir.new(outside).children` enumerates a directory
+  # rather than probing one name at a time, which is strictly stronger than the
+  # `File.exist?` mapping the header already refuses, and `File::Stat.new` is
+  # one constructor around the whole of `FILE_STAT_OPS`.
+  CONSTRUCTOR_PATH_OPS = [Dir, File::Stat].freeze
 
   def self.install_filesystem_guard!
     contain = self
@@ -465,6 +671,12 @@ module Contain
     DIR_REFUSED.each do |op|
       replace_singleton!(Dir, op) do |receiver, _original, args, _kwargs, _block|
         contain.violation!("#{receiver}.#{op}", args.map(&:to_s).join(' '))
+      end
+    end
+    CONSTRUCTOR_PATH_OPS.each do |mod|
+      replace_singleton!(mod, :new) do |receiver, original, args, kwargs, block|
+        contain.check_path!("#{receiver}.new", args.first)
+        original.bind(receiver).call(*args, **kwargs, &block)
       end
     end
 
@@ -530,12 +742,27 @@ module Contain
   ALLOWED_REQUIRES = %w[json set time date].freeze
 
   KERNEL_SUBPROCESS_OPS = %i[system exec spawn fork].freeze
-  PROCESS_REFUSED = %i[spawn exec fork _fork kill daemon detach].freeze
+  # `exit!` is #486's second finding, and it is on this list rather than being
+  # left to the parent because a violation a reviewer can read beats an absence
+  # they have to interpret. It skips every `at_exit` handler, including this
+  # runner's reporter, and it was on neither of these lists: a candidate
+  # printed a clean-looking object through `STDOUT` - the constant, untouched
+  # by the `$stdout` capture swap - and left, and the caller saw exit 0 with a
+  # forged result as the only object on stdout. What actually closes that hole
+  # is the parent's rule that a run with no verdict in the ledger is a FAIL;
+  # this makes the attempt named and legible.
+  KERNEL_EXIT_OPS = %i[exit!].freeze
+  PROCESS_REFUSED = %i[spawn exec fork _fork kill daemon detach exit!].freeze
 
   def self.install_process_guard!
     contain = self
 
     KERNEL_SUBPROCESS_OPS.each do |op|
+      replace_kernel!(op) do |_receiver, _original, args, _kwargs, _block|
+        contain.violation!("Kernel##{op}", args.map(&:to_s).join(' '))
+      end
+    end
+    KERNEL_EXIT_OPS.each do |op|
       replace_kernel!(op) do |_receiver, _original, args, _kwargs, _block|
         contain.violation!("Kernel##{op}", args.map(&:to_s).join(' '))
       end
@@ -589,7 +816,9 @@ module Contain
 end
 
 # --------------------------------------------------------------------------
-# GUARD: reflection. Removing this block is the suite's third sabotage.
+# GUARD: reflection. Legibility rather than containment: the freeze in `seal!`
+# is what stops the widening, which is why case 2 of the break-check sabotages
+# that and not these stubs.
 # --------------------------------------------------------------------------
 module Contain
   # `ObjectSpace` needs no `require`: `defined?(ObjectSpace)` is `"constant"`
@@ -657,7 +886,8 @@ module Contain
         'violations' => GUARD.violations,
         'notes' => LichStub::Recorder.notes + GUARD.notes,
         'timedOut' => @timed_out,
-        'shim' => { 'methods' => LichStub.surface_size }
+        'shim' => { 'methods' => LichStub.surface_size },
+        'guards' => GUARD.guard_coverage
       }
     end
 
@@ -669,12 +899,20 @@ module Contain
     #
     # `force` is the single case that must print twice: see the header's
     # section on `at_exit`.
-    def emit(force: false)
+    # `exit_code` is what this runner is about to exit with, and it goes into
+    # the ledger rather than only into the process status: a caller reading a
+    # status alone cannot tell a runner that decided on 0 from one that never
+    # decided anything.
+    def emit(force: false, exit_code: nil)
       return if @emitted && !force
 
       @emitted = true
       @emitted_violations = GUARD.violations.length
-      REAL_STDOUT.puts(JSON.generate(to_h))
+      payload = to_h
+      # The parent's copy first. Stdout is advisory from here on: a candidate
+      # can print whatever it likes there and used to, and did.
+      GUARD.ledger!('verdict', 'result' => payload, 'exit' => exit_code)
+      REAL_STDOUT.puts(JSON.generate(payload))
       REAL_STDOUT.flush
     end
   end
@@ -775,6 +1013,7 @@ end
 sandbox = flag(argv, '--sandbox')
 script = flag(argv, '--script')
 fixture = flag(argv, '--fixture')
+ledger_path = flag(argv, '--ledger')
 timeout = (flag(argv, '--timeout') || '10').to_f
 
 if sandbox.nil? || script.nil?
@@ -802,6 +1041,17 @@ unless Contain.arm(sandbox)
   $stderr.puts("the sandbox directory does not resolve on disk: #{sandbox}")
   exit(Contain::EXIT_USAGE)
 end
+
+# Before the guards, because after them this file is outside the fence like
+# anything else. A `--ledger` that was asked for and could not be opened is a
+# usage error and not a quiet fallback to the old, forgeable arrangement: the
+# caller asked for an unforgeable record and would otherwise be handed one it
+# could not tell from a forged one.
+if ledger_path && !Contain.open_ledger!(ledger_path)
+  $stderr.puts("the ledger could not be opened, or carries no nonce on its first line: #{ledger_path}")
+  exit(Contain::EXIT_USAGE)
+end
+Contain.ledger!('start', 'script' => script.to_s, 'sandbox' => Contain.sandbox.to_s)
 
 script_path = File.expand_path(File.join(sandbox, script))
 unless Contain.inside?(script_path)
@@ -842,6 +1092,11 @@ exit_ok = Contain::EXIT_OK
 exit_violation = Contain::EXIT_VIOLATION
 exit_timeout = Contain::EXIT_TIMEOUT
 exit_script_error = Contain::EXIT_SCRIPT_ERROR
+# Captured before `install_process_guard!` replaces it. A bound `Method` object
+# survives the method being redefined underneath it, so this is still the real
+# `exit!` after `Kernel#exit!` and `Process.exit!` have become violations - and
+# the watchdog and the `at_exit` reporter below both need the real one.
+hard_exit = Process.method(:exit!)
 
 # ------------------------------------------------------------------------
 # GUARD: the honesty of the record when the escape is deferred to `at_exit`.
@@ -849,17 +1104,20 @@ exit_script_error = Contain::EXIT_SCRIPT_ERROR
 # order of registration - which is the only way to see a violation raised by a
 # candidate's own `at_exit`. The guards never tear down, so such an escape was
 # always blocked; what was missing was any trace of it in the object a reviewer
-# reads. Removing this block is the suite's fourth sabotage.
+# reads. The forged-object half of it is #486's fifth finding: this handler
+# prints a corrected object AFTER the first one, and a candidate's own
+# `at_exit` can print after that, so the caller reads the ledger and not the
+# last line of stdout.
 # ------------------------------------------------------------------------
 at_exit do
   reporter = guard.result
   extra = guard.violations.length - reporter.emitted_violations
   if extra.positive?
     reporter.errors << "#{extra} containment violation(s) happened during at_exit, after the first result was printed"
-    reporter.emit(force: true)
+    reporter.emit(force: true, exit_code: exit_violation)
     # This is the last handler, so exiting hard here skips nothing, and a
     # plain `exit` from inside `at_exit` would not change a status already set.
-    exit!(exit_violation)
+    hard_exit.call(exit_violation)
   end
 end
 
@@ -870,17 +1128,19 @@ Contain.install_load_guard!
 Contain.install_reflection_guard!
 
 # ------------------------------------------------------------------------
-# GUARD: the wall clock. Removing this block is the suite's second sabotage.
+# GUARD: the wall clock, and it is the *inner* one. #486 killed this thread
+# from a candidate and got no JSON at all; break-check case 5 sabotages the
+# caller's wall instead, because that is the clock the verdict depends on.
 # ------------------------------------------------------------------------
 watchdog = Thread.new do
   sleep(timeout)
   result.timed_out = true
   result.errors << "the script did not finish within #{timeout}s"
-  result.emit
+  result.emit(exit_code: exit_timeout)
   # `exit!` and not `Thread#kill` on the main thread: killing it runs the
   # main path's `ensure`, which then falls through to a second emit and a
   # success exit code - a timeout that reports itself as a clean run.
-  exit!(exit_timeout)
+  hard_exit.call(exit_timeout)
 end
 Contain.stow(watchdog: watchdog)
 
@@ -909,7 +1169,7 @@ rescue Exception => e # rubocop:disable Lint/RescueException
   result.errors << "#{e.class}: #{e.message}"
   result.errors.concat(Array(e.backtrace).first(3))
 ensure
-  guard.watchdog.kill
+  guard.stop_watchdog!
   $stdout = real_stdout
   $stderr = STDERR
 end
@@ -921,5 +1181,5 @@ captured_err.string.split("\n").each { |line| result.errors << line }
 # it and carried on - is still a violation. The exit code says so.
 code = exit_violation if code == exit_ok && !guard.violations.empty?
 
-result.emit
+result.emit(exit_code: code)
 exit(code)

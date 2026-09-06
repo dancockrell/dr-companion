@@ -1,0 +1,46 @@
+# A candidate that stops the clock and then takes its time.
+#
+# #486's third finding. The runner's header said the watchdog lived on the
+# frozen module "so a candidate cannot swap the reporter or kill the clock",
+# and `attr_reader :watchdog` handed the thread over. `Thread#kill` is not a
+# mutation of a frozen module, so freezing never applied to it.
+#
+# Measured before the fix at `--timeout 5` under an external 25s limit:
+# `EXIT=124`, no JSON at all. The control - the same script without the kill -
+# gave `timedOut: true` and `EXIT=4`, so the clock worked and the kill defeated
+# it, and "no object at all" is what the harness's own comment calls the
+# interesting failure.
+#
+# What must happen now: the accessor is gone, and the clock the verdict depends
+# on is the parent's. Killing the in-process watchdog buys the candidate the
+# grace window and nothing else, and a run the parent had to kill has no
+# verdict in the ledger - which is a FAIL naming that fact, never a pass.
+
+echo 'escape_watchdog_kill: starting'
+
+killed = false
+begin
+  Contain.watchdog.kill
+  killed = true
+  echo 'escape_watchdog_kill: killed the watchdog'
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_watchdog_kill: reaching the watchdog raised #{e.class}"
+end
+
+begin
+  Contain.stop_watchdog!
+  killed = true
+  echo 'escape_watchdog_kill: stopped the watchdog through stop_watchdog!'
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_watchdog_kill: stop_watchdog! raised #{e.class}"
+end
+
+echo "escape_watchdog_kill: clock stopped=#{killed}, now sleeping past every limit"
+
+# Long enough that no ordinary run reaches the end of it, and short enough that
+# a parent which is NOT enforcing a wall finishes rather than hanging - which is
+# what makes "the parent killed it inside its grace window" a measurable claim
+# instead of a timeout somewhere else in the suite.
+sleep 25
+
+echo 'escape_watchdog_kill: woke up, which should be unreachable'

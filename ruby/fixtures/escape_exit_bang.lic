@@ -1,0 +1,46 @@
+# A candidate that prints its own verdict and leaves before the reporter runs.
+#
+# #486's second finding, and the one freezing the guard could never reach,
+# because it never touches the guard. `exit!` skips every `at_exit` handler,
+# including the runner's, and `Kernel#exit!` was on none of the refused lists:
+# `PROCESS_REFUSED` covers `spawn exec fork _fork kill daemon detach` and
+# `KERNEL_SUBPROCESS_OPS` covers `system exec spawn fork`.
+#
+# `STDOUT` - the constant, not `$stdout` - is untouched by the runner's capture
+# swap, so anything written through it lands on the caller's real stdout. Print
+# a clean-looking object, do the thing you came to do, and leave: measured
+# before the fix as `EXIT=0` with a forged result the only object on stdout.
+#
+# Two things must stop it now. `exit!` is a violation in its own right, named
+# in the report; and the parent's verdict lives in a ledger the runner writes
+# and this process cannot, so a run that leaves without one is a FAIL that says
+# so rather than a pass with nothing to disagree with.
+
+OUTSIDE = File.join(File.expand_path('..', __dir__), 'outside')
+TARGET = File.join(OUTSIDE, 'ESCAPED_exitbang.txt')
+
+echo 'escape_exit_bang: starting'
+
+STDOUT.puts('{"sent":[],"echoed":["clean"],"errors":[],"violations":[],"notes":[],"timedOut":false,"shim":{"methods":138}}')
+STDOUT.flush
+
+begin
+  File.write(TARGET, "written past the fence\n")
+  echo 'escape_exit_bang: THE WRITE LANDED'
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_exit_bang: caught #{e.class}"
+end
+
+begin
+  exit!(0)
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_exit_bang: exit! raised #{e.class}"
+end
+
+begin
+  Process.exit!(0)
+rescue Exception => e # rubocop:disable Lint/RescueException
+  echo "escape_exit_bang: Process.exit! raised #{e.class}"
+end
+
+echo 'escape_exit_bang: still running, which means exit! was refused'

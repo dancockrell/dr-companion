@@ -48,6 +48,11 @@ if (!STAGE_COUNT) {
   console.error('       below would look for a check name that cannot exist, and report a false failure.')
   process.exit(2)
 }
+// The other half of the same rot, found by #486 adding a twelfth stage: the
+// `expect` names came from the gate and the `from` fragments did not, so both
+// cases aborted on a correct tree - the documents had been updated and this
+// file had not. Both halves derive now. The sabotage value only has to differ.
+const WRONG_STAGE_COUNT = STAGE_COUNT === '7' ? '6' : '7'
 
 const CASES = [
   {
@@ -236,8 +241,8 @@ const CASES = [
     // finding that rots. A merger told to look for a number the gate no longer
     // prints learns to skip the line, which is worse than no instruction.
     file: 'docs/MERGING.md',
-    from: 'gate ok: 11 of 11 stages ran',
-    to: 'gate ok: 7 of 7 stages ran',
+    from: `gate ok: ${STAGE_COUNT} of ${STAGE_COUNT} stages ran`,
+    to: `gate ok: ${WRONG_STAGE_COUNT} of ${WRONG_STAGE_COUNT} stages ran`,
     expect: `docs/MERGING.md quotes the real stage count (${STAGE_COUNT})`,
   },
   {
@@ -245,8 +250,8 @@ const CASES = [
     // purpose: one check covering "some document quotes it" would stay green
     // with either of them wrong.
     file: '.github/PULL_REQUEST_TEMPLATE.md',
-    from: '`gate ok: 11 of 11 stages ran`',
-    to: '`gate ok: 7 of 7 stages ran`',
+    from: `\`gate ok: ${STAGE_COUNT} of ${STAGE_COUNT} stages ran\``,
+    to: `\`gate ok: ${WRONG_STAGE_COUNT} of ${WRONG_STAGE_COUNT} stages ran\``,
     expect: `.github/PULL_REQUEST_TEMPLATE.md quotes the real stage count (${STAGE_COUNT})`,
   },
   {

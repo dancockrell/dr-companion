@@ -45,7 +45,7 @@ gh pr merge <n> --squash --delete-branch
 The last line must read
 
 ```
-gate ok: 11 of 11 stages ran
+gate ok: 12 of 12 stages ran
 ```
 
 Both halves matter. `10` is asserted against `EXPECTED_STAGES` in
