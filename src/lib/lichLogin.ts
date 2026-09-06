@@ -91,8 +91,45 @@ export const LOGIN_ERROR_KINDS = [
   'account_locked',
   'character_not_found',
   'service_unreachable',
+  'login_service_changed',
+  'password_unsendable',
   'lich_did_not_start',
 ] as const
+
+/**
+ * Every variant of `EAccessError` in `src-tauri/src/eaccess.rs`, mapped to the
+ * sentence a player gets. **Not** a rename of the Rust names: the protocol has
+ * seven ways to fail and a person has fewer things they can do about it, so two
+ * pairs of variants deliberately land on one sentence each.
+ *
+ * The mapping is written down rather than inferred from the names, because the
+ * two vocabularies genuinely differ - `AccountLockedOrExpired` is not called
+ * `account_locked`, and pretending a name match would work is how a variant
+ * added later becomes a silent `unknown`. `tools/sign-in-test.mjs` parses the
+ * Rust enum and fails, naming the variant, if this table does not cover it.
+ *
+ * `lich_did_not_start` has no entry here on purpose: it is the launch half,
+ * which is `sal.rs`/`lich.rs`, not the protocol.
+ */
+export const EACCESS_VARIANT_KINDS: Record<string, LoginErrorKind> = {
+  // The two refusals `classify_account_refusal` splits an unknown server
+  // vocabulary into. One a retry can fix, one it cannot.
+  bad_credentials: 'bad_password',
+  account_locked_or_expired: 'account_locked',
+  no_such_character: 'character_not_found',
+  // A reply that did not have the shape the step requires. The player has done
+  // nothing wrong and retrying will not help, so it must not read as either a
+  // bad password or an outage.
+  protocol_mismatch: 'login_service_changed',
+  // The socket, the TLS handshake, or an endpoint override pointed somewhere
+  // there is nothing.
+  network: 'service_unreachable',
+  // Both of these are "this exact password cannot go down this wire", for
+  // arithmetic reasons in the obscuring loop that a player cannot see and can
+  // only route around by changing the password.
+  password_length: 'password_unsendable',
+  obscured_byte_out_of_range: 'password_unsendable',
+}
 
 export type LoginErrorKind = (typeof LOGIN_ERROR_KINDS)[number] | 'unknown'
 
@@ -109,6 +146,10 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
     'That character is not on this account any more. Sign in again to get a fresh list.',
   service_unreachable:
     'The Play.net login service did not answer. Check your connection and try again in a moment.',
+  login_service_changed:
+    'The login service answered in a way this version of the app does not understand. Retrying will not help; this is worth reporting as a bug.',
+  password_unsendable:
+    'This password cannot be sent to the login service. Changing it on the Play.net website is the only way round it.',
   lich_did_not_start:
     'The sign-in worked but Lich did not start. Use "Why won\'t it start?" below to find out why.',
   unknown: 'Signing in failed.',
@@ -122,10 +163,14 @@ export const LOGIN_ERROR_SENTENCES: Record<LoginErrorKind, string> = {
  */
 export function classifyLoginError(raw: unknown): { kind: LoginErrorKind; sentence: string } {
   const text = raw instanceof Error ? raw.message : String(raw ?? '')
-  const token = /^([a-z_]+)\s*:/.exec(text.trim())?.[1]
-  const kind = (LOGIN_ERROR_KINDS as readonly string[]).includes(token ?? '')
+  const token = /^([a-z_]+)\s*:/.exec(text.trim())?.[1] ?? ''
+  // Either vocabulary is accepted: the webview's own kind, or the snake_case
+  // name of the Rust variant. Whichever the command layer chooses to send,
+  // this reads it - and a variant that is in neither stays `unknown` rather
+  // than being guessed at.
+  const kind: LoginErrorKind = (LOGIN_ERROR_KINDS as readonly string[]).includes(token)
     ? (token as LoginErrorKind)
-    : 'unknown'
+    : (EACCESS_VARIANT_KINDS[token] ?? 'unknown')
   if (kind === 'unknown') {
     // The raw text is more use than a shrug, so it is appended rather than
     // swallowed - but only once, and only when there is something to append.

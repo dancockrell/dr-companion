@@ -1661,30 +1661,49 @@ the code increments. N8 is optional and human-gated and blocks nothing.
   of `ConnectGuide.tsx`. `git grep -c "lich" + "connect|arguments" over src/` is
   zero; the two verbs are named in `docs/LICH_NATIVE_LOGIN.md` §6 and nowhere a
   player can read them.
-  **N1 and N3 had not merged** — `git ls-tree origin/main` had no
-  `src-tauri/src/eaccess.rs` — so the flow was built and driven against a
-  TS-side stand-in, `src/lib/lichLoginFake.ts`, reachable only outside the
-  desktop app and only with `?lichDryRun=1`. That file carries its own deletion
-  instructions: when N1 and N3 land it is one file to delete and two
-  `usingFakeBackend()` branches to remove, deliberately, so it cannot become a
-  second login path. `tools/tauri-command-callers-test.mjs` grew
-  `AWAITING_BACKEND`, the mirror of its `DEFERRED` list, carrying both command
-  names with the increment that owes them — plus a sabotage proving an entry
-  that later gets registered is reported rather than silently tolerated.
-  Evidence, all re-runnable: `npm run test:sign-in` — 37 assertions, 0 failed,
-  **1 NOT CHECKED**, that being the cross-check of the error set against N1's
-  `EAccessError` enum, which cannot run until that file exists and so is printed
-  as a skip rather than folded into the pass. `node tools/sign-in-shots.mjs
+  This was built against the published interface rather than against N1 and N3,
+  which had not merged when it started: `git ls-tree origin/main` had no
+  `src-tauri/src/eaccess.rs`. So it is driven by a TS-side stand-in,
+  `src/lib/lichLoginFake.ts`, reachable only outside the desktop app and only
+  with `?lichDryRun=1`. **N1 and N3 merged during the rebase** (#441, #440) and
+  the stand-in still stands, because neither registered `lich_login_characters`
+  or `lich_login_launch`: `grep lich_login src-tauri/src/lib.rs` returns
+  nothing. It carries its own deletion instructions - one file, and two
+  `usingFakeBackend()` branches - for whenever those commands appear.
+  `tools/tauri-command-callers-test.mjs` grew `AWAITING_BACKEND`, the mirror of
+  its `DEFERRED` list, carrying both names with the increment that owes them,
+  plus a sabotage proving an entry that later gets registered is reported
+  rather than silently tolerated.
+  **What N1's landing changed, and it is the whole argument for checking
+  against source rather than against a plan:** the error set was five, taken
+  from this increment's own `do:` line. The enum N1 shipped has seven variants,
+  two of which no player could have been told about by those five.
+  `ProtocolMismatch` is nobody's fault and no retry fixes it;
+  `PasswordLength` and `ObscuredByteOutOfRange` both mean this exact password
+  cannot go down the wire whatever it is typed into. So
+  `EACCESS_VARIANT_KINDS` maps all seven onto seven sentences, written down
+  rather than inferred from the names, because the two vocabularies genuinely
+  differ - `AccountLockedOrExpired` is not called `account_locked`. The suite
+  checks that map against the enum in **both** directions, with a control
+  proving the parser can report an unmapped variant.
+  Evidence, all re-runnable: `npm run test:sign-in` - 52 assertions, 0 failed,
+  0 not checked. The skip branch is still reachable on purpose:
+  `DRC_EACCESS_SOURCE=src-tauri/src/nope.rs npm run test:sign-in` prints 40
+  checks and one honest NOT CHECKED, with the denominator counted from the loop
+  rather than from the source, so a skipped loop cannot read as a truncated
+  run. `node tools/sign-in-shots.mjs
   http://127.0.0.1:5247/` — 23 of 23 in a real browser at 1024x768, writing
   `docs/verification/sign-in-2026-09-06-{form,picker,launched,error,no-characters}.png`,
   including that no control falls outside the window (defect #418's shape) and
   that the stored preferences carry the account name and not the password.
   `python tools/sign-in-break-check.py` — four sabotages, each caught by the
   check it names, each file restored by md5, with the suite green before the
-  first and after the last. Case 1 is worth reading: its first version was
-  caught by the *wrong* check, because `SignIn` never hands `rememberSignIn` a
-  password, so it now damages the call path a real "remember me" regression
-  would. The password is not stored, no "remember my password" control is
+  first and after the last. Two things it caught about itself: case 1's first
+  version was caught by the *wrong* check, because `SignIn` never hands
+  `rememberSignIn` a password, so it now damages the call path a real
+  "remember me" regression would; and case 3 matched a label carrying the kind
+  count, which moved from 5 to 7 the day N1's enum landed, so it matches a
+  prefix now. The password is not stored, no "remember my password" control is
   rendered while N8 is `[!]`, and the false claim is replaced by the true
   sentence: "Your password is used once to sign in and is not stored."
 

@@ -19,7 +19,7 @@ is stored, in plain text, like every other preference. See
 preferences back to prove it.
 
 29 keys, owned by 25 files, found by scanning
-320 source files.
+321 source files.
 
 ## The keys
 

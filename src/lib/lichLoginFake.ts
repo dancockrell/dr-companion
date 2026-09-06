@@ -60,6 +60,11 @@ const FIXTURES: Record<string, { fail?: string; characters?: string[] }> = {
   offline: { fail: 'service_unreachable: eaccess.play.net:7910 did not answer' },
   ghost: { fail: 'character_not_found: no such character on this account' },
   nolich: { fail: 'lich_did_not_start: no launcher found' },
+  // Named for the Rust variant rather than the webview kind, deliberately:
+  // `classifyLoginError` accepts either vocabulary, and these two are the
+  // only place the enum's own names are exercised end to end in a browser.
+  garbled: { fail: 'protocol_mismatch: the reply to A was not what this version expects' },
+  longpw: { fail: 'password_length: the password is longer than the key' },
 }
 
 const DELAY_MS = 120

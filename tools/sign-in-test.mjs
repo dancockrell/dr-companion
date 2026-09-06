@@ -55,6 +55,10 @@ const read = (rel) => readFileSync(join(root, rel), 'utf8').replace(/\r\n/g, '\n
 let pass = 0
 let fail = 0
 const skipped = []
+/** How many enum variants the cross-check below actually classified. Zero
+ * when eaccess.rs is absent, which the denominator at the foot has to know:
+ * a skipped loop must not read as assertions that never executed. */
+let variantsChecked = 0
 const ok = (name, cond, detail = '') => {
   if (cond) pass += 1
   else fail += 1
@@ -77,11 +81,21 @@ const notChecked = (name, why) => {
  * the exact failure this property exists to catch.
  */
 const REQUIRED_KINDS = [
+  // The five N5's own `do:` line names.
   'bad_password',
   'account_locked',
   'character_not_found',
   'service_unreachable',
   'lich_did_not_start',
+  // Two more the enum N1 actually shipped forced, and they are the argument
+  // for cross-checking against source rather than against a plan: neither is
+  // something a player could have been told about by the other five.
+  // `ProtocolMismatch` is nobody's fault and a retry will not fix it, so it
+  // must not read as a bad password or an outage. `PasswordLength` and
+  // `ObscuredByteOutOfRange` both mean this exact password cannot go down the
+  // wire, whatever it is typed into.
+  'login_service_changed',
+  'password_unsendable',
 ]
 
 // --------------------------------------------------------------------------
@@ -112,7 +126,7 @@ globalThis.window = {
   setTimeout: globalThis.setTimeout.bind(globalThis),
 }
 
-const { listCharacters, launchCharacter, rememberSignIn, classifyLoginError, LOGIN_ERROR_KINDS, LOGIN_ERROR_SENTENCES, usingFakeBackend } =
+const { listCharacters, launchCharacter, rememberSignIn, classifyLoginError, LOGIN_ERROR_KINDS, LOGIN_ERROR_SENTENCES, EACCESS_VARIANT_KINDS, usingFakeBackend } =
   await import('../src/lib/lichLogin.ts')
 const { loadPrefs, PREFS_STORAGE_KEY } = await import('../src/lib/persistence.ts')
 
@@ -224,22 +238,53 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   const rel = process.env.DRC_EACCESS_SOURCE ?? 'src-tauri/src/eaccess.rs'
   if (!existsSync(join(root, rel))) {
     notChecked(
-      'kinds match the Rust EAccessError enum',
-      `${rel} does not exist yet (increment N1 owns it); the set above is from LICH_NATIVE_LOGIN.md instead`
+      'every EAccessError variant has a sentence',
+      `${rel} does not exist (increment N1 owns it); the required set above comes from LICH_NATIVE_LOGIN.md instead, which cannot detect a variant nobody wrote down`
     )
   } else {
     const rust = read(rel)
     const body = /enum\s+EAccessError\s*\{([\s\S]*?)\n\}/.exec(rust)?.[1] ?? ''
-    const variants = [...body.matchAll(/^\s*([A-Z][A-Za-z0-9]*)/gm)].map((m) =>
+    // Variant heads only: a line starting at the variant indent with a capital.
+    // Field lines are lower-case and doc comments start with `/`.
+    const variants = [...body.matchAll(/^\s{4}([A-Z][A-Za-z0-9]*)\s*[,{(]/gm)].map((m) =>
       m[1].replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()
     )
-    ok('the enum parser found variants', variants.length >= 3, variants.join(', '))
-    const missing = variants.filter((v) => !LOGIN_ERROR_KINDS.includes(v))
-    ok(
-      'every Rust variant has a webview sentence',
-      missing.length === 0,
-      missing.join(', ')
+    // The denominator, and it is the whole value of this check: a parser that
+    // returns nothing reports every variant as covered.
+    ok('the enum parser found variants', variants.length >= 5, `${variants.length}: ${variants.join(', ')}`)
+
+    // Both directions. The first finds a variant nobody wrote a sentence for -
+    // the failure this exists to catch. The second finds a mapping entry for a
+    // variant that no longer exists, which is how a stale row survives a
+    // rename and quietly stops covering anything.
+    const uncovered = variants.filter((v) => !EACCESS_VARIANT_KINDS[v])
+    ok('every EAccessError variant has a sentence', uncovered.length === 0, uncovered.join(', ') || `${variants.length} of ${variants.length}`)
+    const orphaned = Object.keys(EACCESS_VARIANT_KINDS).filter((v) => !variants.includes(v))
+    ok('no mapping entry names a variant the enum no longer has', orphaned.length === 0, orphaned.join(', ') || 'none')
+
+    // And every sentence it maps to has to be one that exists.
+    const bad = Object.entries(EACCESS_VARIANT_KINDS).filter(([, k]) => !LOGIN_ERROR_SENTENCES[k])
+    ok('every mapped kind has a sentence', bad.length === 0, bad.map(([v, k]) => `${v}->${k}`).join(', '))
+
+    // A control on the parser itself: an enum with a variant this table cannot
+    // know about must be reported, or a green result above could equally mean
+    // the regex matched nothing.
+    const fakeVariants = [...'enum EAccessError {\n    ZzNotAVariant { x: u8 },\n}\n'
+      .matchAll(/^\s{4}([A-Z][A-Za-z0-9]*)\s*[,{(]/gm)].map((m) =>
+      m[1].replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()
     )
+    ok(
+      'control: a variant with no mapping is reported',
+      fakeVariants.length === 1 && !EACCESS_VARIANT_KINDS[fakeVariants[0]],
+      fakeVariants.join(', ')
+    )
+
+    // Classification from the Rust vocabulary, end to end, for every variant.
+    for (const v of variants) {
+      const got = classifyLoginError(new Error(`${v}: raw detail`))
+      ok(`${v} classifies to a player sentence`, got.kind === EACCESS_VARIANT_KINDS[v] && got.sentence.length > 20, got.kind)
+      variantsChecked += 1
+    }
   }
 }
 
@@ -320,7 +365,13 @@ const declaredStatic = [...source.matchAll(/^\s*ok\(/gm)].length
 const ran = pass + fail
 // The loop over REQUIRED_KINDS declares three `ok(` sites and runs them once
 // per kind, so the floor is stated in terms of both.
-const expected = declaredStatic - 3 + REQUIRED_KINDS.length * 2
+// Three `ok(` sites sit in loops: two run once per required kind, one runs
+// once per enum variant. The last is zero when eaccess.rs is absent, and
+// counting it as one would make the honest skip look like a truncated run -
+// so the count comes from the loop rather than from the source.
+// The five static `ok(`s inside the eaccess block are skipped with it.
+const eaccessBlockStatic = variantsChecked ? 0 : 5
+const expected = declaredStatic - 3 - eaccessBlockStatic + REQUIRED_KINDS.length * 2 + variantsChecked
 if (ran < expected) {
   console.log(`FAIL only ${ran} of an expected ${expected} assertions ran - the rest never executed`)
   process.exit(1)

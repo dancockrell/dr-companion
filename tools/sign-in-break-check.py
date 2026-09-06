@@ -78,7 +78,10 @@ CASES = [
     ('src/lib/lichLogin.ts',
      "  'account_locked',\n",
      "",
-     'the kind set is the required 5, no more and no less'),
+     # Stated as a prefix, because the number in that check's label is derived
+     # from REQUIRED_KINDS and moved from 5 to 7 the day N1's enum landed two
+     # more. A hardcoded 5 here would have silently stopped matching.
+     'the kind set is the required'),
     ('src/lib/lichLogin.ts',
      "  account_locked:\n    'Play.net has locked this account. Sign in on the Play.net website to unlock it, then come back.',",
      "  account_locked: '',",
