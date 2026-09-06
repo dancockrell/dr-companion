@@ -67,7 +67,8 @@ exponentially is not a slow client, it is a window with no route back except
 killing the app, and the rule is stored, so it hangs again on the next
 launch. There is no way to interrupt a running regexp in JavaScript.
 
-The gate asks two questions, in this order.
+The gate asks two questions, in this order, and gives three answers to the
+first.
 
 **First the structure** (`patternRefusal`). What is refused is an **ambiguous
 repetition**: a group repeated without limit whose body can consume the same
@@ -82,18 +83,37 @@ iterations. The danger is the ambiguity, not the nesting.
 | A group repeating something that already repeats without limit | `(a+)+`, `(.*)*`, `((\w|\s)+)+`, `(\d+)+` | Repeating a repetition is ambiguous by construction: the same characters divide between the two in 2^n ways, and a failing tail makes the engine try all of them. |
 | A repeated group **ending in an optional part**, with something unbounded inside | `(\w+\s?)+`, `(\s*\w+\s*)+`, `(.*\s?)+`, `(\w+\s*)+` | The body can stop early, so the next repetition picks up mid-token and the same arithmetic applies. This is #482's own pattern. |
 | A repeated group whose alternatives can start with the same character | `(a\|a)*`, `(herb\|herbs)+` | Same arithmetic again, reached through the alternation rather than through a second quantifier. |
+| Syntax the parser cannot model **and cannot widen into something it can** | `^(\w+) \9$` (there is no group 9), `^(\w+)\1$` (anchored, with nothing to build a probe from), `\p{Lu}` under the `u` flag | #500. Abstaining used to fall through to acceptance: `compilePattern` read only `patternRefusal`'s sentence and discarded its `parsed` flag, and `probePrefix` bailed on the same parse, so `prefixProbes` returned `[]` and an anchored pattern was timed against sixteen unanchored bodies it rejects at its first character. Measured through the real `resolveHighlights` + `paint`, `^You see (\w+)\s(\w+\s?)+\1$` was accepted in 0.1ms and then took 6ms on a 31-character line, 396ms on 37, and was still running at both 41 and 45 when a 5-second ceiling killed it; #500 measured the uncapped 45-character line at **103 seconds** in one paint. The refusal names the construct: *contains `\1`, which this app cannot check for safety; write it without the backreference*. |
 
 | Not refused | Example | Why |
 |---|---|---|
 | A quantified group with no inner quantifier and disjoint branches | `(say\|whisper)+`, `(\w\|\s)+` | Deterministic: at each character exactly one branch can apply. |
 | A repeated group whose body ends in a mandatory part | `([A-Za-z]+ )+\.`, `(\w+\s+)+arrives$` | Unambiguous, and measured at 0.0ms over 60 characters. |
-| Syntax the parser does not model | `\p{Lu}`, `\u{1F600}`, a backreference | Reported as **not modelled** rather than as clean. The timing below is then the only evidence, which is a weaker claim, and saying so is the point. |
+| Syntax the parser does not model, once it has been read another way | `\p{Lu}`, `\u0041`, `(\w+) \1`, `^You see (\w+) \1$` | Reported as **not modelled** rather than as clean, and then read again with the construct widened into one the parser does handle: a backreference becomes the group it refers to, a property escape becomes what the engine matches without the `u` flag. If the widened form is clean and probes can be derived from it, the pattern loads. |
 
 A lookaround is **not** an exemption, though an earlier draft of this table said
 it was. `(?=(\w+)+)ok` is refused: zero width does not mean zero work, and a
 lookahead that fails backtracks exactly as hard as anything else. The scan
 descends into it, and skips it only when judging whether the *enclosing* group's
 body is ambiguous, where a zero-width part cannot make it so.
+
+**Refusing beats admitting on the abstain path, and the asymmetry is not
+close.** A highlight is a convenience: refusing one costs a player some colour
+on a line, plus a message naming the construct to remove, and nothing else in
+the client changes. Admitting one costs the app - a 103-second paint is not a
+slow highlight, it is the window hung with the game still arriving behind it,
+and the rule is stored, so it hangs again on the next launch. There is nothing
+symmetrical to weigh.
+
+The corpus below holds **0 not modelled of 467**, so no real rule on this
+machine reaches that path, and none is taken away by it - which is also why the
+corpus cannot cover it. `tools/pattern-analyser-test.mjs` section 3b is its
+fixture population instead: six unmodelled-but-safe patterns that must be
+accepted *and* show probes derived from their own opening, and five that must
+be refused by name. The one safe fixture whose derived count is zero is
+unanchored, where the sixteen fixed bodies do reach the pattern; every anchored
+one must have derived its own, which is the count that goes to zero when this
+regresses.
 
 One pattern moved from `tools/highlight-test.mjs`'s list of rules that must be
 allowed to load into its list of rules that must be refused:

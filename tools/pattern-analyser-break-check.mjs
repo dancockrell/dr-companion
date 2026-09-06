@@ -88,13 +88,66 @@ const CASES = [
   {
     label: 'the probes go back to the fixed 22-character set',
     file: FILE,
-    find: '  const probes = [...PROBES, ...prefixProbes(pattern)]',
-    replace: '  const probes = [...PROBES]',
-    // Nothing reddens: the analyser catches these patterns first. Recorded
-    // rather than hidden, because "this sabotage is not caught" is the fact
-    // that explains why the analyser exists at all - the probe half alone was
-    // the shipped behaviour, and it is what let #482 through.
-    expectGreen: true,
+    find: '  const derived = prefixProbes(source)',
+    replace: '  const derived = []',
+    /*
+     * This case used to be `expectGreen`, and the note said so: nothing
+     * reddened, because the analyser caught every pattern in the suite before
+     * the probes were consulted, and recording that was how the suite said
+     * which half of the fix was holding.
+     *
+     * #500 changed what is true, not what is asserted, so the prediction is
+     * rewritten rather than the code. For a pattern the analyser *cannot*
+     * model, the derived probes are no longer a second opinion - they are the
+     * only measurement there is, and a refusal is what the absence of one now
+     * means. So gutting them stops being invisible: every unmodelled-and-
+     * anchored fixture in section 3b is refused for having nothing to be
+     * timed against, and the suite says which.
+     *
+     * The old fact is still recorded, one case up: with `patternRefusal`
+     * switched off the probes alone accept `(.*)*$`. They are a net under the
+     * analyser, not a replacement for it.
+     */
+    expect: [
+      'accepted: ^You see (\\w+) \\1$',
+      'accepted: ^You see \\p{Lu}\\w+ arrive$',
+      'and every accepted one paints',
+    ],
+  },
+  {
+    /*
+     * #500. The defect was not a wrong answer, it was a *third* answer read as
+     * the second: `patternRefusal` says "not modelled", and the caller took the
+     * same branch it takes for "read and found clean". Forcing that branch back
+     * on is exactly the old code, and what it costs is visible in the count -
+     * an anchored unmodelled pattern derives no probes from itself, so it is
+     * timed against sixteen unanchored bodies that fail at its first character
+     * and admitted in 0.1ms. The suite must name the fixtures that happens to.
+     */
+    label: 'abstaining falls through to acceptance again',
+    file: FILE,
+    find: '  if (structural.parsed) {',
+    replace: '  if (true) {',
+    expect: [
+      'and was probed, not waved through: ^You see (\\w+) \\1$',
+      'refused by name: ^You see (\\w+)\\s(\\w+\\s?)+\\1$',
+      'refused by name: ^(\\w+)\\1$',
+    ],
+  },
+  {
+    /*
+     * And the half of the fix that is not the branch: with the widening gone,
+     * a backreference cannot be rewritten into anything this parser reads, so
+     * every unmodelled pattern is refused - including the safe ones. A guard
+     * that refuses everything passes every "must be refused" case in the suite
+     * while taking highlighting away, so the fixtures that must be *accepted*
+     * are the ones that catch it.
+     */
+    label: 'the widening stops rewriting what it cannot model',
+    file: FILE,
+    find: '    const step = rewriteUnmodelled(source, flags)',
+    replace: '    const step = round >= 0 ? null : rewriteUnmodelled(source, flags)',
+    expect: ['accepted: ^You see (\\w+) \\1$', 'accepted: (\\w+) \\1'],
   },
   {
     label: 'ambiguous repetitions stop being refused',
@@ -219,8 +272,8 @@ console.log('')
 }
 
 console.log(`\n${CASES.length} sabotages, ${checked} checked, ${bad} failed`)
-if (CASES.length < 6 || checked < 18) {
-  console.log(`FAIL ${CASES.length} sabotages and ${checked} checks; this file has never had fewer than 6 and 18`)
+if (CASES.length < 8 || checked < 24) {
+  console.log(`FAIL ${CASES.length} sabotages and ${checked} checks; this file has never had fewer than 8 and 24`)
   process.exit(1)
 }
 process.exit(bad ? 1 : 0)

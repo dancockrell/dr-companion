@@ -409,15 +409,31 @@ console.log('\n-- an invalid pattern is refused at save, and never reaches paint
     slow.ok === false ? slow.why.slice(0, 60) : ''
   )
   /*
-   * And the timing half still works, on a pattern the analyser does not model.
-   * A backreference is real regexp syntax this parser returns null for, so the
-   * refusal below can only have come from a measurement - which is what makes
-   * it evidence that both halves are live rather than one carrying the other.
+   * And a pattern the analyser cannot model is refused too, naming what it
+   * could not read.
+   *
+   * This said "still refused on its measured time" until #500, and the comment
+   * argued that a backreference's refusal "can only have come from a
+   * measurement", so it proved both halves live. It proved the opposite. An
+   * unmodelled pattern reached the probe loop having derived no probes from
+   * itself, so an *anchored* one was timed against sixteen unanchored bodies
+   * it rejects at its first character and admitted on no evidence:
+   * `^You see (\w+)\s(\w+\s?)+\1$` loaded in 0.1ms and was still running
+   * when a 5-second ceiling killed one `paint()` of a 41-character line; #500
+   * ran the 45-character line uncapped, at 103 seconds. `(a|\\1a)+$` refers to the
+   * group it is inside, so it cannot be widened into anything this parser
+   * reads, and it is refused by name. Changed deliberately and said out loud,
+   * because editing a test so one's own change passes is otherwise
+   * indistinguishable from this.
+   *
+   * The timing half is still proven live, and by a command rather than by an
+   * argument: `tools/pattern-analyser-break-check.mjs` switches the analyser
+   * off and the probes alone still refuse #482's pattern.
    */
   const timed = hl.compilePattern('regexp', '(a|\\1a)+$')
   ok(
-    'and an unmodelled pattern is still refused on its measured time',
-    timed.ok === false && /took \d+ms on a .*probe/.test(timed.why),
+    'and an unmodelled pattern is refused, naming what it cannot read',
+    timed.ok === false && /cannot check for safety/.test(timed.why) && /\\1/.test(timed.why),
     timed.ok === false ? timed.why.slice(0, 60) : 'ACCEPTED'
   )
   // The floor again: a gate that refuses everything would pass both.

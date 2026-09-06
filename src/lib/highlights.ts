@@ -613,6 +613,352 @@ export function probePrefix(pattern: string): string {
   return out
 }
 
+/* ------------------------------------------------------------------ *
+ * The abstain path: "not modelled" is not "safe".
+ *
+ * #500. `patternRefusal` answers three ways and `compilePattern` used to read
+ * only the first, so a pattern the parser could not model took the same route
+ * as one it read and found clean. That would be survivable if the probes
+ * covered it, and they did not, for the same reason: `probePrefix` calls the
+ * same parser, returns '' when it bails, and `prefixProbes` then returns [].
+ * So an *anchored* unmodelled pattern was timed against sixteen unanchored
+ * bodies it rejects at their first character, measured ~0ms, and was admitted
+ * on no evidence at all - which is #482 again, reachable by appending one
+ * backreference. Measured through the real `resolveHighlights` + `paint`:
+ * `^You see (\w+)\s(\w+\s?)+\1$` was accepted in 0.1ms and then took 6ms on a
+ * 31-character line, 396ms on 37, and was still running at both 41 and 45 when
+ * a 5-second ceiling killed it. #500 ran it uncapped: 103 seconds at 45
+ * characters. GamePane keeps 400 lines.
+ *
+ * So abstaining no longer falls through to acceptance. When the analyser
+ * cannot model a pattern, the construct it could not model is rewritten into
+ * one it can - a backreference becomes the group it refers to, a property or
+ * code-point escape becomes what the engine will actually match - and the
+ * *widened* pattern is analysed and used to derive probes. The widening only
+ * ever admits more strings than the original, so a refusal read off it is a
+ * refusal the original earns too. If the rewrite cannot be made, or the
+ * widened form still cannot be parsed, or the pattern is anchored and no probe
+ * can be derived from it, the pattern is **refused, naming the construct**.
+ *
+ * Refusing beats admitting here, and the asymmetry is not close. A highlight
+ * is a convenience: refusing one costs a player some colour on a line and a
+ * message saying exactly which construct to remove. Admitting one costs the
+ * app - a 103-second paint is not a slow highlight, it is the client hung,
+ * with the game still arriving behind it.
+ *
+ * Lookarounds are *not* rewritten, because they are not unmodelled: `atom`
+ * parses `(?=`, `(?!`, `(?<=` and `(?<!`, and `scan` descends into them. The
+ * abstain path is reached by `\1`, `\k<name>`, `\p`, `\P`, `\u` and by any
+ * group prefix this parser does not know.
+ * ------------------------------------------------------------------ */
+
+/** Characters that must be escaped to stand for themselves in a pattern. */
+const REGEXP_META = '^$\\.*+?()[]{}|/'
+
+/**
+ * Every capture group's body, by number and by name, wrapped `(?:...)`.
+ *
+ * Numbered at the opening parenthesis rather than the closing one, because
+ * that is where JavaScript numbers them: `((a)(b))` is 1, 2, 3, and collecting
+ * them as they close would call it 2, 3, 1 and resolve every backreference in
+ * a nested pattern to the wrong group.
+ *
+ * Non-capturing on purpose. Substituting the group's own text would add a
+ * capture, renumbering every group after the substitution point, and
+ * substituting a *named* group twice would give the widened pattern two groups
+ * of one name. Neither matters to the analyser today and both are the kind of
+ * thing that is true until the day it is not.
+ */
+function captureGroups(source: string): { byIndex: Map<number, string>; byName: Map<string, string> } {
+  const byIndex = new Map<number, string>()
+  const byName = new Map<string, string>()
+  const stack: Array<{ body: number; index: number | null; name: string | null }> = []
+  let count = 0
+  let inClass = false
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i]
+    if (c === '\\') {
+      i++
+      continue
+    }
+    if (inClass) {
+      if (c === ']') inClass = false
+      continue
+    }
+    if (c === '[') {
+      inClass = true
+      continue
+    }
+    if (c === '(') {
+      let index: number | null = null
+      let name: string | null = null
+      let body = i + 1
+      if (source[i + 1] === '?') {
+        // `(?<name>` captures; `(?<=`, `(?<!`, `(?:`, `(?=`, `(?!` do not.
+        if (source[i + 2] === '<' && source[i + 3] !== '=' && source[i + 3] !== '!') {
+          const close = source.indexOf('>', i + 3)
+          if (close > 0) {
+            name = source.slice(i + 3, close)
+            index = ++count
+            body = close + 1
+          }
+        }
+      } else index = ++count
+      stack.push({ body, index, name })
+      continue
+    }
+    if (c === ')') {
+      const g = stack.pop()
+      if (!g) continue
+      const text = `(?:${source.slice(g.body, i)})`
+      if (g.index !== null) byIndex.set(g.index, text)
+      if (g.name !== null) byName.set(g.name, text)
+    }
+  }
+  return { byIndex, byName }
+}
+
+interface Widened {
+  /** The rewritten pattern, or null when it cannot be rewritten at all. */
+  source: string | null
+  /** The construct, as written, so a refusal can quote it back. */
+  construct: string
+  /** What kind of thing that construct is, for the advice in the refusal. */
+  kind: string
+}
+
+/**
+ * Rewrite every construct `parsePattern` does not model, once through.
+ *
+ * Returns null when there is nothing of the kind to rewrite - the parse failed
+ * for some other reason, and the caller must refuse rather than guess.
+ *
+ * Each rewrite either preserves the pattern's meaning exactly or widens it:
+ *
+ *   - `\1` and `\k<name>` become the source of the group they refer to. That
+ *     is a widening: `(\w+) \1` demands the same word twice, `(\w+) (\w+)`
+ *     accepts any two. Every string the original matches the widened form
+ *     matches, and the backtracking the analyser looks for is a property of
+ *     the shape, which the substitution keeps.
+ *   - A property escape becomes what the engine will actually match. Without
+ *     the `u` flag - which is what all four call sites pass - `\p` is an
+ *     identity escape and `\p{Lu}` is the literal text `p{Lu}`, so that is
+ *     what it is rewritten to, exactly. With `u` it is a real character class
+ *     this parser has no model of, and the answer is a refusal, not a guess.
+ */
+function rewriteUnmodelled(source: string, flags: string): Widened | null {
+  const { byIndex, byName } = captureGroups(source)
+  const unicode = flags.includes('u') || flags.includes('v')
+  let out = ''
+  let construct = ''
+  let kind = ''
+  let noted = false
+  let failed = false
+  let inClass = false
+  const note = (text: string, what: string) => {
+    if (noted) return
+    noted = true
+    construct = text
+    kind = what
+  }
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i]
+    // Inside a class `\1` is an octal escape and `\p` a literal p, and
+    // `parsePattern` skips the whole class without looking, so neither is a
+    // reason to abstain and neither is rewritten.
+    if (inClass) {
+      out += c
+      if (c === '\\') {
+        out += source[i + 1] ?? ''
+        i++
+      } else if (c === ']') inClass = false
+      continue
+    }
+    if (c === '[') {
+      out += c
+      inClass = true
+      continue
+    }
+    if (c !== '\\') {
+      out += c
+      continue
+    }
+    const esc = source[i + 1]
+    if (esc === undefined) {
+      out += c
+      continue
+    }
+    if (/[1-9]/.test(esc)) {
+      let j = i + 1
+      while (j < source.length && /\d/.test(source[j])) j++
+      note(source.slice(i, j), 'backreference')
+      const text = byIndex.get(Number(source.slice(i + 1, j)))
+      if (text === undefined) failed = true
+      else out += text
+      i = j - 1
+      continue
+    }
+    if (esc === '0') {
+      // `\0` is a NUL, not a group; there is nothing to widen it to.
+      note('\\0', 'escape')
+      failed = true
+      i++
+      continue
+    }
+    if (esc === 'k') {
+      const close = source[i + 2] === '<' ? source.indexOf('>', i + 3) : -1
+      const name = close > 0 ? source.slice(i + 3, close) : null
+      note(close > 0 ? source.slice(i, close + 1) : '\\k', 'named backreference')
+      const text = name === null ? undefined : byName.get(name)
+      if (text === undefined) failed = true
+      else out += text
+      i = close > 0 ? close : i + 1
+      continue
+    }
+    if (esc === 'p' || esc === 'P') {
+      const close = source[i + 2] === '{' ? source.indexOf('}', i + 2) : -1
+      note(close > 0 ? source.slice(i, close + 1) : `\\${esc}`, 'property escape')
+      if (unicode) {
+        failed = true
+        i++
+        continue
+      }
+      out += esc
+      if (close > 0) {
+        out += source
+          .slice(i + 2, close + 1)
+          .split('')
+          .map((ch) => (ch === '{' || ch === '}' ? `\\${ch}` : ch))
+          .join('')
+        i = close
+      } else i++
+      continue
+    }
+    if (esc === 'u') {
+      // `\u{...}` is only a code point when `u` is set; without it `\u{2}` is
+      // the letter u repeated twice.
+      const brace = unicode && source[i + 2] === '{' ? source.indexOf('}', i + 2) : -1
+      const hex4 = /^[0-9a-fA-F]{4}/.exec(source.slice(i + 2))
+      if (brace < 0 && !hex4) {
+        note('\\u', 'code point escape')
+        out += 'u'
+        i++
+        continue
+      }
+      const point = brace > 0 ? Number.parseInt(source.slice(i + 3, brace), 16) : Number.parseInt(hex4![0], 16)
+      note(brace > 0 ? source.slice(i, brace + 1) : source.slice(i, i + 6), 'code point escape')
+      if (!Number.isFinite(point) || point > 0x10ffff) {
+        failed = true
+        i = brace > 0 ? brace : i + 5
+        continue
+      }
+      const ch = String.fromCodePoint(point)
+      out += REGEXP_META.includes(ch) ? `\\${ch}` : ch
+      i = brace > 0 ? brace : i + 5
+      continue
+    }
+    out += c + esc
+    i++
+  }
+  if (!noted) return null
+  return { source: failed ? null : out, construct, kind }
+}
+
+/**
+ * A form of `pattern` this analyser can read, or null with the reason named.
+ *
+ * Loops because one rewrite can expose another: the group a backreference
+ * refers to may itself hold a property escape. Four rounds is well past any
+ * real rule and bounds the work; anything still unreadable is refused.
+ */
+function widenUnmodelled(pattern: string, flags: string): Widened {
+  let source = pattern
+  let construct = 'syntax this app does not model'
+  let kind = 'construct'
+  for (let round = 0; round < 4; round++) {
+    const step = rewriteUnmodelled(source, flags)
+    if (!step) return { source: null, construct, kind }
+    construct = step.construct
+    kind = step.kind
+    if (step.source === null) return { source: null, construct, kind }
+    source = step.source
+    if (patternRefusal(source).parsed) return { source, construct, kind }
+  }
+  return { source: null, construct, kind }
+}
+
+/** The fixed probes plus the ones derived from `source`'s own opening. */
+function probesFor(source: string): { probes: string[]; derived: number } {
+  const derived = prefixProbes(source)
+  return { probes: [...PROBES, ...derived], derived: derived.length }
+}
+
+/**
+ * What `compilePattern` will time this pattern against - or the refusal that
+ * means nothing will be timed at all.
+ *
+ * Exported so the suite can assert the thing that actually went wrong in #500:
+ * not "it was accepted" but "it was accepted having derived **zero** probes
+ * from itself". A count is checkable; "the probes covered it" is a claim.
+ *
+ * `derived` is the number that disappears when the abstain path regresses, so
+ * it is the one the suite counts. `probes.length` never goes below the fixed
+ * bodies and would stay reassuringly large over a guard that had stopped
+ * looking at the candidate entirely.
+ */
+export function probePlan(
+  pattern: string,
+  flags = ''
+): { why: string | null; probes: string[]; derived: number; source: string; modelled: boolean } {
+  const structural = patternRefusal(pattern)
+  const refuse = (why: string, source = pattern, modelled = true) => ({
+    why,
+    probes: [] as string[],
+    derived: 0,
+    source,
+    modelled,
+  })
+  if (structural.why) return refuse(`${structural.why}, so it is not loaded`)
+  if (structural.parsed) {
+    return { why: null, ...probesFor(pattern), source: pattern, modelled: true }
+  }
+
+  const widened = widenUnmodelled(pattern, flags)
+  const advice = `write it without the ${widened.kind}`
+  if (widened.source === null) {
+    return refuse(
+      `contains ${widened.construct}, which this app cannot check for safety; ${advice}, ` +
+        'so it is not loaded',
+      pattern,
+      false
+    )
+  }
+  const second = patternRefusal(widened.source)
+  if (second.why) {
+    return refuse(
+      `${second.why}. That was read with ${widened.construct} widened to what it can match, ` +
+        `because this app cannot check ${widened.construct} directly, so it is not loaded`,
+      widened.source,
+      false
+    )
+  }
+  const { probes, derived } = probesFor(widened.source)
+  // An anchored pattern the fixed probes cannot reach is the whole of #482,
+  // and an unmodelled one has nothing else left: the analyser has already
+  // abstained on it once. Zero derived probes here is not a fast pass, it is
+  // no measurement, and the honest answer is a refusal naming the construct.
+  if (derived === 0 && pattern.startsWith('^')) {
+    return refuse(
+      `contains ${widened.construct}, which this app cannot check for safety, and it is ` +
+        'anchored, so no probe can be built that reaches past the anchor; ' +
+        `${advice}, so it is not loaded`,
+      widened.source,
+      false
+    )
+  }
+  return { why: null, probes, derived, source: widened.source, modelled: false }
+}
+
 /**
  * The one gate a pattern passes before anything runs it.
  *
@@ -662,13 +1008,16 @@ export function compilePattern(
   // Compiling is not the same as being safe to run. See PATTERN_BUDGET_MS.
   // The structure is read before anything is timed, so a pattern the probes
   // cannot reach is still refused, and so no probe ever runs a construct that
-  // could take twenty seconds to answer.
-  const structural = patternRefusal(pattern)
-  if (structural.why) {
-    return { ok: false, why: `${structural.why}, so it is not loaded` }
+  // could take twenty seconds to answer. `probePlan` holds all three answers
+  // the analyser can give, including the one #500 was about: a pattern it
+  // could not model is widened until it can be read, and refused by name if it
+  // cannot - never admitted on an empty probe set.
+  const plan = probePlan(pattern, flags)
+  if (plan.why) {
+    return { ok: false, why: plan.why }
   }
 
-  const probes = [...PROBES, ...prefixProbes(pattern)]
+  const probes = plan.probes
   const worst = slowestProbeMs(re, probes)
   if (worst > PATTERN_BUDGET_MS) {
     return {
