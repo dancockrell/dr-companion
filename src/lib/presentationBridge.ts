@@ -65,10 +65,10 @@ import {
   boardLayoutFor,
   classifyTether,
   tetherAnchorFor,
+  packedRoomPositions,
 } from './isometric-board-layout.mjs'
 import { invokeTauri } from './tauri.ts'
 import type {
-  Vec3,
   WorldExit,
   WorldCell,
   EntitySnapshot,
@@ -80,14 +80,7 @@ import type {
   IntentGameCommand,
 } from './presentationTypes.ts'
 
-/** Matches the Godot-side manifest compiler's own convention
- * (`tools/build-primitive-world-manifest.mjs`'s `mapUnitToMetres`) so a
- * live snapshot's cells land at the same scale as the offline-compiled
- * manifest Codex's content is built against - two independently-computed
- * coordinate systems for the same rooms would be exactly the kind of drift
- * this whole bridge exists to prevent. */
-const MAP_UNIT_TO_METRES = 0.25
-const LEVEL_HEIGHT_METRES = 5
+// One shared board-layout owner supplies live and offline positions.
 
 /** Flags that mean the character cannot act at all.
  *
@@ -142,14 +135,6 @@ function exitsFor(zoneId: string, room: MapZoneRoom): WorldExit[] {
     })
 }
 
-function worldPosition(room: MapZoneRoom): Vec3 {
-  return {
-    x: (room.x ?? 0) * MAP_UNIT_TO_METRES,
-    y: (room.z ?? 0) * LEVEL_HEIGHT_METRES,
-    z: -(room.y ?? 0) * MAP_UNIT_TO_METRES,
-  }
-}
-
 /**
  * Pure compiler: today's `MapZone`/current room/character status in, a
  * `WorldSnapshot` out - or `null` when there isn't enough confirmed state to
@@ -182,10 +167,11 @@ export function compileWorldSnapshot(params: {
   if (hereId == null) return null
 
   const rooms = (zone.rooms ?? []).filter((r): r is MapZoneRoom & { id: number } => r.id != null)
+  const positions = packedRoomPositions(rooms)
   const cells: WorldCell[] = rooms.map((room) => ({
     id: cellId(zoneId, room.id),
     title: room.title ?? '',
-    position: worldPosition(room),
+    position: positions.get(room.id)!,
     board: boardLayoutFor({}),
     exits: exitsFor(zoneId, room),
   }))

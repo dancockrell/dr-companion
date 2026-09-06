@@ -16,7 +16,7 @@ enum Mode { WORLD, ROUTE, ROOM }
 const FRAMING := {
 	Mode.WORLD: {"height": 140.0, "size": 220.0},
 	Mode.ROUTE: {"height": 45.0, "size": 70.0},
-	Mode.ROOM: {"height": 14.0, "size": 24.0},
+	Mode.ROOM: {"height": 28.0, "size": 48.0},
 }
 
 const ISOMETRIC_PITCH_DEG := -35.264

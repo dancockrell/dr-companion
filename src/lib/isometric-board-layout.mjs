@@ -24,7 +24,7 @@ export function classifyTether(command, direction) {
 
 export function tetherAnchorFor(direction) {
   const anchor = COMPASS_ANCHORS[String(direction).toLowerCase()]
-  return anchor ? { ...anchor } : null
+  return anchor ? { ...anchor, x: anchor.x / 2.5 * CELL_PITCH_METRES / 2, z: anchor.z / 2.5 * CELL_PITCH_METRES / 2 } : null
 }
 
 /**
@@ -72,13 +72,13 @@ export function expandCompassDirection(value) {
 /**
  * How far apart adjacent rooms sit, in metres.
  *
- * `tools/build-primitive-world-manifest.mjs` multiplies map units by 0.25, and
- * neighbouring rooms in the Crossing manifest measure exactly 5.00 apart -
- * measured, not assumed. This is that number, named, so the block size below
- * can be stated as a relation to it rather than as a second constant that
- * happens to agree.
+ * Shared compact presentation slots replace the historical linear map-unit
+ * conversion in both offline and live compilers. This is not a geographic scale.
  */
-export const CELL_PITCH_METRES = 5
+// User-directed enlargement: four times the width/depth, sixteen times area.
+// Heights and actor body sizes do not grow with the room.
+export const ROOM_HORIZONTAL_SCALE = 4
+export const CELL_PITCH_METRES = 18
 
 /**
  * The gutter left between one room's block and the next.
@@ -99,10 +99,47 @@ export const CELL_PITCH_METRES = 5
  * the player is hunting for into the empty space that now separates the two
  * blocks rather than into a seam where two surfaces touch.
  */
-export const CELL_GAP_METRES = 0.6
+export const CELL_GAP_METRES = 0.4
 
 /** The drawn block: the pitch, less the gutter. */
 export const CELL_BLOCK_METRES = CELL_PITCH_METRES - CELL_GAP_METRES
+
+/** Compact presentation only. Source map coordinates seed adjacent slots;
+ * dense diagram insets are assigned the nearest vacant slot on their floor.
+ * Nothing in this packing creates, removes or infers a MUD connection.
+ * The same full room set has the same layout regardless of input ordering.
+ */
+export function packedRoomPositions(rooms) {
+  const result = new Map()
+  const occupied = new Set()
+  const ordered = [...rooms].sort((a, b) => a.id - b.id)
+  const minX = Math.min(0, ...ordered.map(r => r.x ?? 0))
+  const minY = Math.min(0, ...ordered.map(r => r.y ?? 0))
+  for (const room of ordered) {
+    // Main streets are normally forty source units apart. Compress those to
+    // one pitch instead of preserving hundred-metre gaps.
+    const gx = Math.round(((room.x ?? 0) - minX) / 40)
+    const gz = -Math.round(((room.y ?? 0) - minY) / 40)
+    const floor = room.z ?? 0
+    let slot
+    for (let radius = 0; !slot && radius <= ordered.length; radius++) {
+      for (let dx = -radius; dx <= radius && !slot; dx++) {
+        const dz = radius - Math.abs(dx)
+        for (const offset of dz === 0 ? [0] : [-dz, dz]) {
+          const x = gx + dx, z = gz + offset
+          const key = `${floor}:${x}:${z}`
+          if (!occupied.has(key)) {
+            occupied.add(key)
+            slot = { x: x * CELL_PITCH_METRES, y: floor * 5, z: z * CELL_PITCH_METRES }
+            break
+          }
+        }
+      }
+    }
+    result.set(room.id, slot)
+  }
+  return result
+}
 
 export function boardLayoutFor(cell) {
   const interior = cell.classification?.spatialMode === 'interior-cutaway'
@@ -171,6 +208,6 @@ export function boardLayoutFor(cell) {
       { id: 'hostile-right', role: 'hostile', anchor: { x: 1.35, y: 0.34, z: -1.15 }, yawDeg: -135, rigSocket: 'creature-root' },
       { id: 'item-left', role: 'item', anchor: { x: -1.55, y: 0.06, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
       { id: 'item-right', role: 'item', anchor: { x: 1.55, y: 0.06, z: 1.55 }, yawDeg: 0, rigSocket: 'item-root' },
-    ],
+    ].map((spawn) => ({ ...spawn, anchor: { ...spawn.anchor, x: spawn.anchor.x * ROOM_HORIZONTAL_SCALE, z: spawn.anchor.z * ROOM_HORIZONTAL_SCALE } })),
   }
 }

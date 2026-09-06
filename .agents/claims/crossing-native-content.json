@@ -2,11 +2,26 @@
   "schema_version": 1,
   "task_id": "crossing-native-content",
   "agent": "codex",
-  "summary": "Published incremental Crossing expansion: full graph, live identity enrichment, 14 partial sets and 17 shared models; complete vertical slice remains unfinished",
+  "summary": "Incremental checkpoint: seven exterior types, 26 models, 19 partial recipes, enlarged compact rooms; full Crossing incomplete",
   "status": "completed",
   "claimed_at": "2026-09-06T03:00:00Z",
-  "updated_at": "2026-09-06T03:00:00Z",
+  "updated_at": "2026-09-06T06:13:06.680Z",
   "paths": [
+    "tools/board-geometry-drift-test.mjs",
+    "godot/scripts/exit_anchor_layer.gd",
+    "godot/tests/exit_anchor_layer_test.gd",
+    "godot/tests/cell_click_target_test.gd",
+    "src/lib/isometric-board-layout.mjs",
+    "src/lib/isometric-board-layout.d.mts",
+    "src/lib/presentationBridge.ts",
+    "tools/presentation-bridge-test.mjs",
+    "tools/primitive-world-manifest-test.mjs",
+    "godot/mock/crossing_mock_world.json",
+    "docs/verification/crossing-native-herbalist.png",
+    "docs/verification/crossing-native-residences.png",
+    "docs/verification/crossing-native-bathhouse.png",
+    "docs/verification/crossing-native-cottage.png",
+    "docs/verification/crossing-native-stable.png",
     "godot/project.godot",
     "docs/verification/crossing-native-supply-stand.png",
     "godot/assets/crossing/",
@@ -44,18 +59,14 @@
     "notes": "Fast-forwarded to main 2c5c8f3e. No active claims. Blocked C7 concerns unrelated 2D removal; those paths remain untouched. Existing registry remains the only content owner."
   },
   "completion": {
-    "commit": "Shadow-striping correction: this commit; full Crossing slice remains unfinished",
+    "commit": "Included in this checkpoint",
     "checks": [
-      "Shadow continuation: 403 Godot checks passed; seven viewer room captures regenerated; bazaar and bower inspected; fine stippling and muddy surface still unfinished",
-      "Bazaar continuation: 400 Godot checks passed, including measured aisle clearance and table containment; actual viewer capture inspected",
-      "Support-socket continuation: 389 Godot checks and 27 geometry drift checks passed; native Supply Stand capture inspected; pushed 00577603",
-      "Godot full suite: 381 checks across 18 scripts passed after removal of inaccurate bench",
-      "npm run build passed",
-      "27 board geometry drift checks passed",
-      "Fixture contract: 61 passed, one non-applicable generated-live-artifact rule not checked",
-      "Geometric briefs and primitive world tests passed",
-      "Six real viewer room captures plus full graph overview inspected",
-      "Full visual slice, live character traversal and dense performance acceptance NOT COMPLETE"
+      "459 Godot checks across 18 scripts passed",
+      "27 geometry drift checks passed",
+      "Presentation bridge and primitive-world checks passed",
+      "TypeScript/Vite build passed",
+      "Twelve room captures plus overview regenerated",
+      "Full Crossing visual slice and live combat acceptance remain incomplete"
     ]
   }
 }

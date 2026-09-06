@@ -15,7 +15,7 @@
 import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish } from '../src/lib/presentationBridge.ts'
 // Imported rather than retyped: a test that hardcodes the number it checks
 // only proves somebody remembered to edit two places.
-import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES } from '../src/lib/isometric-board-layout.mjs'
+import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES, packedRoomPositions } from '../src/lib/isometric-board-layout.mjs'
 import {
   APPEARANCE_STORAGE_KEY,
   appearanceFor,
@@ -98,7 +98,7 @@ console.log('\n-- compileWorldSnapshot: a real snapshot --')
     ok('a compass traversal stays a typed road in the live snapshot',
       here?.exits.find((e) => e.move === 'south')?.tetherKind === 'road')
     ok('a compass traversal carries its local board-edge anchor',
-      here?.exits.find((e) => e.move === 'south')?.boardAnchor?.z === 2.5)
+      here?.exits.find((e) => e.move === 'south')?.boardAnchor?.z === CELL_PITCH_METRES / 2)
     ok('a zone-leaving exit ("go gate") is still a real exit, with no fabricated local target',
       here?.exits.some((e) => e.move === 'go gate' && e.targetCellId === null) ?? false)
     ok('a named gate is a threshold but has no fabricated compass anchor',
@@ -137,11 +137,10 @@ console.log('\n-- compileWorldSnapshot: world position uses the same scale as th
 {
   const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: null, sequence: 1 })
   const here = snap?.cells.find((c) => c.id === '1-14')
-  // mapUnitToMetres = 0.25, y inverted to z, level (z) * 5 - see
-  // tools/build-primitive-world-manifest.mjs's own worldPosition and this
-  // file's own MAP_UNIT_TO_METRES/LEVEL_HEIGHT_METRES.
-  ok('x scales by 0.25', here?.position.x === 25, String(here?.position.x))
-  ok('map y inverts into world z, scaled by 0.25', here?.position.z === 12.5, String(here?.position.z))
+  // Live and offline use the same compact-position owner.
+  const expected = packedRoomPositions(ZONE.rooms).get(14)
+  ok('x uses the shared compact layout', here?.position.x === expected.x, String(here?.position.x))
+  ok('z uses the shared compact layout', here?.position.z === expected.z, String(here?.position.z))
   ok('map level (z) becomes 5m world height steps', here?.position.y === 0, String(here?.position.y))
 }
 

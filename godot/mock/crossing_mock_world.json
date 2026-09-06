@@ -15,9 +15,9 @@
       "roomId": 14,
       "title": "The Crossing, Town Green North",
       "position": {
-        "x": 356.88,
+        "x": 252,
         "y": 0,
-        "z": -283.75
+        "z": -198
       },
       "sourceGrid": {
         "x": 170,
@@ -36,19 +36,19 @@
       "palette": "river-blue-green",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -67,9 +67,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -78,9 +78,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -89,9 +89,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -100,9 +100,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -111,9 +111,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -122,9 +122,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -205,9 +205,9 @@
       "roomId": 12,
       "title": "The Crossing, Via Iltesh",
       "position": {
-        "x": 356.88,
+        "x": 252,
         "y": 0,
-        "z": -233.75
+        "z": -162
       },
       "sourceGrid": {
         "x": 170,
@@ -225,19 +225,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -256,9 +256,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -267,9 +267,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -278,9 +278,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -289,9 +289,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -300,9 +300,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -311,9 +311,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -354,9 +354,9 @@
       "roomId": 13,
       "title": "The Crossing, Via Iltesh",
       "position": {
-        "x": 356.88,
+        "x": 252,
         "y": 0,
-        "z": -258.75
+        "z": -180
       },
       "sourceGrid": {
         "x": 170,
@@ -374,19 +374,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -405,9 +405,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -416,9 +416,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -427,9 +427,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -438,9 +438,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -449,9 +449,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -460,9 +460,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -503,9 +503,9 @@
       "roomId": 15,
       "title": "The Crossing, Town Green Southeast",
       "position": {
-        "x": 381.88,
+        "x": 270,
         "y": 0,
-        "z": -308.75
+        "z": -216
       },
       "sourceGrid": {
         "x": 210,
@@ -523,19 +523,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -554,9 +554,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -565,9 +565,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -576,9 +576,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -587,9 +587,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -598,9 +598,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -609,9 +609,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -670,9 +670,9 @@
       "roomId": 16,
       "title": "The Crossing, Town Green South",
       "position": {
-        "x": 356.88,
+        "x": 252,
         "y": 0,
-        "z": -308.75
+        "z": -216
       },
       "sourceGrid": {
         "x": 170,
@@ -693,19 +693,19 @@
       "palette": "warm-interior",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 3,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 3
         },
         "spawnPoints": [
@@ -724,9 +724,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -735,9 +735,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -746,9 +746,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -757,9 +757,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -768,9 +768,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -779,9 +779,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -854,9 +854,9 @@
       "roomId": 17,
       "title": "The Crossing, Town Green Northeast",
       "position": {
-        "x": 381.88,
+        "x": 270,
         "y": 0,
-        "z": -283.75
+        "z": -198
       },
       "sourceGrid": {
         "x": 210,
@@ -874,19 +874,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -905,9 +905,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -916,9 +916,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -927,9 +927,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -938,9 +938,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -949,9 +949,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -960,9 +960,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1027,9 +1027,9 @@
       "roomId": 22,
       "title": "The Crossing, Manciple Cobble",
       "position": {
-        "x": 306.88,
+        "x": 198,
         "y": 0,
-        "z": -308.75
+        "z": -216
       },
       "sourceGrid": {
         "x": 90,
@@ -1047,19 +1047,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -1078,9 +1078,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1089,9 +1089,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1100,9 +1100,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -1111,9 +1111,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -1122,9 +1122,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1133,9 +1133,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1176,9 +1176,9 @@
       "roomId": 23,
       "title": "The Crossing, Town Green Southwest",
       "position": {
-        "x": 331.88,
+        "x": 234,
         "y": 0,
-        "z": -308.75
+        "z": -216
       },
       "sourceGrid": {
         "x": 130,
@@ -1196,19 +1196,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -1227,9 +1227,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1238,9 +1238,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1249,9 +1249,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -1260,9 +1260,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -1271,9 +1271,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1282,9 +1282,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1337,9 +1337,9 @@
       "roomId": 24,
       "title": "The Crossing, Puddle Path",
       "position": {
-        "x": 306.88,
+        "x": 216,
         "y": 0,
-        "z": -258.75
+        "z": -180
       },
       "sourceGrid": {
         "x": 90,
@@ -1356,19 +1356,19 @@
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -1387,9 +1387,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1398,9 +1398,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1409,9 +1409,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -1420,9 +1420,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -1431,9 +1431,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1442,9 +1442,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1481,9 +1481,9 @@
       "roomId": 40,
       "title": "The Crossing, Lunat Shade Road",
       "position": {
-        "x": 356.88,
+        "x": 252,
         "y": 0,
-        "z": -333.75
+        "z": -234
       },
       "sourceGrid": {
         "x": 170,
@@ -1500,19 +1500,19 @@
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -1531,9 +1531,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1542,9 +1542,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1553,9 +1553,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -1564,9 +1564,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -1575,9 +1575,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1586,9 +1586,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1637,9 +1637,9 @@
       "roomId": 191,
       "title": "Milgrym's Weapons, Showroom",
       "position": {
-        "x": 344.38,
+        "x": 234,
         "y": 0,
-        "z": -271.25
+        "z": -198
       },
       "sourceGrid": {
         "x": 150,
@@ -1657,19 +1657,19 @@
       "palette": "warm-interior",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 3,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 3
         },
         "spawnPoints": [
@@ -1688,9 +1688,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1699,9 +1699,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1710,9 +1710,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -1721,9 +1721,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -1732,9 +1732,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1743,9 +1743,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1776,9 +1776,9 @@
       "roomId": 192,
       "title": "Tembeg's Armory, Salesroom",
       "position": {
-        "x": 331.88,
+        "x": 216,
         "y": 0,
-        "z": -271.25
+        "z": -198
       },
       "sourceGrid": {
         "x": 130,
@@ -1796,19 +1796,19 @@
       "palette": "warm-interior",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 3,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 3
         },
         "spawnPoints": [
@@ -1827,9 +1827,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1838,9 +1838,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1849,9 +1849,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -1860,9 +1860,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -1871,9 +1871,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1882,9 +1882,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -1921,9 +1921,9 @@
       "roomId": 225,
       "title": "The Crossing, Town Green Northwest",
       "position": {
-        "x": 331.88,
+        "x": 270,
         "y": 0,
-        "z": -283.75
+        "z": -180
       },
       "sourceGrid": {
         "x": 130,
@@ -1941,19 +1941,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -1972,9 +1972,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -1983,9 +1983,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -1994,9 +1994,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2005,9 +2005,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2016,9 +2016,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2027,9 +2027,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2088,9 +2088,9 @@
       "roomId": 264,
       "title": "Crossing, Midton Circle",
       "position": {
-        "x": 394.38,
+        "x": 288,
         "y": 0,
-        "z": -283.75
+        "z": -198
       },
       "sourceGrid": {
         "x": 230,
@@ -2109,19 +2109,19 @@
       "palette": "river-blue-green",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -2140,9 +2140,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -2151,9 +2151,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -2162,9 +2162,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2173,9 +2173,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2184,9 +2184,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2195,9 +2195,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2242,9 +2242,9 @@
       "roomId": 371,
       "title": "Behind the Amphitheater, Supply Stand",
       "position": {
-        "x": 381.88,
+        "x": 342,
         "y": 0,
-        "z": -321.25
+        "z": -198
       },
       "sourceGrid": {
         "x": 210,
@@ -2262,19 +2262,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -2293,9 +2293,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -2304,9 +2304,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -2315,9 +2315,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2326,9 +2326,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2337,9 +2337,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2348,9 +2348,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2391,9 +2391,9 @@
       "roomId": 377,
       "title": "The Crossing Amphitheater, The Back Lawn",
       "position": {
-        "x": 394.38,
+        "x": 378,
         "y": 0,
-        "z": -302.5
+        "z": -216
       },
       "sourceGrid": {
         "x": 230,
@@ -2411,19 +2411,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -2442,9 +2442,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -2453,9 +2453,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -2464,9 +2464,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2475,9 +2475,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2486,9 +2486,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2497,9 +2497,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2540,9 +2540,9 @@
       "roomId": 379,
       "title": "The Crossing, Mongers' Bazaar",
       "position": {
-        "x": 400.63,
+        "x": 360,
         "y": 0,
-        "z": -252.5
+        "z": -162
       },
       "sourceGrid": {
         "x": 240,
@@ -2561,19 +2561,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -2592,9 +2592,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -2603,9 +2603,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -2614,9 +2614,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2625,9 +2625,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2636,9 +2636,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2647,9 +2647,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2706,9 +2706,9 @@
       "roomId": 467,
       "title": "The Crossing, Town Green Pond",
       "position": {
-        "x": 350.63,
+        "x": 414,
         "y": 0,
-        "z": -296.25
+        "z": -216
       },
       "sourceGrid": {
         "x": 160,
@@ -2725,19 +2725,19 @@
       "palette": "neutral-unresolved",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -2756,9 +2756,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -2767,9 +2767,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -2778,9 +2778,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2789,9 +2789,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2800,9 +2800,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2811,9 +2811,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2844,9 +2844,9 @@
       "roomId": 853,
       "title": "Underground Passageway",
       "position": {
-        "x": 394.38,
+        "x": 288,
         "y": 5,
-        "z": -271.25
+        "z": -198
       },
       "sourceGrid": {
         "x": 230,
@@ -2864,19 +2864,19 @@
       "palette": "crossing-ground-street",
       "board": {
         "footprint": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1,
           "unit": "metre"
         },
         "ground": {
-          "width": 5,
-          "depth": 5,
+          "width": 18,
+          "depth": 18,
           "unit": "metre"
         },
         "selectionBounds": {
-          "width": 4.4,
-          "depth": 4.4,
+          "width": 17.6,
+          "depth": 17.6,
           "height": 1
         },
         "spawnPoints": [
@@ -2895,9 +2895,9 @@
             "id": "occupant-left",
             "role": "occupant",
             "anchor": {
-              "x": -1.15,
+              "x": -4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": 45,
             "rigSocket": "humanoid-root"
@@ -2906,9 +2906,9 @@
             "id": "occupant-right",
             "role": "occupant",
             "anchor": {
-              "x": 1.15,
+              "x": 4.6,
               "y": 0.4,
-              "z": 0.75
+              "z": 3
             },
             "yawDeg": -45,
             "rigSocket": "humanoid-root"
@@ -2917,9 +2917,9 @@
             "id": "hostile-left",
             "role": "hostile",
             "anchor": {
-              "x": -1.35,
+              "x": -5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": 135,
             "rigSocket": "creature-root"
@@ -2928,9 +2928,9 @@
             "id": "hostile-right",
             "role": "hostile",
             "anchor": {
-              "x": 1.35,
+              "x": 5.4,
               "y": 0.34,
-              "z": -1.15
+              "z": -4.6
             },
             "yawDeg": -135,
             "rigSocket": "creature-root"
@@ -2939,9 +2939,9 @@
             "id": "item-left",
             "role": "item",
             "anchor": {
-              "x": -1.55,
+              "x": -6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"
@@ -2950,9 +2950,9 @@
             "id": "item-right",
             "role": "item",
             "anchor": {
-              "x": 1.55,
+              "x": 6.2,
               "y": 0.06,
-              "z": 1.55
+              "z": 6.2
             },
             "yawDeg": 0,
             "rigSocket": "item-root"

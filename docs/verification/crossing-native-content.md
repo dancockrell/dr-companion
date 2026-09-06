@@ -1,5 +1,60 @@
 # Crossing native Town Green checkpoint — 6 September 2026
 
+## Current: description-led buildings and larger, compact rooms
+
+This section supersedes the counts, dimensions and cyan-marker presentation in
+the historical checkpoints below. The Crossing vertical slice remains unfinished.
+
+Seven new complete exterior archetypes are mounted: Tembeg's unpainted armorer
+shop (1-225), Milgrym's plain weaponsmith (1-14), the trellised herbalist (1-7),
+old stone residences (1-22), Orem's low, long bathhouse on the north side (1-95),
+a thatched cruck cottage (1-100), and the long stable with high double doors
+(1-112). Mud court and tattered shelter assets bring this batch to nine assets.
+The shared catalog now has 89 models; the consumer packages 26 models across
+19 explicitly partial room recipes. Native source revision:
+`688ecc25c7ba3f0dc34f048fbfa42f71874a1f49`.
+
+Bindings use full stored room descriptions and description hashes, not merely
+room titles. Tembeg has exterior sample shields but no sign or paint; the
+herbalist has facade trellises. Dimensions, unspecified masonry and roof choices
+remain interpretations in each recipe, not claims about canonical architecture.
+The stable's outer town wall and species-accurate herbalist plants remain missing.
+
+Room width and depth are four times the previous footprint: 17.6 by 17.6 metres,
+sixteen times the area. Adjacent presentation slots are 18 metres apart, leaving
+only a 0.4-metre block seam. Non-terrain models are capped at native scale so
+the extra area is space for room composition and occupants, not giant furniture.
+This establishes capacity, not completed battle layouts for every room.
+
+Offline and live compilers share deterministic compact slot packing. Original
+source coordinates remain in the offline manifest; packing preserves all 1,060
+room identities and 2,389 directed routes without inferring adjacency as an exit.
+This is presentation layout, not surveyed geography: collision resolution can
+displace compass bearings, and adding rooms can move later slots. Compass command
+studs are not proof that a destination is geometrically in that direction. Door
+socket-to-command binding and stronger topology-aware placement remain follow-up
+work. Small gold studs replace the rejected cyan diamonds; exact legal commands
+remain available through the exit list.
+
+Validation: 459 checks across 18 Godot scripts, 27 geometry drift checks,
+primitive-world and presentation bridge checks, and the TypeScript/Vite build
+passed. Building tests measure mesh bounds, entrance-facing and closed-shell
+metadata. The shared build passed all 89 GLB/native bounds roundtrips; the first
+batch preserved all 80 prior GLB hashes, and the 94-instance assembly reloaded.
+Twelve room captures plus an overview were regenerated in the real viewer.
+North, armory approach and bazaar were inspected after compact packing; earlier
+building reviews also covered herbalist, bathhouse, residences and cottage.
+
+The first straw roof was rejected and rebuilt with overlapping bundles; pale
+mud clods were rejected and replaced with flattened brown irregular clods.
+Remaining visible problems include stretched ground textures/planks, overly
+rigid shelter cloth, fine shadow stippling, route-line clutter, sparse room
+dressing, fallback blocks, and unfinished interior shells. New building variety
+does not mean all Crossing rooms are authored. Dense-scene performance and live
+multi-character battle/traversal acceptance are not established by these checks.
+
+## Historical checkpoints
+
 ## Shadow-striping correction
 
 The broad diagonal bands recorded in the preceding captures were primarily

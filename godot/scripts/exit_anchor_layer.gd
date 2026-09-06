@@ -72,51 +72,28 @@ func visible_moves() -> Array:
 func position_state_for(exit_move: String) -> String:
 	return str(_position_states.get(exit_move, "absent"))
 
-## A flat chevron lying in the gutter, pointing the way out.
-##
-## This was an upright cylinder standing at the anchor, and Dan found both
-## things wrong with it by playing: "the exits are sometimes hard to find", and
-## a marker wants to be "on the edge actually... but not on the block itself,
-## it won't be readable".
-##
-## Upright is the harder half. At a fixed isometric camera a standing post is
-## seen nearly end-on, so it covers very few pixels and hides behind whatever
-## the room contains. A flat shape lying on the ground keeps its whole area
-## turned toward the camera wherever it sits on the board. The wedge also
-## carries direction, which a cylinder cannot: it points out of the room, so
-## eight of them read as eight ways out rather than eight identical bollards.
-##
-## And it belongs in the gutter between this block and the next rather than on
-## the block, for the reason Dan gave - against room content it is not
-## readable. The gutter is empty by construction (CELL_GAP_METRES in
-## src/lib/isometric-board-layout.mjs), so a marker there competes with
-## nothing, and a mark drawn between two tiles is what a doorway between two
-## rooms actually is.
+## Small gold edge studs replace the rejected cyan diamonds. Route lines and
+## the accessible exit list communicate commands; studs never create routes.
 func _add_visuals(anchor: Node3D, move: String, resolved: bool, block_top: float) -> void:
 	var marker := MeshInstance3D.new()
-	var mesh := PrismMesh.new()
+	var mesh := CylinderMesh.new()
 	# Wide across the edge it sits on, shallow along the direction of travel,
 	# and thin: a chevron painted on the floor, not an object in the room.
-	mesh.size = Vector3(1.2, MARKER_THICKNESS_METRES, 0.9)
+	mesh.top_radius = 0.18
+	mesh.bottom_radius = 0.18
+	mesh.height = MARKER_THICKNESS_METRES
+	mesh.radial_segments = 24
 	marker.mesh = mesh
 	# The prism's point faces +Z. Turn it to face away from the room centre so
 	# it reads as an arrow out rather than a wedge lying at some angle.
 	var outward := Vector3(anchor.position.x, 0.0, anchor.position.z)
 	if outward.length_squared() > 0.0001:
 		marker.rotation.y = atan2(outward.x, outward.z)
-	# Cyan, not gold.
-	#
-	# The markers used to be Color(0.95, 0.85, 0.30), which is very nearly the
-	# gold of an ordinary street cell, so on the capture they read as part of
-	# the block they sat on - findable only once you knew where to look, which
-	# is the complaint. Cyan is far from every terrain colour the palette uses
-	# (gold street, green grass, brown earth) and matches the blue already
-	# outlining the current room, so an exit looks like it belongs to the
-	# selection language rather than to the ground.
+	# Gold studs leave scenery visible; unresolved exits remain neutral grey.
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.45, 0.85, 1.0) if resolved else Color(0.52, 0.55, 0.58)
-	material.emission_enabled = resolved
-	material.emission = Color(0.10, 0.35, 0.50) if resolved else Color.BLACK
+	material.albedo_color = Color("d4aa48") if resolved else Color("777777")
+	material.metallic = 0.35
+	material.roughness = 0.5
 	marker.material_override = material
 	# Clear of the block's top face, not inside it.
 	#
@@ -164,6 +141,7 @@ func _add_visuals(anchor: Node3D, move: String, resolved: bool, block_top: float
 
 	var body := StaticBody3D.new()
 	body.name = "WalkTarget"
+	body.position.y = marker.position.y
 	var shape := CollisionShape3D.new()
 	var sphere := SphereShape3D.new()
 	sphere.radius = 0.5
@@ -186,7 +164,10 @@ func _anchor_placement(exit: Dictionary, index: int, cells: Dictionary) -> Dicti
 		var delta := _cell_position(cells[target_id]) - from_position
 		delta.y = 0.0
 		if delta.length_squared() > 0.0001:
-			return {"offset": delta.normalized() * 2.4, "state": "resolved"}
+			var ground := ContentRegistryScript.ground_size_metres(cells[_current_room_id])
+			var direction := delta.normalized()
+			var edge := minf(ground.x / maxf(absf(direction.x), 0.001), ground.y / maxf(absf(direction.z), 0.001)) * 0.5
+			return {"offset": direction * edge, "state": "resolved"}
 	# A real but directionless/external exit remains actionable without being
 	# assigned a fabricated compass edge. Stack it above the room centre as an
 	# explicitly neutral affordance; the accessible exit list remains primary.

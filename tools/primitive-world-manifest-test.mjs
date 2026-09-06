@@ -2,31 +2,24 @@ import { existsSync, readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 // The block size is one constant, imported rather than retyped: a test that
 // hardcodes the number it is checking only ever proves somebody edited both.
-import { CELL_BLOCK_METRES } from '../src/lib/isometric-board-layout.mjs'
+import { CELL_BLOCK_METRES, CELL_PITCH_METRES, packedRoomPositions } from '../src/lib/isometric-board-layout.mjs'
 
 const fail = (message) => { console.error(`FAIL ${message}`); process.exitCode = 1 }
 const pass = (message) => console.log(`OK   ${message}`)
 
-/**
- * Room pairs the Crossing mapdb genuinely records twice, at identical map
- * coordinates, under two node ids.
- *
- * Verified in `data/art/out/geometric-room-briefs.json`, which is where these
- * coordinates come from: 804 and 866 are both "Paladins' Guild, Sentinel's
- * Way" at (347, -586), and 805 and 867 are both "Paladins' Guild, Sentinel's
- * Rest" at (367, -586). Each twin differs only in the wording of one `go` exit
- * ("go path" against "go pebbled path") and in which twin it links onward to,
- * which is the signature of a room re-surveyed under a new node rather than of
- * anything this repository generates. No scale separates two rooms at one
- * coordinate, so the gutter check above cannot speak to them and does not try.
- *
- * This list may only shrink. Removing a pair means the mapdb was fixed
- * upstream; adding one means somebody decided a *new* overlap is acceptable,
- * which needs the same evidence this comment carries.
- */
+const packingFixture = [{ id: 1, x: 0, y: 0 }, { id: 2, x: 40, y: 0 }, { id: 3, x: 0, y: 0 }, { id: 4, x: 0, y: 0, z: 1 }]
+const packed = packedRoomPositions(packingFixture)
+if (packed.get(1).x === 0 && packed.get(2).x === CELL_PITCH_METRES) pass('adjacent source street slots have exactly one presentation pitch')
+else fail('street slots are not compact')
+if (new Set([...packed.values()].map(p => `${p.x},${p.y},${p.z}`)).size === 4) pass('coincident source rooms retain distinct physical slots')
+else fail('packing overlaps coincident source rooms')
+if (JSON.stringify([...packed]) === JSON.stringify([...packedRoomPositions([...packingFixture].reverse())])) pass('packing is independent of input order')
+else fail('packing depends on input ordering')
+if (packed.get(4).y === 5 && packed.get(4).x === 0 && packed.get(4).z === 0) pass('different floors can reuse a horizontal slot')
+else fail('packing loses vertical floor identity')
+
+// Packed presentation now separates the old coincident source nodes too.
 const KNOWN_COINCIDENT = [
-  ['1-804', '1-866'],
-  ['1-805', '1-867'],
 ]
 
 execFileSync(process.execPath, ['tools/build-primitive-world-manifest.mjs', '1'], { stdio: 'inherit' })
@@ -120,6 +113,6 @@ else {
           `Remove the entry - a stale allowlist is a hole nobody sees.`
       )
   }
-  if (townGreenNorth?.exits.every((exit) => typeof exit.tetherKind === 'string') && townGreenNorth?.exits.find((exit) => exit.direction === 'north')?.boardAnchor?.z === -2.5) pass('true exits carry typed tethers and camera-stable edge anchors')
+  if (townGreenNorth?.exits.every((exit) => typeof exit.tetherKind === 'string') && townGreenNorth?.exits.find((exit) => exit.direction === 'north')?.boardAnchor?.z === -CELL_PITCH_METRES / 2) pass('true exits carry typed tethers and camera-stable edge anchors')
   else fail('typed tether or board-edge anchor metadata is missing')
 }

@@ -37,6 +37,14 @@ func _run() -> void:
 		for model in node.get_children():
 			var bounds := _bounds(model, node)
 			check(bounds.position.x >= -size.x/2 - 0.001 and bounds.end.x <= size.x/2 + 0.001 and bounds.position.z >= -size.z/2 - 0.001 and bounds.end.z <= size.z/2 + 0.001, "Full visual geometry stays within published footprint")
+			var shells := model.find_children("CompleteExterior", "Node3D", true, false)
+			if not shells.is_empty():
+				check(not shells[0].get_meta("building_bounds").cutaway, "Production exterior is a complete shell, not demo cutaway")
+				var record: Dictionary = content._native_records[model.get_meta("asset_id")]
+				check(record.sockets.has("entrance"), "Building has measured entrance socket")
+				var facing: Vector3 = model.basis * Vector3.FORWARD
+				var toward_center := Vector3(-model.position.x, 0, -model.position.z)
+				check(facing.dot(toward_center) > 0, "Building front faces the authored local approach")
 		node.free()
 		var changed := cell.duplicate(true)
 		changed.sourceDescriptionHash = "changed"

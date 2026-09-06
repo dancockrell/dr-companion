@@ -186,9 +186,9 @@ func _run() -> void:
 	_ok("a click %.2f m past its edge - in the gutter - resolves to nothing" % OUTSIDE_MARGIN,
 		_ray_down(space, gutter).is_empty(),
 		"%.2f m from centre; the same ray hit this cell before the fix" % (room_bounds["width"] * 0.5 + OUTSIDE_MARGIN))
-	_ok("and that gutter point is inside the box this replaced, so the miss is earned",
-		room_bounds["width"] * 0.5 + OUTSIDE_MARGIN <= SUPERSEDED_CLICK_BOX_METRES * 0.5,
-		"%.2f m out, against the old %.2f m half-width" % [room_bounds["width"] * 0.5 + OUTSIDE_MARGIN, SUPERSEDED_CLICK_BOX_METRES * 0.5])
+	_ok("a paired ray just inside the enlarged room edge still selects the room",
+		_cell_of(_ray_down(space, room_centre + Vector3(room_bounds["width"] * 0.5 - OUTSIDE_MARGIN, 0, 0))) == ROOM_ID,
+		"%.2f m inside the published edge" % OUTSIDE_MARGIN)
 
 	# -- two rooms at two heights, so one number cannot serve both --
 	var tall_bounds: Dictionary = registry.selection_bounds_metres(loader.cells[TALL_ROOM_ID])

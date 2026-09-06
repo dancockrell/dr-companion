@@ -110,8 +110,8 @@ func _marker_clears_block(layer: Node3D, height: float) -> bool:
 	var marker := _marker_for(layer, height)
 	if marker == null:
 		return false
-	var mesh: PrismMesh = marker.mesh
-	var bottom: float = marker.position.y - mesh.size.y * 0.5
+	var mesh: CylinderMesh = marker.mesh
+	var bottom: float = marker.position.y - mesh.height * 0.5
 	var block_top := height * 0.5
 	return bottom >= block_top and bottom - block_top <= CLEARANCE_TOLERANCE_METRES
 

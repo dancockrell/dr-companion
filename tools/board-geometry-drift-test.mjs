@@ -136,7 +136,7 @@ const MINIMUM_REFUSED_VALUES = 8
  * 4.5 is in the set because it is 4.4 rounded, not because it is written on
  * this line.
  */
-const SUPERSEDED_CLICK_BOX_METRES = 4.5
+const ROUNDED_CURRENT_BLOCK_METRES = Math.round(CELL_BLOCK_METRES * 2) / 2
 
 let pass = 0
 let fail = 0
@@ -400,9 +400,9 @@ ok(
   `positive control: ${CELL_BLOCK_METRES} (#345) and ${CELL_PITCH_METRES} (#362)`,
 )
 ok(
-  'and the near-miss that defeated both of those checks',
-  REFUSED.has(SUPERSEDED_CLICK_BOX_METRES),
-  `positive control: ${SUPERSEDED_CLICK_BOX_METRES} is ${REFUSED.get(SUPERSEDED_CLICK_BOX_METRES) ?? 'NOT in the set'}`,
+  'and the rounded near-miss follows the current room dimensions',
+  REFUSED.has(ROUNDED_CURRENT_BLOCK_METRES),
+  `positive control: ${ROUNDED_CURRENT_BLOCK_METRES} is ${REFUSED.get(ROUNDED_CURRENT_BLOCK_METRES) ?? 'NOT in the set'}`,
 )
 ok(
   'and it still does not contain the ordinary scalars a viewer script means',

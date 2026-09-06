@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { boardLayoutFor, classifyTether, tetherAnchorFor } from '../src/lib/isometric-board-layout.mjs'
+import { boardLayoutFor, classifyTether, tetherAnchorFor, packedRoomPositions } from '../src/lib/isometric-board-layout.mjs'
 
 const zone = process.argv[2] ?? '1'
 const briefsPath = 'data/art/out/geometric-room-briefs.json'
@@ -27,32 +27,8 @@ const minY = Math.min(...cellsForZone.map((cell) => cell.map.y))
 const maxX = Math.max(...cellsForZone.map((cell) => cell.map.x))
 const maxY = Math.max(...cellsForZone.map((cell) => cell.map.y))
 const localIds = new Set(cellsForZone.map((cell) => cell.id))
-/**
- * Map units to metres.
- *
- * This was 0.25, and at that scale the board was a pile of interpenetrating
- * geometry. Measured across the 1,060-cell Crossing manifest: the *median*
- * distance from a room to its nearest same-storey neighbour was 2.5 metres,
- * and the closest pair was 2.0 - while every room drew a block 4.4 to 5 metres
- * wide. Blocks did not merely touch, they overlapped by roughly their own
- * width, everywhere, and an exit anchor placed at the block edge landed inside
- * the neighbouring room's geometry. That is why exits were hard to find, and
- * it is the clipping Dan reported.
- *
- * 8 map units is the smallest gap the data contains, so the scale has to make
- * 8 units at least as wide as a block plus its gutter:
- *
- *     8 * scale >= CELL_BLOCK_METRES + CELL_GAP_METRES   ->   scale >= 0.625
- *
- * 0.625 exactly, which is also a clean 2.5x the old value. The relationship is
- * asserted by tools/primitive-world-manifest-test.mjs against the generated
- * manifest, so lowering this without shrinking the block fails the build
- * rather than quietly producing overlap again.
- *
- * Distance on this board is framing, never game distance: the map's own
- * coordinates are layout evidence and nothing here is metres of Elanthia.
- */
-const mapUnitToMetres = 0.625
+// Compact presentation preserves sourceGrid and all real exits.
+const positions = packedRoomPositions(cellsForZone.map(cell => ({ id: cell.roomId, ...cell.map })))
 
 const candidatesFor = (kind) => ({
   'terrain-cell-5m': ['G01', 'G02', 'G03', 'G14'],
@@ -99,17 +75,11 @@ const palette = (cell) => {
   return 'crossing-ground-street'
 }
 
-const worldPosition = (map) => ({
-  x: Number(((map.x - minX) * mapUnitToMetres).toFixed(2)),
-  y: Number(((map.z ?? 0) * 5).toFixed(2)),
-  z: Number((-(map.y - minY) * mapUnitToMetres).toFixed(2)),
-})
-
 const cells = cellsForZone.map((cell) => ({
   id: cell.id,
   roomId: cell.roomId,
   title: cell.title,
-  position: worldPosition(cell.map),
+  position: positions.get(cell.roomId),
   sourceGrid: { x: cell.map.x, y: cell.map.y, z: cell.map.z ?? 0 },
   status: cell.briefStatus,
   sourceDescriptionId: cell.sourceDescriptionId,
@@ -143,8 +113,8 @@ const output = {
   generatedFrom: {
     roomBriefCatalogue: briefsPath,
     zone,
-    mapUnitToMetres,
-    coordinateConvention: 'DragonRealms map x becomes Godot x; inverted map y becomes Godot z; map level becomes 5m y steps.',
+    layoutPolicy: 'compact-nearest-vacant-slot',
+    coordinateConvention: 'Source map coordinates seed compact room slots; sourceGrid preserves original coordinates. Exits remain authoritative. Levels use 5m y steps.',
   },
   primitiveRegistry: {
     path: 'data/world/out/crossing-primitive-registry.json',
@@ -154,7 +124,7 @@ const output = {
   },
   bounds: {
     source: { minX, minY, maxX, maxY },
-    metres: { width: Number(((maxX - minX) * mapUnitToMetres).toFixed(2)), depth: Number(((maxY - minY) * mapUnitToMetres).toFixed(2)) },
+    metres: { width: Math.max(...cells.map(c => c.position.x)) - Math.min(...cells.map(c => c.position.x)), depth: Math.max(...cells.map(c => c.position.z)) - Math.min(...cells.map(c => c.position.z)) },
   },
   cells,
   routes,

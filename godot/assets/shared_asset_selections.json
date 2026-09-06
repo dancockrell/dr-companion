@@ -49,7 +49,7 @@
   ],
   "nativeCatalog": {
     "repository": "https://github.com/dancockrell/shared-game-environment-library",
-    "revision": "8ef2a7d2fcf4b9485bc1f63c6e3fd030e83b8d96",
+    "revision": "688ecc25c7ba3f0dc34f048fbfa42f71874a1f49",
     "source": "docs/river-port-build/catalog/catalog-native.scn",
     "runtimePath": "res://assets/crossing/town-green.scn",
     "provenancePath": "res://assets/crossing/provenance.json",
@@ -70,7 +70,16 @@
       "painted-river-port.canvas-shelter",
       "painted-river-port.cargo-stack",
       "painted-river-port.display-rack",
-      "painted-river-port.workbench"
+      "painted-river-port.workbench",
+      "painted-river-port.unpainted-armorer-shop",
+      "painted-river-port.trellised-herbalist",
+      "painted-river-port.low-brick-bathhouse",
+      "painted-river-port.old-stone-residence",
+      "painted-river-port.cruck-cottage",
+      "painted-river-port.barn-stable",
+      "painted-river-port.plain-weaponsmith",
+      "painted-river-port.mud-court",
+      "painted-river-port.tattered-shelter"
     ],
     "reviewState": "Crossing authoring pack; per-room omissions remain explicit",
     "scalePolicy": "miniature presentation fitted to explicit room footprint; not physical MUD metres"
@@ -80,8 +89,8 @@
       "cellId": "1-14",
       "evidence": "bent grass path; narrow cobblestones; privet hedge before weaponsmith",
       "missing": [
-        "Milgrym exterior",
-        "botanically specific privet"
+        "botanically specific privet",
+        "bent-grass rather than paved approach"
       ],
       "pieces": [
         {
@@ -98,61 +107,62 @@
           "yawDegrees": 0
         },
         {
+          "assetId": "painted-river-port.plain-weaponsmith",
+          "center": [
+            0,
+            -0.18
+          ],
+          "envelope": [
+            0.84,
+            0.6
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            -0.32,
+            0.2
+          ],
+          "envelope": [
+            0.28,
+            0.08
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.hedge-run",
+          "center": [
+            0.32,
+            0.2
+          ],
+          "envelope": [
+            0.28,
+            0.08
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        },
+        {
           "assetId": "painted-river-port.cobble-street",
           "center": [
             0,
-            -0.32
+            0.31
           ],
           "envelope": [
-            0.82,
-            0.14
+            0.15,
+            0.33
           ],
-          "lift": 0.03,
-          "yawDegrees": 0
-        },
-        {
-          "assetId": "painted-river-port.hedge-run",
-          "center": [
-            -0.28,
-            -0.43
-          ],
-          "envelope": [
-            0.3,
-            0.09
-          ],
-          "lift": 0.06,
-          "yawDegrees": 0
-        },
-        {
-          "assetId": "painted-river-port.hedge-run",
-          "center": [
-            0.28,
-            -0.43
-          ],
-          "envelope": [
-            0.3,
-            0.09
-          ],
-          "lift": 0.06,
-          "yawDegrees": 0
-        },
-        {
-          "assetId": "painted-river-port.dirt-path",
-          "center": [
-            0,
-            0.05
-          ],
-          "envelope": [
-            0.12,
-            0.65
-          ],
-          "lift": 0.04,
+          "lift": 0.02,
           "yawDegrees": 0
         }
       ],
       "status": "partial-authored",
       "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
-      "descriptionHash": "f73bd5e2ac6e412c"
+      "descriptionHash": "f73bd5e2ac6e412c",
+      "interpretation": "Complete shell is an authored interpretation. No measured exterior dimensions or roof design in source; door faces local approach. No new MUD exits."
     },
     {
       "cellId": "1-15",
@@ -389,7 +399,8 @@
       "cellId": "1-225",
       "evidence": "thick hedges with armory entrance breach; plank approach; unpainted wood exterior",
       "missing": [
-        "Tembeg unpainted exterior with displayed work"
+        "full armor sample variety",
+        "species-specific hedge"
       ],
       "pieces": [
         {
@@ -406,40 +417,53 @@
           "yawDegrees": 0
         },
         {
+          "assetId": "painted-river-port.unpainted-armorer-shop",
+          "center": [
+            0,
+            -0.18
+          ],
+          "envelope": [
+            0.84,
+            0.6
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        },
+        {
           "assetId": "painted-river-port.hedge-run",
           "center": [
             -0.32,
-            -0.43
+            0.2
           ],
           "envelope": [
             0.28,
-            0.12
+            0.08
           ],
-          "lift": 0.06,
+          "lift": 0.02,
           "yawDegrees": 0
         },
         {
           "assetId": "painted-river-port.hedge-run",
           "center": [
             0.32,
-            -0.43
+            0.2
           ],
           "envelope": [
             0.28,
-            0.12
+            0.08
           ],
-          "lift": 0.06,
+          "lift": 0.02,
           "yawDegrees": 0
         },
         {
           "assetId": "painted-river-port.plank-approach",
           "center": [
             0,
-            -0.25
+            0.31
           ],
           "envelope": [
-            0.16,
-            0.44
+            0.15,
+            0.33
           ],
           "lift": 0.02,
           "yawDegrees": 0
@@ -447,7 +471,8 @@
       ],
       "status": "partial-authored",
       "placementPolicy": "normalized visual composition, not measured geography; central token space reserved",
-      "descriptionHash": "4b6facaa5a85d146"
+      "descriptionHash": "4b6facaa5a85d146",
+      "interpretation": "Complete shell is an authored interpretation. No measured exterior dimensions or roof design in source; door faces local approach. No new MUD exits."
     },
     {
       "cellId": "1-12",
@@ -560,12 +585,11 @@
       "evidence": "Trampled lawn with supplies on tables and tools; no static dwarf is fabricated as a live occupant",
       "placementPolicy": "normalized tabletop composition, not measured geography",
       "missing": [
-        "mud puddles",
         "specific pickaxe and shovel displays"
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.dirt-path",
+          "assetId": "painted-river-port.mud-court",
           "center": [
             0,
             0
@@ -613,7 +637,10 @@
             0.2,
             0.15
           ],
-          "support": { "pieceIndex": 1, "socket": "surface" },
+          "support": {
+            "pieceIndex": 1,
+            "socket": "surface"
+          },
           "lift": 0,
           "yawDegrees": 0
         }
@@ -651,12 +678,11 @@
       "evidence": "Ramshackle market stalls and tattered tents on churned ground",
       "placementPolicy": "normalized tabletop composition; central 20 percent X-width aisle reserved; visual only, not measured geography",
       "missing": [
-        "tattered cloth variation",
-        "mud surface"
+        "more irregular canvas drape and repair patches"
       ],
       "pieces": [
         {
-          "assetId": "painted-river-port.dirt-path",
+          "assetId": "painted-river-port.mud-court",
           "center": [
             0,
             0
@@ -669,7 +695,7 @@
           "yawDegrees": 0
         },
         {
-          "assetId": "painted-river-port.canvas-shelter",
+          "assetId": "painted-river-port.tattered-shelter",
           "center": [
             -0.3,
             -0.24
@@ -682,7 +708,7 @@
           "yawDegrees": 180
         },
         {
-          "assetId": "painted-river-port.canvas-shelter",
+          "assetId": "painted-river-port.tattered-shelter",
           "center": [
             0.3,
             -0.24
@@ -860,6 +886,215 @@
           ],
           "envelope": [
             0.26,
+            0.3
+          ],
+          "lift": 0.02,
+          "yawDegrees": 0
+        }
+      ]
+    },
+    {
+      "cellId": "1-7",
+      "descriptionHash": "95899a768e92c589",
+      "status": "partial-authored",
+      "evidence": "Wicker and cane trellises with climbing plants cover Herbalist facade",
+      "missing": [
+        "botanically distinct ivy morning glory honeysuckle jasmine"
+      ],
+      "placementPolicy": "Complete building within published footprint; front street strip retained",
+      "interpretation": "Unsupplied dimensions and roof design are authored interpretation. Described occupants are not instantiated as live state.",
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-plaza",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.trellised-herbalist",
+          "center": [
+            0,
+            -0.18
+          ],
+          "envelope": [
+            0.86,
+            0.6
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        }
+      ]
+    },
+    {
+      "cellId": "1-95",
+      "descriptionHash": "140341ad788a5527",
+      "status": "partial-authored",
+      "evidence": "Low long bathhouse with reddish-brown walls on NORTH side of Water Street",
+      "missing": [
+        "moist wall weathering"
+      ],
+      "placementPolicy": "Complete building within published footprint; front street strip retained",
+      "interpretation": "Unsupplied dimensions and roof design are authored interpretation. Described occupants are not instantiated as live state.",
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-plaza",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.low-brick-bathhouse",
+          "center": [
+            0,
+            -0.18
+          ],
+          "envelope": [
+            0.86,
+            0.6
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        }
+      ]
+    },
+    {
+      "cellId": "1-100",
+      "descriptionHash": "57d99d355a800fec",
+      "status": "partial-authored",
+      "evidence": "Thatched house with cruck frame on small rustic plot",
+      "missing": [
+        "continuous thatch surface refinements"
+      ],
+      "placementPolicy": "Complete building within published footprint; front street strip retained",
+      "interpretation": "Unsupplied dimensions and roof design are authored interpretation. Described occupants are not instantiated as live state.",
+      "pieces": [
+        {
+          "assetId": "painted-river-port.manicured-lawn",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.cruck-cottage",
+          "center": [
+            0,
+            -0.18
+          ],
+          "envelope": [
+            0.86,
+            0.6
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        }
+      ]
+    },
+    {
+      "cellId": "1-112",
+      "descriptionHash": "ec8406aeeb20a642",
+      "status": "partial-authored",
+      "evidence": "Long barn-like building beside road with very high wide double door; town wall north",
+      "missing": [
+        "town wall backdrop",
+        "door leaf hardware"
+      ],
+      "placementPolicy": "Complete building within published footprint; front street strip retained",
+      "interpretation": "Unsupplied dimensions and roof design are authored interpretation. Described occupants are not instantiated as live state.",
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-plaza",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.barn-stable",
+          "center": [
+            0,
+            -0.18
+          ],
+          "envelope": [
+            0.86,
+            0.6
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        }
+      ]
+    },
+    {
+      "cellId": "1-22",
+      "descriptionHash": "ad07acd79b6a9679",
+      "status": "partial-authored",
+      "evidence": "Old stone residences line the east-west cobbled walkway, making it court-like",
+      "missing": [
+        "individual facade weathering"
+      ],
+      "placementPolicy": "Two complete residences flank the east-west route; central strip retained",
+      "interpretation": "House count and dimensions are presentation choices, not additional rooms or exits",
+      "pieces": [
+        {
+          "assetId": "painted-river-port.cobble-plaza",
+          "center": [
+            0,
+            0
+          ],
+          "envelope": [
+            1,
+            1
+          ],
+          "lift": 0,
+          "yawDegrees": 0
+        },
+        {
+          "assetId": "painted-river-port.old-stone-residence",
+          "center": [
+            0,
+            -0.32
+          ],
+          "envelope": [
+            0.88,
+            0.3
+          ],
+          "lift": 0.02,
+          "yawDegrees": 180
+        },
+        {
+          "assetId": "painted-river-port.old-stone-residence",
+          "center": [
+            0,
+            0.32
+          ],
+          "envelope": [
+            0.88,
             0.3
           ],
           "lift": 0.02,

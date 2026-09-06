@@ -94,6 +94,9 @@ func build_room_composition(cell: Dictionary) -> Node3D:
 		var rotated_depth: float = absf(sin(yaw)) * dimensions[0] + absf(cos(yaw)) * dimensions[2]
 		var factor := minf(size.x * placement.envelope[0] / rotated_width, size.z * placement.envelope[1] / rotated_depth)
 		model.scale = Vector3.ONE * factor
+		if record.domain != "terrain":
+			# Enlarged rooms provide space around buildings, not giant buildings.
+			model.scale = Vector3.ONE * minf(1.0, factor)
 		if placement.assetId.ends_with(".cobble-street") or placement.assetId.ends_with(".dirt-path"):
 			# Ground patches have declared independent width/depth. Uniform fitting
 			# shrank a narrow strip to a small square instead of covering its envelope.

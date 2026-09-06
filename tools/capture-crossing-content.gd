@@ -11,17 +11,17 @@ func _run() -> void:
 	await create_timer(2).timeout
 	var camera = world.get_node("CameraDirector")
 	var output := ProjectSettings.globalize_path("res://../docs/verification")
-	for entry in [["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-371", "supply-stand"]]:
+	for entry in [["1-14", "north"], ["1-15", "bower"], ["1-17", "oak"], ["1-225", "armory-approach"], ["1-379", "bazaar"], ["1-191", "weaponsmith"], ["1-371", "supply-stand"], ["1-7", "herbalist"], ["1-22", "residences"], ["1-95", "bathhouse"], ["1-100", "cottage"], ["1-112", "stable"]]:
 		# The normal viewer's mock transport confirms the room; the same scene
 		# mounts through its normal detail-window path.
 		var bridge = root.get_node("BridgeClient")
 		bridge.start_mock("crossing-mock", entry[0])
 		await create_timer(1).timeout
-		camera.size = 12.0
+		camera.size = 36.0
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(output.path_join("crossing-native-" + entry[1] + ".png"))
 	world.focus_world_view()
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png(output.path_join("crossing-native-world.png"))
-	print("Captured seven actual viewer room views and full-zone overview")
+	print("Captured twelve actual viewer room views and full-zone overview")
 	quit()

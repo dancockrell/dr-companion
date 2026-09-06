@@ -1,13 +1,15 @@
 # DR Companion — Fixed-Isometric World Viewer
 
-Implements slice 0 ("Viewer contract") of `docs/THREE_D_REBUILD_HANDOFF.md`.
-The foundation was contributed through PR #267 and is now maintained by Codex
-as part of the same DR Companion game: Godot viewer, 3D content registration,
-and asset acquisition all have one current owner. This is the foundation only
-— a deliberately small, well-tested shell for the real world content to
-register into, not a final art pass. No generated art, no live
-DragonRealms connection, and no packaging exist yet; none of those are
-required for this slice's acceptance gate.
+The viewer began with slice 0 (PR #267) and now includes a live presentation
+transport and packaged native Crossing content. The former statement that no
+art or packaging exists is superseded. This is still an incomplete visual slice,
+not a finished city or evidence of end-to-end live gameplay acceptance.
+
+The current checkpoint has 26 shared models and 19 partial room recipes,
+including seven description-led exterior building types. Rooms have 17.6-metre
+footprints on compact 18-metre slots; actors and buildings are not enlarged with
+the ground. See [current verification](../docs/verification/crossing-native-content.md)
+for evidence, source constraints, checks, captures and remaining limitations.
 
 ## What's here
 
