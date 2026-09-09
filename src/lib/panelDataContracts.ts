@@ -75,7 +75,7 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
   },
   map: {
     purpose:
-      'The live map of the MUD room graph. The 3D viewer that was once going to replace this is cancelled (see docs/NO-3D.md), so this panel is the world and route presentation, not a fallback.',
+      'Retired. The map is gone as a panel; this entry is kept only so Godot can read the room-graph data and take over world and route presentation there. Do not build new features on it. Cancelling 3D did not bring the map back (see docs/NO-3D.md): Godot is where world presentation is going, in 2D.',
     dataNeeded: ['mapZone', 'mapHere', 'bridgeConnected', 'bridgeIntents', 'character.location.roomId'],
     requiresLiveCharacter: false,
   },

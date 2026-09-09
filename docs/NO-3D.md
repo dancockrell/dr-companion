@@ -24,6 +24,27 @@ a model library, rigging, meshes, or any engine feature that exists to render
 delete it and say so in your commit. A surviving 3D document is not evidence
 that this decision lapsed.
 
+## Godot is not cancelled. 3D is.
+
+This is the distinction that matters, and getting it backwards is expensive
+in both directions.
+
+**Godot stays, and is expanding.** Dan, 9 Sep 2026: a lot of the functions
+are being done in Godot "to really update what we can do with MUDs." Godot
+is where world and route presentation is going. Do not read this document
+as a reason to remove Godot, stall Godot work, or move functionality back
+into the React wrapper.
+
+**What is cancelled is 3D itself:** models, meshes, GLB/glTF assets,
+rigging, model libraries, and any pipeline whose output is 3D geometry.
+Godot renders the 2D isometric art instead.
+
+**The map is gone.** It is not coming back, and cancelling 3D did not
+revive it. The room-graph data is retained for one reason: so Godot can
+consume it and own world and route presentation there. Do not build new
+features on the map panel and do not treat its survival as evidence it is
+current.
+
 ## Isometric is not the same thing as 3D
 
 The endorsed art direction is the **2D isometric form** originated in the
