@@ -180,6 +180,14 @@ export function GameCommandBar({
     setHistoryCursor(freshCommandHistoryCursor())
     // Do not erase text typed while the native handoff was in flight.
     setCommand((current) => (current === typed ? '' : current))
+    // And put the caret back in the box.
+    //
+    // The two failure paths above already do this; the success path did not,
+    // because pressing Enter leaves focus in the input by itself. Pressing the
+    // Send button does not - focus stays on the button, and the next thing
+    // typed goes nowhere. One line, and it makes "type, send, type again"
+    // work the same whichever way the command was sent.
+    inputRef.current?.focus()
   }
 
   const onCommandKey = (e: React.KeyboardEvent<HTMLInputElement>) => {

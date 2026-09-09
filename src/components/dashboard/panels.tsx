@@ -21,6 +21,8 @@ import { ScriptLibraryPanel } from '../shared/ScriptLibraryPanel.tsx'
 import { BattlePanel } from '../shared/BattlePanel.tsx'
 import { ScenePanel } from '../shared/ScenePanel.tsx'
 import { PlayerConfigPanel } from '../config/PlayerConfigPanel.tsx'
+import { BattleColumn } from '../room/BattleColumn.tsx'
+import { TaskFlowPanel } from './TaskFlowPanel.tsx'
 import { getScriptCatalogEntry } from '../../data/scriptCatalog.ts'
 import type { Deck } from '../../lib/cards'
 import type { DeckPref } from '../../lib/layout'
@@ -39,6 +41,8 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   scripts: 'Script Library',
   scene: 'Scene',
   config: 'Player config',
+  board: 'Scene pane',
+  tasks: 'Tasks and scripts',
 }
 
 /**
@@ -89,6 +93,13 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   ),
   scene: () => <ScenePanel />,
   config: () => <PlayerConfigPanel />,
+  // The same component the workspace's own corner pane renders. One
+  // component, two possible mounts, and only ever one of them at a time:
+  // `App.tsx` draws it in the corner while the pane is `minimap` and stops
+  // drawing it when the pane is `popped`, which is when this window exists.
+  // A second "big scene" component would be the fork.
+  board: () => <BattleColumn />,
+  tasks: () => <TaskFlowPanel title="Functions & scripts" />,
 }
 
 export function panelTitle(id: PanelId): string {

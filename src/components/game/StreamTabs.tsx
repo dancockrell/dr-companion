@@ -29,7 +29,7 @@
  * not sent one, which is a different thing from the client having lost it.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Info } from 'lucide-react'
+import { ArrowDownToLine, Info } from 'lucide-react'
 import {
   setShowGaggedLines,
   useGameLines,
@@ -115,6 +115,18 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
 
   const scroller = useRef<HTMLDivElement | null>(null)
   const atBottom = useRef(true)
+  /*
+   * The same fact as `atBottom`, in state, because a ref cannot draw anything.
+   *
+   * `atBottom` is a ref on purpose - it is read inside the scroll handler and
+   * inside the effect that sticks the view to the bottom, and putting a render
+   * on every scroll event of a live game feed would be its own defect. But
+   * scrolling up to re-read something and then having the game move on is
+   * exactly when a player needs a way back, and a button cannot appear from a
+   * ref. So the ref stays the hot path and this mirrors it, written only when
+   * the answer actually changes rather than on every scroll event.
+   */
+  const [pinnedToLatest, setPinnedToLatest] = useState(true)
 
   // A channel that has never appeared cannot be the selected tab. This happens
   // on a fresh connection, and without it the pane sits empty on a tab that
@@ -158,6 +170,14 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
     const el = scroller.current
     if (el && atBottom.current) el.scrollTop = el.scrollHeight
   }, [shown, logLines, tab])
+
+  // Changing tab is not scrolling up. Without this, switching to a channel
+  // while scrolled back leaves the jump control on screen over a view that is
+  // already at its newest line.
+  useEffect(() => {
+    atBottom.current = true
+    setPinnedToLatest(true)
+  }, [tab])
 
   // From the subscribed array rather than a fresh read of the buffer. A raw
   // read here would be correct today - it happens during render, so it sees
@@ -310,7 +330,11 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
         onScroll={() => {
           const el = scroller.current
           if (!el) return
-          atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+          const at = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+          atBottom.current = at
+          // Only when it changes. `setState` with the same value is cheap and
+          // not free, and this fires on every wheel notch of a live feed.
+          setPinnedToLatest((was) => (was === at ? was : at))
         }}
         className="min-h-0 flex-1 overflow-y-auto px-2 py-1"
       >
@@ -349,6 +373,31 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
           <p className="p-2 text-xs text-ink-faint">
             Nothing on this channel yet.
           </p>
+        )}
+        {/* The way back down.
+          *
+          * Only while scrolled up, because a control that is always there is
+          * furniture: at the bottom it would do nothing, and a button that
+          * does nothing teaches people not to read the bar it sits in. It
+          * covers no text - it floats over the bottom right of the scroll box
+          * and disappears the moment it has done its job. */}
+        {!pinnedToLatest && (
+          <button
+            type="button"
+            onClick={() => {
+              const el = scroller.current
+              if (!el) return
+              el.scrollTop = el.scrollHeight
+              atBottom.current = true
+              setPinnedToLatest(true)
+            }}
+            className="sticky bottom-1 left-full z-10 -mt-7 mr-1 flex w-max items-center gap-1 rounded-full border border-accent/50 bg-surface-overlay px-2 py-1 text-xs text-accent shadow-lg"
+            aria-label="Jump to the latest line"
+            title="You have scrolled up. New lines are still arriving; this goes back to the newest one."
+          >
+            <ArrowDownToLine className="h-3 w-3" aria-hidden />
+            Latest
+          </button>
         )}
       </div>
     </div>
