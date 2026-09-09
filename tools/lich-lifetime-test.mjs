@@ -253,9 +253,35 @@ const declared = [...self.matchAll(/^ {0,2}ok\(/gm)].length
 const LOOP_SITES = 1
 const expected = declared - LOOP_SITES + CASES.length
 const ran = pass + fail
+
+/*
+ * `process.exitCode`, not `process.exit()`.
+ *
+ * Both endings said the same thing and one of them could not be trusted to say
+ * it. `process.exit()` tears the loop down where it stands, and on Windows this
+ * file reached that call with a handle already closing, which aborts the
+ * process on a libuv assertion - `!(handle->flags & UV_HANDLE_CLOSING)`,
+ * src\winsync.c:94 - *after* all 34 checks have printed as passed. The
+ * runner reads the exit status, so a suite that had passed reported
+ * `FAILED 34 checks (exit 3221226505)`.
+ *
+ * Measured on 9 Sep 2026, because a flake that is only sometimes there is a
+ * flake nobody fixes: 0 of 8 runs failed on `origin/main`, 8 of 8 on a branch
+ * whose only relevant change was that `lichLogin.ts` stopped importing
+ * `persistence.ts`. Nothing about that import runs code - it has no top-level
+ * side effects - so the module graph's shape is what moved the race, and the
+ * next change to any module this file imports could move it back. Reinstating a
+ * dead import to keep the timing lucky would have been the fix that leaves the
+ * trap in place for whoever touches it next.
+ *
+ * Setting the code and letting Node exit on its own is the same contract with
+ * no teardown to lose: the status is identical in all three cases, and the
+ * process ends once the loop is genuinely empty.
+ */
 if (ran < expected) {
   console.log(`FAIL only ${ran} of an expected ${expected} assertions ran - the rest never executed`)
-  process.exit(1)
+  process.exitCode = 1
+} else {
+  console.log(`   ${ran} assertions ran (expected at least ${expected})`)
+  process.exitCode = fail === 0 ? 0 : 1
 }
-console.log(`   ${ran} assertions ran (expected at least ${expected})`)
-process.exit(fail === 0 ? 0 : 1)
