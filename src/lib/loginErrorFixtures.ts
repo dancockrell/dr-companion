@@ -28,6 +28,7 @@ export const LOGIN_ERROR_FIXTURES: LoginErrorFixture[] = [
   { code: "password_length", message: "the password is 40 characters and the login server's key is 32; this password cannot be sent" },
   { code: "obscured_byte_out_of_range", message: "the login server's key does not encode this password at position 7" },
   { code: "network", message: "could not reach eaccess.play.net:7910: could not connect: connection refused" },
+  { code: "certificate_changed", message: "the login service's certificate changed, so this version of the app will not sign in to eaccess.play.net:7910 until it ships a new one (the certificate offered was 0000000000000000000000000000000000000000000000000000000000000000)" },
   { code: "lich_did_not_start", message: "Lich started and then exited with code 1 without opening its detachable port." },
   { code: "lich_already_running", message: "a Lich is already running, so this app did not start a second one" },
   { code: "password_needed", message: "no password was sent and none is saved for demo" },

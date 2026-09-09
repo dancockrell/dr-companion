@@ -110,7 +110,8 @@ starts empty and is given only `File.join(DATA_DIR, "simu.pem")`
 Worth naming rather than copying: `verify_pem` (`eaccess.rb:53-62`) is
 trust-on-every-use — on a mismatch it logs and re-downloads the pin, and the
 `fail Exception` line is commented out at `:61`. That is a weaker check than it
-looks, and Lane N does not reproduce it (see §3.1).
+looks. This app pins the same certificate and makes a mismatch **terminal**
+rather than re-downloading it (§3.1).
 
 Reads are `conn.sysread(8192)` (`eaccess.rb:232-234`, `PACKET_SIZE = 8192` at
 `:22`). Every send is `conn.puts "…\n"`.
@@ -390,10 +391,137 @@ no `--login`, no saved entry, no GTK window. `GAMECODE=DR` in the file picks
 the game (`main.rb:225-231`). `--start-scripts` is read straight from ARGV
 (`lib/games.rb:976-979`) and is unaffected by the `.sal` route.
 
-Lane N does not reproduce Lich's PEM pinning. It uses ordinary system-root
-certificate validation for `eaccess.play.net`, which is strictly stronger than
-a trust-on-every-use pin that re-downloads itself on mismatch (§2.1), and needs
-no pin file to ship, refresh or get wrong.
+#### The TLS transport, corrected 9 Sep 2026 by measurement
+
+**The paragraph that stood here was wrong, and the code it described could not
+sign in at all.** It read:
+
+> Lane N does not reproduce Lich's PEM pinning. It uses ordinary system-root
+> certificate validation for `eaccess.play.net`, which is strictly stronger than
+> a trust-on-every-use pin that re-downloads itself on mismatch (§2.1), and needs
+> no pin file to ship, refresh or get wrong.
+
+The first real sign-in failed at the first frame with *"the login server's
+reply to K was not what this version expects: could not send: unexpected end of
+file"*. That sentence blamed the protocol; the protocol never ran. The TLS
+handshake had already failed, and `rustls::StreamOwned` handshakes lazily on
+the first write, so the failure arrived wearing the costume of a reply to `K`.
+
+Two separate things were wrong, and only the second one is about trust.
+
+**1. Cipher suites. rustls and that server have none in common.** Measured with
+`openssl s_client`, one suite per connection, no login line and no credentials
+sent:
+
+| offered | result |
+| --- | --- |
+| `AES128-GCM-SHA256` (`TLS_RSA_WITH_AES_128_GCM_SHA256`) | **accepted** |
+| `AES256-GCM-SHA384` | closed, no alert |
+| `AES128-SHA`, `AES256-SHA` | closed, no alert |
+| `ECDHE-RSA-AES128-GCM-SHA256` | closed, no alert |
+| `ECDHE-RSA-AES256-GCM-SHA384` | closed, no alert |
+| `ECDHE-RSA-AES128-SHA` | closed, no alert |
+| `DHE-RSA-AES128-GCM-SHA256` | closed, no alert |
+| `-tls1_3` (any TLS 1.3 suite) | closed, no alert |
+
+The control is the first row: the same command with the same flags succeeds
+there, so the seven refusals are the server's answer and not a broken probe.
+`eaccess.play.net:7910` speaks exactly one suite, TLS 1.2 with **static RSA key
+exchange** and no forward secrecy. rustls has never implemented static RSA key
+exchange, so a rustls `ClientHello` offers nothing that server will take and it
+hangs up. No certificate configuration could have fixed that.
+
+The transport is now `native-tls`, which on Windows is schannel and does speak
+that suite.
+
+**2. The certificate. There is nothing for CA validation to validate.** What
+that server presents:
+
+```text
+subject / issuer   C=US, ST=Missouri, O=Simutronics Corp.   (self-signed)
+serial             FD4B293CD846CEF8
+key                RSA 4096
+notBefore          Jul 16 22:36:32 2018 GMT
+notAfter           Nov 16 22:36:32 3017 GMT
+subject CN         none
+subjectAltName     none
+extensions         subjectKeyIdentifier, authorityKeyIdentifier,
+                   basicConstraints CA:TRUE (critical)
+SHA-256            10b737e661987d15bc5c8245e3f8b78291d41ed8abc76672ecb02fe78ed0218a
+```
+
+An earlier draft of this block said `extensions none`. That was wrong: the
+certificate carries the three above, and `basicConstraints CA:TRUE` is what
+makes it usable as a trust anchor at all. What is genuinely absent is the part
+a hostname check needs — no CN in the subject, no subjectAltName, so there is
+no name for any such check to match. To re-derive the whole block:
+
+```text
+openssl s_client -connect eaccess.play.net:7910 -tls1_2 -cipher AES128-GCM-SHA256 -showcerts </dev/null
+```
+
+**It is the same certificate Lich pins, measured rather than assumed.** Lich's
+`download_pem` (`eaccess.rb:39-50`) writes whatever the server presents, so the
+two were *expected* to agree; that expectation was then checked.
+`C:\Ruby4Lich5\Lich5\data\simu.pem`, written by Lich on 27 Aug 2026, has the
+DER SHA-256 above — identical to what the live server presented on 9 Sep 2026
+and to `src-tauri/certs/eaccess-play-net.pem`. Three independent copies, two
+clients, thirteen days apart. The check, which needs no login:
+
+```text
+openssl x509 -in "$LICH5/data/simu.pem" -outform DER | sha256sum
+```
+
+Note the directory: it is `Lich5/data/`, not `Lich5/`. Looking in the latter
+reports the file as absent, which reads as "Lich has never logged in" and is
+simply the wrong path.
+
+So "ordinary system-root validation" was never available. There is no chain to
+a public CA, and with no CN and no subjectAltName there is not even a name for
+a hostname check to read. Measured, four ways:
+
+| trust configuration | result |
+| --- | --- |
+| pinned certificate as the only root, hostname check off | **handshake OK** |
+| pinned certificate as the only root, hostname check on | failed — no CN to match |
+| system roots only, no pin | failed — untrusted root |
+| a *different* self-signed certificate as the only root | failed — untrusted root |
+
+The last two rows are the controls: the pin is what makes the handshake work,
+and it is keyed on this certificate rather than on any certificate.
+
+**What the app does now** (`src-tauri/src/eaccess.rs`, `connect`):
+
+1. built-in roots **off**, and `src-tauri/certs/eaccess-play-net.pem` added as
+   the only trust anchor;
+2. hostname check off, because the certificate carries no name to check;
+3. after the handshake, the DER the server actually presented is compared to
+   the pinned bytes, and a mismatch is `EAccessError::CertificateChanged` —
+   terminal, never a re-download. That is the one place this is stricter than
+   Lich, whose `verify_pem` adopts a substituted certificate (§2.1).
+
+`danger_accept_invalid_certs` is not used anywhere and must not be. Verification
+is not disabled here; it is replaced by an exact match, which for a certificate
+with no name and no issuer is the only check with any content in it.
+
+The pin has no expiry problem to manage: that certificate is valid to 3017.
+
+**Checking the pin against the live service.** The offline cases cannot see a
+pin that has been removed — measured: deleting `disable_built_in_roots` and
+`add_root_certificate` leaves every offline case green. One case can see it,
+and it is the only thing that can:
+
+```text
+cd src-tauri && cargo test --lib eaccess::tests::the_live_login_service -- --ignored --nocapture
+```
+
+It opens a pinned TLS session to the real service, sends the `K` frame and
+asserts a 32-byte hashkey comes back. **It sends no account name and no
+password**; `K` identifies nobody. It is `#[ignore]`d rather than run by
+`npm run gate`, so the gate does not reach out to a third party on every run
+from every worktree, and `cargo test` prints it as *ignored* rather than
+skipping it in silence. Run it when the pin changes, when the transport
+changes, or when sign-in fails and it is not obvious why.
 
 ### 3.2 The route not taken: writing `entry.yaml` and using `--login`
 
@@ -823,10 +951,13 @@ so the two are separated rather than blended.
    (`argv_options.rb:373-383`), but on this path the value comes from the
    server, not from the constant, and the two are only expected to agree. The
    app must use what the server sends and never the constant. Not measured.
-4. **Whether `eaccess.play.net:7910` still answers.** No credential has been
-   sent from this machine in this lane. A TLS handshake probe against that
-   host and port, with no login frames, is acceptable and is N1's optional
-   sanity check; it is not a login and it is not required for N1 to be done.
+4. ~~**Whether `eaccess.play.net:7910` still answers.**~~
+   **Measured 9 Sep 2026.** It answers, it speaks exactly one cipher suite,
+   and it presents the self-signed certificate now pinned in
+   `src-tauri/certs/eaccess-play-net.pem`. §3.1 carries the measurement, and
+   `eaccess::tests::the_live_login_service_still_presents_the_pinned_certificate`
+   is the command that re-establishes it rather than a claim about a day in
+   September. No credential was sent to establish any of it.
 5. **What the server returns for an account with zero DragonRealms characters,
    or for a wrong password.** Lich's code names the error strings it raises,
    not the bytes that provoke them. N1's mock covers the shapes Lich's own

@@ -29,15 +29,77 @@
 //! answering mid-sequence). `connect()` is the only function here that opens a
 //! socket, and no test calls it against anything but a closed loopback port.
 //!
+//! # The transport, and why it is not rustls
+//!
+//! This module used to open the socket with `rustls` and `webpki-roots`, on the
+//! argument that ordinary CA validation is stronger than the self-signed pin
+//! Lich carries. The argument was about the wrong thing, and the code could
+//! never have completed a handshake at all. Measured against the live server on
+//! 9 Sep 2026, sending no login line and no credentials:
+//!
+//! ```text
+//! openssl s_client -connect eaccess.play.net:7910 -tls1_2 -cipher <one suite>
+//!
+//!   AES128-GCM-SHA256              ACCEPT   (TLS_RSA_WITH_AES_128_GCM_SHA256)
+//!   AES256-GCM-SHA384              REFUSE   connection closed, no alert
+//!   AES128-SHA / AES256-SHA        REFUSE   connection closed, no alert
+//!   ECDHE-RSA-AES128-GCM-SHA256    REFUSE   connection closed, no alert
+//!   ECDHE-RSA-AES256-GCM-SHA384    REFUSE   connection closed, no alert
+//!   ECDHE-RSA-AES128-SHA           REFUSE   connection closed, no alert
+//!   DHE-RSA-AES128-GCM-SHA256      REFUSE   connection closed, no alert
+//!   -tls1_3                        REFUSE   connection closed, no alert
+//! ```
+//!
+//! One suite, and it is static-RSA key exchange: no forward secrecy, TLS 1.2
+//! only. rustls has never implemented static RSA key exchange, so a rustls
+//! ClientHello and that server share no cipher suite and the server hangs up
+//! mid-handshake. Because `rustls::StreamOwned` handshakes lazily on the first
+//! write, the failure surfaced at the first frame as
+//! `could not send: unexpected end of file`, which reads like a disagreement
+//! about `K` and is nothing of the kind.
+//!
+//! So the socket is `native-tls`, which on Windows is schannel. Driven the same
+//! way it completes the handshake and returns the 32-byte `K` hashkey.
+//!
 //! # Certificate validation
 //!
-//! Ordinary system roots, via `webpki-roots`. Lich pins a self-signed PEM it
-//! downloads itself (`eaccess.rb:53-77`), and that pin is **deliberately not
-//! reproduced** - `verify_pem` re-downloads the pin on any mismatch and its
-//! `fail` line is commented out at `:61`, so it is trust-on-every-use, which is
-//! weaker than CA validation rather than stronger. `LICH_NATIVE_LOGIN.md` §3.1
-//! records the decision. It also means there is no pin file to ship, refresh,
-//! or get wrong.
+//! Pinned, and stricter than what Lich does.
+//!
+//! That server presents a self-signed certificate - `C=US, ST=Missouri,
+//! O=Simutronics Corp.`, RSA 4096, valid to 3017 - with **no CN and no
+//! subjectAltName**, so there is nothing for a hostname check to match and no
+//! chain for a public CA to anchor. Measured, with the connector configured
+//! four ways:
+//!
+//! ```text
+//!   pinned certificate as the only root, hostname check off   HANDSHAKE OK
+//!   pinned certificate as the only root, hostname check on    FAILED, no CN to match
+//!   system roots only, no pin                                 FAILED, untrusted root
+//!   a different self-signed certificate as the only root      FAILED, untrusted root
+//! ```
+//!
+//! The last two are the controls: the pin is doing the work, and it is keyed on
+//! *this* certificate rather than on any certificate.
+//!
+//! [`connect`] therefore turns the built-in roots **off**, adds
+//! `certs/eaccess-play-net.pem` as the only trust anchor, turns the hostname
+//! check off because there is no name in the certificate to check, and then
+//! compares the DER the server actually presented against the pinned bytes. Two
+//! independent checks, the second ours rather than the platform's, so a backend
+//! that quietly ignored the root restriction is still caught.
+//!
+//! `danger_accept_invalid_certs` is not used and must not be. Verification is
+//! not disabled here, it is *replaced* by an exact match - which, for a
+//! certificate carrying no name and no issuer worth the word, is the only check
+//! with any content in it.
+//!
+//! This is Lich's trust decision (`eaccess.rb:65-77` builds an empty
+//! `X509::Store`, adds only `simu.pem`, sets `VERIFY_PEER`) without Lich's
+//! weakness: `verify_pem` at `:53-62` **re-downloads the pin on a mismatch**
+//! and its `fail` line is commented out at `:61`, so a substituted certificate
+//! is adopted rather than refused. Here a mismatch is
+//! [`EAccessError::CertificateChanged`], which is terminal and says what has to
+//! happen next.
 //!
 //! # One correction to the design document, measured rather than reasoned
 //!
@@ -181,6 +243,20 @@ pub enum EAccessError {
     /// `endpoint` is always named, so a run pointed at the wrong place says
     /// where it went.
     Network { endpoint: String, detail: String },
+    /// The TLS handshake completed and the certificate on the other end is not
+    /// the pinned one.
+    ///
+    /// Separate from [`Self::Network`] because the two want opposite things
+    /// from the player: an unreachable service is worth retrying and this is
+    /// not. It is either a new certificate at Simutronics, which needs a new
+    /// pin shipped in this app, or something interposed on the connection,
+    /// which needs looking at rather than retrying.
+    ///
+    /// `presented` is the SHA-256 of what arrived. It is public data - every
+    /// client on the internet is handed the same certificate - and it is the
+    /// one thing a bug report needs, because it says which of those two
+    /// happened without anyone having to reproduce it.
+    CertificateChanged { endpoint: String, presented: String },
 }
 
 impl EAccessError {
@@ -205,6 +281,7 @@ impl EAccessError {
             Self::PasswordLength { .. } => LoginCode::PasswordLength,
             Self::ObscuredByteOutOfRange { .. } => LoginCode::ObscuredByteOutOfRange,
             Self::Network { .. } => LoginCode::Network,
+            Self::CertificateChanged { .. } => LoginCode::CertificateChanged,
         }
     }
 
@@ -238,7 +315,8 @@ impl EAccessError {
             | Self::ProtocolMismatch { .. }
             | Self::PasswordLength { .. }
             | Self::ObscuredByteOutOfRange { .. }
-            | Self::Network { .. } => None,
+            | Self::Network { .. }
+            | Self::CertificateChanged { .. } => None,
         }
     }
 }
@@ -290,6 +368,16 @@ impl std::fmt::Display for EAccessError {
             Self::Network { endpoint, detail } => {
                 write!(f, "could not reach {endpoint}: {detail}")
             }
+            // Player-usable on purpose: it says what is wrong, that retrying is
+            // not the answer, and what would fix it. The fingerprint comes last
+            // so the sentence reads without it.
+            Self::CertificateChanged {
+                endpoint,
+                presented,
+            } => write!(
+                f,
+                "the login service's certificate changed, so this version of the app will not sign in to {endpoint} until it ships a new one (the certificate offered was {presented})"
+            ),
         }
     }
 }
@@ -685,10 +773,113 @@ pub fn endpoint() -> Result<(String, u16), EAccessError> {
     })
 }
 
+/// The certificate `eaccess.play.net:7910` presents, and the only trust anchor
+/// [`connect`] will accept.
+///
+/// Compiled in rather than read from disk: a pin a user can edit is not a pin,
+/// and a file that has to be found at runtime is one more thing that can be
+/// missing on the machine where signing in matters.
+const PINNED_CERTIFICATE_PEM: &str = include_str!("../certs/eaccess-play-net.pem");
+
+/// SHA-256 of the DER inside [`PINNED_CERTIFICATE_PEM`], lowercase hex.
+///
+/// Recorded here as well as in that file's own header so the two have to agree.
+/// `the_pinned_certificate_is_the_one_whose_fingerprint_is_recorded` fails
+/// naming both values if a certificate is swapped in without its fingerprint
+/// being updated, which is how a pin gets quietly replaced.
+const PINNED_CERTIFICATE_SHA256: &str =
+    "10b737e661987d15bc5c8245e3f8b78291d41ed8abc76672ecb02fe78ed0218a";
+
+/// The DER bytes of a PEM certificate, or a reason it could not be read.
+///
+/// Decoded by hand rather than through `base64`'s engine API for one call.
+/// Anything that is not a certificate block is an error rather than empty
+/// bytes, which would compare unequal to everything and read as a pin
+/// mismatch - a wrong answer wearing the right shape.
+fn der_from_pem(pem: &str) -> Result<Vec<u8>, String> {
+    const BEGIN: &str = "-----BEGIN CERTIFICATE-----";
+    let start = pem.find(BEGIN).ok_or("no BEGIN CERTIFICATE line")?;
+    let rest = &pem[start + BEGIN.len()..];
+    let end = rest
+        .find("-----END CERTIFICATE-----")
+        .ok_or("no END CERTIFICATE line")?;
+    let body: String = rest[..end].split_whitespace().collect();
+    let mut out = Vec::new();
+    let mut acc: u32 = 0;
+    let mut bits = 0u32;
+    for c in body.bytes() {
+        if c == b'=' {
+            break;
+        }
+        let v = match c {
+            b'A'..=b'Z' => c - b'A',
+            b'a'..=b'z' => c - b'a' + 26,
+            b'0'..=b'9' => c - b'0' + 52,
+            b'+' => 62,
+            b'/' => 63,
+            _ => return Err(format!("{:?} is not base64", c as char)),
+        };
+        acc = (acc << 6) | u32::from(v);
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+        }
+    }
+    if out.is_empty() {
+        return Err("the certificate block was empty".to_string());
+    }
+    Ok(out)
+}
+
+/// Lowercase hex SHA-256, the form the pin constant and the error message both
+/// use.
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let mut h = sha2::Sha256::new();
+    h.update(bytes);
+    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The pinned certificate as DER, checked against its recorded fingerprint.
+///
+/// The fingerprint check runs here rather than only in a test, so a build
+/// carrying a swapped certificate refuses to connect instead of pinning
+/// whatever it was handed.
+fn pinned_certificate_der() -> Result<Vec<u8>, String> {
+    let der = der_from_pem(PINNED_CERTIFICATE_PEM)
+        .map_err(|e| format!("the pinned certificate could not be read: {e}"))?;
+    let got = sha256_hex(&der);
+    if got != PINNED_CERTIFICATE_SHA256 {
+        return Err(format!(
+            "the pinned certificate is {got} but this build records {PINNED_CERTIFICATE_SHA256}"
+        ));
+    }
+    Ok(der)
+}
+
+/// Is this the certificate this app pins?
+///
+/// Split out of [`connect`] so the decision can be exercised without a socket,
+/// in both directions - see `a_certificate_that_is_not_the_pinned_one_is_refused`.
+fn check_pinned(
+    presented_der: &[u8],
+    pinned_der: &[u8],
+    endpoint: &str,
+) -> Result<(), EAccessError> {
+    if presented_der == pinned_der {
+        return Ok(());
+    }
+    Err(EAccessError::CertificateChanged {
+        endpoint: endpoint.to_string(),
+        presented: sha256_hex(presented_der),
+    })
+}
+
 /// A TLS stream to the EAccess endpoint, ready to be handed to `login` or
 /// `list_characters`.
 pub struct TlsTransport {
-    stream: rustls::StreamOwned<rustls::ClientConnection, TcpStream>,
+    stream: native_tls::TlsStream<TcpStream>,
 }
 
 impl Read for TlsTransport {
@@ -707,6 +898,11 @@ impl Write for TlsTransport {
 }
 
 /// Open the connection. The only function in this module that touches a socket.
+///
+/// The handshake happens here, not lazily on the first write as the old rustls
+/// stream did. That is the difference between "the login server's reply to K
+/// was not what this version expects" and a sentence about the connection, and
+/// it is why a TLS problem can no longer be reported as a protocol problem.
 pub fn connect() -> Result<TlsTransport, EAccessError> {
     let (host, port) = endpoint()?;
     let where_ = format!("{host}:{port}");
@@ -714,6 +910,8 @@ pub fn connect() -> Result<TlsTransport, EAccessError> {
         endpoint: where_.clone(),
         detail,
     };
+
+    let pinned = pinned_certificate_der().map_err(net)?;
 
     let addr = (host.as_str(), port)
         .to_socket_addrs()
@@ -726,24 +924,43 @@ pub fn connect() -> Result<TlsTransport, EAccessError> {
         .and_then(|()| tcp.set_write_timeout(Some(IO_TIMEOUT)))
         .map_err(|e| net(format!("could not set a timeout: {e}")))?;
 
-    let mut roots = rustls::RootCertStore::empty();
-    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-    let config = rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(
-        rustls::crypto::ring::default_provider(),
-    ))
-    .with_safe_default_protocol_versions()
-    .map_err(|e| net(format!("could not configure TLS: {e}")))?
-    .with_root_certificates(roots)
-    .with_no_client_auth();
+    // The trust decision, and the whole of it. "Certificate validation" at the
+    // top of this file carries the measurement behind each of these three
+    // lines. `danger_accept_invalid_certs` is deliberately absent.
+    let anchor = native_tls::Certificate::from_der(&pinned)
+        .map_err(|e| net(format!("the pinned certificate could not be loaded: {e}")))?;
+    let connector = native_tls::TlsConnector::builder()
+        .disable_built_in_roots(true)
+        .add_root_certificate(anchor)
+        // The certificate carries no CN and no subjectAltName, so there is no
+        // name for this check to read. Nothing is given up that the line above
+        // has not taken over: with one trust anchor and the byte comparison
+        // below, "is this the right server" is answered by identity rather than
+        // by a name a self-signed certificate could put in itself anyway.
+        .danger_accept_invalid_hostnames(true)
+        .build()
+        .map_err(|e| net(format!("could not configure TLS: {e}")))?;
 
-    let server_name = rustls::pki_types::ServerName::try_from(host.clone())
-        .map_err(|e| net(format!("{host} is not a valid TLS server name: {e}")))?;
-    let conn = rustls::ClientConnection::new(std::sync::Arc::new(config), server_name)
-        .map_err(|e| net(format!("could not start TLS: {e}")))?;
+    let stream = connector.connect(&host, tcp).map_err(|e| match e {
+        native_tls::HandshakeError::Failure(e) => net(format!("could not negotiate TLS: {e}")),
+        native_tls::HandshakeError::WouldBlock(_) => {
+            net("the TLS handshake did not finish in time".to_string())
+        }
+    })?;
 
-    Ok(TlsTransport {
-        stream: rustls::StreamOwned::new(conn, tcp),
-    })
+    // The second check, and ours. The connector above should already have
+    // refused anything but the pinned certificate; this says so in bytes rather
+    // than trusting the platform backend to have honoured
+    // `disable_built_in_roots`.
+    let presented = stream
+        .peer_certificate()
+        .map_err(|e| net(format!("could not read the server's certificate: {e}")))?
+        .ok_or_else(|| net("the server sent no certificate".to_string()))?
+        .to_der()
+        .map_err(|e| net(format!("could not read the server's certificate: {e}")))?;
+    check_pinned(&presented, &pinned, &where_)?;
+
+    Ok(TlsTransport { stream })
 }
 
 // ---------------------------------------------------------------------------
@@ -1376,6 +1593,170 @@ mod tests {
         let err = endpoint().expect_err("not a port");
         assert!(err.to_string().contains("seventy-nine-ten"), "{err}");
         std::env::remove_var("DRC_EACCESS_PORT");
+    }
+
+    // -- the trust decision ------------------------------------------------
+
+    /// A certificate that is emphatically not the pinned one. Public data, no
+    /// private key, and its own header says what it is for.
+    const NOT_THE_PINNED_CERTIFICATE: &str = include_str!("../certs/not-eaccess-play-net.test.pem");
+
+    /// The pin and its recorded fingerprint have to be one fact, not two.
+    ///
+    /// Sabotage: change one hex digit of `PINNED_CERTIFICATE_SHA256`, or drop a
+    /// different certificate into `certs/eaccess-play-net.pem`, and this goes
+    /// red naming both values. Without it a certificate could be swapped for
+    /// another and every other case here would still pass, because they all
+    /// read the same swapped file.
+    #[test]
+    fn the_pinned_certificate_is_the_one_whose_fingerprint_is_recorded() {
+        let der = der_from_pem(PINNED_CERTIFICATE_PEM).expect("the pinned PEM parses");
+        // A floor on the denominator: an empty or truncated block would make
+        // every comparison below meaningless, and this file's certificate is
+        // an RSA 4096 one, so it is over a kilobyte.
+        assert!(
+            der.len() > 1000,
+            "the pinned DER is only {} bytes",
+            der.len()
+        );
+        assert_eq!(
+            sha256_hex(&der),
+            PINNED_CERTIFICATE_SHA256,
+            "certs/eaccess-play-net.pem and PINNED_CERTIFICATE_SHA256 disagree"
+        );
+        // And the loader agrees, so `connect` is reading what this case read.
+        assert_eq!(pinned_certificate_der().expect("the pin loads"), der);
+    }
+
+    /// The right answer is accepted.
+    ///
+    /// On its own this would pass against a `check_pinned` that returns `Ok`
+    /// unconditionally, which is why the case below exists and why they belong
+    /// together.
+    #[test]
+    fn the_pinned_certificate_is_accepted() {
+        let der = pinned_certificate_der().expect("the pin loads");
+        check_pinned(&der, &der, "eaccess.play.net:7910").expect("the pinned certificate passes");
+    }
+
+    /// The wrong answer is refused, and the refusal says which certificate
+    /// arrived.
+    ///
+    /// This is the case run where the wrong answer is available: a real,
+    /// well-formed, self-signed certificate that simply is not the pinned one -
+    /// the shape a substituted certificate would have. Garbage bytes would test
+    /// something easier.
+    #[test]
+    fn a_certificate_that_is_not_the_pinned_one_is_refused() {
+        let pinned = pinned_certificate_der().expect("the pin loads");
+        let other = der_from_pem(NOT_THE_PINNED_CERTIFICATE).expect("the fixture parses");
+        assert_ne!(other, pinned, "the fixture must not be the pinned one");
+
+        let err = check_pinned(&other, &pinned, "eaccess.play.net:7910")
+            .expect_err("a different certificate must be refused");
+        assert_eq!(err.code().as_str(), "certificate_changed");
+
+        // The sentence a player gets. Asserted on properties rather than on the
+        // whole string: that it names the fingerprint that actually arrived, so
+        // a bug report can say which certificate it was, and that it does not
+        // read as an outage - `certificate_changed` classifies to
+        // `login_service_changed` in `lichLogin.ts`, not to `service_unreachable`.
+        let rendered = err.to_string();
+        assert!(rendered.contains(&sha256_hex(&other)), "{rendered}");
+        assert!(!rendered.contains(PINNED_CERTIFICATE_SHA256), "{rendered}");
+        assert!(rendered.contains("eaccess.play.net:7910"), "{rendered}");
+        assert!(
+            rendered.contains("certificate changed"),
+            "the sentence must say what happened: {rendered}"
+        );
+        // No password can reach this variant, and no stack trace either.
+        assert!(!rendered.contains("Error"), "{rendered}");
+    }
+
+    /// The PEM reader refuses rather than returning empty bytes.
+    ///
+    /// Empty bytes are the dangerous failure here, not an error: they would
+    /// compare unequal to every certificate on earth and surface as a pin
+    /// mismatch, which is a true-looking answer to a question that was never
+    /// asked.
+    #[test]
+    fn a_pem_that_is_not_a_certificate_is_an_error_not_empty_bytes() {
+        for bad in [
+            "",
+            "there is no certificate in this string",
+            "-----BEGIN CERTIFICATE-----\nMIIB\n",
+            "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n",
+            "-----BEGIN CERTIFICATE-----\n!!!!\n-----END CERTIFICATE-----\n",
+        ] {
+            assert!(
+                der_from_pem(bad).is_err(),
+                "should not have parsed: {bad:?}"
+            );
+        }
+        // The control on the same reader: a real PEM still parses, so a
+        // `der_from_pem` that had been broken into always failing would fail
+        // this case rather than passing the five above.
+        assert!(der_from_pem(PINNED_CERTIFICATE_PEM).is_ok());
+    }
+
+    /// A hash function that returned a constant would make every comparison
+    /// above vacuous, so it is checked against a value with a published answer.
+    #[test]
+    fn the_fingerprint_helper_hashes_what_it_is_given() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_ne!(sha256_hex(b"abc"), sha256_hex(b"abd"));
+    }
+
+    // -- the live service --------------------------------------------------
+
+    /// The one case that touches the network, and the only thing that can prove
+    /// the trust decision works against the real server.
+    ///
+    /// `#[ignore]`, so `cargo test` reports it as ignored rather than skipping
+    /// it silently, and `npm run gate` does not reach out to Simutronics from a
+    /// developer's machine on every run. Run it deliberately:
+    ///
+    /// ```text
+    /// cd src-tauri && cargo test --lib eaccess::tests::the_live_login_service -- --ignored --nocapture
+    /// ```
+    ///
+    /// It sends **no account name and no password**. The only frame written is
+    /// `K`, which asks the server for the per-connection hashkey and identifies
+    /// nobody.
+    ///
+    /// What it establishes that the offline cases cannot: that this app and
+    /// that server still share a cipher suite, and that the certificate on the
+    /// wire is still the pinned one. Both are facts about a machine in
+    /// Missouri, so neither can be asserted from here - and both are what broke.
+    #[test]
+    #[ignore = "contacts eaccess.play.net; run with --ignored (see docs/LICH_NATIVE_LOGIN.md 3.1)"]
+    fn the_live_login_service_still_presents_the_pinned_certificate() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var("DRC_EACCESS_HOST");
+        std::env::remove_var("DRC_EACCESS_PORT");
+
+        let mut t = match connect() {
+            Ok(t) => t,
+            Err(e) => panic!("could not open a pinned TLS session: {e}"),
+        };
+        // The handshake completing is most of the answer; that a frame goes
+        // out and a reply comes back is the rest, and it is what the old
+        // transport could not do. The hashkey is 32 bytes.
+        send(&mut t, "K", b"K").expect("the K frame goes out");
+        let key = recv(&mut t, "K").expect("the K reply comes back");
+        assert_eq!(
+            key.len(),
+            32,
+            "the hashkey should be 32 bytes, got {}",
+            key.len()
+        );
+        println!(
+            "live: handshake completed, K replied {} bytes, pin {PINNED_CERTIFICATE_SHA256}",
+            key.len()
+        );
     }
 
     // -- the mock itself ---------------------------------------------------

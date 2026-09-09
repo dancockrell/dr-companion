@@ -162,6 +162,7 @@ export const RUST_ERROR_CODES = [
   'password_length',
   'obscured_byte_out_of_range',
   'network',
+  'certificate_changed',
   'lich_did_not_start',
   'lich_already_running',
   'password_needed',
@@ -201,6 +202,10 @@ export const EACCESS_VARIANT_KINDS: Record<string, LoginErrorKind> = {
   // The socket, the TLS handshake, or an endpoint override pointed somewhere
   // there is nothing.
   network: 'service_unreachable',
+  // The service answered and its certificate is not the one this app pins.
+  // `login_service_changed`, not `service_unreachable`: nothing is down, and
+  // retrying will meet the same certificate. What has to change is the app.
+  certificate_changed: 'login_service_changed',
   // Both of these are "this exact password cannot go down this wire", for
   // arithmetic reasons in the obscuring loop that a player cannot see and can
   // only route around by changing the password.

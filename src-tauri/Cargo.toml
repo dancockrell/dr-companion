@@ -45,18 +45,38 @@ zip = { version = "8", default-features = false, features = ["deflate"] }
 # runtime itself; these are the pieces this crate names directly.
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 # The EAccess account login (eaccess.rs) is a raw TLS socket to
-# eaccess.play.net:7910, not HTTP, so reqwest cannot carry it. Both of these
-# are already in Cargo.lock at these versions as reqwest's own rustls-tls
-# dependencies, so naming them here adds no crate to the lock and no new
-# licence - both are MIT OR Apache-2.0 OR ISC. `default-features = false` with
-# the "ring" provider is what is already built: `aws-lc-rs` is not in the lock
-# and enabling it by default would add one.
-rustls = { version = "0.23", default-features = false, features = [
-  "ring",
-  "std",
-  "tls12",
-] }
-webpki-roots = "1"
+# eaccess.play.net:7910, not HTTP, so reqwest cannot carry it.
+#
+# This was `rustls` + `webpki-roots`, and it could never have worked. Measured
+# 9 Sep 2026 against the live server (`docs/LICH_NATIVE_LOGIN.md` §3.1 carries
+# the measurement): eaccess.play.net:7910 accepts exactly one cipher suite,
+# `TLS_RSA_WITH_AES_128_GCM_SHA256` - TLS 1.2, static RSA key exchange, no
+# forward secrecy - and closes the connection on TLS 1.3 and on every ECDHE
+# suite offered. rustls has never implemented static RSA key exchange and will
+# not, so the two have no suite in common and the server hangs up during the
+# handshake. That is the `unexpected end of file` the first real sign-in showed.
+#
+# `native-tls` is the platform's own TLS. On Windows - the only platform this
+# app ships for - it is schannel, which speaks that suite and needs no OpenSSL;
+# the `schannel` crate it uses on this target pulls windows-sys and nothing
+# more. On a Unix build host native-tls would want OpenSSL, which is the reason
+# the removed line gave for choosing rustls. The trade is accepted: there is no
+# Unix build of this app, and a TLS stack that cannot reach the login server is
+# not a smaller dependency, it is a broken one.
+#
+# Measured rather than asserted: `node tools/build-third-party.mjs` resolves the
+# lock for x86_64-pc-windows-msvc and this change adds exactly two crates to the
+# shipped binary, 326 to 328 - `native-tls` (MIT OR Apache-2.0) and `schannel`
+# (MIT). `openssl-sys` and friends enter Cargo.lock and are target-gated out of
+# every Windows build, which is why they are not in THIRD_PARTY.md.
+#
+# Certificate trust is neither the platform default nor disabled. That server's
+# certificate is self-signed with no CN and no subjectAltName, so
+# `eaccess::connect` makes the pinned certificate in
+# `certs/eaccess-play-net.pem` the only trust anchor and then compares the
+# presented DER to it byte for byte. `eaccess.rs`'s "Certificate validation"
+# section is the argument; `danger_accept_invalid_certs` appears nowhere.
+native-tls = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 # One call: GetDiskFreeSpaceExW, so a multi-gigabyte music install refuses

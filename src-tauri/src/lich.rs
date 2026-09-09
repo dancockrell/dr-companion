@@ -1534,7 +1534,11 @@ fn is_grounds_for_forgetting(e: &eaccess::EAccessError) -> bool {
         | E::ProtocolMismatch { .. }
         | E::PasswordLength { .. }
         | E::ObscuredByteOutOfRange { .. }
-        | E::Network { .. } => false,
+        | E::Network { .. }
+        // The connection was never trusted, so nothing about the password was
+        // ever tested. Forgetting it here would delete a working credential
+        // over a certificate problem.
+        | E::CertificateChanged { .. } => false,
     }
 }
 
