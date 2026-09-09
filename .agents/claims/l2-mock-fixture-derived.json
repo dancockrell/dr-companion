@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "l2-mock-fixture-derived",
   "agent": "claude-code",
@@ -12,9 +13,13 @@
     "package.json",
     "docs/PLAN_TO_1_0.md"
   ],
-  "symbols": ["world:godot-mock"],
+  "symbols": [
+    "world:godot-mock"
+  ],
   "coordination": {
-    "depends_on": ["l1-name-what-i-own"],
+    "depends_on": [
+      "l1-name-what-i-own"
+    ],
     "conflicts_with": [],
     "notes": "git grep -ln crossing_mock_world found only consumers (godot/README.md, world_root.gd, four godot/tests/*.gd) and no generator, so this is a new tool rather than an edit to one. The manifest builder tools/build-primitive-world-manifest.mjs is the upstream source; this tool runs it exactly the way tools/primitive-world-manifest-test.mjs does rather than reimplementing any of it, because data/world/out is gitignored and absent in a fresh worktree. The plan's draft named data/world/out/crossing-primitive-registry.json; the file the cells actually come from is 1-primitive-world.json, which the registry is an input to. No godot/*.gd or *.tscn was touched: the fixture is data, and plan-audit --claims shows no open claim on any godot/ path."
   },
@@ -29,4 +34,4 @@
       "npx tsc -b exit 0; node tools/run-tests.mjs all passed; node tools/plan-audit.mjs plan ok"
     ]
   }
-}
+}

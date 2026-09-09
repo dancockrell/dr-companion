@@ -121,11 +121,13 @@ if (existsSync(viewerRs)) {
 /**
  * A release without a viewer is a supported build, not a broken one.
  *
- * `godot/shared-assets` is a *private* repository, and a workflow's built-in
- * token reaches only its own repo, so a release built without a credential for
- * it cannot export a viewer at all - which is how the first real run of this
- * workflow failed. The plan ships beta.1 with the viewer disabled anyway, so
- * the honest answer is to build the installer without it and say so, rather
+ * The first real run of this workflow failed because the viewer's assets came
+ * from `godot/shared-assets`, a *private* repository a workflow's built-in
+ * token cannot reach. That submodule is gone (3D is cancelled, docs/NO-3D.md;
+ * Lane V's V3 removed it), so credentials are no longer a reason a build can
+ * end up without a viewer - a missing Godot binary, or a plain choice not to
+ * export one, still is. The plan ships beta.1 with the viewer disabled anyway,
+ * so the honest answer is to build the installer without it and say so, rather
  * than to fail the release or, worse, to quietly point the config at a file
  * that is not there and let Tauri decide what that means.
  *
@@ -146,7 +148,7 @@ const requireViewer = flags['--require-viewer']
 if (requireViewer && !viewerBuilt) {
   console.error(
     `FAILED: --require-viewer was given but ${VIEWER_PROBE} does not exist.\n` +
-      '        Export it with `npm run godot:export` (needs the shared-assets submodule and Godot),\n' +
+      '        Export it with `npm run godot:export` (needs a Godot 4 binary),\n' +
       '        or drop the flag to build an installer that honestly carries no viewer.'
   )
   process.exit(1)

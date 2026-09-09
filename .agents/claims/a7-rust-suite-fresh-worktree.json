@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "a7-rust-suite-fresh-worktree",
   "agent": "claude-code",
@@ -12,7 +13,9 @@
   ],
   "symbols": [],
   "coordination": {
-    "depends_on": ["c3-worktree-init"],
+    "depends_on": [
+      "c3-worktree-init"
+    ],
     "conflicts_with": [],
     "notes": "touches: none. No source file changes: this increment is a measurement, and its only artefacts are this claim and the plan marker. Worktree dev/wt-a7 off origin/main at 113ef294, node_modules junctioned from the main checkout, npm run worktree:init run before any cargo call (trap 8). The claim's value is the equality with CI, so the CI number was read first from the run for the exact base commit rather than from a nearby one."
   },
@@ -32,4 +35,4 @@
       "node tools/plan-audit.mjs: plan ok"
     ]
   }
-}
+}

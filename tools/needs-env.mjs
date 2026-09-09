@@ -30,10 +30,14 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 // Suites deliberately outside the build, with the thing they need.
 const NEEDS_ENVIRONMENT = [
-  {
-    script: 'test:godot-export',
-    requires: 'the godot/shared-assets submodule and a Godot 4 binary on PATH',
-  },
+  // `test:godot-export` used to live here, needing "the godot/shared-assets
+  // submodule and a Godot 4 binary on PATH". Neither is true any more: 3D is
+  // cancelled (docs/NO-3D.md), Lane V's V3 removed the submodule, and `--check`
+  // reads two files in the tree. It is registered in tools/test-suites.json
+  // now. It had in fact been crashing with ENOENT ever since PR #517 deleted
+  // the manifest it read, and being listed here is what kept that invisible: an
+  // entry saying "this needs something the build box has not got" reads exactly
+  // like a suite that cannot run at all.
   {
     script: 'test:godot',
     requires:

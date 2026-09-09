@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "documentation-consolidation",
   "agent": "Codex GitHub documentation audit",
@@ -30,4 +31,4 @@
       "Application/runtime suites: not_run (documentation-only change)"
     ]
   }
-}
+}

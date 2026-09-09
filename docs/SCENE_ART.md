@@ -1,6 +1,6 @@
 # Scene art
 
-> **Scope:** this document describes the existing 2D illustration selection pipeline. It remains useful for provenance and semantic matching, but it does not define the replacement world renderer. New board production follows the [world-board strategy](NO-3D.md), using reusable geometry kits and reviewed actor assets.
+> **Scope:** this document describes the existing 2D illustration selection pipeline. It remains useful for provenance and semantic matching, but it does not define the world renderer. The sentence that stood here sent new board production to "reusable geometry kits and reviewed actor assets", which was 3D direction; that is cancelled, and the kits and the review ledger are gone. The direction is [NO-3D.md](NO-3D.md): 2D isometric sprite art, rendered in Godot.
 
 DR Companion treats room art as an illustration layer over DragonRealms, not as a replacement for room text. The game text remains authoritative when art and prose disagree.
 

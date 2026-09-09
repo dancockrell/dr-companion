@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "k2-appearance-defaults-compiler",
   "agent": "claude-code",
@@ -15,9 +16,15 @@
     "docs/PLAN_TO_1_0.md",
     ".agents/claims/k2-appearance-defaults-compiler.json"
   ],
-  "symbols": ["META_WEAPON_SKILLS", "WEAPON_NOUNS", "CLASS_MODEL_IDS"],
+  "symbols": [
+    "META_WEAPON_SKILLS",
+    "WEAPON_NOUNS",
+    "CLASS_MODEL_IDS"
+  ],
   "coordination": {
-    "depends_on": ["K1"],
+    "depends_on": [
+      "K1"
+    ],
     "conflicts_with": [],
     "notes": "Extends rather than duplicates: the weapon classes are read from src/data/skills.ts's SKILLS_BY_SET.Weapon and the armour classes from src/lib/armorLoadout.ts's ARMOR_COVERAGE, both imported, so a hand-kept second copy of either cannot drift from the one the app uses. The item-name normalisation stays armorLoadout.ts's; no second normaliser is written here, and the noun matcher itself is deliberately NOT in this tool - it belongs beside the data's consumer in K3's src/lib/appearance.ts, and putting a copy here would have been the fork.",
     "deviations_from_touches": "Two files beyond the plan's touches list. (1) tools/test-suites.json: the plan listed only package.json, but trap 2 says a test registered in one place never runs, and --check is worthless unless the suite runs it. Registered in both; the suite total rose from 3569 to 3576 checks across 119 suites. (2) src/lib/armorLoadout.ts: one character-level change, `from './storage'` to `from './storage.ts'`. Trap 1 - Node cannot resolve an extensionless src/lib import, so importing ARMOR_COVERAGE from a tool failed with ERR_MODULE_NOT_FOUND until the owner was fixed. Vite resolves the explicit extension identically, and presentationBridge.ts already imports './room.ts' this way."
@@ -41,4 +48,4 @@
       "node tools/plan-audit.mjs -> plan ok"
     ]
   }
-}
+}

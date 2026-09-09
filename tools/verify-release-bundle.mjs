@@ -26,11 +26,12 @@ const buildDir = resolve(root, 'src-tauri', 'target', 'release')
 /**
  * Whether this build was supposed to carry a viewer.
  *
- * The shared-assets submodule is a *private* repository, and a workflow's
- * built-in token reaches only its own repo, so a release built without a
- * credential for it cannot export a viewer at all. That is a real, ordinary
- * build - the plan ships beta.1 with the viewer disabled anyway - and it must
- * not be confused with a build that tried and failed.
+ * A build can legitimately carry no viewer: exporting one needs a Godot binary,
+ * and the plan ships beta.1 with the viewer disabled anyway. (Until Lane V's V3
+ * it could also be missing because the viewer's assets lived in a *private*
+ * submodule no workflow token could reach; 3D is cancelled, docs/NO-3D.md, and
+ * that submodule is gone.) An ordinary build without a viewer must not be
+ * confused with a build that tried and failed.
  *
  * So the caller declares which one it is. `--expect-viewer` requires it and
  * fails loudly when it is missing; the default requires everything else and

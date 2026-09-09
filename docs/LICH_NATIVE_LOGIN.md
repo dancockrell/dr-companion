@@ -964,7 +964,7 @@ start ("this app does not end a Lich it did not start ending", `lich.rs`), and
 `--detachable-client` exists precisely so the two can come apart.
 
 The contrast to keep in view is `viewer.rs`, which **is** killed on exit and
-should stay that way: a 3D viewer with no app behind it is furniture connected
+should stay that way: a world viewer with no app behind it is furniture connected
 to nothing, and a Lich with no app behind it is a live game session. Do not make
 the two consistent.
 

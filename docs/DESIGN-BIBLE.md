@@ -1,5 +1,7 @@
 # Design bible
 
+<!-- no-3d-file-history: a superseded design document, already headed as historical. Kept for the record; not direction. See docs/NO-3D.md. -->
+
 > **Historical design — superseded for new work (5 September 2026).** The companion-only product identity and fixed panel layout below are superseded. DR Companion is now a full desktop client. Use the [current world-board strategy](NO-3D.md) and [working implementation plan](PLAN_TO_1_0.md). The body is retained for design rationale and regression evidence; historical claims of completion do not certify the current build.
 
 Written after building four layout mechanisms in one afternoon — a panel
