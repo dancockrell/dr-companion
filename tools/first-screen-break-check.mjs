@@ -60,7 +60,10 @@ const CASES = [
     // `test-suites.json` entry ever ran this file. An abort nothing executes
     // is the same silence as no check at all.
     file: 'src/components/layout/WindowShell.tsx',
-    find: "      {setupComplete && bridgeMode === 'mock' && <DemoBanner compact={aux} />}",
+    // Moved again in the #523/#525 lane: the guard is now `source === 'demo'`,
+    // which folds the game socket into the question so the banner cannot be
+    // shown over live text. The mount and the file are unchanged.
+    find: "      {setupComplete && source === 'demo' && <DemoBanner compact={aux} />}",
     replace: '      {false && <span />}',
     // Five, and all five are the same fact seen from different checks: with
     // the mount gone, nothing in `src/` renders the band, so it is not above

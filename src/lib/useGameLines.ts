@@ -46,6 +46,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   gameLines,
   gameStreams,
+  gameTabs,
   gameVersion,
   subscribeGame,
   type GameLine,
@@ -212,4 +213,19 @@ export function useGameStreams(): string[] {
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => gameStreams(), [version])
+}
+
+/**
+ * Every tab a game pane should offer, main window first.
+ *
+ * The one `StreamTabs` reads. `useGameStreams()` above answers a different
+ * question - which channels the game has *named* - and both are wanted, which
+ * is why this is a second hook rather than a change to that one. See
+ * `gameTabs()` in gameLink.ts for what went wrong when the row built itself
+ * out of the channel list (issue #525).
+ */
+export function useGameTabs(): string[] {
+  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => gameTabs(), [version])
 }

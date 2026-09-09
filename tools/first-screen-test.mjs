@@ -118,7 +118,25 @@ function bannerAboveRouteSwitch(appSource, shellSource) {
   const rootReturns = (rootComponent.body.match(/\breturn\s*\(/g) ?? []).length
   const shellRendersBanner = /<DemoBanner\b/.test(shellSource)
   const shellReturns = (shellSource.match(/\breturn\s*\(/g) ?? []).length
-  const shellGuarded = /bridgeMode === 'mock' && <DemoBanner /.test(shellSource)
+  /*
+   * The guard, in either of the two forms that satisfy this property.
+   *
+   * It was `bridgeMode === 'mock' && <DemoBanner` alone, which is the older
+   * and weaker of the two: that is true whenever the demo mode is set,
+   * including while a real game socket is open, and that combination is
+   * exactly what put this banner's "invented data" sentence over live text on
+   * the clean VM (#525). `sessionSource` folds the socket into the question
+   * and refuses the pair outright, so `source === 'demo'` is strictly
+   * narrower.
+   *
+   * The property this check is named for - the sentence is rendered only when
+   * the demo is on - is more true under the second form, not less. Both are
+   * accepted here so this file does not become a vote about which module owns
+   * the decision; `tools/session-source-test.mjs` is what requires the
+   * narrower one, and that is where that argument belongs.
+   */
+  const DEMO_GUARD = /(bridgeMode === 'mock'|source === 'demo') && <DemoBanner /
+  const shellGuarded = DEMO_GUARD.test(shellSource)
 
   // The property, in the order the links have to hold.
   if (!shellRendersBanner) return { ok: false, why: `${shellTag} does not render the banner`, returns, shellTag }
@@ -337,7 +355,10 @@ console.log('\n-- 5. while the demo is on, the window says so in a sentence --')
   )
   ok(
     'and only when the demo is on',
-    /bridgeMode === 'mock' && <DemoBanner /.test(read(mountsOfBanner()[0] ?? 'src/App.tsx')),
+    // The same two accepted forms as `DEMO_GUARD` above; see its note.
+    /(bridgeMode === 'mock'|source === 'demo') && <DemoBanner /.test(
+      read(mountsOfBanner()[0] ?? 'src/App.tsx')
+    ),
     mountsOfBanner()[0] ?? 'nothing mounts it'
   )
   ok('App.tsx does not mount it itself any more', !/<DemoBanner\b/.test(app))
@@ -435,7 +456,22 @@ function AppViews() {
 console.log('\n-- 6. the empty state says what to do next --')
 {
   const waiting = read('src/components/shared/WaitingForCharacter.tsx')
-  ok('it names attaching to Lich', /Attach to Lich/.test(waiting))
+  /*
+   * The words moved; the property did not.
+   *
+   * This screen's prose now comes from `workspaceScreen()` in
+   * `src/lib/sessionSource.ts`, so one module decides what each state says and
+   * two screens cannot describe the same state differently (#523). The empty
+   * state must still name attaching - it is simply no longer this file that
+   * types the sentence. Checked wherever the words live rather than pinned to
+   * the file they used to live in.
+   */
+  const emptyStateWords = waiting + read('src/lib/sessionSource.ts')
+  ok('it names attaching to Lich', /attach to (a )?Lich/i.test(emptyStateWords))
+  ok(
+    '  control: that phrase is findable when it is present',
+    /attach to (a )?Lich/i.test('x attach to Lich y')
+  )
   ok(
     'the attach control the setup flow uses is on the screen',
     /<LichLauncher \/>/.test(waiting)
@@ -443,7 +479,19 @@ console.log('\n-- 6. the empty state says what to do next --')
   ok('the demo is offered by name', /Start the demo/.test(waiting))
   ok(
     'and asking for it sets the mode rather than just connecting',
-    /setBridgeMode\('mock'\)/.test(waiting)
+    /*
+     * `startDemo()` is that act, and it is now the only one: it sets the mode,
+     * connects, and closes a game socket first if one is open - all in the
+     * single place that decides between the demo and the game
+     * (`src/store/sessionSwitch.ts`, #525).
+     *
+     * The property here is that the button asks for the demo rather than
+     * connecting whatever bridge happens to be selected, which is what it was
+     * written for after #382. `startDemo` satisfies it more completely than
+     * the bare `setBridgeMode('mock')` it replaces, so the check follows the
+     * property rather than the call it used to be made of.
+     */
+    /startDemo\(\)/.test(waiting) || /setBridgeMode\('mock'\)/.test(waiting)
   )
   // The old wording was the tell that a button connected whatever bridge
   // happened to be selected. If it comes back, so has the bug.

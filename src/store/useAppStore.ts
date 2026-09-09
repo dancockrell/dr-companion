@@ -7,6 +7,7 @@ import type { DemoPresetId } from '../bridge/mockBridge'
 import { loadPrefs, savePrefs } from '../lib/persistence.ts'
 import { initialBridgeMode, type PauseLatchMode } from '../lib/bridgeModeSelect.ts'
 import { publishBridgeMode } from '../lib/bridgeModeSync.ts'
+import { startDemo, connectToGame } from './sessionSwitch.ts'
 import { DEFAULT_FRONTEND } from '../lib/frontends.ts'
 import {
   APP_VERSION,
@@ -295,6 +296,13 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   },
 
   connectBridge: (intent) => connectBridge(set, get, handleBridgeMessage, intent),
+
+  // Both delegate, and neither is inlined here, because the rule they obey has
+  // to be readable from a plain `node` test and this file is not - it reaches
+  // `import.meta.glob` through the map data. See `src/lib/sessionSource.ts`.
+  startDemo: () => startDemo(get),
+
+  connectToGame: (port, host, waitMs) => connectToGame(get, port, host, waitMs),
 
   disconnectBridge: () => disconnectBridge(set),
 

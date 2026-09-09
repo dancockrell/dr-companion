@@ -2,7 +2,7 @@
  * Lightweight settings sheet — bridge, pin, about.
  * Opened from the gear in AppControls.
  */
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri.ts'
@@ -21,6 +21,8 @@ import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions.ts'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale.ts'
 import { DEMO_PRESET_LIST } from '../../bridge/index.ts'
 import { loadPrefs } from '../../lib/persistence.ts'
+import { gameState, linkPhase, subscribeGame } from '../../lib/gameLink.ts'
+import { sessionSource } from '../../lib/sessionSource.ts'
 import {
   PAUSE_LATCH_MODES,
   initialPauseLatchMode,
@@ -55,6 +57,17 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const bridgeMode = useAppStore((s) => s.bridgeMode)
   const setBridgeMode = useAppStore((s) => s.setBridgeMode)
   const connectBridge = useAppStore((s) => s.connectBridge)
+  const startDemo = useAppStore((s) => s.startDemo)
+  /*
+   * The demo's own knobs are shown by `sessionSource`, not by `bridgeMode`.
+   *
+   * They are only meaningful while the demo is the source, and reading the
+   * mode directly is a second opinion about what the demo is - which is the
+   * thing that drifted and put the demo banner over live text (#525).
+   * `tools/session-source-test.mjs` sweeps for exactly this shape.
+   */
+  const gameLinkState = useSyncExternalStore(subscribeGame, gameState, gameState)
+  const source = sessionSource({ bridgeMode, gameSocketOpen: linkPhase(gameLinkState) !== 'idle' })
   const clearLog = useAppStore((s) => s.clearLog)
   const demoLowHealth = useAppStore((s) => s.demoLowHealth)
   const demoCombat = useAppStore((s) => s.demoCombat)
@@ -133,10 +146,9 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                     ? 'border-accent text-accent bg-accent/10'
                     : 'border-border text-ink-muted'
                 }`}
-                onClick={() => {
-                  setBridgeMode('mock')
-                  connectBridge()
-                }}
+                // `startDemo` sets the mode and connects, and closes a game
+                // socket first if one is open (#525).
+                onClick={() => void startDemo()}
               >
                 Mock
               </button>
@@ -175,7 +187,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
              *
              * It lives under Bridge because that is where Mock is turned on,
              * and it is only meaningful while Mock is the source. */}
-            {bridgeMode === 'mock' && (
+            {source === 'demo' && (
               <label className="block space-y-1 pt-1">
                 <span className="text-xs text-ink-muted">Demo character</span>
                 <select
@@ -208,7 +220,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 a button because the point is to reach each cell, not to
                 toggle one. `?mock-pause=latched` is the same choice made
                 from the address bar, for a harness that has no hands. */}
-            {bridgeMode === 'mock' && (
+            {source === 'demo' && (
               <label className="block space-y-1 pt-1">
                 <span className="text-xs text-ink-muted">What Lich says about Pause</span>
                 <select
@@ -573,7 +585,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                 exercised before anyone is in game" - it wasn't reachable
                 anywhere. Same for the other three: simulateCombat's comment
                 cites the StatusBoard chips it exists to exercise. */}
-            {bridgeMode === 'mock' && (
+            {source === 'demo' && (
               <div className="grid grid-cols-2 gap-1.5">
                 <button
                   type="button"

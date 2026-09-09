@@ -347,6 +347,25 @@ const STAGES = [
     args: [resolve(root, 'tools', 'ai-script-repair-break-check.mjs')],
   },
   {
+    /*
+     * The demo and the game cannot both be on, and every state has a screen
+     * with something to press. Issues #523 and #525.
+     *
+     * A gate stage rather than only a suite, because both of its suites are
+     * mostly sweeps over source text, and a sweep whose pattern stops matching
+     * reports "no violations" - which is byte-identical to a tree that has
+     * none. This runs nine sabotages against a byte copy and asserts each
+     * reddens the checks it names and no others.
+     *
+     * Node only. No Ruby, no Godot, no cargo, so it has no precheck and can
+     * never be NOT RUN for a missing toolchain.
+     */
+    name: 'break-session-source',
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'session-source-break-check.mjs')],
+  },
+  {
     name: 'godot',
     precheck: godotStage,
     // This node and this path, spawned directly. `shell: true` would hand a
@@ -387,7 +406,7 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 14
+const EXPECTED_STAGES = 15
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */

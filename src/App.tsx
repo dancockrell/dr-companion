@@ -664,13 +664,32 @@ function AppViews() {
         scroll, and a command line). Two mounts of the transcript would be a
         fork whichever slot won.
       */}
-      {setupComplete && character && (
+      {/*
+        Not gated on `character`, and that is the fix for #523 rather than a
+        relaxation of a rule.
+
+        `GameChatColumn` owns `GameConnectionBar`, which is the app's only
+        Attach control - the control that *creates* the connection the rest of
+        this window is a reading of. Gating it on `character` put it inside the
+        state it exists to establish. Measured on the clean VM on 9 September
+        2026: two established connections to the game port, the socket holding
+        real text, and the app showing "Nothing is connected yet" with no way
+        back, because leaving the demo cleared `character` and unmounted the
+        bar.
+
+        The rails above stay gated, and the comment there is still right: map,
+        board and context are readings of a live character and have nothing to
+        show without one. A transcript and a command line are not - they are
+        the client, and they work the moment a socket is open. So the gate
+        moved to the thing it was actually true of instead of being deleted.
+      */}
+      {setupComplete && (
         <div
           className="flex shrink-0 overflow-hidden border-t border-border bg-surface-raised"
           style={{ height: CONSOLE_H }}
           aria-label="Console"
         >
-          {showLeftRail && (
+          {showLeftRail && character && (
             <div
               className="min-w-0 shrink-0 overflow-hidden border-r border-border"
               style={railStyle(leftRailWFit + SPLIT_W)}
@@ -691,7 +710,10 @@ function AppViews() {
               ExperienceStrip.tsx: "we don't need borders and padding." A
               crash inside it is still worth catching, so the boundary stays,
               just without Box's frame around it. */}
-          {showRightRail && (
+          {/* Both side cells are readings of a character; the middle one is
+              the client. Same distinction as the block comment above, applied
+              inside the row rather than to the whole of it. */}
+          {showRightRail && character && (
             <div
               className="min-w-0 shrink-0 overflow-hidden border-l border-border"
               style={railStyle(rightRailWFit + SPLIT_W)}

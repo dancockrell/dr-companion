@@ -1,7 +1,14 @@
+import { useSyncExternalStore } from 'react'
 import { LichLauncher } from './LichLauncher.tsx'
 import { SignIn } from './SignIn.tsx'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { bridgeCommand } from '../../lib/frontends.ts'
+import { gameState, linkPhase, subscribeGame } from '../../lib/gameLink.ts'
+import {
+  workspaceScreen,
+  workspaceState,
+  type WorkspaceAction,
+} from '../../lib/sessionSource.ts'
 
 /**
  * No character yet, which happens more often than it sounds: setup is
@@ -16,16 +23,45 @@ import { bridgeCommand } from '../../lib/frontends.ts'
  * the whole three-column layout, since none of map/chat/battle/experience
  * have anything real to show without a character either.
  *
- * It says what it is waiting for and offers the two ways forward, because
- * "complete setup first" is not useful advice to someone who already did.
+ * # It renders a state, it does not decide one (issue #523)
+ *
+ * The words and the list of things that can be pressed come from
+ * `workspaceScreen()` in `src/lib/sessionSource.ts`. This file maps each
+ * action id to a control and writes no prose of its own beyond the two
+ * explanatory paragraphs at the bottom.
+ *
+ * That split is the fix rather than tidying. This screen used to branch on
+ * `bridgeConnected` alone, so an open **game socket** was invisible to it -
+ * the bridge and the game are different connections to different ports - and
+ * it printed "Nothing is connected yet" while the app held a live connection
+ * with real text arriving on it. Measured on the clean VM on 9 September 2026,
+ * from outside the app: two established connections to port 11124 at that
+ * exact moment. A state the screen could not see is a state it could not have
+ * a screen for, and `tools/attach-states-test.mjs` now asserts every state has
+ * one and that every screen has at least one thing to press.
  */
 export function WaitingForCharacter() {
+  const setupComplete = useAppStore((s) => s.setupComplete)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
-  const setBridgeMode = useAppStore((s) => s.setBridgeMode)
-  const connectBridge = useAppStore((s) => s.connectBridge)
+  const bridgeMode = useAppStore((s) => s.bridgeMode)
+  const hasCharacter = useAppStore((s) => Boolean(s.character))
+  const startDemo = useAppStore((s) => s.startDemo)
+  // Subscribed, not read once: the socket opens while this screen is on
+  // screen, and that is the whole event it needs to notice.
+  const link = useSyncExternalStore(subscribeGame, gameState, gameState)
+
+  const state = workspaceState({
+    setupComplete,
+    bridgeMode,
+    gameSocketOpen: linkPhase(link) !== 'idle',
+    bridgeConnected,
+    hasCharacter,
+  })
+  const screen = workspaceScreen(state)
+  const can = (a: WorkspaceAction) => screen.actions.includes(a)
 
   /*
-   * The two ways forward, kept together and placed near the top of the panel.
+   * The ways forward, kept together and placed near the top of the panel.
    *
    * They used to be the last thing in the column, under six paragraphs, a
    * command block and the whole Lich launcher - roughly 900px of panel in the
@@ -39,38 +75,58 @@ export function WaitingForCharacter() {
    * now below the buttons instead of in front of them, which is also the
    * better order to read it in - you are told what you can do, and then why
    * you are here.
+   *
+   * Which buttons appear is `screen.actions` and not a judgement made here, so
+   * a state cannot end up with none. `attach` has no button in this column on
+   * purpose: the Attach control has exactly one home, `GameConnectionBar` in
+   * the game pane, which App.tsx now renders in every state (#523). A second
+   * one here would be the fork `tools/game-connection-owner-test.mjs` exists
+   * to refuse, so the action is honoured by a sentence pointing at it.
    */
   const actions = (
     <div className="mt-3 flex flex-wrap gap-2">
-      {/*
-       * Asking for the demo is now an act, not the absence of one.
-       *
-       * This used to call `simulateConnect()`, which was `connectBridge()`
-       * under another name (the alias is now deleted) and worked only
-       * because mock was already the mode on every fresh install. With
-       * `live` the default (issue #382) that would have attached the real
-       * bridge and left the button apparently doing nothing. The pair below
-       * is the same pair Settings uses for its Mock button: set the mode,
-       * then connect.
-       */}
-      <button
-        type="button"
-        onClick={() => {
-          setBridgeMode('mock')
-          connectBridge()
-        }}
-        className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
-      >
-        Start the demo
-      </button>
-      <button
-        type="button"
-        onClick={() => useAppStore.getState().openSetup()}
-        className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
-        title="The full connect guide, including Platinum, Fallen and Test"
-      >
-        Connection help
-      </button>
+      {can('start-demo') && (
+        /*
+         * Asking for the demo is an act, not the absence of one.
+         *
+         * This used to call `simulateConnect()`, which was `connectBridge()`
+         * under another name, and worked only because mock was already the
+         * mode on every fresh install. With `live` the default (issue #382)
+         * that would have attached the real bridge and left the button
+         * apparently doing nothing. `startDemo` is the one action now, and it
+         * closes a game connection first if there is one (#525).
+         */
+        <button
+          type="button"
+          onClick={() => void startDemo()}
+          className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
+        >
+          Start the demo
+        </button>
+      )}
+      {can('leave-demo') && (
+        <button
+          type="button"
+          onClick={() => {
+            const s = useAppStore.getState()
+            s.setBridgeMode('live')
+            s.connectBridge()
+          }}
+          className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+        >
+          Leave the demo
+        </button>
+      )}
+      {can('connection-help') && (
+        <button
+          type="button"
+          onClick={() => useAppStore.getState().openSetup()}
+          className="rounded border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+          title="The full connect guide, including Platinum, Fallen and Test"
+        >
+          Connection help
+        </button>
+      )}
     </div>
   )
 
@@ -89,7 +145,7 @@ export function WaitingForCharacter() {
      * `my-auto` on the child below centres the same way when there is room
      * and does not clip when there is not.
      */
-    <div className="flex h-full min-w-0 flex-col items-start overflow-y-auto p-6">
+    <div className="flex h-full min-w-0 flex-col items-start overflow-y-auto p-6" data-workspace-state={state}>
       {/* `w-full` matters as much as the cap beside it.
        *
        * `items-start` makes a flex child shrink-to-fit, so this box sized to
@@ -104,44 +160,70 @@ export function WaitingForCharacter() {
        */}
       <div className="my-auto w-full max-w-lg">
         {/*
-         * The heading names the two ways forward, and it is the largest type
-         * on the screen because this is now the first thing a new install
-         * shows - the app no longer opens on an invented character (issue
-         * #382). "Waiting for a character" was accurate and answered a
-         * question nobody had asked yet: somebody who has just finished setup
-         * does not know whether they are supposed to do something.
+         * The heading is the largest type on the screen because this is the
+         * first thing a new install shows - the app no longer opens on an
+         * invented character (issue #382).
          *
-         * It is inside the branch rather than above it because the two states
-         * are different situations, not one situation with more detail.
-         * Nothing is attached, versus the bridge is up and the character has
-         * not reported in - a single heading would be wrong in one of them.
+         * One heading per state, and the states are separate because they are
+         * different situations rather than one situation with more detail:
+         * nothing attached, a game socket open with nobody logged in, and the
+         * bridge up with no character reported. A single heading would be
+         * wrong in two of the three, and it was.
          */}
-        {bridgeConnected ? (
+        <p className="text-base font-semibold text-ink">{screen.heading}</p>
+        <p className="mt-1 text-sm text-ink-muted">{screen.sentence}</p>
+
+        {can('bridge-command') && (
+          /*
+           * Keyed on the action, not on the state name. Listing the states
+           * here would be a second opinion about which of them want this
+           * sentence, and `tools/attach-states-test.mjs` caught exactly that:
+           * the action existed in the enumeration and nothing rendered it, so
+           * a state could have declared it and still shown nothing.
+           */
+          <p className="mt-2 text-sm text-ink-muted">
+            {state === 'live-waiting' && (
+              <>
+                The connection is on{' '}
+                <code className="text-ink">
+                  {link.host}:{link.port}
+                </code>
+                .{' '}
+              </>
+            )}
+            To fill in the vitals, the map and the rest, run{' '}
+            {/* `null` = no frontend in the path, which is this app's own
+              * route: Lich runs headless and the command character is `;`.
+              * See `prefixFor`. This line hardcoded a comma until N6. */}
+            <code className="text-ink">{bridgeCommand(null)}</code> in the game
+            so Lich starts the companion bridge.
+          </p>
+        )}
+
+        {actions}
+
+        {can('attach') && (
+          /*
+           * The one sentence that closes #523's dead end. The control it names
+           * is on screen: App.tsx renders the console row - and therefore the
+           * game pane and its connection bar - whether or not there is a
+           * character, so "use Attach below" is an instruction that can be
+           * followed rather than a description of a button that unmounted.
+           */
+          <p className="mt-2 text-xs text-ink-muted">
+            To reach a Lich that is already running, set the port and press
+            Attach in the game pane below.
+          </p>
+        )}
+
+        {can('sign-in') && (
           <>
-            <p className="text-base font-semibold text-ink">Waiting for a character.</p>
-            <p className="mt-1 text-sm text-ink-muted">
-              The bridge is up but no character has reported in yet. Log in, or run{' '}
-              {/* `null` = no frontend in the path, which is this app's own
-                * route: Lich runs headless and the command character is `;`.
-                * See `prefixFor`. This line hardcoded a comma until N6. */}
-              <code className="text-ink">{bridgeCommand(null)}</code> in the game.
-            </p>
-            {actions}
-          </>
-        ) : (
-          <>
-            <p className="text-base font-semibold text-ink">Nothing is connected yet.</p>
-            <p className="mt-1 text-sm text-ink-muted">
-              Attach to Lich to see your own character, or start the demo to
-              look around an invented one.
-            </p>
-            {actions}
             {/*
              * What used to be here: four config lines and a connect command,
              * telling the player to go and set another program up so that it
              * would start Lich. That was the app admitting it could not sign
-             * anybody in, plus a warning that the route it recommended left the
-             * channel tabs empty.
+             * anybody in, plus a warning that the route it recommended left
+             * the channel tabs empty.
              *
              * It can sign somebody in now. `SignIn` performs the account login
              * itself and starts Lich with the result, so the instructions are

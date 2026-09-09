@@ -157,11 +157,10 @@ export function Dashboard() {
           <button
             type="button"
             onClick={() => {
-              // Set the mode, then connect - the demo is asked for, never
-              // the default. Same pair as Settings and WaitingForCharacter;
-              // see issue #382.
-              useAppStore.getState().setBridgeMode('mock')
-              useAppStore.getState().connectBridge()
+              // One action, not a pair typed out here. The demo is asked
+              // for, never the default (#382), and asking for it now ends a
+              // game connection first (#525). `startDemo` connects.
+              void useAppStore.getState().startDemo()
             }}
             className="rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25"
           >

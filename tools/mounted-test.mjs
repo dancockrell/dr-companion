@@ -267,10 +267,25 @@ console.log('\n-- the allowlist is a list of decisions, not a dumping ground --'
 
 console.log('\n-- critical connection controls have one owner --')
 {
+  /*
+   * The attach call moved out of the component and the ownership did not.
+   *
+   * `attachGame(Number(port))` became `connectToGame(Number(port))`, the store
+   * action that leaves the demo before it attaches - one place decides between
+   * the demo and the game (src/store/sessionSwitch.ts, #525). The component
+   * still owns the port key, the attach button and the detach button, which is
+   * what this check is named for, and it now owns them over a call that cannot
+   * quietly reopen the demo beside a live socket.
+   *
+   * Both forms accepted so this file does not become a second vote on where
+   * the attach decision belongs; `tools/session-source-test.mjs` is what
+   * requires the store action, and that argument lives there.
+   */
+  const ATTACHES = /attachGame\(Number\(port\)\)|connectToGame\(Number\(port\)\)/
   const owners = [...sources.entries()]
     .filter(([, text]) =>
       text.includes("const PORT_KEY = 'drc.attach-port.v2'") &&
-      text.includes('attachGame(Number(port))') &&
+      ATTACHES.test(text) &&
       text.includes('detachGame()')
     )
     .map(([file]) => file)

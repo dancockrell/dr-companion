@@ -33,7 +33,7 @@ import { Info } from 'lucide-react'
 import {
   setShowGaggedLines,
   useGameLines,
-  useGameStreams,
+  useGameTabs,
   useShowGaggedLines,
   type DisplayLine,
 } from '../../lib/useGameLines.ts'
@@ -43,6 +43,7 @@ import type { Highlight } from '../../lib/highlights'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { CHANNELS, linesFor, type Channel } from '../../lib/chatChannels.ts'
 import { STREAM_LABELS } from '../../lib/streamLabels.ts'
+import { MAIN_STREAM } from '../../lib/gameLink.ts'
 import { useOffClasses } from '../../lib/offClasses.ts'
 import { cn } from '../../lib/cn.ts'
 
@@ -79,11 +80,28 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
   // Substitutes and gags are already applied here - the hook is the one place
   // that happens, and the buffer behind it is untouched. See lib/lineRules.ts.
   const allLines = useGameLines()
-  const streams = useGameStreams()
+  // Every tab, main window first - not `useGameStreams()`, which is the game's
+  // *named* channels and therefore excludes the main window. Building the row
+  // out of that list is what made live game text undisplayable (#525).
+  const streams = useGameTabs()
   const showGagged = useShowGaggedLines()
   const gagCount = usePlayerConfig().gags.filter((g) => g.enabled).length
   const logLines = useAppStore((s) => s.logLines)
   const [tab, setTab] = useState<string>(LOG_PREFIX + 'all')
+  /*
+   * Whether the player has picked a tab themselves.
+   *
+   * Without this the pane opens on the companion's own log and stays there
+   * while the game talks, which is what a player on the clean VM saw: the
+   * channel counters climbing, and this app's log lines in the pane (#525).
+   * Following the game is right *until* somebody chooses otherwise, and then
+   * it must stop, or a tab cannot be read for longer than one line arrives in.
+   */
+  const [chosen, setChosen] = useState(false)
+  const pick = (id: string) => {
+    setChosen(true)
+    setTab(id)
+  }
 
   /**
    * Per-tab high-water marks, so an unread count means something.
@@ -104,6 +122,20 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
   useEffect(() => {
     if (!isLogTab(tab) && !streams.includes(tab)) setTab(LOG_PREFIX + 'all')
   }, [streams, tab])
+
+  /*
+   * The game gets the pane the moment it says anything, unless the player has
+   * chosen a tab.
+   *
+   * This is the display half of "no path shows invented lines beside real
+   * ones". The other half is that the demo and a game socket can no longer
+   * both be on (`src/lib/sessionSource.ts`); this is what puts the real text
+   * in front of somebody once it starts arriving.
+   */
+  useEffect(() => {
+    if (chosen) return
+    if (streams.includes(MAIN_STREAM)) setTab(MAIN_STREAM)
+  }, [chosen, streams])
 
   const shown: DisplayLine[] = useMemo(
     () => (isLogTab(tab) ? [] : allLines.filter((l) => l.stream === tab)),
@@ -188,14 +220,18 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => pick(id)}
               className={cn(
                 'flex items-center gap-1 rounded px-1.5 py-0.5',
                 tab === id ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:text-ink'
               )}
-              title={`The game labelled these "${id}"`}
+              title={
+                id === MAIN_STREAM
+                  ? 'Everything the game printed that it did not put in a channel: rooms, movement, combat, and the reply to anything you type.'
+                  : `The game labelled these "${id}"`
+              }
             >
-              {LABELS[id] ?? id}
+              {id === MAIN_STREAM ? 'Main' : (LABELS[id] ?? id)}
               {unread > 0 && tab !== id && (
                 <span className="rounded bg-accent/20 px-1 tabular-nums text-accent">
                   {unread}
@@ -235,7 +271,7 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
             <button
               key={key}
               type="button"
-              onClick={() => setTab(key)}
+              onClick={() => pick(key)}
               className={cn(
                 'rounded px-1.5 py-0.5',
                 tab === key ? 'bg-accent/15 text-accent' : 'text-ink-faint hover:text-ink'
