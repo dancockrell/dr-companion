@@ -35,9 +35,16 @@ export class PanelBoundary extends Component<
     if (this.state.error) {
       return (
         <div className="flex min-h-0 flex-col gap-1 rounded border border-danger/40 bg-danger/10 p-2 text-xs">
-          <span className="font-medium text-danger">
-            {this.props.label} broke: {this.state.error.message}
-          </span>
+          {/* The message is a JavaScript `Error.message` - the one thing here
+            * a player cannot use and a maintainer cannot do without. It is
+            * kept, verbatim, one click away (9 Sep 2026). Deleting it would
+            * make a crash unreportable; leaving it in front turns a recoverable
+            * panel fault into a stack trace in somebody's game. */}
+          <span className="font-medium text-danger">{this.props.label} stopped working.</span>
+          <details>
+            <summary className="cursor-pointer text-ink-faint">Details for a bug report</summary>
+            <p className="mt-1 break-words text-ink-faint">{this.state.error.message}</p>
+          </details>
           <button
             type="button"
             onClick={() => {

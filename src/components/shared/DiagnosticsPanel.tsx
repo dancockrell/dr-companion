@@ -169,14 +169,35 @@ export function DiagnosticsPanel() {
     // would restart this whole gather - including a lich_status that measures
     // about five seconds - on every tick of an unrelated worker. Plan section
     // 1, trap 6.
+    //
+    // This row is also where the AI panel's instruments went when that panel
+    // stopped showing them in front of a player (9 Sep 2026). It is the
+    // developer view for them, and there is deliberately not a second one:
+    // this panel already exists, already gathers the other five subsystems,
+    // and already builds the bundle a report is pasted from, so a new
+    // "AI diagnostics" surface would be a fork of it. Everything the panel
+    // used to print by default is here, in one line, and reaches a maintainer
+    // through the bundle whether or not the player opened the disclosure.
     const aiNow = getAiStatus()
+    const aiJobs = Object.entries(aiNow.jobs)
+      .filter(([, n]) => n > 0)
+      .map(([state, n]) => `${state} ${n}`)
+      .join(' ')
+    const aiParts = [
+      `${aiNow.ticks} ticks`,
+      `${aiNow.journalPending} unreviewed`,
+      `${aiNow.journalLost + aiNow.missedLines} lost`,
+      `${aiNow.pendingAlerts} alerts pending`,
+      aiJobs ? `jobs: ${aiJobs}` : null,
+      aiNow.lastFailureKind ? `last failure: ${aiNow.lastFailureKind}` : null,
+      aiNow.lastFailure,
+      aiNow.available ? null : (aiNow.providerReason ?? 'no local model is installed'),
+    ].filter((p): p is string => Boolean(p))
     next.push({
       id: 'model',
       label: 'Local model',
       presence: aiNow.available ? 'present' : 'absent',
-      detail: aiNow.available
-        ? `${aiNow.ticks} ticks, ${aiNow.journalPending} pending`
-        : 'no local model is installed',
+      detail: aiParts.join(', '),
     })
 
     setRows(next)

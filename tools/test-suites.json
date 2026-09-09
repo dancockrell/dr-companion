@@ -19,6 +19,7 @@
   "test:panel-data-contracts",
   "test:tauri-command-callers",
   "test:ui-jargon",
+  "test:dev-jank",
   "test:lich-card",
   "test:safety",
   "test:flow-stop",

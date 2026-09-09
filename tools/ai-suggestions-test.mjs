@@ -679,7 +679,10 @@ console.log('\n-- the card confirms the record, not what is on the screen --')
   // A field with no reader says nothing, so the reader is the property.
   ok('the panel says why a proposed command never appeared',
     /status\.suggestionRefused/.test(panel) &&
-    /The model proposed a command that was not admitted/.test(panel))
+    // The sentence, reworded 9 Sep 2026 for a reader who is not a developer.
+    // The property is that the field has a reader and the reader is prose a
+    // player can act on; the old literal pinned one wording of it.
+    /A suggested command was not offered to you/.test(panel))
 
   // The panel must not decide anything the gate decides. If it compared the
   // state version or the clock itself, a green panel would stop meaning the

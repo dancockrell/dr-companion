@@ -953,7 +953,8 @@ function chipFor(b) {
     maxAttempts: b.getMaxAttempts(),
     everConnected: b.getEverConnected(),
   }
-  return { phase: bridgePhase(r), label: bridgeChip(r).label, tone: bridgeChip(r).tone }
+  const chip = bridgeChip(r)
+  return { phase: bridgePhase(r), label: chip.label, tone: chip.tone, title: chip.title }
 }
 
 {
@@ -1094,17 +1095,26 @@ function chipFor(b) {
    * up" is a claim about the run and not about its last frame.
    */
   const labels = [chipFor(b).label]
+  const titles = [chipFor(b).title]
   let guard = 0
   while (b.getStatus() !== 'gave-up' && ++guard <= MAX_RECONNECT_ATTEMPTS * 4) {
     if (fireNextTimer() === null) break
     await settle()
     labels.push(chipFor(b).label)
+    titles.push(chipFor(b).title)
     sockets[sockets.length - 1].drop()
     await settle()
     labels.push(chipFor(b).label)
+    titles.push(chipFor(b).title)
   }
-  const rungs = labels.filter((l) => l && l.startsWith('Lich reconnecting'))
-  const numbers = [...new Set(rungs.map((l) => l.replace('Lich reconnecting ', '')))]
+  // Read through the title, not the label. The chip stopped carrying "3/8" on
+  // 9 Sep 2026 - a retry counter in permanent chrome - and the count moved to
+  // the hover. The ladder is the property and it is still asserted rung by
+  // rung; only where the number is read has changed.
+  const rungs = titles.filter((t) => /Attempt \d+ of \d+\./.test(t ?? ''))
+  const numbers = [
+    ...new Set(rungs.map((t) => t.match(/Attempt (\d+) of (\d+)\./).slice(1, 3).join('/'))),
+  ]
   eq(
     numbers.join(' '),
     Array.from({ length: MAX_RECONNECT_ATTEMPTS }, (_, i) => `${i + 1}/${MAX_RECONNECT_ATTEMPTS}`).join(' '),

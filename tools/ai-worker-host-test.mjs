@@ -538,9 +538,16 @@ console.log('\n-- the model server address, and what it can point at --')
   ok('the panel shows the review the status carries rather than re-deriving one',
     /status\.lastReview/.test(panel))
   ok('it lists every notable line', /lastReview\.notable\.map/.test(panel))
-  ok('says so plainly when there were none, rather than showing an empty box',
-    /Nothing notable\./.test(panel))
-  ok('shows the question when there is one', /lastReview\.question &&/.test(panel))
+  // Reworded 9 Sep 2026 with the panel, and the name is why it changed rather
+  // than being made to pass. The property is "a review that found nothing does
+  // not draw an empty box"; the old body asserted one *mechanism* for that -
+  // a box that always drew, saying "Nothing notable." inside it. The panel now
+  // gets the same property the other way, by not drawing the list at all, and
+  // the review is still visibly recent because its timestamp sits on the
+  // headline. Asserting the mechanism would have made the honest fix red.
+  ok('an empty review draws no empty container',
+    /lastReview\.notable\.length > 0 &&/.test(panel))
+  ok('shows the question when there is one', /lastReview\??\.question &&/.test(panel))
   ok('and shows when it was said, so a stale review cannot read as current',
     /lastReview\.at\)\.toLocaleTimeString\(\)/.test(panel))
   ok('the review is held between turns, not blanked on every idle tick',
