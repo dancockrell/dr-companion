@@ -43,8 +43,8 @@ import {
   COMPASS_SIDES,
 } from '../src/lib/world-content-rules.mjs'
 import { LANDMARK_KINDS } from '../src/lib/mapLandmarks.ts'
+import { NO_CONTENT_PACK_REASON, advertisedKinds, findContentPack } from './godot-content-pack.mjs'
 
-const CONTENT_PACK = 'godot/scripts/shared_asset_content.gd'
 const SCENE_PATTERNS = 'src/data/roomScenePatterns.ts'
 const OUT = 'src/data/sceneRegistry.json'
 
@@ -62,30 +62,6 @@ const MIN_REGISTERED = 3
  * pipeline offers no art rather than that this file failed to read it.
  */
 const MIN_SCENE_ART = 5
-
-/** Every `ContentRegistry.register("kind", ...)` in the content pack. */
-function registeredKinds(source) {
-  const kinds = []
-  for (const line of source.split(/\r?\n/)) {
-    const m = /ContentRegistry\.register\(\s*"([^"]+)"/.exec(line)
-    if (m) kinds.push(m[1])
-  }
-  return kinds
-}
-
-/**
- * The list the same file also hands out through `shared_asset_status()`.
- *
- * Read only to be compared against the register calls above. It is a second
- * copy of the same fact living six lines from the first, and the day the two
- * disagree the viewer will report kinds it does not draw. Nothing here consumes
- * it; it exists to be checked.
- */
-function advertisedKinds(source) {
-  const m = /"registeredKinds"\s*:\s*\[([^\]]*)\]/.exec(source)
-  if (!m) return null
-  return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1])
-}
 
 /**
  * kind -> role, by running `primitivesFor` over every input that can change
@@ -127,23 +103,60 @@ function sceneArtUrls(source) {
   return [...new Set([...source.matchAll(/"(\/[a-z0-9-]+-art\/room-scenes\/[^"]+)"/g)].map((m) => m[1]))].sort()
 }
 
-function build() {
-  const source = readFileSync(CONTENT_PACK, 'utf8')
-  const registered = registeredKinds(source)
-  if (registered.length < MIN_REGISTERED) {
-    throw new Error(`${CONTENT_PACK} yielded ${registered.length} registered kinds, floor ${MIN_REGISTERED}. Either the registration syntax changed or this parse is broken; a zero here would compile a registry that admits nothing and a scene editor with empty dropdowns.`)
+/**
+ * The kind list, and where it came from.
+ *
+ * Two sources, and the difference is the whole of this file's three states.
+ *
+ * **A content pack on disk** is the live source. Its register calls are the
+ * registry, its `registeredKinds` advertisement is checked against them, and
+ * `--check` is a real drift check over every field below.
+ *
+ * **No content pack** is where this repository stands on 9 Sep 2026: the 3D
+ * pack was deleted (docs/NO-3D.md) and the 2D one is the Godot owner's and has
+ * not landed. The registry is not deleted with it - `src/data/sceneRegistry
+ * .json` is the scene editor's option lists, and the ground kinds, block kinds,
+ * placements and backdrops in it are 2D-renderable content that survives 3D
+ * entirely. So the committed `kinds` list is read back as a **frozen** list and
+ * everything derived from it is still recomputed and still compared: a role
+ * that changed in `primitivesFor()`, a backdrop added to
+ * `roomScenePatterns.ts`, a landmark kind added to `mapLandmarks.ts` all still
+ * take `--check` red. What cannot be checked, and is said out loud rather than
+ * folded into the pass, is whether that frozen list is still the set Godot
+ * registers factories for.
+ *
+ * Reading the committed file as its own input would be circular if it were the
+ * *only* input, which is why the floor still applies to it and why the
+ * unreadable case throws instead of yielding an empty registry.
+ */
+function kindSource() {
+  const pack = findContentPack()
+  if (pack) {
+    const advertised = advertisedKinds(pack.source)
+    if (advertised === null) {
+      throw new Error(`${pack.file} has no "registeredKinds" list in shared_asset_status(); a pack is expected to advertise the kinds it registers, and this check exists because that list is a second copy of the register calls.`)
+    }
+    const drift = [
+      ...pack.registered.filter((k) => !advertised.includes(k)).map((k) => `registered but not advertised: ${k}`),
+      ...advertised.filter((k) => !pack.registered.includes(k)).map((k) => `advertised but not registered: ${k}`),
+    ]
+    if (drift.length) {
+      throw new Error(`${pack.file} registers one set of kinds and advertises another. ${drift.join('; ')}`)
+    }
+    return { registered: pack.registered, source: pack.file, frozen: false }
   }
 
-  const advertised = advertisedKinds(source)
-  if (advertised === null) {
-    throw new Error(`${CONTENT_PACK} has no "registeredKinds" list in shared_asset_status(); it used to, and this check exists because it is a second copy of the register calls.`)
-  }
-  const drift = [
-    ...registered.filter((k) => !advertised.includes(k)).map((k) => `registered but not advertised: ${k}`),
-    ...advertised.filter((k) => !registered.includes(k)).map((k) => `advertised but not registered: ${k}`),
-  ]
-  if (drift.length) {
-    throw new Error(`${CONTENT_PACK} registers one set of kinds and advertises another. ${drift.join('; ')}`)
+  const committed = JSON.parse(readFileSync(OUT, 'utf8'))
+  const registered = (committed.kinds ?? []).map((k) => k.kind)
+  return { registered, source: committed.source, frozen: true }
+}
+
+const kindOrigin = kindSource()
+
+function build() {
+  const { registered, source, frozen } = kindOrigin
+  if (registered.length < MIN_REGISTERED) {
+    throw new Error(`${frozen ? `${OUT} (frozen)` : source} yielded ${registered.length} registered kinds, floor ${MIN_REGISTERED}. Either the registration syntax changed or this parse is broken; a zero here would compile a registry that admits nothing and a scene editor with empty dropdowns.`)
   }
 
   const sceneArt = sceneArtUrls(readFileSync(SCENE_PATTERNS, 'utf8'))
@@ -163,7 +176,7 @@ function build() {
   return {
     schemaVersion: 1,
     generatedBy: 'tools/build-scene-registry.mjs',
-    source: CONTENT_PACK,
+    source,
     /** Every kind the content pack registers a factory for, with the role
      * `primitivesFor` emits it under, or null when no cell ever asks for it. */
     kinds,
@@ -207,12 +220,30 @@ const normalise = (s) => s.split('\r\n').join('\n')
 
 if (process.argv.includes('--check')) {
   const committed = readFileSync(OUT, 'utf8')
+  const from = kindOrigin.frozen
+    ? `${built.kinds.length} frozen kinds plus the live rules, backdrops and landmarks`
+    : built.source
   if (normalise(committed) !== normalise(text)) {
-    console.error(`FAIL ${OUT} is not what ${CONTENT_PACK} produces. Run: node tools/build-scene-registry.mjs`)
+    console.error(`FAIL ${OUT} is not what ${from} produces. Run: node tools/build-scene-registry.mjs`)
     process.exit(1)
   }
-  console.log(`OK   ${OUT} matches ${CONTENT_PACK}: ${built.kinds.length} kinds, ${built.placeable.length} placeable, ${built.groundKinds.length} ground, ${built.blockKinds.length} block, ${built.landmarkKinds.length} landmark, ${built.sceneArt.length} backdrops`)
+  console.log(`OK   ${OUT} matches ${from}: ${built.kinds.length} kinds, ${built.placeable.length} placeable, ${built.groundKinds.length} ground, ${built.blockKinds.length} block, ${built.landmarkKinds.length} landmark, ${built.sceneArt.length} backdrops`)
+  // The third state. Everything above is a genuine comparison; this one field
+  // is not, and saying so is the difference between a partial check and a
+  // clean one. `tools/run-tests.mjs` collects this line and refuses to print
+  // "all passed" over it.
+  if (kindOrigin.frozen) {
+    console.log(
+      `NOT CHECKED the kind list against a Godot content pack   ${NO_CONTENT_PACK_REASON} ` +
+        `The ${built.kinds.length} kinds above were read back out of ${OUT} itself and carried over frozen, so a kind Godot stopped registering would not be seen here. Everything derived from them - roles, placeable, ground, block, landmark, backdrops - was recomputed and compared.`
+    )
+  }
 } else {
+  if (kindOrigin.frozen) {
+    console.log(
+      `note: no Godot content pack on disk, so the ${built.kinds.length} kinds in ${OUT} were carried over from the committed file rather than read from GDScript. Everything else below is freshly derived.`
+    )
+  }
   writeFileSync(OUT, text)
   console.log(`wrote ${OUT}: ${built.kinds.length} registered kinds (${built.kinds.map((k) => `${k.kind}=${k.role}`).join(', ')})`)
   console.log(`     placeable ${built.placeable.join(', ') || '(none)'} · ground ${built.groundKinds.length}/${GROUND_KINDS.length} · block ${built.blockKinds.length}/${BLOCK_KINDS.length} · landmark ${built.landmarkKinds.length} (drawn: ${built.landmarksDrawn}) · art ${built.sceneArt.length}`)

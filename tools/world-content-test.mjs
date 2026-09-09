@@ -44,10 +44,10 @@ import {
   ruleStrength,
   unifyPlaceCohort,
 } from '../src/lib/world-content-rules.mjs'
+import { NO_CONTENT_PACK_REASON, findContentPack } from './godot-content-pack.mjs'
 
 const MAP_DIR = 'src/data/map'
 const WORLD_DIR = 'src/data/world'
-const CONTENT_PACK = 'godot/scripts/shared_asset_content.gd'
 
 /**
  * Floors, not comments.
@@ -65,6 +65,7 @@ const MIN_REGISTERED_KINDS = 4
 
 let pass = 0
 let fail = 0
+const skipped = []
 const ok = (what, cond, detail = '') => {
   if (cond) {
     pass += 1
@@ -73,6 +74,21 @@ const ok = (what, cond, detail = '') => {
     fail += 1
     console.log(`FAIL ${what.padEnd(72)} ${detail}`)
   }
+}
+
+/**
+ * The third state, and the reason this file has one at all.
+ *
+ * Rule 3 below - every primitive the content asks for has a factory registered
+ * in Godot - is answered by a `.gd` file this repository does not currently
+ * hold. Folding that into a pass would report a contract that was never
+ * checked; folding it into a failure would report a defect nobody introduced.
+ * `tools/run-tests.mjs` collects every line carrying this marker and refuses to
+ * print "all passed" over one.
+ */
+const notChecked = (what, why) => {
+  skipped.push(`${what}: ${why}`)
+  console.log(`NOT CHECKED ${what.padEnd(65)} ${why}`)
 }
 
 // ------------------------------------------------------- 1. no drift
@@ -144,23 +160,32 @@ ok(
 // ------------------------------------- 3. only kinds the viewer can draw
 
 /**
- * The registered set, read out of the content pack rather than typed here.
+ * The registered set, read out of whichever `.gd` registers content factories
+ * rather than typed here.
  *
- * `ensure_registration()` is the one function that hands a factory to
- * `ContentRegistry`, so every `ContentRegistry.register("<kind>", …)` line in
- * it is a kind the viewer can actually draw. A hand-written copy of that list
- * would agree with GDScript by coincidence, which is exactly the class of
- * defect `tools/board-geometry-drift-test.mjs` exists for.
+ * `ContentRegistry.register("<kind>", …)` is the one call that makes a kind
+ * drawable, so every such line is a kind the viewer can actually draw. A
+ * hand-written copy of that list would agree with GDScript by coincidence,
+ * which is the class of defect this rule exists for.
+ *
+ * It is found by that call rather than by filename. Until 9 Sep 2026 the path
+ * `godot/scripts/shared_asset_content.gd` was hardcoded here, and when the 3D
+ * subsystem was deleted (docs/NO-3D.md) this file died on ENOENT before
+ * reaching any of the rules below it - a whole suite lost to one absent
+ * optional input. Scanning for the call means the rule re-arms by itself when
+ * the 2D pack lands under whatever name its owner gives it.
  */
-const packSource = readFileSync(CONTENT_PACK, 'utf8')
-const registered = new Set(
-  [...packSource.matchAll(/ContentRegistry\.register\(\s*"([^"]+)"/g)].map((match) => match[1])
-)
-ok(
-  'the Godot content pack still declares a registry of kinds this can read',
-  registered.size >= MIN_REGISTERED_KINDS,
-  `${registered.size} kinds registered in ${CONTENT_PACK}: ${[...registered].sort().join(', ')} (floor ${MIN_REGISTERED_KINDS})`
-)
+const pack = findContentPack()
+if (pack) {
+  ok(
+    'the Godot content pack still declares a registry of kinds this can read',
+    pack.registered.length >= MIN_REGISTERED_KINDS,
+    `${pack.registered.length} kinds registered in ${pack.file}: ${[...pack.registered].sort().join(', ')} (floor ${MIN_REGISTERED_KINDS})`
+  )
+} else {
+  notChecked('the Godot content pack still declares a registry of kinds this can read', NO_CONTENT_PACK_REASON)
+}
+const registered = new Set(pack?.registered ?? [])
 
 let primitivesAsked = 0
 const undrawable = new Map()
@@ -181,19 +206,36 @@ for (const zone of mapZones) {
       boundaryEdges: room.boundaryEdges,
     })) {
       primitivesAsked += 1
-      if (!registered.has(primitive.kind)) {
+      if (pack && !registered.has(primitive.kind)) {
         undrawable.set(primitive.kind, (undrawable.get(primitive.kind) ?? 0) + 1)
       }
     }
   }
 }
+
+// The denominator, kept whether or not there is a pack to compare against. It
+// is the number that goes to zero when the content or `primitivesFor()` stops
+// producing anything, and without it the rule below would be "no kind is
+// undrawable" over nothing - which is what a run against an empty
+// `src/data/world` says too. Asserted separately so the pack's absence costs
+// this suite one rule and not two.
 ok(
-  'every primitive the content asks for has a factory registered in Godot',
-  undrawable.size === 0 && primitivesAsked >= MIN_ROOMS,
-  undrawable.size
-    ? `${primitivesAsked} asked for; unregistered: ${[...undrawable].map(([kind, n]) => `${kind} x${n}`).join(', ')}`
-    : `${primitivesAsked} primitives asked for across ${contentRooms} rooms, all registered`
+  'the content still asks for primitives, so the drawability rule has something to judge',
+  primitivesAsked >= MIN_ROOMS,
+  `${primitivesAsked} primitives asked for across ${contentRooms} rooms, floor ${MIN_ROOMS}`
 )
+
+if (pack) {
+  ok(
+    'every primitive the content asks for has a factory registered in Godot',
+    undrawable.size === 0,
+    undrawable.size
+      ? `${primitivesAsked} asked for; unregistered: ${[...undrawable].map(([kind, n]) => `${kind} x${n}`).join(', ')}`
+      : `${primitivesAsked} primitives asked for across ${contentRooms} rooms, all registered against ${pack.file}`
+  )
+} else {
+  notChecked('every primitive the content asks for has a factory registered in Godot', NO_CONTENT_PACK_REASON)
+}
 
 // -------------------------------------------------- 4. the unknown ceiling
 
@@ -448,4 +490,11 @@ ok(
 
 console.log(`\n${pass + fail} checked, ${fail} failed`)
 if (fail) process.exit(1)
+if (skipped.length) {
+  // Deliberately does not repeat the marker token: `run-tests.mjs` collects
+  // every line carrying it, and a summary echoing it would report one skip as
+  // two and inflate the count it exists to make honest.
+  console.log(`no failures, but ${skipped.length} rule(s) went unchecked: ${skipped.join('; ')}`)
+  process.exit(0)
+}
 console.log('all passed')

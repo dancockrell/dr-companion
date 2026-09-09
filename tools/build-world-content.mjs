@@ -34,7 +34,6 @@
  * abort naming the count, because a builder pointed at an empty or half-copied
  * map directory would otherwise write 85 tiny manifests and report success.
  */
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { landmarkFor } from '../src/lib/mapLandmarks.ts'
@@ -663,18 +662,20 @@ if (worst.length) {
  * Three states, not two. If the briefs are not on disk (`data/art/out` is
  * generated and gitignored, so a fresh worktree has none of it) this says NOT
  * CHECKED and why, rather than passing quietly.
+ *
+ * It used to try to regenerate them first. `tools/build-geometric-room-briefs
+ * .mjs` was deleted with the rest of the 3D subsystem (docs/NO-3D.md), so that
+ * spawn could only ever fail into the same NOT CHECKED line below - a process
+ * launched every run to produce a result already decided. Removed rather than
+ * left: a call that cannot succeed reads to the next person as a live path
+ * back to the control, which is exactly the kind of scaffold that makes an
+ * absence look temporary when it is not. If somebody rebuilds the briefs, put
+ * them at BRIEFS_PATH and the control re-arms by itself.
  */
 function reportControl() {
   console.log('')
   if (!existsSync(BRIEFS_PATH)) {
-    try {
-      execFileSync(process.execPath, ['tools/build-geometric-room-briefs.mjs'], { stdio: 'ignore' })
-    } catch {
-      /* falls through to NOT CHECKED below */
-    }
-  }
-  if (!existsSync(BRIEFS_PATH)) {
-    console.log(`control: NOT CHECKED — ${BRIEFS_PATH} is absent and could not be generated, so the hand-made Crossing classification is unavailable to compare against.`)
+    console.log(`control: NOT CHECKED — ${BRIEFS_PATH} is absent, so the hand-made Crossing classification is unavailable to compare against. Its generator, tools/build-geometric-room-briefs.mjs, went with the 3D subsystem (docs/NO-3D.md); drop a brief catalogue at that path and this control runs again.`)
     return null
   }
   const catalogue = JSON.parse(readFileSync(BRIEFS_PATH, 'utf8'))

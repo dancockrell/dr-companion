@@ -46,7 +46,6 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { execFileSync } from 'node:child_process'
 import { compileWorldSnapshot } from '../src/lib/presentationBridge.ts'
 import { CELL_BLOCK_METRES } from '../src/lib/isometric-board-layout.mjs'
 import { LIVE_HERE, LIVE_ZONE } from './live-zone-fixture.mjs'
@@ -227,14 +226,33 @@ const contractViolations = (manifest) => {
   return violations
 }
 
-// A fixture that has drifted from its generator is not a fixture, so settle
-// that before reading anything out of it.
-try {
-  execFileSync(process.execPath, ['tools/build-godot-mock-fixture.mjs', '--check'], { stdio: 'inherit' })
-  ok('the committed fixture matches a fresh generation', true)
-} catch {
-  ok('the committed fixture matches a fresh generation', false, 'run node tools/build-godot-mock-fixture.mjs')
-}
+/**
+ * The drift check that used to stand here, and why it is a NOT CHECKED line
+ * now rather than a rule.
+ *
+ * `tools/build-godot-mock-fixture.mjs` regenerated the fixture and compared it
+ * byte for byte, which is the right shape for a derived artefact. Its own
+ * input was `tools/build-primitive-world-manifest.mjs`, deleted with the rest
+ * of the 3D subsystem (docs/NO-3D.md), so the generator could no longer run at
+ * all — and a generator that cannot run reports drift on every invocation,
+ * which is a check that always fires and carries exactly as much information
+ * as one that never does. The generator was deleted with it.
+ *
+ * The fixture stays. `godot/mock/crossing_mock_world.json` is a real Crossing
+ * extract and both `godot/tests/foundation_test.gd` and
+ * `godot/tests/bridge_client_null_target_test.gd` load it, so deleting it
+ * would take two surviving Godot tests with it. Every other rule in this file
+ * still runs against it and still bites; the fixture being frozen makes it a
+ * less likely source of drift, not an unchecked one.
+ *
+ * What is genuinely no longer checked is the one property a regeneration
+ * proved: that the committed bytes are what a generator would produce today.
+ * Nothing here can say that, so nothing here claims it.
+ */
+notChecked(
+  'mock fixture: matches a fresh generation',
+  `${FIXTURE} is a frozen artefact with no generator — tools/build-godot-mock-fixture.mjs was deleted because its own input, tools/build-primitive-world-manifest.mjs, went with the 3D subsystem (docs/NO-3D.md). A 2D generator sourced from src/data/map and src/data/world is outstanding work; until it lands a hand-edit to this fixture is caught only by the contract rules below`,
+)
 
 const fixture = JSON.parse(readFileSync(FIXTURE, 'utf8'))
 const live = compileWorldSnapshot({ zone: LIVE_ZONE, here: LIVE_HERE, character: null, sequence: 1 })
@@ -393,9 +411,14 @@ for (const subject of subjects) {
     m.cells[0].board.ground.depth = CELL_BLOCK_METRES
   })
 
-  if (subject.derived) {
-    ok(`${name}: is a derived artefact whose drift check ran`, true, 'checked above, against its own generator')
-  } else {
+  // The generation property, per subject. The mock's is reported once at the
+  // top of the run - it has no generator any more - so only the live subject
+  // says anything here. It used to read `ok(... is a derived artefact whose
+  // drift check ran, true)`, which was a green line asserting that another
+  // check had happened; with that check gone it would have been a pass
+  // standing in for one, which is the exact substitution this file exists to
+  // refuse.
+  if (!subject.derived) {
     notChecked(
       `${name}: matches a fresh generation`,
       'compiled in-process from src/lib/presentationBridge.ts, so there is no committed artefact it could have drifted from',
@@ -469,6 +492,24 @@ ok(
   reintroduced.length === 0,
   reintroduced.length ? `${reintroduced[0].file}:${reintroduced[0].lines[0]}` : `${scanned.length} files clean`,
 )
+
+/**
+ * The denominator, asserted rather than printed.
+ *
+ * Added when the fixture's drift check was retired: the run went from 69
+ * checks to 67 (the regeneration itself, and the green line that asserted the
+ * regeneration had happened), and nothing in this file could have told a
+ * deliberate removal of two from a section that had silently stopped
+ * executing. 60 is well below 67 and well above anything a truncated run
+ * produces, so it catches an emptied subject or a section deleted by accident
+ * without needing to be edited when somebody adds a rule. Raise it only when
+ * you mean to, and say what you removed.
+ */
+const CHECK_FLOOR = 60
+if (pass + fail < CHECK_FLOOR) {
+  console.log(`\nFAIL only ${pass + fail} checks ran, below the floor of ${CHECK_FLOOR}. The run was truncated.`)
+  process.exit(1)
+}
 
 console.log(`\n${pass + fail} checked, ${fail} failed`)
 if (fail) process.exit(1)

@@ -1,17 +1,22 @@
 # DR Companion — the working plan to 1.0
 
-> **`npm run test:plan` fails with 22 findings, and that is correct. Do not
-> "fix" it by restoring files.** 3D was cancelled on 9 Sep 2026 and its
-> artifacts were deleted (see [NO-3D.md](NO-3D.md)). Increments across lanes B, K, L, M and S
-> were genuinely completed and genuinely delivered 3D work, so
-> they stay marked done; the files they name are gone on purpose. The audit
-> is telling the truth and the plan is telling the truth, and they disagree
-> because the world changed under both.
+> **3D is cancelled ([NO-3D.md](NO-3D.md)). Godot is not.** Godot stays and is
+> expanding: world and route presentation live there, rendered as **2D
+> isometric sprite art**. The map panel is gone and cancelling 3D did not
+> revive it; the room-graph data under `src/data/map` and `src/data/world` is
+> retained so Godot can consume it. Do not propose, scaffold or restore a 3D
+> viewer, a model library, meshes or rigging — and do not read this as a reason
+> to move functionality back into the React wrapper.
 >
-> The wrong repair is recreating `content_registry.gd`, `world_root.gd`,
-> `WorldRoot.tscn`, or the primitive-world tools to make a check go green.
-> The right repair is a decision about how these increments should read now
-> that 3D is gone, which is Dan's to make.
+> Increments that delivered 3D work are marked `[-]` **superseded** (§0.1).
+> That marker keeps their history and their recorded minutes while asserting
+> that the files they owned are now absent, so the audit checks the deletion
+> instead of tripping over it. It replaced a header here that said the audit
+> was red on purpose: that was true for one working day, and a plan whose own
+> check is expected to fail is a plan on which nobody runs the check.
+>
+> Lane T (backend half of the 2D presentation) and Lane U (Godot as the MUD
+> front end) are where the work went. §6 has both.
 
 Version 3.1, 5 Sep 2026 (3.0 earlier the same day), written against `main` @ `ae0e57a9` with PR #285 @
 `8299fe86` open and mergeable. Section 11 evaluates the 5 Sep handoff PDF against this plan. Section 9 lists what the audit of version 2
@@ -43,8 +48,33 @@ checkbox. Change the marker and add the bookkeeping line under it, nothing else:
 - [~] A3  in progress       ← next line: `  owner: <agent> claim: <task-id> since: <date>`
 - [x] A3  done              ← next line: `  commit: <sha> verified: <date> minutes: <n>`
 - [!] A3  blocked           ← next line: `  blocked-on: <ID or reason>`
-- [-] A3  dropped           ← next line: `  why: <one sentence>`
+- [-] A3  superseded        ← next line: `  superseded: <date> — <why>, <the PR that removed it>`
 ```
+
+**`[-]` superseded**, added 9 Sep 2026 when 3D was cancelled. It says: *this
+increment will not be delivered in this form, and every file it would have
+owned is absent.* Use it when the ground an increment stood on has been
+removed — not when the work merely stalled, which is `[!]`.
+
+- The `superseded:` line is required and must carry a date. `tools/plan-audit.mjs`
+  refuses a `[-]` row without one, and refuses one on a row that is not `[-]`.
+- Keep the `commit:` line if the work was actually delivered. Whether it shipped
+  and was then deleted (K2, K3, K5) or was retired before it could be built
+  (K6) is carried by whether that line is there, where a person reads it.
+- Rewrite every `new:` path the increment owned to name the file that is now
+  gone; the audit asserts `new:` and `gone:` paths are **absent** on a `[-]`
+  row, and plain paths still have to exist, so the row goes on checking the
+  survivors instead of quietly becoming an unchecked row.
+- Nothing that is not itself settled may `depends-on:` a `[-]` increment. The
+  audit fails it: work resting on a removed foundation has to be rewritten or
+  superseded in turn, not picked up by whoever reads the lane next.
+- A gate line may not name a `[-]` increment, and the audit fails that too.
+  A gate member that can never become `[x]` is a permanent red mark on the
+  status board rather than a condition. Supersede an increment, rewrite the
+  gate in the same edit.
+
+`[-]` used to mean "dropped" and was never used once, so nothing was rewritten
+to make room for this.
 
 Tally (from the repo root):
 
@@ -310,8 +340,11 @@ disagree eventually, and then both are wrong.
 | **H** | Local model provider | new `aiLocalProvider.ts`, Settings AI section | A2 |
 | **I** | Design tokens (#176, #179) | `src/components/**`, `src/index.css`, new `tools/color-token-test.mjs` | none |
 | **J** | Map audit (#175) | per finding | D5 |
-| **K** | Appearance (models for weapons/armor, glyphs) | new appearance data + `presentationBridge.ts` entity fields + Godot mapping | C7 decided, C4 |
-| **L** | Codex contract for the Crossing slice | `docs/NO-3D.md`, `godot/mock/*`, contract tests in `tools/` | B3 |
+| ~~**K**~~ | ~~Appearance~~ — **superseded 9 Sep 2026**, 3D cancelled; see Lane K's heading | — | — |
+| **L** | Codex contract for the Crossing slice — **mostly superseded 9 Sep 2026**; L2, L3, L8 survive | `godot/mock/*`, contract tests in `tools/` | B3 |
+| **T** | Godot 2D isometric presentation, backend half | `presentationTypes.ts`, `presentationBridge.ts`, `isometric-board-layout.mjs`, `presentation_bridge.rs`, new `docs/WORLD_MANIFEST_2D.md` + contract tests in `tools/` | none (T0 first) |
+| **U** | Godot as the MUD front end | `panelDataContracts.ts`, `presentationTypes.ts`, `presentationBridge.ts`, `usePresentationBridgePublisher.ts` | T3, then U1 |
+| **V** | Backend continuation and repo hygiene | per increment; `break-check-tree.mjs`, `credentials.rs`, `lich.rs`, `doc-claims-test.mjs`, `docs/MERGING.md` | none |
 | **N** | Lich-native login and frontend (no Genie) | new `src-tauri/src/eaccess.rs`, new `src-tauri/src/sal.rs`, `lich.rs`, `LichLauncher.tsx`, `WaitingForCharacter.tsx`, `tools/build-privacy-doc.mjs` | none |
 | **Q** | Player config: the client's own macros, aliases, highlights, substitutes, gags, variables, presets | new `src/lib/playerConfig.ts`, new `src/lib/playerConfigImport.ts`, new `src/lib/lineRules.ts`, new `src/components/config/`, `useHighlights.ts`, `useAliases.ts`, `keybindings.ts`, `useGameLines.ts` | N6 |
 
@@ -354,9 +387,21 @@ PRs per lane, squash-merged.
 
 | Lane | Increments | Branch | Worktree | Since |
 |---|---|---|---|---|
+| V | V2 (#505) | `fix/505-break-check-tree`, **never pushed** | `C:\Users\Admin\dev\wt-505` | 2026-09-09 |
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | Q | Q2 | `lane-q/q2-highlights` | `C:\Users\Admin\dev\wt-q2` | 2026-09-06 |
 | S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
+
+**Lanes T, U and V are unheld and free to claim** (added 9 Sep 2026). Take
+T0 or T3 first — they name disjoint files and are the two that unblock the
+rest. Lane K is superseded in full and Lane L is superseded except for L2,
+L3 and L8; neither has work in it.
+
+**The V row above is a real claim on a live worktree, not a placeholder.**
+`C:\Users\Admin\dev\wt-505` holds another session's uncommitted 322-line
+change to `tools/break-check-tree.mjs`; that session was killed by a usage
+limit and never pushed. The row exists so nobody re-implements it and
+nobody deletes the worktree. Read V2 before touching either.
 
 N1 and N2 have merged (#441, #438). N7 is unheld and needs Dan rather than a
 session. G's row was deleted on 6 Sep 2026 when G11's second
@@ -551,9 +596,24 @@ passes.
 - **Gate 2 — First run:** E10–E12, F2–F4.
   Check: a never-used-Lich person reaches a playing session from the installer
   in under ten minutes on the clean VM, recorded in `docs/verification/`.
-- **Gate 3 — Viewer optional:** B4–B8, L1–L6.
+- **Gate 3 — Viewer optional:** B4–B8, L2, L3, T0–T5.
   Check: `node tools/live-chain-check.mjs` passes against the running app;
-  Crossing slice walk/stun/decay recorded.
+  the acceptance list in `docs/verification/godot-2d-acceptance.md` (T5) has
+  no line that is neither recorded nor marked as needing a live character.
+
+  Rewritten 9 Sep 2026. It named L1–L6, four of which are now `[-]`
+  superseded: they were about a 3D Crossing slice and a handoff document
+  that no longer exist, so the gate was waiting on increments that could
+  never become `[x]` — a permanent red mark on the status board rather than
+  a condition. `tools/plan-audit.mjs` now fails a gate line that names a
+  superseded increment, so this cannot happen quietly again. L2 and L3 stay
+  because the mock fixture and the data-contract tests are about the room
+  graph and are as true of a 2D board; Lane T replaces the rest.
+
+  "Optional" still means what it meant: the client plays without the
+  viewer, and `test:viewer-absent` is what keeps that honest. Note the
+  gate cannot go green on this side alone — `godot/project.godot` has no
+  main scene, and authoring the 2D one is the Godot owner's work.
 - **Gate 4 — AI optional:** G0–G10, G12, H1–H8 (G11 only with Dan's yes — given
   6 Sep 2026, and G11 merged on it).
   Check: no model → panel honest, client unchanged; local Qwen → one map claim
@@ -855,7 +915,8 @@ in the chain (token/port files, auth, reconnect) is already written.
 
 - [x] **B2  The app launches the viewer live** (≈25)
   commit: (this PR) verified: 2026-09-05 minutes: 55
-  touches: src-tauri/src/viewer.rs, godot/scripts/world_root.gd
+  touches: src-tauri/src/viewer.rs, gone:godot/scripts/world_root.gd
+  still true, 9 Sep 2026: the launch path is alive and is not superseded — `viewer.rs` still starts the engine with `--live-presentation`, and Godot is where world presentation is going. What went with `world_root.gd` is the scene it launched *into*, and `godot/project.godot` now has no `run/main_scene` until a 2D one is authored (the Godot owner's). `viewer.rs`'s cross-language check that Rust passes the flag the GDScript reads had `include_str!`'d the deleted file, so the whole Rust build failed to compile; it now scans `godot/scripts/*.gd` for the reader and prints what it searched, so it re-arms by itself when the 2D scene lands. `done-when:` is therefore not currently demonstrable end to end.
   depends-on: B1
   do: `viewer.rs`: `Command::new(&exe).args(["--", "--live-presentation"])` — Godot user args follow `--`; a mode flag is not a credential, so update the module header from "nothing goes on the command line" to "no *secrets* go on the command line", keeping the reasoning about the token. `world_root.gd` `_ready()`: when live is requested and `start_live()` fails, do not silently `return` into an empty scene — set a visible label (the world_controls or inspector already has status text: `grep -n "status\|label" godot/scripts/world_controls.gd | head`) reading "Bridge unavailable — is DR Companion running?" and let `BridgeClient`'s reconnect timer keep trying. Mock stays a dev path reached only without the flag.
   verify: `cargo test --lib viewer` green; run the app from your worktree (`npm run tauri dev`), Settings → viewer bridge shows a port; Launch; the Godot console prints `connected-awaiting-auth` then the auth result; the Rust log shows the new client.
@@ -1610,7 +1671,7 @@ whether it is embedded, docked or a separate window is D0.
 
 - [x] **C12  The last thirteen suites that had never run, and the guard the collapse stepped over** (≈70)
   commit: (this PR) verified: 2026-09-05 minutes: 90
-  touches: tools/crossing-build-list-test.mjs, tools/room-scene-patterns-test.mjs, tools/task-catalog-status-test.mjs, tools/map-keyboard-test.ts, tools/needs-env.mjs, tools/test-suites.json
+  touches: gone:tools/crossing-build-list-test.mjs, tools/room-scene-patterns-test.mjs, tools/task-catalog-status-test.mjs, tools/map-keyboard-test.ts, tools/needs-env.mjs, tools/test-suites.json
   depends-on: C10
   do: unplanned, finishing what C6 counted and C10 started. All thirteen names left in `UNWIRED` were run standalone. Ten passed untouched and are registered. Three did not, and none of the three could have been noticed while it sat on a backlog list: `room-scene-patterns` threw ENOENT after **74 passing checks** on `data/art/out/scene-basket-audit.json`, a generated input under a gitignored directory — under the runner that is NOT RUN, and its builder needs nothing but tracked files and a fifth of a second, so the test builds it as `geometric-room-briefs-test.mjs` already does for its own input, and 110 further checks appear. `task-catalog-status` had been red since `9d92b5ef` against a **literal that went stale when the code got better**: it matched `'Task lookup failed:'` while `QuickSwitchBar` now names which catalog failed, `${languageLabel} task lookup failed: ${catalog.error}`. Its own name says "distinguishes failed lookup from loading", which is a property the change made *more* true, so the test was the stale half — it asserts the property now, plus that the reason reaches the player, which the version it replaces never required. `map-keyboard` used bare `node:assert` and one summary line, so it printed no OK or FAIL and the runner rightly called it "asserted nothing"; it has eight named checks and a floor.
   And separately the finding Lane L reported in passing, confirmed: **`test:crossing-build-list` ran 1 check instead of 21 on `main`** and the run still ended `all passed`. Its skip branch was announced, which reads as careful, and it exited *before* the `MIN_EXPECTED` floor at the foot of the same file — the one guard written against a collapsed denominator was the one thing the collapse stepped over, and a skip printed inside a suite is invisible to a runner that counts OK and FAIL lines. Nothing environmental was missing: the briefs builder reads tracked inputs and takes 1.7 seconds. It builds them rather than skipping.
@@ -1682,7 +1743,8 @@ whether it is embedded, docked or a separate window is D0.
 
 - [x] **J2c  The viewer inherits the terrain-variety problem, so say so** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 20
-  touches: docs/NO-3D.md
+  touches: gone:docs/THREE_D_REBUILD_HANDOFF.md
+  note, 9 Sep 2026: this row named `docs/NO-3D.md` for one day. It should not have — that file was created on 9 Sep and this increment ran on the 5th, so the row was claiming an increment touched a file that did not exist when it ran, and the audit passed it because the path resolves. Corrected to `gone:` the file it did touch. The finding itself is unaffected and still stands: 27 stamp kinds, 22 with two images, 4 with three, 1 with four, over 85 zones. It is now Lane T's number to beat in 2D, not the 3D viewer's.
   depends-on: J1
   do: #175's finding 5 is confirmed exactly — 27 stamp kinds in `MapStampLayer.tsx`, 22 with two images, 4 with three, 1 with four, on an 85-zone map. It is real and it is not worth fixing here: §1 of the handoff retires the player-facing 2D map, so commissioning more 2D terrain art buys repetition relief on a surface that is going away. Add a contract line under the world-presentation section: the viewer's terrain and landmark presentation is judged on visible repetition across a zone, not on having one asset per kind, and a kind with a single motif is a gap to record rather than a kind that is done. Name `MapStampLayer.tsx`'s 27 kinds as the vocabulary being handed over.
   verify: the section exists and names the measured 22/4/1 split, so the number the viewer has to beat is on the page rather than in an issue comment.
@@ -1692,6 +1754,16 @@ whether it is embedded, docked or a separate window is D0.
 
 ### Lane K — Appearance: models for weapons and armor, glyphs for skills
 
+**The whole lane is superseded, 9 Sep 2026.** Every increment in it is `[-]`.
+Appearance was defined as "data the snapshot carries and Godot renders as a
+GLB through the asset registry", and 3D is cancelled ([NO-3D.md](NO-3D.md)):
+the registry, the defaults table, `src/lib/appearance.ts` and the override
+store were all deleted by PR #517. Nothing here is waiting on anything, and
+none of it is to be restored. If a 2D isometric client ever wants per-entity
+sprite variation, that is a Lane T increment against sprite ids, starting
+from the room-content vocabulary that survived rather than from a mesh
+registry that did not.
+
 Version 2 proposed extending `portraits.ts`. `rewrite/remove-2d` deletes it,
 and Dan's quoted rule in that branch is "I would rather throw an error than
 keep 2d". So the appearance system is not a 2D-art descendant. It is **data the
@@ -1700,45 +1772,50 @@ registry (`godot/assets/shared_asset_selections.json` ids), a player override
 store, and a per-entity `appearance` field on the snapshot the viewer already
 receives. No portraits, no images in the client.
 
-- [x] **K1  Design note, no code** (≈20)
+- [-] **K1  Design note, no code** (≈20)
   commit: (this PR) verified: 2026-09-05 minutes: 25
-  touches: docs/NO-3D.md
+  superseded: 2026-09-09 — 3D cancelled. §11 "Appearance" was written into `THREE_D_REBUILD_HANDOFF.md`, which PR #517 deleted. The `touches:` line said `docs/NO-3D.md` for one day, which was untrue: that file did not exist on 5 Sep, and the audit passed the row because the path resolved rather than because the claim held.
+  touches: gone:docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: C7
   do: add §11 "Appearance": the three pieces above; the id vocabulary is the registry's `selections[].id`; defaults are compiled by a tool from a noun→class table; overrides live in the client under `drc.appearance.v1`; the snapshot compiler attaches `appearance: {modelId, glyph?}` to `EntitySnapshot` and to `player`; Godot maps `modelId` → GLB through the registry and falls back to the class default, never to an invented mesh (the registry's own `forbiddenSubstitutions` rule).
   verify: the section exists and names the four owners it extends.
 
-- [x] **K2  Defaults compiler** (≈30)
+- [-] **K2  Defaults compiler** (≈30)
   commit: (this PR) verified: 2026-09-05 minutes: 55
+  superseded: 2026-09-09 — 3D cancelled; PR #517 deleted the compiler, its committed output, and the asset registry the ids were asserted against.
   touches: new:tools/build-appearance-defaults.mjs, new:src/data/appearanceDefaults.json, package.json, tools/test-suites.json, src/lib/armorLoadout.ts
   depends-on: K1
   do: input: a noun table (`sword, broadsword, bastard sword → 'Large Edged'`, …) keyed to `SKILLS_BY_SET.Weapon` (`grep -rn SKILLS_BY_SET src/`) excluding meta-skills (Parry, Offhand, Mastery, Expertise); armor classes from `armorLoadout.ts`'s coverage helpers; each class → a registry `id` that exists in `shared_asset_selections.json` (assert, do not trust). `--check` compares to the committed JSON.
   verify: `node tools/build-appearance-defaults.mjs --check` exit 0; an unknown noun maps to `null`, never a guess.
   sabotage: point a class at an id not in the registry → red naming it.
 
-- [x] **K3  Snapshot carries appearance** (≈25)
+- [-] **K3  Snapshot carries appearance** (≈25)
   commit: (this PR) verified: 2026-09-05 minutes: 60
-  touches: src/lib/presentationBridge.ts, new:src/lib/appearance.ts, tools/presentation-bridge-test.mjs, src/lib/presentationTypes.ts, src/lib/usePresentationBridgePublisher.ts, tools/build-appearance-defaults.mjs, src/data/appearanceDefaults.json, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md
+  superseded: 2026-09-09 — 3D cancelled; PR #517 deleted `src/lib/appearance.ts` and the `appearance` field is off `EntitySnapshot` and off `player`. The bridge, its types and its test survive and are still named below, so this row goes on checking them.
+  touches: src/lib/presentationBridge.ts, new:src/lib/appearance.ts, tools/presentation-bridge-test.mjs, src/lib/presentationTypes.ts, src/lib/usePresentationBridgePublisher.ts, gone:tools/build-appearance-defaults.mjs, gone:src/data/appearanceDefaults.json, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md
   depends-on: K2, C4
   do: `appearance.ts`: `appearanceFor(kind, name)` = override (`readJSON('drc.appearance.v1')`) ?? default ?? null; `setOverride`, `resetOverride`. `compileWorldSnapshot` attaches `appearance` to each entity and to `player` (wielded items from `CharacterStatus` — `grep -n "wield\|worn\|armor" src/types/index.ts`). Rust passes entities through opaquely already; `player` is `Option<Value>` — nothing to change there.
   verify: presentation-bridge test: a fixture with a bastard sword → `appearance.modelId` equals the Large Edged default; an override wins; unknown → absent field, not null-string.
 
-- [x] **K4  Godot maps `modelId`** (≈Codex; contract only here)
+- [-] **K4  Godot maps `modelId`** (≈Codex; contract only here)
   commit: (this PR) verified: 2026-09-05 minutes: 15
-  touches: docs/NO-3D.md
+  superseded: 2026-09-09 — 3D cancelled. There is no `modelId`, no GLB and no `entity_projection_test.gd`; the contract lived in `THREE_D_REBUILD_HANDOFF.md`, deleted by PR #517. Same correction as K1: the row named `docs/NO-3D.md` for a day and should not have.
+  touches: gone:docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: K3
   do: §11 states the field, the fallback order, and the test Godot must add (`entity_projection_test.gd`: unknown id → class default; missing field → neutral token). File the content task in the ledger for Codex.
   verify: claim filed; §11 names the test.
 
-- [x] **K5  Override export / import / merge** (≈30)
+- [-] **K5  Override export / import / merge** (≈30)
   commit: (this PR) verified: 2026-09-05 minutes: 35
-  touches: K3>src/lib/appearance.ts, new:tools/appearance-test.mjs, package.json, tools/test-suites.json
+  superseded: 2026-09-09 — 3D cancelled; PR #517 deleted both `appearance.ts` and `appearance-test.mjs`. The rule this increment established — the local player's own choices always win an import conflict, and conflicts are returned as a list rather than silently overwritten — survives in `src/lib/sceneOverrides.ts` (S4, S5), which is where to read it now.
+  touches: gone:src/lib/appearance.ts, new:tools/appearance-test.mjs, package.json, tools/test-suites.json
   depends-on: K3
   do: one JSON `{version, overrides:{...}, provenance:'player'}`; import merges with the local player's own choices always winning; conflicts returned as a list, never silently overwritten; unknown ids ignored with a count.
   verify: tests per rule.
   sabotage: let import overwrite → red.
 
-- [!] **K6  Picker UI** (≈40)
-  blocked-on: the asset registry admits no item meshes, so the picker has nothing to offer
+- [-] **K6  Picker UI** (≈40)
+  superseded: 2026-09-09 — 3D cancelled. This row was `[!]` on "the asset registry admits no item meshes"; PR #517 deleted the registry itself, so the blocker can never lift and there is nothing to pick from. Note there is no `commit:` line above it: unlike K1–K5 this was retired before it was ever built, and that absence is the only place the difference is recorded.
   touches: new:src/components/shared/AppearancePicker.tsx, src/components/dashboard/DashboardLayout.tsx
   depends-on: K5
   superseded-by: S3, for scenery. **The blocker above is unchanged and still correct for item meshes.** Lane S builds the picker and the in-cell placement UI this increment describes, over the kinds `godot/scripts/shared_asset_content.gd` actually registers - two, both scenery. That is the same control this row wants, pointed at content that exists; the day the registry admits its first item mesh, K6 is `AppearancePicker.tsx` built from `ScenePrimitivePicker.tsx` rather than from nothing. Left `[!]` rather than `[x]` because what this row promises - a player choosing the model for their own sword - is still not possible.
@@ -1750,9 +1827,22 @@ receives. No portraits, no images in the client.
 
 ### Lane L — Codex contract for the Crossing slice
 
-- [x] **L1  Name what I own** (≈15)
+**Mostly superseded, 9 Sep 2026.** This lane's subject was a 3D Crossing
+slice: a handoff document, a six-line acceptance checklist for it, and the
+board geometry it rendered on. 3D is cancelled ([NO-3D.md](NO-3D.md)) and PR
+#517 deleted the document and the geometry, so L1, L4, L5, L6 and L7 are
+`[-]`. Three things survive and are deliberately *not* superseded, because
+they are about data rather than about 3D: **L2**'s committed mock fixture,
+still read by two Godot tests; **L3**'s data-contract tests, which check
+exit/cell integrity and are as true of a 2D board as of a 3D one; and
+**L8**'s travel model — tile, word, hotkey — whose `travel-to-room` intent,
+`roomExits.ts` and command-lane routing are all live and are Lane T's input.
+The ownership split L1 wrote down is re-stated for 2D in Lane T's preamble.
+
+- [-] **L1  Name what I own** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 20
-  touches: docs/NO-3D.md
+  superseded: 2026-09-09 — 3D cancelled; §2 lived in `THREE_D_REBUILD_HANDOFF.md`, deleted by PR #517. The division it drew is still the right one and is restated at the head of Lane T: the backend owns the manifest, the wire shapes and their tests; the Godot owner owns every scene, content script and sprite. Only the document is gone, not the boundary.
+  touches: gone:docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: B3
   do: §2 lists: snapshot/event/intent shapes and their tests; the mock fixture generator; `tools/live-chain-check.mjs`; the acceptance checklist (L4). Codex owns every `.tscn`, content `.gd`, GLB and material.
   verify: the list is in §2.
@@ -1760,43 +1850,49 @@ receives. No portraits, no images in the client.
 - [x] **L2  Mock fixture becomes a derived artefact** (≈20)
   commit: (this PR) verified: 2026-09-05 minutes: 40
   note: the source is `data/world/out/1-primitive-world.json`, not the registry file the increment named — the registry is an input to it and carries assets, not cells. The fixture's original cell order matched no property of the data, so the generator states an order (focused room first, then room number) and the committed file was regenerated into it; content is byte-identical per cell.
-  touches: new:tools/build-godot-mock-fixture.mjs, godot/mock/crossing_mock_world.json, package.json
+  touches: gone:tools/build-godot-mock-fixture.mjs, godot/mock/crossing_mock_world.json, package.json
   depends-on: L1
+  still true, 9 Sep 2026: kept `[x]`, and only half of it survived. **The fixture is alive** — `godot/mock/crossing_mock_world.json` is still committed and still read by `foundation_test.gd` and `bridge_client_null_target_test.gd`, which is why it was not deleted with the rest. **The generator is gone**: it sourced the deleted primitive-world manifest, so PR #517's deletion took its input and this repair removed the tool rather than leave a command that cannot run. The consequence is that this increment's own achievement — making the fixture a *derived* artefact with a `--check` drift guard rather than a hand-made one — has been undone by circumstance, and the fixture is frozen. `tools/godot-fixture-contract-test.mjs` now says so as an explicit NOT CHECKED line rather than passing quietly over it. **T2 restores the generator**, sourced from `src/data/map` + `src/data/world` directly.
   do: `git grep -n crossing_mock_world tools/` — if no generator exists (none did on 5 Sep), write one extracting Town Green North + depth 2 from the primitive world manifest that `tools/build-primitive-world-manifest.mjs` writes (`data/world/out/crossing-primitive-registry.json` and its siblings — read that tool's `outputDir`). `--check` compares to the committed fixture.
   verify: `node tools/build-godot-mock-fixture.mjs --check` exit 0.
 
 - [x] **L3  Data contract tests** (≈30)
   commit: (this PR) verified: 2026-09-05 minutes: 35
-  touches: new:tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json, docs/NO-3D.md
+  touches: new:tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json, gone:docs/THREE_D_REBUILD_HANDOFF.md
+  still true, 9 Sep 2026: kept `[x]` on purpose. Every requirement this increment checks — an exit resolves to a cell or is honestly null, no cell has two exits with the same `move`, the current room is in `cells` — is a claim about the room graph and is exactly as true of a 2D isometric board. The suite lost one check of its 69: the fixture's generator sourced the deleted primitive-world manifest, so regeneration is now NOT CHECKED with that reason named, and `godot/mock/crossing_mock_world.json` is a frozen artefact until T2 gives it a 2D generator.
   depends-on: L2
   do: every exit resolves to a cell or is `targetCellId:null`; no cell has two exits with the same `move`; the current room is in `cells`. §9 maps each requirement to a test name on both sides (`godot/tests/foundation_test.gd` already exists).
   verify: suite green in the full run.
 
-- [x] **L4  Slice acceptance checklist** (≈15)
+- [-] **L4  Slice acceptance checklist** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 15
-  touches: docs/NO-3D.md
+  superseded: 2026-09-09 — 3D cancelled; the six §9 lines described a 3D scene rendering, and the document holding them was deleted by PR #517. Four of the six were never recorded. T5 writes the 2D acceptance list that replaces this, and it should be shorter and honest about needing a live character rather than inheriting four empty slots.
+  touches: gone:docs/THREE_D_REBUILD_HANDOFF.md
   depends-on: L1
   do: §9: Town Green North renders; every real exit clickable; click → `intent_accepted` → confirmed room change → token moves; a fabricated exit is refused; a stun flips `cannotAct` and the scene reacts; an assessed creature's confidence visibly ages. Each line has a "recorded in docs/verification/… on <date>" slot.
   verify: six lines with empty slots.
 
-- [x] **L5  Record the slice** (≈30)
+- [-] **L5  Record the slice** (≈30)
   commit: (this PR) verified: 2026-09-05 minutes: 90
+  superseded: 2026-09-09 — 3D cancelled; the slice it recorded was the 3D Crossing slice. `docs/verification/crossing-slice-2026-09-05.md` is kept as history and is not to be read as current state: two of its six lines were recorded, four were written up as unproven, and all six are about a scene that no longer exists.
   note: two of the six lines are recorded (1 and 4); four are written into `docs/verification/crossing-slice-2026-09-05.md` as unproven with what was tried, per L4's own rule. Lines 3, 5 and 6 need a live character, which `tools/fake-lich.mjs` cannot be. Line 2 needs a person to click once: a synthesised click did move the mock room, so the binding is not dead, but the rig could not say which button it pressed.
   touches: none
   depends-on: L4, B4
   do: run L4 live against Codex's current content; fill the slots; file gaps as ledger tasks for the content side.
   verify: slots filled or gaps filed.
 
-- [!] **L6  Playable-slice gate** (≈5)
-  blocked-on: four of the six §9 slots are still empty. Lines 3, 5 and 6 need a live DragonRealms character; line 2 needs one human click on a tile in the viewer that walks the character. None is a code change, and no fixture on this machine can substitute. **Line 2 changed subject with L8**: the exit chevrons it was written about are deleted, so the click to record is a click on a neighbouring tile (which walks its exit) and a click on a distant tile (which travels the route through `map_walk`).
+- [-] **L6  Playable-slice gate** (≈5)
+  superseded: 2026-09-09 — 3D cancelled. This was Gate 3's content half and could never go green: four of its six lines needed a live character and one needed a human click on a tile in a viewer that no longer exists. Gate 3 has been rewritten to name T1–T5 instead, in the same edit, because a gate member that can never become `[x]` is a permanent red mark rather than a condition. Superseded rather than left `[!]`: the block was not a scheduling problem, the subject was removed.
+  was-blocked-on: four of the six §9 slots are still empty. Lines 3, 5 and 6 need a live DragonRealms character; line 2 needs one human click on a tile in the viewer that walks the character. None is a code change, and no fixture on this machine can substitute. **Line 2 changed subject with L8**: the exit chevrons it was written about are deleted, so the click to record is a click on a neighbouring tile (which walks its exit) and a click on a distant tile (which travels the route through `map_walk`).
   touches: none
   depends-on: L5
   do: all six L4 lines recorded. Gate 3's content half.
   verify: no empty slot.
 
-- [x] **L7  The board overlapped itself, so the exits had no edge to sit on** (≈70)
+- [-] **L7  The board overlapped itself, so the exits had no edge to sit on** (≈70)
   commit: (this PR) verified: 2026-09-05 minutes: 70
-  touches: src/lib/isometric-board-layout.mjs, tools/build-primitive-world-manifest.mjs, godot/scripts/content_registry.gd, tools/primitive-world-manifest-test.mjs, tools/presentation-bridge-test.mjs
+  superseded: 2026-09-09 — 3D cancelled; PR #517 deleted the primitive-world manifest builder, its test and `content_registry.gd`, which is everything that consumed this geometry. `src/lib/isometric-board-layout.mjs` itself survives and is still named below, because four live callers import `classifyTether`, `tetherAnchorFor` and `expandCompassDirection` from it — but its metre-based half (`CELL_PITCH_METRES`, `CELL_GAP_METRES`, `CELL_BLOCK_METRES`, `TOKEN_MESHES`, `boardLayoutFor`) has no renderer left. **T1 decides which of those fields die and which become 2D sprite anchors; do not delete them before it does.** The finding this increment recorded is worth carrying across: three numbers described one dimension and none derived from another, and the fix was to make one of them the source. A 2D board has the same trap.
+  touches: src/lib/isometric-board-layout.mjs, gone:tools/build-primitive-world-manifest.mjs, gone:godot/scripts/content_registry.gd, gone:tools/primitive-world-manifest-test.mjs, tools/presentation-bridge-test.mjs
   superseded-by: L8, which deleted `godot/scripts/exit_anchor_layer.gd` on Dan's instruction. The chevrons this increment describes are gone; the gutter, the derived scale and the published footprint it also produced are not, and are what the paths above still name. The path was removed from `touches:` rather than left to fail the audit, and this line is where it went.
   depends-on: B3
   do: unplanned, from Dan playing the viewer — "the exits are sometimes hard to find… you should put a little bit of a gap between each block, good idea anyways actually, prevents clipping", then "some kind of shape randomly on the edge for directions… the 8 cardinal and sub cardinal… but not on the block itself, it won't be readable. it should be on the edge actually." Measuring the manifest found the cause was worse than a missing gap. Room positions were map units × 0.25, which put the **median** nearest neighbour 2.5 m away and the closest at 2.0 m, while every room drew a block 4.4–5 m wide: blocks overlapped by roughly their own width everywhere, and an exit anchor at the block edge landed inside the neighbour's geometry. Three numbers described one dimension and none derived from another — the manifest said 5, the selection box 4.5, Godot drew a hardcoded 4.5. Now `CELL_PITCH_METRES`, `CELL_GAP_METRES` and `CELL_BLOCK_METRES` are one source, Godot draws the published footprint, and the scale is 0.625 — derived rather than picked: 8 map units is the smallest gap the data contains, so `8 × scale ≥ block + gutter`. Exit markers became flat chevrons lying in the gutter and pointing out of the room, instead of upright cylinders standing on the block: at a fixed isometric camera a standing post is seen nearly end-on and hides behind room content, while a floor marking keeps its area toward the camera and can carry direction.
@@ -1808,8 +1904,9 @@ receives. No portraits, no images in the client.
   commit: (this PR) verified: 2026-09-06 minutes: 100
   done: Dan, 6 September 2026, verbatim: *"remove the route markers. you travel by clicking on another tile or by clicking on the words in the interface or by hotkey."* Three layers deleted, not disabled: `exit_anchor_layer.gd` (the cyan chevrons and the `Label3D` beside each non-compass exit), `route_graph_layer.gd` (the tether-coloured lines between cells), and `confirmed_route_transition.gd`, which drew nothing at all - `is_playing()` returned `false` unconditionally and `last_route()` had no consumer outside its own test. Their three scene nodes, their three tests and their `godot/README.md` entries went with them. Kept, with the consuming side named: the per-cell `ClickTarget` (this is now how a player travels), the `Current exits` word list in `world_controls.gd`, and the current-room cue, which is not a marker - the `PlayerSelf` token and its range bands are projected into the confirmed room by `entity_projection_layer.gd`, the camera is focused on it, and `world_inspector.gd` names it in text. `boardAnchor` stays in the manifest and the compiler: it fed the chevron placement, and it is also read and nulled by `aiJobProducers.ts::validateTetherCandidate`, which is a live consumer in another lane with its own tests and its own plan increment.
   note: the tile click now travels rather than nearly travelling. It walked a neighbour already; a click on the room you are standing in emitted an intent, and a click on any further room emitted `focus-room`, which reached the frontend and was dropped there. The first sends nothing now, and the second became `travel-to-room` - a destination and no route, because this client computes none: the frontend turns it into the bridge's own `map_walk`, which starts Lich's `go2`. The Rust variant was renamed rather than added beside the old one, and a test asserts the superseded `focus-room` wire kind is now *rejected*, so a stale viewer fails loudly instead of clicking into silence. The words and the hotkeys both already existed and neither was tested: `ExitButtons.tsx` was rendering the parsed compass exits as buttons, and `keybindings.ts` was binding all eleven numpad moves. Rebasing onto B9 then found the words were on the wrong lane: they sent through `useMacroRunner`, so a click went out as a `run_macro` bridge intent, *beside* the outbound command lane rather than through it - unordered against a script's walk loop, unpaced against the roundtime, and out of Stop's reach. They now call `requestGameAction(..., 'ui-action')` like every other UI control. The macro in-flight gate went with them, deliberately: refusing a second press while the first is outstanding is right for a five-command attack macro and wrong for a direction, and the lane already coalesces duplicate movement and holds against the roundtime the game reports. `canSendMacro` still supplies the disabled state and its wording, minus `inFlight`. The hotkeys needed nothing: `App.tsx` had already labelled the keybinding hook `'keybind'`, and the tile click is a bridge intent rather than a game command, so it names no source.
-  touches: godot/scripts/world_root.gd, godot/scripts/intent_sender.gd, godot/scripts/bridge_client.gd, godot/scenes/WorldRoot.tscn, godot/README.md, new:godot/tests/tile_travel_test.gd, src-tauri/src/presentation_bridge.rs, src/lib/presentationBridge.ts, src/lib/presentationIntents.ts, new:src/lib/roomExits.ts, src/components/room/ExitButtons.tsx, src/lib/panelDataContracts.ts, new:tools/exit-controls-test.mjs, tools/presentation-intents-test.mjs, tools/keybindings-test.mjs, package.json, tools/test-suites.json, docs/NO-3D.md, docs/PLAYER_DATA.md, docs/PRIVACY.md, new:docs/verification/route-markers-removed-2026-09-06.md
+  touches: gone:godot/scripts/world_root.gd, godot/scripts/intent_sender.gd, godot/scripts/bridge_client.gd, gone:godot/scenes/WorldRoot.tscn, godot/README.md, gone:godot/tests/tile_travel_test.gd, src-tauri/src/presentation_bridge.rs, src/lib/presentationBridge.ts, src/lib/presentationIntents.ts, new:src/lib/roomExits.ts, src/components/room/ExitButtons.tsx, src/lib/panelDataContracts.ts, new:tools/exit-controls-test.mjs, tools/presentation-intents-test.mjs, tools/keybindings-test.mjs, package.json, tools/test-suites.json, gone:docs/CLAUDE_3D_VIEWER_BRIEF.md, gone:docs/THREE_D_REBUILD_HANDOFF.md, docs/PLAYER_DATA.md, docs/PRIVACY.md, new:docs/verification/route-markers-removed-2026-09-06.md
   depends-on: L7
+  still true, 9 Sep 2026: kept `[x]`, and it is the most alive thing in this lane. Its Godot half is gone with the scene — `world_root.gd`, `WorldRoot.tscn` and `tile_travel_test.gd` — but everything on this side of the bridge survives and is working: the `travel-to-room` intent and the rejection of the superseded `focus-room` wire kind in `presentation_bridge.rs`, `roomExits.ts`, `ExitButtons.tsx` sending through `requestGameAction(..., 'ui-action')` rather than beside the command lane, and all eleven numpad bindings. **That is the contract the 2D scene builds against, and T3 publishes it rather than re-deriving it.** Two of the three travel paths — the words and the hotkeys — need no Godot at all and are live today. Note also `boardAnchor`, kept here because `aiJobProducers.ts::validateTetherCandidate` reads and nulls it: that consumer is still live, so T1 must not delete the field without dealing with it.
   do: delete the marker layers and their tests; make a tile click travel; cover all three travel paths with tests.
   verify: `node tools/godot-tests.mjs` 16 of 16 scripts / 271 checks measured at the branch point `db0cab4e`, 14 of 14 / 269 measured here after rebasing onto `7eafd42e`, which added checks of its own elsewhere. The delta from *this* change is the only part both numbers agree on: −24 (three deleted scripts) +19 (`tile_travel_test.gd`); `node tools/plan-audit.mjs` plan ok; `npx tsc -b` and `npm run lint` clean; `node tools/run-tests.mjs` no failures, 160 suites, 6002 checks, and 1 thing unchecked in 1 suite - `test:godot-fixture-contract`'s live-snapshot comparison, which predates this increment and is not a pass (measured after rebasing onto `3d19088f`; the totals move because other lanes are landing, and the second unchecked item this branch reported an hour earlier, `test:ai-script-repair`'s Ruby containment fixtures, was closed by H9 rather than by anything here; the +1 suite from this branch is `test:exit-controls`) (`test:exit-controls` is new; `docs/PLAYER_DATA.md` and `docs/PRIVACY.md` were regenerated because `src/lib/roomExits.ts` moved their scanned-file counts by one); `cargo test --lib presentation` 15 passed. Captures either side of the change in `docs/verification/route-markers-removed-2026-09-06-{before,after}.png`, of the same room through the same rig.
   sabotage: three, each aimed at a line that had to run. Removing the `cell_id == current_room` guard → `FAIL clicking the room you are already in sends nothing at all`, and nothing else; returning `walk` for a distant tile → `FAIL and it is a travel request, not a walk`; splitting the cell id at its *first* hyphen instead of its last → `FAIL a hyphen in the zone id does not change which half is the room`. Two more for the lane move, both against `src/components/room/ExitButtons.tsx`: labelling the exit words `'keybind'` → exactly one red, `FAIL through the command lane, naming this a player-driven UI action`, and nothing else; sending through `requestMacro([control.command])` again → all four of that block's checks red, which is right, because the call the other three read is gone. Each restored and the file's md5 compared either side (`6e067781ac5c` before and after both).
@@ -2163,8 +2260,9 @@ already on disk.
 
 - [x] **M2  The viewer reads the batch, and can load a zone nobody wrote about** (≈60)
   commit: (this PR) verified: 2026-09-06 minutes: 120
-  touches: src/lib/presentationBridge.ts, src/lib/presentationTypes.ts, tools/build-primitive-world-manifest.mjs, tools/build-godot-mock-fixture.mjs, godot/mock/crossing_mock_world.json, godot/tests/content_registry_test.gd, godot/tests/cell_click_target_test.gd, godot/tests/cell_detail_window_test.gd, new:src/lib/worldContent.ts, new:src/lib/world-content-rules.d.mts, new:tools/world-content-loader-test.mjs, package.json, tools/test-suites.json, docs/PLAYER_DATA.md, docs/PRIVACY.md
+  touches: src/lib/presentationBridge.ts, src/lib/presentationTypes.ts, gone:tools/build-primitive-world-manifest.mjs, gone:tools/build-godot-mock-fixture.mjs, godot/mock/crossing_mock_world.json, gone:godot/tests/content_registry_test.gd, gone:godot/tests/cell_click_target_test.gd, gone:godot/tests/cell_detail_window_test.gd, new:src/lib/worldContent.ts, new:src/lib/world-content-rules.d.mts, new:tools/world-content-loader-test.mjs, package.json, tools/test-suites.json, docs/PLAYER_DATA.md, docs/PRIVACY.md
   depends-on: M1
+  still true, 9 Sep 2026: **Lane M is not superseded and its output is the reason the room-graph data was retained.** `src/data/world` holds a content record for every one of 17,750 rooms — ground kind, block kind, landmark, tags, boundary edges — and `npm run world:build -- --check` still passes over 87 generated files. That vocabulary is renderer-agnostic: `street`, `cave`, `water`, `forest` are as drawable as sprites as they were as blocks. What went with 3D is the *art side* of it — the primitive-world manifest, the mock-fixture generator and the three GDScript tests above. The one live consequence is that `world-content-rules.mjs`'s "every primitive the content asks for has a factory registered in Godot" check had no content pack to read after PR #517; it is now three-state and re-arms when the 2D pack lands. T4 is where the batch meets sprites.
   do: `compileWorldSnapshot` publishes `boardLayoutFor({})` for every cell, so no live room has ever been an interior. Load the zone's content manifest and pass the classification through, so the live path and the Crossing art path take content from one place. Source `build-primitive-world-manifest.mjs`'s cells from `src/data/map` + `src/data/world` rather than from the place briefs, which is what limits it to the 1,060 described Crossing rooms today.
   verify: the regenerated mock fixture still passes `test:godot-fixture-contract`; a forest zone and a cave zone compile to cells with the right block kinds.
   done-when: the Crossing renders from the pipeline rather than from the hand-made classification, and a zone with no authored prose renders at all.
@@ -2222,8 +2320,9 @@ registry admits one. K6 stays `[!]` and names S3.
 
 - [x] **S1  Resolver, storage, and the compiler hook** (≈45)
   commit: (this PR) verified: 2026-09-06 minutes: 95
-  touches: new:src/lib/sceneOverrides.ts, new:tools/build-scene-registry.mjs, new:src/data/sceneRegistry.json, new:tools/scene-editor-test.mjs, godot/scripts/world_root.gd, src/lib/presentationBridge.ts, src/lib/presentationTypes.ts, src/lib/usePresentationBridgePublisher.ts, src/lib/mapLandmarks.ts, godot/scripts/content_registry.gd, godot/tests/content_registry_test.gd, package.json, tools/test-suites.json, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md
+  touches: new:src/lib/sceneOverrides.ts, new:tools/build-scene-registry.mjs, new:src/data/sceneRegistry.json, new:tools/scene-editor-test.mjs, gone:godot/scripts/world_root.gd, src/lib/presentationBridge.ts, src/lib/presentationTypes.ts, src/lib/usePresentationBridgePublisher.ts, src/lib/mapLandmarks.ts, gone:godot/scripts/content_registry.gd, gone:godot/tests/content_registry_test.gd, package.json, tools/test-suites.json, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md, docs/PRIVACY.md
   depends-on: M2
+  still true, 9 Sep 2026: **Lane S survives and the scene editor is kept.** What it edits — a room's ground kind, block kind, landmark and backdrop — is content, not geometry, and every one of those choices is as meaningful to a 2D isometric sprite as to a 3D block. `resolveScene`, the `drc.scene.v1` store, the import schema and the bounded-write guarantees (S5) are untouched. Two things did go: `content_registry.gd`'s placement of a primitive at a published offset, and the option list compiled from the deleted content pack, so `sceneRegistry.json` is frozen at the kinds the 3D pack admitted until a 2D pack exists. **The in-cell placement UI (S3) is the part most at risk**: it positions primitives in metres on a 4.4 m footprint, which is a 3D board unit. T1 decides whether that becomes a 2D sprite anchor or is dropped; until then S3's clamp is doing real work on a coordinate nothing renders.
   do: `resolveScene(roomId, guess, overrides)` = override ?? guess, exported and read by `compileWorldSnapshot` and by the panel — one resolver, not two agreeing ones. Overrides under `drc.scene.v1` through `storage.ts`. Every option list compiled from `godot/scripts/shared_asset_content.gd` by a `--check`-able builder, never typed. `content_registry.gd::build` places a primitive at the `offset` the manifest gives it, clamped to the cell's own published block.
   verify: `node tools/scene-editor-test.mjs`; `node tools/godot-tests.mjs`; `node tools/build-scene-registry.mjs --check`.
   done-when: an override set in the store changes what the live compiler publishes for that cell, and changes the block's height when it should.
@@ -2593,6 +2692,240 @@ file surface and `pinsFile.ts`, and no two of them name the same source file.
 The one shared file is `PlayerConfigPanel.tsx`, where each replaces its own
 placeholder line — a one-line edit, rebase on conflict. Q6 last, because it
 exports whatever the others landed.
+
+---
+
+### Lane T — Godot 2D isometric presentation: the backend half
+
+> **Sequencing, Dan, 9 Sep 2026:** *"outside of godot we need to get the build
+> running and tested as a mud client without godot, all on its own… godot is
+> dessert."* **Gate 1 comes first.** Lanes T and U are written now so the shape
+> is settled and the Godot owner is not blocked on a conversation, but they are
+> not the next thing to pick up: a session with free hands should take Gate 1's
+> remainder (N7 is Dan's; D6, J2 and H5 are the `[!]` rows) or Lane V before
+> starting here. The same instruction settles a second question — *"any ancient
+> history won't need to be merged into the windows, godot supersedes all
+> that"*: the map window and the retired panels are **not** to be ported into
+> Godot. Godot replaces them. Do not read Lane U as a migration of old panels;
+> it publishes data, and what Godot draws with it is a fresh design.
+
+Dan, 9 Sep 2026: world and route presentation live in Godot, drawn as **2D
+isometric sprite art** in the form the weird-western game (`cattle-trail`)
+established. The reason is not the look — it is that an image generator makes
+that form consistently, manipulates it well, and increasingly repairs its own
+mistakes. Consistency under generation is the selection criterion.
+
+**The ownership line, restated for 2D** (this replaces L1's §2, whose document
+was deleted). The backend owns: the world manifest's shape, the wire protocol
+and its version, the intent vocabulary and its validation, the contract tests
+on both, and the data pipelines that feed them. The Godot owner owns: every
+`.tscn`, every scene script, the camera, the sprite atlas and every image.
+`godot/project.godot` has no `run/main_scene` and will not run until a 2D one
+is authored; that is not this lane's work and this lane must not scaffold one.
+
+**This lane's job is to make the published data honest and the contract
+tested, so the Godot owner can build against it without talking to anybody.**
+
+The snapshot today is a 3D board description. `compileWorldSnapshot()` in
+`src/lib/presentationBridge.ts` publishes, per cell, a `board` carrying
+`footprint`, `ground`, `selectionBounds` and seven `spawnPoints` — each with a
+metre `anchor`, a `yawDeg`, a `rigSocket` (`humanoid-root`/`creature-root`/
+`item-root`) and a `token` naming a primitive mesh — plus a `position` in
+metres where `y` is elevation, and a `boardAnchor` per exit at ±2.5 m from a
+compass table. None of that has a renderer any more. T1 is the decision; do not
+delete any of it before T1, because two of those fields still have live
+consumers on this side.
+
+- [ ] **T0  Prove what actually crosses the bridge** (≈40)
+  touches: src-tauri/src/presentation_bridge.rs, new:tools/presentation-wire-fidelity-test.mjs, package.json, tools/test-suites.json
+  depends-on: none
+  do: the Rust bridge deserialises the snapshot into its own structs and re-serialises it on the way to Godot (`presentation_bridge.rs`, the broadcast path). `WorldCell` there declares only `id`, `title`, `position`, `exits`, and `Exit` declares only `move`, `direction`, `targetRoomId`, `targetCellId` — so `board`, `content`, `tetherKind` and `boardAnchor` are very likely **dropped in transit**, silently. The `player` field's own doc comment in that file documents this exact hazard as the reason `player` had to be declared, which is the tell. Establish it by measurement, not by reading: publish a snapshot carrying a known sentinel in each of the four fields through a real bridge instance and read back what a connected client receives.
+  verify: the test names each of the four fields and says, per field, arrived or dropped, with the count printed. If a field is dropped, that is a finding to fix in T1, not here — this increment's product is the true list.
+  sabotage: add a fifth field the Rust struct does not declare and confirm the test reports it dropped; declare it and confirm the test reports it arrived. A test that cannot distinguish the two is measuring nothing.
+  done-when: nobody has to guess which snapshot fields reach Godot, and a future field that stops arriving fails a check instead of arriving as `null` in a scene.
+  note: this is T0 and not T1 because every other increment in the lane is a decision about fields, and deciding about a field that never left the process would be deciding about nothing.
+
+- [ ] **T1  Decide the 2D manifest: which board fields die, which become sprite anchors** (≈70)
+  touches: src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, src/lib/isometric-board-layout.mjs, src/lib/isometric-board-layout.d.mts, tools/presentation-bridge-test.mjs, T0>tools/presentation-wire-fidelity-test.mjs, new:docs/WORLD_MANIFEST_2D.md
+  depends-on: T0
+  do: one decision per field, written down with its reason, and the type changed to match. The recommendation, to be argued with rather than accepted:
+    - **`board.footprint` / `board.ground` / `board.selectionBounds` — remove.** They are metre boxes for a 3D click target. A 2D isometric scene picks by sprite rect, which is the scene's own business.
+    - **`board.spawnPoints` — replace with a small ordered list of 2D anchors.** The *roles* are real and worth keeping (where the player stands, where a hostile stands, where items lie); the metre `anchor`, the `yawDeg`, the `rigSocket` and the `token` mesh are not. Publish `{ id, role, offset: {x, y}, order }` where `offset` is **normalised −1..1 within the cell**, so the backend never names a pixel and the scene chooses its own cell size. `order` is the isometric draw order, which is the one thing a 2D renderer needs that a 3D one did not.
+    - **`WorldCell.position` — publish map units, not metres.** `worldPosition()` multiplies by `MAP_UNIT_TO_METRES = 0.25` and `LEVEL_HEIGHT_METRES = 5`, both invented for the 3D board. Publish the cartography's own integers plus an integer `level`. A renderer that wants metres can multiply; a renderer given metres cannot recover the integers, and rounding at 0.25 is how two Paladins' Guild rooms ended up at identical coordinates being explained as a layout bug.
+    - **`WorldExit.boardAnchor` — migrate, do not delete.** `src/lib/aiJobProducers.ts::validateTetherCandidate` reads it and nulls it, with its own tests and its own plan increment. Replace it with the compass side it was always encoding (`n`, `ne`, …, or null when the graph offers no honest side) and update that consumer in the same commit. Deleting it silently is the exact defect L8 avoided by naming the consumer.
+    - **`content.primitives[].offset` — normalise to −1..1** for the same reason as `spawnPoints`, and update `sceneOverrides.ts::clampToCell` and `PLACEMENT_HALF_EXTENT` with it. S3's picker draws a 4.4 m footprint; it becomes a unit square.
+    - **`tetherKind`, `content`, `entities`, `groundItems`, `player`, `activeRoom` — unchanged.** They were never 3D.
+  Also fix `src/lib/isometric-board-layout.d.mts`, which omits `ground` (published by the `.mjs`) and the three metre constants: a field on the wire that TypeScript cannot see is a field nothing will warn you about.
+  verify: `npx tsc -b`; `npm run test:presentation-bridge`; T0's fidelity test re-run and every surviving field reported as arriving; `docs/WORLD_MANIFEST_2D.md` states each removed field and why, so the next session does not restore one.
+  sabotage: publish an `offset` outside −1..1 and confirm the compiler refuses it naming the cell; leave `boardAnchor` unmigrated and confirm `aiJobProducers`' tests go red rather than the field silently reading undefined.
+  done-when: the manifest describes a room graph and a draw order, and contains no metre, no mesh and no rig socket.
+
+- [ ] **T2  A 2D generator for the mock fixture** (≈45)
+  touches: new:tools/build-godot-2d-fixture.mjs, godot/mock/crossing_mock_world.json, tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json
+  depends-on: T1
+  do: `godot/mock/crossing_mock_world.json` is read by two surviving Godot tests and is currently a **frozen artefact with no generator** — its builder sourced the deleted primitive-world manifest, so `godot-fixture-contract-test.mjs`'s regeneration check is NOT CHECKED with that reason named. Write the replacement, sourced from `src/data/map` + `src/data/world` directly (which is where the content already comes from) rather than through any intermediate manifest, and restore `--check`. State the cell order in the tool the way the deleted one did, so the committed file is reproducible.
+  verify: `node tools/build-godot-2d-fixture.mjs --check` exit 0; `npm run test:godot-fixture-contract` back to a full denominator with nothing unchecked, and say the number.
+  sabotage: hand-edit one cell in the committed fixture and confirm `--check` names that cell.
+  done-when: the fixture is derived again, and the NOT CHECKED line T2 was written to close is gone rather than suppressed.
+
+- [ ] **T3  The intent contract, tested across the language boundary** (≈50)
+  touches: src-tauri/src/presentation_bridge.rs, src/lib/presentationTypes.ts, src/lib/presentationIntents.ts, new:tools/presentation-protocol-drift-test.mjs, package.json, tools/test-suites.json
+  depends-on: none
+  do: this is an unguarded seam and it is the one the Godot owner will hit first. Rust declares `PROTOCOL: u32 = 1` and four intent variants (`walk`, `inspect-entity`, `inspect-ground-item`, `travel-to-room`, via `rename_all = "kebab-case"`); TypeScript declares `protocol: 1` as a literal and matches the kind strings by hand, with `kind?: string` — not a union, so nothing names the four as a closed set. **Nothing compares the two.** `bridge-version-drift-test.mjs` and `intent-drift-test.mjs` are both about the *Lich* bridge, not this one, which is why this reads as covered and is not. Build the drift test on `panel-data-contracts-test.mjs`'s pattern: derive the Rust list from `presentation_bridge.rs` by reading it, derive the TS list from source, and fail on any disagreement in either direction. Make `kind` a real union on the TS side while you are there.
+  Also close the two validation holes the same file documents and does not honour: `inspect-entity` and `inspect-ground-item` are forwarded unconditionally although the doc comment above them claims the id "is confirmed to exist in the snapshot". Either validate or correct the comment; do not leave a comment asserting a check that is not performed.
+  verify: the new suite green; rename a Rust variant and confirm it names the mismatch; add a TS kind Rust does not have and confirm it names that too.
+  sabotage: as above, both directions, plus flip Rust's `PROTOCOL` to 2 and confirm the test reddens on the version rather than on a kind.
+  done-when: a Godot client written against the documented four kinds cannot be wrong about them, and a fifth kind cannot be added on one side only.
+
+- [ ] **T4  Sprite ids: what the backend publishes for content** (≈55)
+  touches: src/lib/world-content-rules.mjs, src/lib/sceneOverrides.ts, tools/build-scene-registry.mjs, src/data/sceneRegistry.json, tools/world-content-test.mjs, new:docs/SPRITE_VOCABULARY.md
+  depends-on: T1, M2
+  do: `src/data/world` already classifies all 17,750 rooms into 13 ground kinds, 4 block kinds and 29 landmark kinds. That vocabulary is renderer-agnostic and is what survives. What died with 3D is the *binding* from a kind to a drawable thing: the option lists were compiled from `godot/scripts/shared_asset_content.gd`, deleted, so the drawable check is now three-state and `sceneRegistry.json` is frozen at the kinds the 3D pack admitted. Publish a **sprite id** per kind — a stable string, not a filename and not a path — and write down the vocabulary so the Godot owner can produce an atlas against it and the generator can be pointed at a list rather than at prose. The backend must never name an image file: it names ids, and the scene's atlas maps them.
+  verify: every ground/block/landmark kind in `src/data/world` has exactly one sprite id and no id is orphaned — both directions, counted and printed, because a vocabulary checked one way is half checked; J2c's repetition number (27 stamp kinds, 22 with only two images) is the quality bar to beat and belongs in the doc.
+  sabotage: add a ground kind to the rules with no sprite id and confirm the red names it; add a sprite id no kind uses and confirm the other direction reddens.
+  done-when: the 2D content pack can be built by somebody who has read one document and no code, and the three-state drawable check re-arms against the real pack instead of staying unchecked.
+
+- [ ] **T5  The 2D acceptance list, and what it honestly cannot prove** (≈25)
+  touches: new:docs/verification/godot-2d-acceptance.md, T1>docs/WORLD_MANIFEST_2D.md
+  depends-on: T2, T3
+  do: replaces L4's six-line 3D checklist, four of whose slots were never filled because they needed a live character and one human click. Write a shorter list that separates what a fixture can prove from what only a live session can, and say which is which on the page rather than leaving empty slots that read as pending work. Each line names the command or the person who closes it.
+  verify: every line is either recorded with a date or marked as needing a live character, with no third category.
+  done-when: Gate 3 has a content half that a person can actually finish.
+
+**Concurrency.** T0 and T3 name disjoint files and can run at once. T1 is the wide one and should hold the lane alone. T2 and T4 can run together after T1. Nothing in Lane T touches a `.tscn` or a scene script; if an increment finds itself wanting to, it has crossed the ownership line above.
+
+---
+
+### Lane U — Godot as the MUD front end
+
+> **After Gate 1**, per the sequencing note at the head of Lane T: the client
+> must build, run and be tested as a standalone MUD client with no Godot
+> present before this lane is picked up. This lane also does not port the old
+> windows — Godot supersedes them.
+
+Dan, 9 Sep 2026: *"a lot of the functions are being done in Godot to really
+update what we can do with MUDs."* Godot is not only the world view; panels are
+moving there. This lane is the **backend half of that move**: for each panel,
+publish its data over the existing presentation bridge as a tested contract.
+
+Three rules hold for every increment here, and they are what stop this lane
+becoming a rewrite:
+
+1. **The React panel stays until Godot renders it and Dan says which goes.**
+   Publishing is additive. No panel is deleted in this lane.
+2. **No second catalog.** `src/lib/panelDataContracts.ts` already declares, per
+   panel, what a player uses it for, which store fields it actually reads and
+   whether it needs a live character — enforced by
+   `tools/panel-data-contracts-test.mjs`, which re-derives the panel id list
+   from `panels.tsx` rather than from a hand copy. Extend that record with what
+   is published; do not start a parallel one beside it.
+3. **One publisher.** `usePresentationBridgePublisher.ts` publishes today and
+   is gated so only the main window does. Everything here goes through it.
+
+The store fields nearly every panel bottoms out in are a short list —
+`s.character` (a `CharacterStatus`), `s.mapZone`/`s.mapHere`/`s.mapPath`/
+`s.mapTrail`, `s.inventory`, `s.bridgeConnected`/`s.bridgeIntents`,
+`s.scriptCatalog`/`s.scriptStates`, `s.trainFocus`, and `useMacroRunner()`'s
+`canSend`/`reason` gate. The world snapshot already carries the room, entity,
+item and player slice of `s.character` and the zone slice of `s.mapZone`. What
+it does not carry is the rest, and that gap is this lane.
+
+- [ ] **U1  Publish the panel contract itself** (≈40)
+  touches: src/lib/panelDataContracts.ts, src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, tools/panel-data-contracts-test.mjs, package.json
+  depends-on: T3
+  do: add `publishedToViewer: boolean` and `viewerFields: string[]` to `PanelDataContract`, and publish the catalog itself on the bridge as a `panels` block on the snapshot — so a Godot scene can ask what exists, what it may draw and what needs a live character, instead of hardcoding a list that goes stale. `panelIsShowable()` is the gate that already answers the last part; export it through the contract rather than restating it. `PANEL_DATA_CONTRACTS` is a `Record<PanelId, …>`, so the compiler refuses a missing entry — that is half the enforcement and it is free.
+  verify: `npm run test:panel-data-contracts` with the new fields asserted for all fourteen panels; the count printed and the extraction tripwire kept.
+  sabotage: mark a panel published with an empty `viewerFields` and confirm the red names it — a panel that claims to be published and names no data is the placeholder this lane must not produce.
+  done-when: the viewer can enumerate the panels without a second source of truth.
+
+- [ ] **U2  Vitals, status and mindstate** (≈45)
+  touches: src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, U1>src/lib/panelDataContracts.ts, tools/presentation-bridge-test.mjs
+  depends-on: U1
+  do: `PlayerSnapshot` today carries `situation`, `cannotAct`, `roundtime`, `health`, `balance`, `position`. The vitals cluster, `StatusBoard` and `MindstateBoard` read more of `s.character` than that: injuries, the skill set and its mindstate ladder, stats. Publish them, as data and not as text — a mindstate is a rung on DragonRealms' 35-state ladder and must go over the wire as the rung, never as the English word, or the scene inherits a parsing job the client already did.
+  verify: a fixture character with a known injury set and a known mindstate compiles to the published values; absent knowledge is `null` and never a zero, per `PlayerSnapshot`'s existing rule that null means "not yet parsed" rather than "healthy".
+  sabotage: publish `0` where the parse produced nothing and confirm the red — this is the field where the two are most easily confused and most expensive.
+  done-when: a Godot vitals display can be built with no additional bridge call.
+
+- [ ] **U3  The command lane's state, including why it is refusing** (≈50)
+  touches: src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, U1>src/lib/panelDataContracts.ts, src/lib/useMacroRunner.ts, tools/command-lane-test.mjs
+  depends-on: U1
+  do: `useMacroRunner()` returns `canSend` and a `reason`, and Pause, the roundtime hold and the kill switch all express themselves through it. Publish both. **The `reason` is the load-bearing half**: a viewer that knows it may not send but not why will either show nothing or invent an explanation, and this is a client that drives a live character. Publish the pause state and the roundtime with it. This does not add a send path — Godot's intents already go through `presentationIntents.ts` into `requestGameAction`, which is the one lane, and nothing here may create a second one.
+  verify: pause the automation and assert the published state flips with the reason attached; the existing command-lane suite stays green.
+  sabotage: publish `canSend` without `reason` and confirm the contract test reddens; drop the pause gate from the publish path and confirm the lane's own break-check catches it.
+  done-when: the viewer can render a truthful disabled state, and cannot render a false enabled one.
+
+- [ ] **U4  Room text, exits and occupants as a published block** (≈40)
+  touches: src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, src/lib/roomExits.ts, U1>src/lib/panelDataContracts.ts, tools/room-test.mjs
+  depends-on: U1, T1
+  do: the room column is the panel most obviously moving. `roomExits.ts` and `ExitButtons.tsx` already hold the parsed compass exits, and L8 put them on the command lane as `'ui-action'`; occupants are in `s.character`'s `roomCreatures`/`roomAllies`/`roomPlayers`/`roomItems`. The snapshot carries most of this per-cell already — publish the current room's text and its exit word list alongside, so the scene does not re-derive an exit list the client already parsed. Re-derivation is how the two ends disagree.
+  verify: the published exit list equals `roomExits.ts`'s for a fixture room, asserted against the same function rather than against a copy of its answer.
+  done-when: a Godot room panel and the React one cannot disagree about what the exits are.
+
+- [ ] **U5  Scripts and activities** (≈40)
+  touches: src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, U1>src/lib/panelDataContracts.ts, tools/task-catalog-status-test.mjs
+  depends-on: U1, U3
+  do: publish `scriptCatalog`, `scriptStates` and the quick-switch pins, plus the stale marker the panel already computes. After U3 because starting a script is a command and must be refused with the same reason the lane gives everything else.
+  verify: a stale catalog publishes as stale and names why, matching what `QuickSwitchBar` renders — C12 already learned that a failed lookup has to carry its reason to the player.
+  done-when: the script library can be driven from the viewer with no path around the command lane.
+
+**Concurrency.** U1 first and alone; U2–U5 are then parallel, each owning its
+own block of `presentationTypes.ts` plus one test. `presentationBridge.ts` is
+the shared file: each adds its own block to `compileWorldSnapshot` and rebases
+on conflict, the same way Lane Q shares `PlayerConfigPanel.tsx`.
+
+---
+
+### Lane V — Backend continuation and repo hygiene
+
+The items that are not about Godot and are not finished.
+
+- [ ] **V1  N7 is Dan's, and it is the last thing between here and Gate 1** (≈0 for a session)
+  touches: none
+  depends-on: N6
+  do: nothing a session can do. N7 needs a real DragonRealms sign-in performed by Dan through this app. Recorded here so it stops being rediscovered as unclaimed work by every lane that reads the tally.
+  verify: `docs/verification/` gains a dated record of a real login.
+
+- [~] **V2  #505: a killed break-check leaves the tree damaged** (≈60)
+  owner: another session claim: (killed by a usage limit, 9 Sep 2026) since: 2026-09-09
+  touches: tools/break-check-tree.mjs
+  depends-on: none
+  do: **there is real, unpushed work for this already on disk and it must not be re-done from scratch.** `C:\Users\Admin\dev\wt-505` holds an uncommitted 322-line addition to `tools/break-check-tree.mjs` on branch `fix/505-break-check-tree`, which has never been pushed (`git ls-remote origin` finds no matching ref) and whose tip commit is an unrelated leftover. The work looks substantially complete from its own header: it declares what each harness damages, restores on a kill, and adds the `main` this file never had, so `node tools/break-check-tree.mjs` stops exiting 0 having done nothing. Whoever picks this up: read that working tree first, finish it in place or salvage the diff, and say in the commit that it is another session's work being carried rather than re-implemented. Do not `git checkout` in that worktree and do not delete it.
+  verify: kill a break-check mid-run and confirm the tree comes back; confirm a leftover damaged file fails the next run instead of being absorbed as "already modified by somebody".
+  done-when: #505 closes with the measurement pasted.
+  note: the second half of #505 — a documented rerun rule for a flaky stage — is separable and is not in that worktree.
+
+- [ ] **V3  Godot's remaining 3D project settings and asset references** (≈15)
+  touches: godot/project.godot, godot/export_presets.cfg
+  depends-on: none
+  do: three things, all of them **the Godot owner's and not the backend's**, recorded here only so a mixed state is not mistaken for a decision somebody made. Do not change any of it from this side. (1) `project.godot` declares `renderer/rendering_method="forward_plus"` and the `"Forward Plus"` feature — 3D renderer settings — beside `window/stretch/mode="canvas_items"`, which is the 2D one. Its `[application]` block is already correct and says plainly that the main scene was removed and why. (2) `godot/export_presets.cfg`'s `include_filter` still names three `.glb` models from the shared-assets submodule. The files exist, so this is a **live** 3D reference rather than a dead one, and V7's sweep will find it. (3) `godot/shared-assets/` is a pinned git submodule of 3D kits and GLBs whose own documents describe a model pipeline; PR #517 did not touch it and neither should this side. Whether the project keeps that submodule at all is a decision for Dan and the Godot owner together, and it is the largest surviving 3D thing in the repository.
+  verify: the renderer setting matches the 2D direction, or the file says why it does not; the export filter names nothing the project does not ship.
+
+- [ ] **V4  #509: `credential_store` tests are ~10% red under two concurrent cargo runs** (≈50)
+  touches: src-tauri/src/credentials.rs, src-tauri/src/test_support.rs
+  depends-on: none
+  do: present on `main` and not a naming problem, per the issue. `docs/MERGING.md` says two lanes may gate at once because every Rust fixture is process-unique after #502; this is the counter-example still standing, and until it is fixed that page is promising more than it can keep. Establish whether the contention is the Windows Credential Manager itself — a machine-wide store that no `scratch_dir` can make process-unique — and if it is, say so in the test and skip honestly rather than leaving a flake that trains people to re-run.
+  verify: the measurement, run at the concurrency the issue names, before and after.
+
+- [ ] **V5  `lich.rs` temp-directory sweep (#515)** (≈35)
+  touches: src-tauri/src/lich.rs, tools/rust-test-isolation-test.mjs
+  depends-on: none
+  do: the sweep noted on #515. `rust-test-isolation-test.mjs` already reads every `.rs` under `src-tauri/src` and fails on a temp path that is not process-unique or a listener on a fixed port, printing how many sites it examined; check whether it covers `lich.rs`'s sites and whether any escape its scan.
+  verify: the scan's site count printed, and the count of sites in `lich.rs` specifically.
+
+- [ ] **V6  Re-gate on merge** (≈20)
+  touches: docs/MERGING.md, .github/PULL_REQUEST_TEMPLATE.md
+  depends-on: none
+  do: `docs/MERGING.md` step 3 says to rebase and "run the gate again if the rebase moved anything you did not write". That is a judgement call at the moment somebody is most impatient, and it is the wrong shape: with no CI, the only thing standing between `main` and a red tree is whether the person merging re-ran a ten-minute command. Make the rule unconditional — **gate after the rebase, not before** — and say the branch-point gate is a courtesy to yourself rather than the gate. This is the rule that would have caught PR #517: it was gated before the deletion's consequences reached the Rust build.
+  verify: the page says it, and `tools/doc-claims-test.mjs` still agrees about the stage count across all three files.
+  note: the gate's exit code was checked on 9 Sep 2026 and is **not** defective. `node tools/gate.mjs --only=godot` on a failing stage exits 1, `--only=nonesuch` exits 2, and the only `process.exit(0)` paths are the three documented ones (all passed; a partial `--only` run; no failures but something unchecked). The suspicion that it prints `gate NOT PASSED` and exits 0 was recorded and is closed by measurement rather than by reading.
+
+- [ ] **V7  No surviving 3D instruction anywhere an agent reads** (≈45)
+  touches: tools/doc-claims-test.mjs, docs/, AGENTS.md, .claude/
+  depends-on: none
+  do: NO-3D.md's own rule is that a surviving 3D document keeps producing the behaviour after the direction is gone — a session opened one, found an approved plan, and built against it. Prose is therefore not a tidying matter here, it is the failure mode. Add a check to `tools/doc-claims-test.mjs` that greps `docs/`, `AGENTS.md`, `.claude/` and this plan for `3D|glb|mesh|rigging|WorldRoot|content_registry` and fails on any hit outside `docs/NO-3D.md`, a `superseded:` line, or an explicitly historical `docs/verification/` record. **Print N of N**: the number of files scanned and the number of allowed hits, so a grep that matched nothing because it was pointed at the wrong tree reports itself instead of certifying a clean repo — a zero is a claim about the instrument first.
+  verify: the check green; then point it at a directory that does not exist and confirm it fails saying it scanned nothing, rather than passing.
+  sabotage: add the sentence "the 3D viewer renders the room" to a doc under `docs/` and confirm the red names the file and the line; remove it and confirm green, with the file's hash matching either side.
+  done-when: an agent cannot find live 3D direction anywhere in this repo, and the check that says so cannot pass by scanning nothing.
 
 ---
 
