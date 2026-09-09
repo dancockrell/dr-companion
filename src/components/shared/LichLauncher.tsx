@@ -7,12 +7,22 @@
  * app with a manual step in front of it, and the manual step is where everyone
  * stopped.
  *
- * # This panel is for a character Lich already knows
+ * # This panel does not sign anybody in
  *
- * Signing in is `SignIn.tsx`'s job now, and it is the route a new player takes:
- * account, password, pick a character, done. This panel starts a character out
- * of Lich's own saved entries, which is faster when one exists and needs no
- * password at all.
+ * Signing in is `SignIn.tsx`'s job, and it is the only route: account,
+ * password, pick a character, done. This panel used to offer a second one - a
+ * button per character Lich had saved - and that route was deleted from Rust
+ * on 6 September 2026 when the third-party client that created those saved
+ * entries was retired. `launch_lich(Some(name))` refused every press with a
+ * sentence naming two Tauri commands, which is a developer's note in a
+ * player's window, and the button above it offered to do the thing the note
+ * said could not be done. Both are gone: a second start control beside the
+ * real one is a fork (`CLAUDE.md` section 0), and the fork's other half no
+ * longer exists.
+ *
+ * What is left here is the honest state of Lich itself - installed or not,
+ * running or not, boots or not - and one line pointing at the sign-in form
+ * above.
  *
  * # The password never goes on a command line
  *
@@ -33,14 +43,13 @@
  *
  * # Three states, not two
  *
- * "No saved characters" and "we could not read the saved characters" are
- * different, and rendering them the same would send someone who has already
- * set Lich up back through first-time setup. The status carries
- * `charactersKnown` for exactly that, and this panel says "could not tell"
- * rather than guessing.
+ * `runningKnown` is separate from `running` because "Lich is not running" and
+ * "the process list could not be read" are different answers, and rendering
+ * them the same tells somebody a thing nobody checked. `lich_status` carries
+ * the `*Known` flag for exactly that.
  */
 import { useEffect, useState } from 'react'
-import { Play, RefreshCw, ExternalLink } from 'lucide-react'
+import { RefreshCw, ExternalLink } from 'lucide-react'
 import { isTauri, invokeTauri } from '../../lib/tauri.ts'
 import { bridgeCommand } from '../../lib/frontends.ts'
 
@@ -49,8 +58,6 @@ interface LichStatus {
   launcher: string | null
   ruby: string | null
   dataDir: string | null
-  characters: string[]
-  charactersKnown: boolean
   running: boolean
   runningKnown: boolean
   /**
@@ -143,13 +150,13 @@ export function LichLauncher() {
     )
   }
 
-  const start = async (character?: string) => {
+  const start = async () => {
     setBusy(true)
     setSaid(null)
     setFailed(null)
     setHealth(null)
     try {
-      setSaid((await invokeTauri('launch_lich', { character: character ?? null })) as string)
+      setSaid((await invokeTauri('launch_lich')) as string)
     } catch (e) {
       setFailed(String(e))
     } finally {
@@ -197,35 +204,19 @@ export function LichLauncher() {
         </p>
       ) : (
         <div className="mt-2 space-y-2">
-          {status.charactersKnown && status.characters.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {status.characters.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void start(c)}
-                  className="flex items-center gap-1.5 rounded border border-accent/40 bg-accent/15 px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent/25 disabled:opacity-50"
-                  title={`Start Lich for ${c} and start the bridge`}
-                >
-                  <Play className="h-3 w-3" />
-                  {c}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* The one thing a player can do from this card, said as a thing to
+            * do rather than as a status. The sign-in form is directly above
+            * this panel in both places that render it (`Dashboard.tsx` and
+            * `WaitingForCharacter.tsx`), so "above" is literal. */}
+          <p className="text-xs text-ink-muted">
+            Sign in above to start Lich for a character.
+          </p>
 
-          {/* Offered only when Lich's own window can actually complete,
-            * and it is now the secondary route rather than the only one.
-            *
-            * What used to be in the other arm of this branch: a warning
-            * panel saying Lich's login window cannot sign in on this
-            * machine, followed by three `#config` lines telling the player to
-            * set up another program and sign in through that instead. Both are
-            * gone. The app signs in itself now (`SignIn.tsx`), so there is
-            * nothing to warn about and nowhere else to send anybody - and
-            * an else-arm here would be a second sign-in route beside the
-            * real one. */}
+          {/* Lich's own launcher window, offered only where it can actually
+            * complete. It is not a sign-in route in this app - it opens Lich
+            * and stops, which is what somebody wants when they need Lich's own
+            * settings - so it says that and nothing more. `launch_lich` takes
+            * no character and never did anything else here. */}
           {status.guiLoginUsable && (
             <button
               type="button"
@@ -234,32 +225,19 @@ export function LichLauncher() {
               className="flex items-center gap-1.5 rounded border border-border px-2.5 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
             >
               <ExternalLink className="h-3 w-3" />
-              {status.charactersKnown && status.characters.length > 0
-                ? 'Open Lich to add another character'
-                : 'Open Lich to sign in'}
+              Open Lich's own window
             </button>
           )}
 
-          {!status.charactersKnown && (
-            <p className="text-xs text-warn">
-              Whether Lich has a saved character could not be read, so this is
-              unknown rather than none. Opening Lich will show you.
-            </p>
-          )}
-
-          {/* Both branches used to end on a promise that the app never
-            * handles the password at all.
-            * One of them still can, because when Lich's own window works the
-            * password really does stay there. The other cannot: there is no
-            * longer any other program in that path, so the app signs the
-            * player in itself. The sentence below is the one docs/PRIVACY.md
-            * states, kept word for word so the two cannot drift, and
-            * tools/doc-claims-test.mjs checks it against what is persisted.
-            * N5 replaces this panel with the sign-in screen and keeps it. */}
+          {/* The sentence docs/PRIVACY.md states, word for word so the two
+            * cannot drift; tools/doc-claims-test.mjs checks it against what is
+            * actually persisted. It used to have a second variant for the days
+            * when another program held the password. There is no other program
+            * now, so there is one sentence. */}
           <p className="text-xs leading-snug text-ink-faint">
-            {status.guiLoginUsable
-              ? "Your password is typed into Lich's own window and stays there. This app never sees it, and starting a saved character needs only the name."
-              : 'Your password is typed into this app, used once to sign in to Simutronics, held only in memory, and not stored unless you later ask for it.'}
+            Your password is typed into this app, used once to sign in to
+            Simutronics, held only in memory, and not stored unless you later
+            ask for it.
           </p>
 
           {/* Always offered, not only after a failed launch. A character

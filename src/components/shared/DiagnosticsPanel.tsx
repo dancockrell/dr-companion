@@ -14,7 +14,7 @@
  * absent" goes looking for a Ruby problem; a maintainer told "Ruby: could not
  * check" goes looking at why the check failed. Collapsing those is how a bug
  * report sends someone down the wrong afternoon, and this app has made that
- * mistake in enough places (`charactersKnown`, `runningKnown`,
+ * mistake in enough places (`runningKnown`,
  * `viewer.runningKnown`) that the pattern is now the house style.
  *
  * In a browser preview nothing here can be checked at all, and the panel says
