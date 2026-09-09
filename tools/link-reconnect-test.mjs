@@ -690,6 +690,66 @@ function newBridge() {
     INLINE.test(stripComments('const x = link.connected // a real one beside a comment')),
     'control: and still sees a real one on a commented line'
   )
+
+  /*
+   * And the same census for the *bridge*, which is a second transport with the
+   * same defect (#532).
+   *
+   * Here rather than in a new file on purpose: the walk, the comment stripper
+   * and both controls above are exactly what this needs, and a second copy of
+   * them is two things that would drift. It is also the honest place for it -
+   * the link census exists because one component quietly kept its own opinion
+   * for four months, and the bridge is where that had happened again.
+   *
+   * The population is components reading the fields that only mean something
+   * once interpreted: `bridgeStatus`, `bridgeAttempt`, `bridgeMaxAttempts`,
+   * `bridgeEverConnected`. Deliberately NOT `bridgeConnected`, which is a
+   * plain boolean a dozen panels rightly gate their content on - requiring
+   * those to import a phase they have no use for would make this check noise,
+   * and noise is what gets a check turned off.
+   */
+  const BRIDGE_FIELD = /\bbridge(Status|Attempt|MaxAttempts|EverConnected)\b/
+  const bridgeConsumers = files.filter((f) => BRIDGE_FIELD.test(f.code))
+  ok(
+    bridgeConsumers.length >= 1,
+    `bridge-state consumers found: ${bridgeConsumers.length}`
+  )
+  let ownOpinion = 0
+  for (const f of bridgeConsumers) {
+    const viaPhase = f.code.includes('bridgePhase') || f.code.includes('bridgeChip')
+    if (!viaPhase) ownOpinion++
+    ok(viaPhase, `${f.path} reads the bridge through bridgePhase`)
+  }
+  eq(
+    ownOpinion,
+    0,
+    `no component keeps its own reading of the bridge status (${bridgeConsumers.length} checked)`
+  )
+
+  /*
+   * The exact expression this issue came from, banned by shape.
+   *
+   * `SafetyFooter` had `bridgeStatus === 'reconnecting' || bridgeStatus ===
+   * 'connecting'`, which is what put "Bridge reconnecting" on a bridge that
+   * had never connected. A component comparing the raw status to a literal is
+   * holding the opinion `bridgePhase` exists to own, whether or not it also
+   * imports it - so the census above is necessary and not sufficient.
+   */
+  const RAW_COMPARE = /bridge(Status|Phase)\s*===\s*['"]/
+  const rawComparers = files.filter((f) => RAW_COMPARE.test(f.code))
+  eq(
+    rawComparers.map((f) => f.path).join(', '),
+    '',
+    'no component compares the raw bridge status to a literal'
+  )
+  ok(
+    RAW_COMPARE.test("bridgeStatus === 'reconnecting'"),
+    'control: the raw-compare matcher sees the expression this issue came from'
+  )
+  ok(
+    !RAW_COMPARE.test(stripComments("/* bridgeStatus === 'reconnecting' */ const x = 1")),
+    'control: and not the same expression explained in a comment'
+  )
 }
 
 // ==================================== stale is marked stale (issue #506)
@@ -818,6 +878,11 @@ function newBridge() {
     getLiveStatus: () => 'connected',
     getLiveAttempt: () => 3,
     getLiveMaxAttempts: () => 6,
+    // True, because this stub's `getLiveStatus` says `connected`: a stub whose
+    // facts contradict each other tests a state the real transport cannot be
+    // in. The stale-mark cases below drive the status directly and never touch
+    // this, so it only has to be consistent, not varied.
+    getLiveEverConnected: () => true,
   }
   mock.module('../src/bridge/index.ts', asMock({ bridge: fakeBridge }))
 
@@ -856,6 +921,242 @@ function newBridge() {
   eq(state.character, null, 'a deliberate disconnect still clears the character')
   eq(state.scriptStates.length, 0, 'and the script list')
   eq(state.bridgeStaleSince, 0, 'and takes the mark with it, so no badge floats over an empty panel')
+}
+
+// ============================== never connected is not reconnecting (#532)
+
+/*
+ * The defect Dan hit, stated as the two properties behind it.
+ *
+ * Measured in his running build on 9 September 2026 before any of this was
+ * written: the footer sat on an amber chip reading exactly "Bridge
+ * reconnecting", with **no attempt number**, indefinitely, over a screen whose
+ * own largest sentence is "Sign in below and the app starts Lich for you".
+ * No number is the tell - the ladder only publishes `reconnecting` after
+ * incrementing past zero, so the amber came from the `connecting` arm the
+ * footer had folded in with it.
+ *
+ * Two separable things were wrong and both are asserted here:
+ *
+ *   1. a state that is not an error was displayed as one, and
+ *   2. the ladder ran at a port that had never answered and never could,
+ *      because there is no Lich before somebody signs in.
+ */
+
+const { bridgePhase, bridgeChip } = await import('../src/lib/bridgePhase.ts')
+
+/** What the footer would render for a transport, right now. One reading. */
+function chipFor(b) {
+  const r = {
+    status: b.getStatus(),
+    attempt: b.getAttempt(),
+    maxAttempts: b.getMaxAttempts(),
+    everConnected: b.getEverConnected(),
+  }
+  return { phase: bridgePhase(r), label: bridgeChip(r).label, tone: bridgeChip(r).tone }
+}
+
+{
+  // ---- nothing on the port, and nobody has said a Lich exists: one attempt.
+  const { b, seen } = newBridge()
+  b.connect('probe')
+  await settle()
+  eq(sockets.length, 1, 'a probe opens one socket')
+  eq(chipFor(b).phase, 'connecting', 'while it dials, the chip says connecting')
+  eq(chipFor(b).tone, 'quiet', 'and quietly: looking for Lich is not a fault')
+
+  // The close a refused port produces. Measured against the real thing: in the
+  // running app this arrives as net::ERR_CONNECTION_REFUSED about 2.4s after
+  // the document loads.
+  sockets[0].drop()
+  await settle()
+
+  eq(b.getStatus(), 'disconnected', 'a probe that finds nothing stops, quietly')
+  eq(chipFor(b).phase, 'not-connected', 'and the chip says exactly that')
+  eq(chipFor(b).label, 'Not connected', 'the not-connected chip is in plain words')
+  eq(chipFor(b).tone, 'quiet', 'with no alarm colour, because nothing is wrong')
+  eq(
+    seen.filter((x) => x.s === 'reconnecting').length,
+    0,
+    'a connection that never existed is never reported as reconnecting'
+  )
+  eq(
+    scheduled.filter((t) => !t.cancelled).length,
+    0,
+    'and no retry is scheduled: there is no ladder before there is a Lich'
+  )
+  eq(sockets.length, 1, 'exactly one socket was opened, not a run of them')
+
+  /*
+   * The clock, run past the whole ladder the old code would have spent.
+   *
+   * This is the check that separates "bounded" from "does not start". The old
+   * transport would have had eight timers here totalling 121 seconds; firing
+   * every timer that exists must produce no further sockets and no change of
+   * state at all.
+   */
+  const beforeSockets = sockets.length
+  let fired = 0
+  while (fireNextTimer() !== null) fired++
+  await settle()
+  eq(fired, 0, 'there were no timers to fire')
+  eq(sockets.length, beforeSockets, 'and running the clock out opens nothing')
+  eq(chipFor(b).phase, 'not-connected', 'the state after the clock runs out is unchanged')
+
+  // The reason is on the state, not only in a log line nobody renders - the
+  // same defect this suite's own header describes for the attempt count.
+  const detail = seen.find((x) => x.s === 'disconnected')?.detail ?? ''
+  ok(detail.includes('7415'), `the quiet stop names what it looked at: ${JSON.stringify(detail)}`)
+  ok(
+    /sign in/i.test(detail),
+    `and what to do about it: ${JSON.stringify(detail)}`
+  )
+}
+
+{
+  // ---- sign-in launched a Lich: now a ladder is wanted, and it is bounded.
+  const { b, seen } = newBridge()
+  b.connect('expect-lich')
+  await settle()
+  eq(chipFor(b).phase, 'connecting', 'a Lich we expect reads as connecting, not reconnecting')
+
+  sockets[0].drop()
+  await settle()
+  eq(
+    b.getStatus(),
+    'reconnecting',
+    'a Lich that is still booting gets re-dialled rather than given up on'
+  )
+  // Still `connecting` to a reader: nothing has been lost yet. The transport
+  // word and the player's word are allowed to differ, and this is why the
+  // phase is derived rather than printed.
+  eq(chipFor(b).phase, 'connecting', 'and the player is told it is connecting, not reconnecting')
+
+  // Fired timers, counted the same way the run above counts them: the close
+  // before the loop is what schedules the first one, so this starts at zero.
+  let attempts = 0
+  let guard = 0
+  while (b.getStatus() !== 'gave-up') {
+    if (++guard > MAX_RECONNECT_ATTEMPTS * 4) {
+      ok(false, `the expected-Lich run is still dialling after ${guard} closes: the bound is gone`)
+      break
+    }
+    if (fireNextTimer() === null) {
+      ok(false, `no retry scheduled at attempt ${attempts} and it has not given up`)
+      break
+    }
+    attempts++
+    await settle()
+    sockets[sockets.length - 1].drop()
+  }
+  eq(attempts, MAX_RECONNECT_ATTEMPTS, 'an expected Lich gets exactly the bound, then stops')
+  eq(
+    b.getAttempt(),
+    MAX_RECONNECT_ATTEMPTS,
+    'and the number the UI reads agrees with the number of dials that happened'
+  )
+  eq(chipFor(b).phase, 'gave-up', 'and the end state says it gave up')
+  /*
+   * The arm this table got wrong on the first pass, kept as its own assertion.
+   *
+   * Nothing ever connected here, so an `everConnected` test placed before the
+   * `gave-up` test folds this into "not connected" - true, and it drops the
+   * only fact that matters: the app has stopped trying, so waiting will not
+   * help. A player who just signed in and is watching an empty screen is
+   * exactly the person who needs to be told that.
+   */
+  eq(b.getEverConnected(), false, 'nothing ever connected in this run')
+  ok(
+    /not answering/i.test(chipFor(b).label ?? ''),
+    `a give-up with no prior connection still reads as a give-up: ${chipFor(b).label}`
+  )
+  eq(
+    seen.filter((x) => x.s === 'gave-up').length,
+    1,
+    'the expected-Lich run gives up exactly once'
+  )
+}
+
+{
+  // ---- a real connection, then a drop: this is what "reconnecting" is for.
+  const { b } = newBridge()
+  b.connect('probe')
+  await settle()
+  sockets[0].open()
+  eq(b.getEverConnected(), true, 'an open socket is what latches everConnected')
+  eq(chipFor(b).label, null, 'a connected bridge gets no chip at all')
+
+  sockets[0].drop()
+  await settle()
+  /*
+   * And the whole sequence, over the fake clock. The label is read at every
+   * step rather than only at the ends, because "reconnecting 1..N then gave
+   * up" is a claim about the run and not about its last frame.
+   */
+  const labels = [chipFor(b).label]
+  let guard = 0
+  while (b.getStatus() !== 'gave-up' && ++guard <= MAX_RECONNECT_ATTEMPTS * 4) {
+    if (fireNextTimer() === null) break
+    await settle()
+    labels.push(chipFor(b).label)
+    sockets[sockets.length - 1].drop()
+    await settle()
+    labels.push(chipFor(b).label)
+  }
+  const rungs = labels.filter((l) => l && l.startsWith('Lich reconnecting'))
+  const numbers = [...new Set(rungs.map((l) => l.replace('Lich reconnecting ', '')))]
+  eq(
+    numbers.join(' '),
+    Array.from({ length: MAX_RECONNECT_ATTEMPTS }, (_, i) => `${i + 1}/${MAX_RECONNECT_ATTEMPTS}`).join(' '),
+    'the chip counts 1/8 up to 8/8, in order, with none skipped or repeated out of turn'
+  )
+  eq(chipFor(b).phase, 'gave-up', 'and then it stops, in a state that says so')
+  eq(chipFor(b).tone, 'danger', 'which is the one bridge state that earns a red chip')
+  ok(
+    (chipFor(b).label ?? '').length > 0,
+    'and the end state has words rather than being an empty chip'
+  )
+
+  // A probe arriving after a give-up must not quietly restart an unbounded
+  // run. The bound exists to stop an automatic run, and the retry a person
+  // asks for goes through `connect()` deliberately - which is covered above.
+  const socketsAtEnd = sockets.length
+  let more = 0
+  while (fireNextTimer() !== null) more++
+  await settle()
+  eq(more, 0, 'nothing is left scheduled once it has given up')
+  eq(sockets.length, socketsAtEnd, 'and no further socket is opened')
+}
+
+{
+  // ---- a detach is a return to not-connected, not a lost connection.
+  const { b } = newBridge()
+  b.connect('expect-lich')
+  await settle()
+  sockets[0].open()
+  eq(chipFor(b).phase, 'connected', 'connected')
+  b.disconnect()
+  await settle()
+  eq(b.getEverConnected(), false, 'a detach clears the fact that a connection existed')
+  eq(chipFor(b).phase, 'not-connected', 'so the chip does not claim a connection was lost')
+  eq(chipFor(b).tone, 'quiet', 'and does not raise an alarm about a thing the player asked for')
+
+  /*
+   * And the intent goes back with it, which is the sabotage-shaped one: leave
+   * `intent` latched at `expect-lich` and the next startup probe silently
+   * gets a ladder again, which is the whole defect returning by a side door
+   * that no wording check could see.
+   */
+  b.connect('probe')
+  await settle()
+  sockets[sockets.length - 1].drop()
+  await settle()
+  eq(b.getStatus(), 'disconnected', 'a probe after a detach is still a single attempt')
+  eq(
+    scheduled.filter((t) => !t.cancelled).length,
+    0,
+    'and schedules no ladder: the detach reset the intent as well as the counter'
+  )
 }
 
 // --------------------------------------------------------------------- floor

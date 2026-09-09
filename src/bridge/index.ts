@@ -5,6 +5,7 @@
 import { mockBridge } from './mockBridge.ts'
 import type { PauseLatchMode } from '../lib/bridgeModeSelect.ts'
 import { realBridge } from './realBridge.ts'
+import type { ConnectIntent } from './realBridge.ts'
 import type { BridgeClientMessage, BridgeServerMessage, IntentName } from './types'
 import type { DemoPresetId } from './mockBridge'
 
@@ -53,10 +54,15 @@ export const bridge = {
     attach()
   },
 
-  connect() {
+  /**
+   * `intent` decides whether a failure gets a reconnect ladder - see
+   * `ConnectIntent` in `realBridge.ts`. The mock has no socket, so it has
+   * nothing to ladder and ignores it.
+   */
+  connect(intent: ConnectIntent = 'probe') {
     attach()
     if (mode === 'mock') mockBridge.connect()
-    else realBridge.connect()
+    else realBridge.connect(intent)
   },
 
   disconnect() {
@@ -153,6 +159,17 @@ export const bridge = {
 
   getLiveMaxAttempts() {
     return realBridge.getMaxAttempts()
+  },
+
+  /**
+   * Whether the live transport has ever been connected since the last detach.
+   *
+   * Exposed for the same reason as the two above: a window that mounts after
+   * the fact hears no edge, and this is the bit that separates "never
+   * connected" from "reconnecting" for every one of them.
+   */
+  getLiveEverConnected() {
+    return realBridge.getEverConnected()
   },
 
   setLiveUrl(url: string) {

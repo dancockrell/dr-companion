@@ -27,6 +27,34 @@ export type RealBridgeStatus =
   | 'gave-up'
   | 'error'
 
+/**
+ * Why a connect was asked for, which decides whether a failure gets a ladder.
+ *
+ * Issue #532. `reconnecting` means "the connection dropped and I am getting it
+ * back". Before anybody has signed in there is no Lich, so there is nothing on
+ * the port and there never was - and the app ran the full eight-attempt ladder
+ * at it anyway, from the mount effect, on every start. Measured in the running
+ * app on 9 September 2026: the footer sat amber on "Bridge reconnecting" with
+ * no attempt number, which is the `connecting` arm of that ladder, over a
+ * screen whose own largest sentence says "Sign in below and the app starts
+ * Lich for you". The footer was contradicting the page.
+ *
+ * So the ladder is now asked for rather than assumed:
+ *
+ * - `'probe'` is the one attempt made at startup, whose whole job is to find a
+ *   Lich that is *already* running and join it. Its failure is the ordinary
+ *   case and says so: `disconnected`, quietly, with no retry.
+ * - `'expect-lich'` is a connect made when a Lich is known to exist - sign-in
+ *   just launched one, or the player pressed Attach. Lich takes a few seconds
+ *   to bind its port after starting, so this one gets the bounded ladder, and
+ *   the ladder now means what it says.
+ *
+ * A parameter and not an environment variable, deliberately: both arms have to
+ * be reachable on purpose from a test, and a branch nobody can execute
+ * deliberately is a branch nobody can prove they fixed.
+ */
+export type ConnectIntent = 'probe' | 'expect-lich'
+
 type Listener = (msg: BridgeServerMessage) => void
 type StatusListener = (status: RealBridgeStatus, detail?: string) => void
 
@@ -92,6 +120,26 @@ export class RealBridge {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private shouldReconnect = false
 
+  /**
+   * Whether a ladder is wanted if this attempt fails. See `ConnectIntent`.
+   *
+   * Held on the instance rather than passed down to `openSocket`, because the
+   * close that matters arrives long after `connect()` returned and the socket
+   * callbacks are the only place the decision can be read.
+   */
+  private intent: ConnectIntent = 'probe'
+
+  /**
+   * Whether a socket has ever opened in this session.
+   *
+   * The one fact that separates "never connected" from "reconnecting", and it
+   * cannot be derived from the status: `disconnected` is what both a fresh app
+   * and a deliberate detach look like. Cleared by `disconnect()`, because a
+   * detach is a return to not-connected and the next failure after it should
+   * not claim a connection was lost.
+   */
+  private everConnected = false
+
   constructor(url = DEFAULT_URL) {
     this.url = url
   }
@@ -117,6 +165,17 @@ export class RealBridge {
     return MAX_RECONNECT_ATTEMPTS
   }
 
+  /**
+   * Whether this transport has ever been connected since the last detach.
+   *
+   * Published because the UI cannot work it out for itself and used to guess:
+   * `SafetyFooter` read `connecting` as "the bridge dropped and is dialling
+   * again", which is true after a drop and a lie before the first one.
+   */
+  getEverConnected() {
+    return this.everConnected
+  }
+
   setUrl(url: string) {
     this.url = url
   }
@@ -131,7 +190,7 @@ export class RealBridge {
     return () => this.statusListeners.delete(fn)
   }
 
-  connect() {
+  connect(intent: ConnectIntent = 'probe') {
     // Guarded on a flag set synchronously, not on `this.ws`.
     //
     // `this.ws` is assigned inside `openSocket()`, which only runs after the
@@ -145,6 +204,19 @@ export class RealBridge {
     // mount effect, the settings sheet twice, and both pop-out windows. Seen
     // in a screenshot as two "Live bridge: connecting" lines stamped the same
     // second.
+    // The intent rises before the guard, and only ever rises.
+    //
+    // Before the guard, because the guard returns early while an attempt is in
+    // flight, and the ordinary sign-in case is exactly that: the startup probe
+    // is still pending when Lich is launched. Read it after the guard and the
+    // one connect that most needs a ladder is the one that silently does not
+    // get one - a comment claiming an upgrade the code returns past.
+    //
+    // Only ever rises, so a later `probe` cannot quietly take the ladder away
+    // again. It goes back to `probe` in `disconnect()`, which is the one place
+    // a session ends.
+    if (intent === 'expect-lich') this.intent = 'expect-lich'
+
     if (this.connectPending || this.status === 'connected') return
 
     // A deliberate connect after a give-up gets a fresh budget.
@@ -210,6 +282,10 @@ export class RealBridge {
 
       ws.onopen = () => {
         this.reconnectAttempts = 0
+        // Latched here and nowhere else: an open socket is the only evidence
+        // there has ever been something to reconnect *to*. Everything the UI
+        // says about a later failure hangs off this one bit.
+        this.everConnected = true
         this.setStatus('connected')
 
         // The token, first, and synchronously, so nothing can overtake it.
@@ -254,6 +330,27 @@ export class RealBridge {
           this.setStatus('disconnected')
           return
         }
+        // A probe that found nothing stops here, and stops quietly (#532).
+        //
+        // This is the whole of the fix for the amber chip. There is no Lich
+        // before somebody signs in, so the port is empty and the close below
+        // is the expected answer, not a fault. Running a ladder at it produced
+        // two minutes of "reconnecting" about a connection that had never
+        // existed, and then a red "gave up" that named an attempt count nobody
+        // had asked for - over a screen inviting the player to sign in.
+        //
+        // `shouldReconnect` is cleared as well as the status set, for the same
+        // reason as the give-up arm below: without it a `connect()` from any
+        // of the five call sites would restart a run under a status that says
+        // nothing is being dialled.
+        if (this.intent === 'probe' && !this.everConnected) {
+          this.shouldReconnect = false
+          this.setStatus(
+            'disconnected',
+            `Nothing is listening on ${this.url}. Sign in to start Lich, or attach to one that is already running.`
+          )
+          return
+        }
         // The bound, checked before the next attempt is scheduled rather than
         // inside the timer, so the state the UI sees changes at the moment the
         // decision is made and not one backoff later.
@@ -281,7 +378,11 @@ export class RealBridge {
           'reconnecting',
           `Connection closed — retrying in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts} of ${MAX_RECONNECT_ATTEMPTS})`
         )
-        this.reconnectTimer = setTimeout(() => this.connect(), delay)
+        // `this.intent`, not the default. A retry that re-entered as a `probe`
+        // would drop back to the single-shot arm on its next close and end the
+        // run at attempt two, which reads as the bound being honoured and is
+        // the ladder quietly not happening.
+        this.reconnectTimer = setTimeout(() => this.connect(this.intent), delay)
       }
     } catch (e) {
       this.setStatus(
@@ -294,6 +395,12 @@ export class RealBridge {
   disconnect() {
     this.shouldReconnect = false
     this.reconnectAttempts = 0
+    // A detach ends the session, so both of the facts that outlive a single
+    // attempt go back to their starting values. Leaving `everConnected` set
+    // would make the next failed probe say a connection had been lost, which
+    // is the same lie in the other direction.
+    this.everConnected = false
+    this.intent = 'probe'
     this.stopStaleWatch()
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)

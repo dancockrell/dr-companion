@@ -229,7 +229,8 @@
     "test:async-state": "node --experimental-strip-types tools/async-state-test.ts",
     "test:game-command-boundary": "node --experimental-strip-types tools/game-command-boundary-test.ts",
     "test:music-first-run": "node --experimental-strip-types tools/music-first-run-test.mjs",
-    "test:music-library": "node --experimental-strip-types tools/music-library-test.mjs"
+    "test:music-library": "node --experimental-strip-types tools/music-library-test.mjs",
+    "bridge-states:shots": "node tools/bridge-state-shots.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

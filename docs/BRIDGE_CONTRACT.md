@@ -377,6 +377,57 @@ command typed against the room they last saw before the drop is dangerous.
 Every other refusal is left to the lane, so `closed_reason()`'s sentences reach
 the box they were written for.
 
+### One reader of the bridge state, and no ladder before there is a Lich (issue #532)
+
+The bridge's half of the same two rules, and it was wrong in both until
+9 September 2026.
+
+**The reading.** Every component that renders bridge state reads `bridgePhase`
+(`src/lib/bridgePhase.ts`), which answers one of `connected`,
+`not-connected`, `connecting`, `reconnecting` or `gave-up`. None of them
+compares `bridgeStatus` to a literal. Checked the same way the link census is,
+over the same walk, and with a second matcher: importing the phase is not
+enough, because the footer *did* import it and still kept its own comparison
+beside it.
+
+The bit that makes the reading possible is `bridgeEverConnected`, carried from
+the transport. It cannot be derived from the status — `disconnected` is what a
+fresh app, a failed first probe and a deliberate detach all look like, and
+`connecting` is the first dial of a session as well as a re-dial in the middle
+of a run.
+
+**The ladder.** `RealBridge.connect()` takes a `ConnectIntent`:
+
+- `probe` — one attempt, no retries. This is what the app makes on startup, and
+  its job is to find a Lich that is *already* running. Failing is the ordinary
+  case, and it lands on `disconnected` with a reason naming the port and the
+  action.
+- `expect-lich` — the bounded eight-attempt ladder. Made only when a Lich is
+  known to exist, which the app learns from `src/lib/lichStarted.ts`:
+  `launchCharacter` publishes on it, `LichLauncher` publishes on it, and
+  `App` subscribes and reconnects.
+
+That channel is not decoration. Before it, nothing in the app told the bridge a
+Lich had started; sign-in connected only because one of eight blind re-dials
+happened to land after Lich bound its port. Removing the blind ladder without
+adding the channel would have made sign-in connect nothing at all.
+
+**What was on screen.** Measured in the running app before the fix: an amber
+chip reading exactly `Bridge reconnecting`, with no attempt number,
+indefinitely, over a screen whose own largest sentence is *Sign in below and
+the app starts Lich for you*. No number is the tell — the ladder only publishes
+`reconnecting` after incrementing past zero, so the amber came from the
+`connecting` arm the footer had folded in with it.
+
+A second, independent cause was measured at the same time and is fixed in
+`vite.config.ts`: a session recorder appending to a `.log` and a `.jsonl`
+inside the Vite-watched project root made the dev server issue a full page
+reload every 2 to 6 seconds (`Page.frameNavigated`, `reason=reload`, same URL).
+A reload restarts the mount effect, so the run went back to attempt zero
+forever and could never reach its own bound — the ladder was honest about being
+bounded and was simply never allowed to finish. Logs and capture files in the
+root are ignored by the watcher now.
+
 ### Checks
 
 - `cargo test --lib game_link` — the schedule (read, not timed), the bound and
@@ -398,6 +449,11 @@ the box they were written for.
 - `node tools/reconnect-honesty-shots.mjs <dev-server-url>` — the same two
   fixes asked of a rendered document in a real browser, because every check
   above would pass with the functions correct and nothing on screen changed.
+- `npm run bridge-states:shots -- <dev-server-url>` — the four bridge states
+  photographed and read off the window: the phase attribute, the words, and the
+  computed colour. Its denominator is that the four are four *distinct*
+  readings, because a chip stuck on one string satisfies "it does not say
+  reconnecting" in three of the four cases.
   Not in the gate: it needs a dev server. See
   `docs/verification/reconnect-2026-09-07.md`.
 

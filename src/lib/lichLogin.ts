@@ -64,6 +64,7 @@
 import { invokeTauri, isTauri } from './tauri.ts'
 import { loadPrefs, savePrefs } from './persistence.ts'
 import { fakeListCharacters, fakeLaunch, dryRunRequested } from './lichLoginFake.ts'
+import { notifyLichStarted } from './lichStarted.ts'
 // Generated from `login_error.rs`'s `REFUSAL_SENTENCES` by `cargo test`, and
 // read here rather than retyped: the sentences below are this module's, the
 // per-token ones are Rust's, and one hand-kept copy of a table is one table
@@ -407,13 +408,28 @@ export async function launchCharacter(args: {
   gameCode: string
   character: string
 }): Promise<LaunchResult> {
-  if (usingFakeBackend()) return await fakeLaunch(args)
-  return (await invokeTauri('lich_login_launch', {
-    account: args.account,
-    password: args.password || null,
-    gameCode: args.gameCode,
-    character: args.character,
-  })) as LaunchResult
+  const result = usingFakeBackend()
+    ? await fakeLaunch(args)
+    : ((await invokeTauri('lich_login_launch', {
+        account: args.account,
+        password: args.password || null,
+        gameCode: args.gameCode,
+        character: args.character,
+      })) as LaunchResult)
+  /*
+   * A Lich exists now, so the bridge has something to dial - issue #532.
+   *
+   * Here rather than in the sign-in screen because this is the one function
+   * every route to a launched Lich passes through, including the fake backend
+   * the tests drive, so the announcement cannot be forgotten by a screen that
+   * is rewritten or by a second route added later. See `lichStarted.ts`.
+   *
+   * After the await and only on success: a launch that threw started nothing,
+   * and telling the bridge to expect a Lich that does not exist would put back
+   * the exact ladder-at-an-empty-port this issue is about.
+   */
+  notifyLichStarted({ port: result.port ?? null, via: 'sign-in' })
+  return result
 }
 
 /**

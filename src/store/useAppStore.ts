@@ -146,6 +146,7 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   bridgeStatus: 'disconnected' as BridgeTransportStatus,
   bridgeAttempt: 0,
   bridgeMaxAttempts: MAX_RECONNECT_ATTEMPTS,
+  bridgeEverConnected: false,
   // Nothing has arrived yet, so there is nothing to be stale. See staleMark.ts.
   bridgeStaleSince: FRESH,
   // Unknown until a bridge says otherwise, never assumed good.
@@ -293,14 +294,15 @@ export const useAppStore = create<AppState>((rawSet, get) => {
     })
   },
 
-  connectBridge: () => connectBridge(set, get, handleBridgeMessage),
+  connectBridge: (intent) => connectBridge(set, get, handleBridgeMessage, intent),
 
   disconnectBridge: () => disconnectBridge(set),
 
   // The same function the live subscription calls, so a simulated drop and a
   // real one cannot diverge. See AppState.simulateBridgeStatus for why it
   // exists at all.
-  simulateBridgeStatus: (status) => applyLiveStatus(status, set, get),
+  simulateBridgeStatus: (status, everConnected) =>
+    applyLiveStatus(status, set, get, Date.now(), everConnected),
 
   requestIntent: (
     intent: IntentName | `travel:${string}`,
