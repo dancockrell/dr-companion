@@ -274,6 +274,12 @@ pub fn run() {
         .manage(node::NodeTasks::default())
         .manage(viewer::ViewerProcess::default())
         .setup(|app| {
+            // Where this build's bridge script is, resolved once while an
+            // `AppHandle` is in hand. The launch path refreshes Lich's copy
+            // from it and must not grow a handle of its own - see
+            // `BUNDLED_BRIDGE` in `setup.rs`.
+            setup::remember_bundled_bridge(app.handle());
+
             // The optional music library lives in the app data directory, so
             // the asset protocol has to be told about that one directory
             // before a track there can be played. Granted from `music_dir()`
