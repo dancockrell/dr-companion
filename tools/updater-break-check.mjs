@@ -40,7 +40,24 @@ import { join, resolve } from 'node:path'
 const root = resolve(import.meta.dirname, '..')
 const SOURCE = join(root, 'src', 'lib', 'updater.ts')
 const SUITE = join(root, 'tools', 'updater-test.mjs')
-const original = readFileSync(SOURCE, 'utf8')
+/**
+ * Two readings of the same file, and the difference is not pedantry.
+ *
+ * `onDisk` is the bytes as they are, and it is what the byte-identity check at
+ * the end compares against. `original` is those bytes with line endings
+ * normalised to `\n`, and it is what the sabotages are applied to.
+ *
+ * This repository checks out CRLF (`.gitattributes` plus `text=auto`), and two
+ * of the anchors below span a line break. Written with `\n` they matched
+ * nothing on a fresh checkout — the exact trap in §17 of the working
+ * agreements, "a string anchor built with `\n` never matches a CRLF checkout"
+ * — and the run aborted naming the anchor, which is the behaviour that was
+ * wanted but not the outcome. Normalising once here is the fix that has no
+ * anchor to get wrong: the sabotaged copy goes into a temp file that only this
+ * suite imports, so its line endings are nobody's business.
+ */
+const onDisk = readFileSync(SOURCE, 'utf8')
+const original = onDisk.replace(/\r\n/g, '\n')
 
 /**
  * Run the suite against a module and return the set of check labels that
@@ -204,8 +221,11 @@ for (const c of CASES) {
 }
 
 // The tree was never written to, but say so with a fact rather than a promise.
+// Compared against the raw bytes, not the normalised copy, or this would be
+// asserting that the file has the line endings this script prefers rather than
+// that it is unchanged.
 const after = readFileSync(SOURCE, 'utf8')
-ok('src/lib/updater.ts is byte-identical to how this run found it', after === original)
+ok('src/lib/updater.ts is byte-identical to how this run found it', after === onDisk)
 
 console.log('')
 const total = pass + fail
