@@ -5,7 +5,7 @@
  *
  * # Why this exists
  *
- * The single-viewer architecture (`docs/CLAUDE_3D_VIEWER_BRIEF.md`) moves
+ * The single-viewer architecture (`docs/NO-3D.md`) moves
  * the map and the tactical battle presentation into Godot. Everything else
  * - inventory, skills/training, the script library, stats, risk - stays
  * exactly what it always was: typed MUD information a player wants to read,
@@ -75,7 +75,7 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
   },
   map: {
     purpose:
-      'Retiring from this wrapper once Godot owns world/route presentation (see docs/CLAUDE_3D_VIEWER_BRIEF.md) - kept here only as the current, still-live fallback until that migration slice lands.',
+      'Retired. The map is gone as a panel; this entry is kept only so Godot can read the room-graph data and take over world and route presentation there. Do not build new features on it. Cancelling 3D did not bring the map back (see docs/NO-3D.md): Godot is where world presentation is going, in 2D.',
     dataNeeded: ['mapZone', 'mapHere', 'bridgeConnected', 'bridgeIntents', 'character.location.roomId'],
     requiresLiveCharacter: false,
   },

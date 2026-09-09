@@ -1,6 +1,6 @@
 # Battlespace v3 — the tactical table
 
-> **Historical design — superseded for new work (5 September 2026).** This records the earlier separate Battle-column implementation and its review. Separate map and battlespace regions are not the current target. Use the [current world-board strategy](THREE_D_WORLD_STRATEGY.md) and [working implementation plan](PLAN_TO_1_0.md). The body is retained for design rationale and regression evidence; historical claims of completion do not certify the current build.
+> **Historical design — superseded for new work (5 September 2026).** This records the earlier separate Battle-column implementation and its review. Separate map and battlespace regions are not the current target. Use the [current world-board strategy](NO-3D.md) and [working implementation plan](PLAN_TO_1_0.md). The body is retained for design rationale and regression evidence; historical claims of completion do not certify the current build.
 
 Status: **first implementation complete; live wide-state review passed**
 Scope: the central Battle column, its room scene, action deck, room context,

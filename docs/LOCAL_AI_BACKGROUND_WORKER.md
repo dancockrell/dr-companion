@@ -323,7 +323,7 @@ MVP dependency and must not become a speculative token or financial system.
 ## 8. Map and isometric-world work
 
 The worker extends the fixed-isometric world contract in
-`THREE_D_WORLD_STRATEGY.md`; it does not author a free-roaming world.
+`docs/NO-3D.md`; it does not author a free-roaming world.
 
 Useful background results include:
 

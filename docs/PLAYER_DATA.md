@@ -36,8 +36,8 @@ password in a settings file, obfuscated or not, is a plaintext password with a
 decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
-38 keys, owned by 28 files, found by scanning
-332 source files.
+37 keys, owned by 27 files, found by scanning
+331 source files.
 
 ## Files you asked for
 
@@ -69,7 +69,6 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.ai-jobs.v1` | Background AI jobs and their status. Absent unless the optional local model has been used. | `src/lib/aiJobStore.ts` |
 | `drc.ai-provider.v1` | The address of a model server on this machine, if the player has chosen to run one. Absent on every install that has not. One URL and nothing else: no key, no token, no game text - the provider refuses any address that is not 127.0.0.1 or localhost, so this cannot name somewhere off the machine. | `src/lib/aiWorkerHost.ts` |
 | `drc.ai-share-sources.v1` | Game channels whose private messages you have chosen to let a local model read. Empty unless you set it: whispers, thoughts and group chat are excluded from every prompt by default. | `src/lib/aiIngest.ts` |
-| `drc.appearance.v1` | Which 3D model the player picked for an item, overriding the compiled default for its class. Item names and asset ids only; no game text. | `src/lib/appearance.ts` |
 | `drc.armor-loadouts.v1` | A character's corrections to the derived armour coverage, which the live inventory feed cannot supply. | `src/lib/armorLoadout.ts` |
 | `drc.attach-port.v2` | The last port the player typed into the game connection bar. A number, not JSON. | `src/components/game/GameConnectionBar.tsx` |
 | `drc.board-slot-width.v1` | How wide the middle board slot is, as a fraction of the window. Replaces `drc.battle-width.v3`: the slot holds the map and the battle picture together now, so the key was bumped rather than reused under a new meaning. | `src/App.tsx` |

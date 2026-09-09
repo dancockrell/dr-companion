@@ -304,7 +304,7 @@ pub fn run() {
 
             // The Godot presentation bridge - same non-fatal treatment as the
             // script API above. The 3D viewer is an optional presentation
-            // layer (see docs/CLAUDE_3D_VIEWER_BRIEF.md: "the client remains
+            // layer (see `docs/NO-3D.md`: "the client remains
             // usable if Godot is absent/crashed"), never something a bind
             // failure should take the rest of the app down over.
             if let Err(e) = presentation_bridge::start(app.handle().clone()) {

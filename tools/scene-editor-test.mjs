@@ -61,11 +61,35 @@ const { GROUND_KINDS, BLOCK_KINDS, blockKindFor, primitivesFor } = await import(
 const { CELL_BLOCK_METRES } = await import('../src/lib/isometric-board-layout.mjs')
 const { LANDMARK_KINDS } = await import('../src/lib/mapLandmarks.ts')
 
-const CONTENT_PACK = 'godot/scripts/shared_asset_content.gd'
+const { NO_CONTENT_PACK_REASON, advertisedKinds, findContentPack } = await import('./godot-content-pack.mjs')
+
+/** The committed registry's own kind list, used only in the no-pack branch of
+ *  section 1 to say what the placeable list is drawn from. */
+const sceneRegistryKinds = JSON.parse(readFileSync('src/data/sceneRegistry.json', 'utf8')).kinds.map((k) => k.kind)
+
 const ZONE = '1'
 
 let pass = 0
 let fail = 0
+const skipped = []
+
+/**
+ * The third state, for section 1 only.
+ *
+ * Section 1 is the one part of this file whose expectation comes from Godot: it
+ * re-derives the option lists from a content pack's own `shared_asset_status()`
+ * advertisement, deliberately by a different route than the builder's register
+ * calls, so the two are able to disagree. With no pack on disk there is no
+ * second derivation to make, and comparing `sceneOptions()` against a list
+ * derived from `sceneOptions()`'s own input would be one statement made twice -
+ * green by construction, which is worse than absent. Every other section here
+ * is about the resolver, the store and the importer, and runs unchanged.
+ */
+const notChecked = (what, why) => {
+  skipped.push(`${what}: ${why}`)
+  console.log(`NOT CHECKED ${what.padEnd(65)} ${why}`)
+}
+
 const ok = (what, cond, detail = '') => {
   if (cond) {
     pass += 1
@@ -89,16 +113,18 @@ const reset = () => {
 // 1. The option lists are the registry's, derived independently of the builder.
 // ---------------------------------------------------------------------------
 
-const pack = readFileSync(CONTENT_PACK, 'utf8')
-const advertised = [...(/"registeredKinds"\s*:\s*\[([^\]]*)\]/.exec(pack)?.[1] ?? '').matchAll(/"([^"]+)"/g)].map(
-  (m) => m[1]
-)
+const pack = findContentPack()
+const advertised = pack ? (advertisedKinds(pack.source) ?? []) : []
 
-ok(
-  'the content pack advertises kinds at all',
-  advertised.length >= 3,
-  `${advertised.length} from ${CONTENT_PACK}; a zero here would make every list below trivially equal`
-)
+if (pack) {
+  ok(
+    'the content pack advertises kinds at all',
+    advertised.length >= 3,
+    `${advertised.length} from ${pack.file}; a zero here would make every list below trivially equal`
+  )
+} else {
+  notChecked('the content pack advertises kinds at all', NO_CONTENT_PACK_REASON)
+}
 
 const baseFor = (blockKind) => primitivesFor({ blockKind, tags: [], boundaryEdges: [] })[0].kind
 const expectedGround = GROUND_KINDS.filter((g) => advertised.includes(baseFor(blockKindFor(g))))
@@ -115,21 +141,39 @@ const expectedPlaceable = advertised.filter((kind) => {
 })
 
 const options = sceneOptions()
-ok(
-  'the ground list is every ground kind whose cell the registry can draw',
-  options.ground.join(',') === expectedGround.join(','),
-  `${options.ground.length} of ${GROUND_KINDS.length}`
-)
-ok(
-  'the block list is every block kind whose cell the registry can draw',
-  options.block.join(',') === expectedBlock.join(','),
-  `${options.block.length} of ${BLOCK_KINDS.length}`
-)
-ok(
-  'the placeable list is exactly the registry kinds that are scenery',
-  options.placeable.join(',') === expectedPlaceable.join(','),
-  `${options.placeable.join(', ') || '(none)'}`
-)
+if (pack) {
+  ok(
+    'the ground list is every ground kind whose cell the registry can draw',
+    options.ground.join(',') === expectedGround.join(','),
+    `${options.ground.length} of ${GROUND_KINDS.length}`
+  )
+  ok(
+    'the block list is every block kind whose cell the registry can draw',
+    options.block.join(',') === expectedBlock.join(','),
+    `${options.block.length} of ${BLOCK_KINDS.length}`
+  )
+  ok(
+    'the placeable list is exactly the registry kinds that are scenery',
+    options.placeable.join(',') === expectedPlaceable.join(','),
+    `${options.placeable.join(', ') || '(none)'}`
+  )
+} else {
+  notChecked('the ground, block and placeable lists against the pack\'s own advertisement', NO_CONTENT_PACK_REASON)
+  // Not the same claim, and not a substitute for the three above - it says the
+  // lists are non-empty and drawn from the vocabularies, not that they are the
+  // set Godot advertises. Kept so the pack's absence does not leave
+  // `sceneOptions()` entirely unexamined here, and stated as the weaker thing
+  // it is.
+  ok(
+    'the option lists are at least non-empty subsets of the vocabularies they draw from',
+    options.ground.length > 0 &&
+      options.block.length > 0 &&
+      options.ground.every((g) => GROUND_KINDS.includes(g)) &&
+      options.block.every((b) => BLOCK_KINDS.includes(b)) &&
+      options.placeable.every((k) => sceneRegistryKinds.includes(k)),
+    `${options.ground.length} of ${GROUND_KINDS.length} ground, ${options.block.length} of ${BLOCK_KINDS.length} block, placeable ${options.placeable.join(', ') || '(none)'}`
+  )
+}
 ok(
   'the landmark list is the vocabulary mapLandmarks can actually decide',
   options.landmark.join(',') === [...LANDMARK_KINDS].join(','),
@@ -873,4 +917,9 @@ if (pass + fail < FLOOR) {
 }
 
 console.log(`\n${pass} passed, ${fail} failed (store key ${SCENE_STORAGE_KEY})`)
+if (fail === 0 && skipped.length) {
+  // Does not repeat the marker token: `run-tests.mjs` collects every line
+  // carrying it, so echoing it here would report one skip as two.
+  console.log(`no failures, but ${skipped.length} rule(s) went unchecked: ${skipped.join('; ')}`)
+}
 process.exit(fail === 0 ? 0 : 1)

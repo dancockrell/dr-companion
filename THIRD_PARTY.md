@@ -443,21 +443,6 @@ None are bundled. The interface asks for the platform's own UI font
 (`Segoe UI` on Windows) and falls back through the system stack, so no font
 file is redistributed and no font licence applies.
 
-## Shared 3D assets
-
-The world viewer draws on a shared asset library, tracked as a submodule at
-`godot/shared-assets` and admitted one selection at a time through
-`godot/assets/shared_asset_selections.json`. Every admitted selection to date is **CC0-1.0**.
-
-| Selection | Source pack | Licence |
-|---|---|---|
-| `dr.shared.tabletop-weathered-stone.scatter` | `resource.geometry.geology.tabletop-weathered-stone.v1` | CC0-1.0 |
-| `dr.shared.kenney-nature.wood-narrow-bridge` | `asset.shared.kenney.nature-kit.2_1.source` | CC0-1.0 |
-
-Nothing in that library contributes routes, exits, collision, navigation or
-any other game fact; it is presentation only, which is a rule of the admission
-process rather than a property of the licences.
-
 ## Music library (optional, installed on request)
 
 The app can download a curated music library. It is **not** in the installer:

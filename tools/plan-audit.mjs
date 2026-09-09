@@ -26,6 +26,37 @@
  * that another increment has not delivered yet is *not checked*, and the
  * summary says how many, rather than folding it into pass or fail.
  *
+ * # `[-]` — superseded
+ *
+ * Added 9 Sep 2026, when 3D was cancelled (`docs/NO-3D.md`) and PR #517 deleted
+ * the subsystem. Increments across lanes B, C, K, L, M and S had genuinely run
+ * and genuinely delivered work that is now deleted, and the plan had no marker
+ * that could say so. Every alternative on the table was a lie of a different
+ * shape: leaving them `[x]` makes the audit red forever and trains a reader to
+ * skim it; editing their `touches:` to name surviving files makes the record
+ * lie about what the increment did — PR #517 did exactly this to seven rows,
+ * pointing them at `docs/NO-3D.md`, a file that did not exist on the day any of
+ * them ran, and the audit passed them because the path resolves; deleting the
+ * rows destroys the history and the recorded minutes.
+ *
+ * `[-]` says: **this increment will not be delivered in this form, and every
+ * file it would have owned is absent.** That is the checkable proposition, and
+ * it holds whether the work was delivered and then removed (K2, K3, K5) or was
+ * retired before it could be (K6). Which of the two it was is carried by
+ * whether a `commit:` line sits above the `superseded:` line, where a person
+ * reads it — the audit does not need to know, and a second marker to encode it
+ * would leave two rules where one does the work.
+ *
+ *   - a `superseded:` line is REQUIRED, and must carry a date;
+ *   - `new:` and `gone:` paths must be ABSENT — this is the whole point;
+ *   - plain paths must still exist, so a `[-]` row goes on checking survivors
+ *     rather than silently becoming an unchecked row;
+ *   - an increment that is not itself delivered may not depend on a `[-]` one.
+ *
+ * The last rule is the one that earns its keep: a `[ ]` increment depending on
+ * something superseded is work whose foundation was removed, and it has to be
+ * rewritten or superseded in turn rather than picked up by the next session.
+ *
  * # Floors
  *
  * A plan that parses to three increments is a parser bug, not a short plan.
@@ -68,7 +99,7 @@ export function parsePlan(text) {
     if (m) {
       const ids = [...m[2].matchAll(/\*\*([A-Z]\d+[a-z]?)\s/g)].map((x) => x[1])
       if (ids.length === 0) continue // a checkbox that is not an increment
-      current = { ids, marker: m[1], line: i + 1, touches: [], dependsOn: [], minutes: null }
+      current = { ids, marker: m[1], line: i + 1, touches: [], dependsOn: [], minutes: null, superseded: null }
       increments.push(current)
       continue
     }
@@ -84,6 +115,11 @@ export function parsePlan(text) {
     const d = /^\s+depends-on:\s*(.*)$/.exec(line)
     if (d) {
       current.dependsOn = [...d[1].matchAll(ID)].map((x) => x[1])
+      continue
+    }
+    const sup = /^\s+superseded:\s*(.*)$/.exec(line)
+    if (sup) {
+      current.superseded = sup[1]
       continue
     }
     const mins = /^\s+commit:.*minutes:\s*(\d+)/.exec(line)
@@ -110,14 +146,35 @@ export function audit(increments, exists) {
     const before = findings.length
     let incChecked = 0
     let incAwaiting = 0
+    // `[x]` and `[-]` are both *settled*: one delivered and kept, one delivered
+    // and removed (or retired unbuilt). Every path assertion below turns on
+    // this rather than on `=== 'x'`, so a superseded row keeps checking the
+    // survivors it names while asserting the absence of what went.
+    const settled = inc.marker === 'x' || inc.marker === '-'
+    if (inc.marker === '-' && !inc.superseded) {
+      findings.push(`${label} is [-] superseded but has no \`superseded:\` line saying when and why`)
+    }
+    if (inc.marker === '-' && inc.superseded && !/\d{4}/.test(inc.superseded)) {
+      findings.push(`${label}'s \`superseded:\` line names no year; a supersession with no date cannot be aged`)
+    }
+    if (inc.marker !== '-' && inc.superseded) {
+      findings.push(`${label} has a \`superseded:\` line but is marked [${inc.marker}]; only [-] carries one`)
+    }
     for (const dep of inc.dependsOn) {
       const target = byId.get(dep)
       if (!target) {
         findings.push(`${label} depends on ${dep}, which is not an increment`)
         continue
       }
-      if (target.marker === '-') findings.push(`${label} depends on ${dep}, which is dropped`)
-      if (inc.marker === 'x' && target.marker !== 'x') findings.push(`${label} is done but depends on ${dep}, which is ${describe(target.marker)}`)
+      // A row that is not itself settled cannot rest on one that is superseded:
+      // its foundation was removed, so it needs rewriting or superseding in
+      // turn rather than picking up by whoever reads the lane next.
+      if (target.marker === '-' && !settled) {
+        findings.push(`${label} depends on ${dep}, which is superseded; rewrite this increment or supersede it too`)
+      }
+      if (settled && target.marker !== 'x' && target.marker !== '-') {
+        findings.push(`${label} is ${describe(inc.marker)} but depends on ${dep}, which is ${describe(target.marker)}`)
+      }
     }
     for (const raw of inc.touches) {
       const arrives = /^([A-Z]\d+[a-z]?)>(.+)$/.exec(raw)
@@ -152,16 +209,20 @@ export function audit(increments, exists) {
         const p = raw.slice(5)
         checked++
         incChecked++
-        if (inc.marker === 'x' && exists(p)) findings.push(`${label} says it deleted ${p}, but it still exists`)
-        if (inc.marker !== 'x' && !exists(p)) findings.push(`${label} has not deleted ${p} yet, but it is already absent`)
+        if (settled && exists(p)) findings.push(`${label} says it deleted ${p}, but it still exists`)
+        if (!settled && !exists(p)) findings.push(`${label} has not deleted ${p} yet, but it is already absent`)
         continue
       }
       if (raw.startsWith('new:')) {
         const p = raw.slice(4)
         checked++
         incChecked++
+        // The one place `[x]` and `[-]` part company. A done increment's new
+        // file must be there; a superseded one's must not, because `[-]` is
+        // precisely the claim that it is gone or never arrived.
         if (inc.marker === 'x' && !exists(p)) findings.push(`${label} is done but its new file ${p} does not exist`)
-        if (inc.marker !== 'x' && exists(p)) findings.push(`${label} says ${p} is new, but it already exists`)
+        if (inc.marker === '-' && exists(p)) findings.push(`${label} is superseded but its file ${p} still exists`)
+        if (!settled && exists(p)) findings.push(`${label} says ${p} is new, but it already exists`)
         continue
       }
       checked++
@@ -209,7 +270,7 @@ export function checkLaneHeadings(text, increments) {
 }
 
 function describe(marker) {
-  return { ' ': 'not started', '~': 'in progress', x: 'done', '!': 'blocked', '-': 'dropped' }[marker] ?? marker
+  return { ' ': 'not started', '~': 'in progress', x: 'done', '!': 'blocked', '-': 'superseded' }[marker] ?? marker
 }
 
 /**
@@ -390,6 +451,36 @@ export function checkGateFloors(gates) {
   return { findings, total }
 }
 
+/**
+ * A gate may not name a superseded increment.
+ *
+ * Without this, `[-]` would be the quietest possible way to strand a gate: the
+ * member can never become `[x]`, so the gate can never read GREEN, and the
+ * tally goes on printing `10/11  1 blocked` forever with nothing saying why the
+ * eleventh is unreachable. Gate 3 ("Viewer optional") named L6, whose six
+ * acceptance lines were about a 3D Crossing slice that no longer exists — a
+ * gate condition that had stopped being a condition and had become a permanent
+ * red mark on the project's own status board.
+ *
+ * So superseding an increment forces the gate line that named it to be
+ * rewritten in the same edit. That is the point: a gate is a claim about what
+ * "done" means, and deleting the work without touching the claim leaves the
+ * claim standing.
+ */
+export function checkGateSupersessions(gates, markerById) {
+  const findings = []
+  for (const g of gates) {
+    for (const id of g.ids) {
+      if (markerById.get(id) === '-') {
+        findings.push(
+          `gate "${g.name}" names ${id}, which is superseded; a gate cannot wait on an increment that will never be [x] — rewrite the gate line`
+        )
+      }
+    }
+  }
+  return { findings }
+}
+
 function bar(done, total, width = 24) {
   const filled = total === 0 ? 0 : Math.round((done / total) * width)
   return '#'.repeat(filled) + '.'.repeat(width - filled)
@@ -416,22 +507,36 @@ function tally(increments, planText) {
   const lanes = new Map()
   for (const [id, m] of marker) {
     const lane = id[0]
-    if (!lanes.has(lane)) lanes.set(lane, { done: 0, total: 0, active: 0, blocked: 0 })
+    if (!lanes.has(lane)) lanes.set(lane, { done: 0, total: 0, active: 0, blocked: 0, superseded: 0 })
     const l = lanes.get(lane)
     l.total++
     if (m === 'x') l.done++
     if (m === '~') l.active++
     if (m === '!') l.blocked++
+    if (m === '-') l.superseded++
   }
   for (const lane of [...lanes.keys()].sort()) {
     const l = lanes.get(lane)
-    const extra = [l.active ? `${l.active} in progress` : '', l.blocked ? `${l.blocked} blocked` : ''].filter(Boolean).join(', ')
-    console.log(`  ${lane}  ${bar(l.done, l.total)}  ${String(l.done).padStart(2)}/${String(l.total).padEnd(3)}${extra ? '  ' + extra : ''}`)
+    // Superseded increments leave the denominator. A lane that is 5/6 because
+    // one row will never be built again is not 5/6 of anything; it reads as
+    // outstanding work and it is not. The count is still printed, because a
+    // denominator that shrank silently is the defect the rest of this file
+    // exists to prevent.
+    const live = l.total - l.superseded
+    const extra = [
+      l.active ? `${l.active} in progress` : '',
+      l.blocked ? `${l.blocked} blocked` : '',
+      l.superseded ? `${l.superseded} superseded` : '',
+    ]
+      .filter(Boolean)
+      .join(', ')
+    console.log(`  ${lane}  ${bar(l.done, live)}  ${String(l.done).padStart(2)}/${String(live).padEnd(3)}${extra ? '  ' + extra : ''}`)
   }
 
   console.log('\nby gate (derived from section 4 of the plan)')
   const { gates, findings } = parseGates(planText, [...marker.keys()])
   const floors = checkGateFloors(gates)
+  const supersessions = checkGateSupersessions(gates, marker)
   for (const g of gates) {
     const done = g.ids.filter((id) => marker.get(id) === 'x').length
     const blocked = g.ids.filter((id) => marker.get(id) === '!').length
@@ -442,9 +547,10 @@ function tally(increments, planText) {
   // The denominator, printed: a section 4 that stopped parsing has to look
   // different from a section 4 with nothing wrong in it.
   console.log(`\n${gates.length} gates parsed from section 4, ${floors.total} members, all naming real increments`)
-  for (const f of [...findings, ...floors.findings]) console.log(`  FAIL ${f}`)
-  if (findings.length || floors.findings.length) {
-    console.error(`FAILED: ${findings.length + floors.findings.length} finding(s) in section 4 of ${PLAN}`)
+  const gateFindings = [...findings, ...floors.findings, ...supersessions.findings]
+  for (const f of gateFindings) console.log(`  FAIL ${f}`)
+  if (gateFindings.length) {
+    console.error(`FAILED: ${gateFindings.length} finding(s) in section 4 of ${PLAN}`)
     process.exit(1)
   }
 }
@@ -506,6 +612,99 @@ function selfTest() {
     for (const f of r.findings) console.log(`     ${f}`)
     bad++
   }
+  // `[-]` superseded, its own synthetic plan. Both directions of every rule,
+  // because a marker that only ever reports and a marker that never reports
+  // carry the same amount of information, which is none. The positive controls
+  // matter more than usual here: `[-]` is the marker that *suppresses* the
+  // findings a `[x]` row would produce, so a bug in it looks exactly like a
+  // clean plan.
+  const supText = [
+    '### Lane S',
+    // S1: correct. A deleted new: file and a deleted gone: file, both absent,
+    // plus a survivor that must still be checked. No findings.
+    '- [-] **S1  delivered, then removed** (≈5)',
+    '  commit: abc1234 verified: 2026-09-05 minutes: 30',
+    '  superseded: 2026-09-09 — 3D cancelled, PR #517 deleted it',
+    '  touches: new:this/is/gone.ts, gone:also/gone.ts, package.json',
+    '  depends-on: none',
+    // S2: superseded with no `superseded:` line at all.
+    '- [-] **S2  no bookkeeping** (≈5)',
+    '  touches: none',
+    '  depends-on: none',
+    // S3: a `superseded:` line with no year in it.
+    '- [-] **S3  undated** (≈5)',
+    '  superseded: because we changed our minds',
+    '  touches: none',
+    '  depends-on: none',
+    // S4: superseded, but the file it named is still on disk. This is the
+    // check that stops `[-]` being used to hide surviving work.
+    '- [-] **S4  claims a live file is gone** (≈5)',
+    '  superseded: 2026-09-09 — see NO-3D.md',
+    '  touches: new:package.json',
+    '  depends-on: none',
+    // S5: not started, resting on a superseded increment.
+    '- [ ] **S5  built on sand** (≈5)',
+    '  touches: none',
+    '  depends-on: S1',
+    // S6: done, resting on a superseded increment. Legitimate: S1 was there
+    // when S6 ran. Must produce nothing.
+    '- [x] **S6  ran while S1 was alive** (≈5)',
+    '  commit: def5678 verified: 2026-09-05 minutes: 10',
+    '  touches: none',
+    '  depends-on: S1',
+    // S7: a `superseded:` line on a row that is not [-].
+    '- [x] **S7  wrong marker for the line** (≈5)',
+    '  superseded: 2026-09-09 — but this row says [x]',
+    '  touches: none',
+    '  depends-on: none',
+  ].join('\n')
+  const sr = audit(parsePlan(supText), (p) => existsSync(p))
+  const supExpect = [
+    /S2 is \[-\] superseded but has no `superseded:` line/,
+    /S3's `superseded:` line names no year/,
+    /S4 is superseded but its file package.json still exists/,
+    /S5 depends on S1, which is superseded; rewrite this increment or supersede it too/,
+    /S7 has a `superseded:` line but is marked \[x\]/,
+  ]
+  for (const re of supExpect) {
+    const hit = sr.findings.some((f) => re.test(f))
+    console.log(`${hit ? 'OK  ' : 'FAIL'} superseded: reports: ${re.source}`)
+    if (!hit) bad++
+  }
+  const supPositives = [
+    [!sr.findings.some((f) => /^S1\b/.test(f)), 'a well-formed [-] row with absent new:/gone: paths and a live survivor reports nothing'],
+    [!sr.findings.some((f) => /^S6\b/.test(f)), 'a [x] increment may depend on a superseded one (it was there when it ran)'],
+    [sr.findings.length === supExpect.length, `exactly ${supExpect.length} findings, got ${sr.findings.length}: ${JSON.stringify(sr.findings)}`],
+    // The denominator: S1's three paths must actually have been examined. A
+    // `[-]` row that quietly stopped checking anything would satisfy every
+    // assertion above by producing no findings at all.
+    [sr.checked >= 3, `S1's three paths were checked, not skipped (checked ${sr.checked})`],
+  ]
+  for (const [hit, what] of supPositives) {
+    console.log(`${hit ? 'OK  ' : 'FAIL'} superseded: ${what}`)
+    if (!hit) bad++
+  }
+  // The gate rule, both ways: a gate naming a superseded increment must fail,
+  // and the same gate naming only live ones must not.
+  const supMarkers = new Map([
+    ['A1', 'x'],
+    ['A2', '-'],
+    ['A3', 'x'],
+  ])
+  const supGates = [{ name: 'Gate 3 – Viewer optional', ids: ['A1', 'A2'], excluded: [] }]
+  const liveGates = [{ name: 'Gate 3 – Viewer optional', ids: ['A1', 'A3'], excluded: [] }]
+  const gateSupExpect = [
+    [
+      checkGateSupersessions(supGates, supMarkers).findings.some((f) => /names A2, which is superseded/.test(f)),
+      'a gate naming a superseded increment fails, and names it',
+    ],
+    [checkGateSupersessions(liveGates, supMarkers).findings.length === 0, 'a gate naming only live increments does not'],
+  ]
+  for (const [hit, what] of gateSupExpect) {
+    console.log(`${hit ? 'OK  ' : 'FAIL'} superseded: ${what}`)
+    if (!hit) bad++
+  }
+
   // Section 4's gate parser gets the same treatment: a synthetic section with
   // one of every defect, plus the two readings that the hardcoded table it
   // replaced got wrong (a whole gate missing, and "J complete" read as two).
@@ -672,6 +871,9 @@ if (args.has('--self-test')) {
     const ids = increments.flatMap((inc) => inc.ids)
     const g = parseGates(planText, ids)
     const floors = checkGateFloors(g.gates)
+    const markerById = new Map()
+    for (const inc of increments) for (const id of inc.ids) markerById.set(id, inc.marker)
+    const supersessions = checkGateSupersessions(g.gates, markerById)
     // Section 6's lane headings are the manifest for the increment parser: a
     // lane it cannot see is otherwise indistinguishable from a lane that does
     // not exist. Printed with its denominator, so a broken heading scan reports
@@ -680,7 +882,7 @@ if (args.has('--self-test')) {
     if (laneCheck.findings.length === 0) {
       console.log(`OK   section 6 lanes             ${laneCheck.lanes.length} headings, every one parsed to increments`)
     }
-    const gateFindings = [...g.findings, ...floors.findings, ...laneCheck.findings]
+    const gateFindings = [...g.findings, ...floors.findings, ...supersessions.findings, ...laneCheck.findings]
     for (const gate of g.gates) {
       if (!gateFindings.some((f) => f.includes(`"${gate.name}"`))) {
         console.log(`OK   gate ${gate.name.padEnd(26)} ${gate.ids.length} members${gate.excluded.length ? `, excludes ${gate.excluded.join(', ')}` : ''}`)

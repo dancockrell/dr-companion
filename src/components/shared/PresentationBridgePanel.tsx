@@ -14,7 +14,7 @@ import { isTauri } from '../../lib/tauri.ts'
 
 /**
  * The port and token file the Godot viewer needs to connect - see
- * `docs/THREE_D_REBUILD_HANDOFF.md` section 4.
+ * `docs/NO-3D.md` section 4.
  *
  * Godot reads both automatically off disk, so nothing a working viewer needs
  * comes from this panel. It exists for the two moments that aren't "the

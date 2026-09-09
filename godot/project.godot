@@ -1,27 +1,27 @@
-; DR Companion — Single 3D World Viewer
+; DR Companion — World Viewer (2D isometric)
 ;
-; This project is the viewer FOUNDATION only: one WorldRoot, a manifest
-; loader, a camera director, a content-registration contract, and a bridge
-; client with explicit mock and authenticated live modes. It
-; ships no final art — Codex owns primitives, materials, and composition
-; recipes inside the slots this project exposes. See
-; docs/CLAUDE_3D_VIEWER_BRIEF.md and docs/THREE_D_REBUILD_HANDOFF.md at the
-; repo root for the full contract this project implements.
+; This project is the viewer FOUNDATION only: a manifest loader, a bridge
+; client with explicit mock and authenticated live modes, intent validation,
+; event playback, a visibility budget, and an accessible room inspector. The
+; WorldRoot scene, camera director and content registry this comment used to
+; name were the 3D subsystem and are deleted; a 2D isometric main scene has
+; not been authored yet, which is why run/main_scene below is unset. It ships
+; no final art. See docs/NO-3D.md at the repo root for the direction this
+; project implements.
 
 config_version=5
 
 [application]
 
 config/name="DR Companion World Viewer"
-config/description="Single continuous 3D world/route/room viewer for DR Companion. Local presentation renderer only — owns no game state, credentials, or topology truth."
-run/main_scene="res://scenes/WorldRoot.tscn"
+config/description="World/route/room viewer for DR Companion, 2D isometric. Local presentation renderer only: owns no game state, credentials, or topology truth. 3D is cancelled, see ../docs/NO-3D.md."
+; run/main_scene removed: WorldRoot.tscn was the 3D scene. A 2D main scene
+; must be authored before this project runs. See ../docs/NO-3D.md.
 config/features=PackedStringArray("4.3", "Forward Plus")
 
 [autoload]
 
 WorldManifestLoader="*res://scripts/world_manifest_loader.gd"
-ContentRegistry="*res://scripts/content_registry.gd"
-SharedAssetContent="*res://scripts/shared_asset_content.gd"
 BridgeClient="*res://scripts/bridge_client.gd"
 IntentSender="*res://scripts/intent_sender.gd"
 EventPlayer="*res://scripts/event_player.gd"

@@ -10,12 +10,15 @@
     "docs/verification/crossing-slice-2026-09-05.md",
     "docs/verification/crossing-slice-2026-09-05-mock.png",
     "tools/capture-godot-window.ps1",
-    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/NO-3D.md",
     "docs/PLAN_TO_1_0.md"
   ],
   "symbols": [],
   "coordination": {
-    "depends_on": ["l4-slice-acceptance-checklist", "b4-live-chain-check"],
+    "depends_on": [
+      "l4-slice-acceptance-checklist",
+      "b4-live-chain-check"
+    ],
     "conflicts_with": [],
     "notes": "The increment said touches: none, but a record has to live somewhere and the checklist slots are in the handoff. tools/capture-godot-window.ps1 is committed rather than left in the worktree because the record's re-run section names it: a claim about a technique nobody can re-run is the thing section 19 forbids. Processes started here were killed by their own pids (viewer 27044, app 31212, one fake-lich); no taskkill by image name."
   },

@@ -5,7 +5,7 @@
 //! start, a listener thread per connection - because that pattern is already
 //! red-teamed in this codebase (see `script_api.rs`'s own module doc) and a
 //! second, differently-shaped local socket would just be a second thing to
-//! audit for the same class of bug. `docs/THREE_D_REBUILD_HANDOFF.md`
+//! audit for the same class of bug. `docs/NO-3D.md`
 //! specifies "JSON over authenticated loopback WebSocket" for this bridge;
 //! this ships newline-delimited JSON over plain TCP instead, which is the
 //! document's own escape hatch exercised deliberately - "a later optimized
@@ -71,7 +71,7 @@ const AUTH_TIMEOUT: Duration = Duration::from_secs(2);
 const MAX_LINE_BYTES: usize = 8 * 1024 * 1024;
 
 // ---------------------------------------------------------------------------
-// Message shapes - mirrors docs/THREE_D_REBUILD_HANDOFF.md section 4 exactly.
+// Message shapes - mirrors `docs/NO-3D.md` section 4 exactly.
 // A field here that doc doesn't have is a bug, not an extension; see that
 // file before adding one.
 // ---------------------------------------------------------------------------
@@ -603,7 +603,7 @@ mod tests {
     }
 
     /// The handshake itself, against a real socket - the "stale/invalid
-    /// session tokens" contract test docs/CLAUDE_3D_VIEWER_BRIEF.md
+    /// session tokens" contract test `docs/NO-3D.md`
     /// requires. `handle_client` takes a no-op `on_intent` here: this test
     /// is entirely about the auth boundary, which runs and returns before
     /// `on_intent` is ever reached on the wrong-token path, and reaches it
@@ -803,7 +803,7 @@ mod tests {
     }
 
     /// A PresentationIntent round-trips through the exact wire shape
-    /// docs/THREE_D_REBUILD_HANDOFF.md specifies - `kind: 'walk'` with
+    /// `docs/NO-3D.md` specifies - `kind: 'walk'` with
     /// `fromRoomId`/`exitMove`, not this crate's own naming convention.
     #[test]
     fn walk_intent_deserializes_from_the_documented_wire_shape() {

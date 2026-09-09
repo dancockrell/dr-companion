@@ -7,9 +7,7 @@
   "claimed_at": "2026-09-04T04:20:00Z",
   "updated_at": "2026-09-04T04:39:49Z",
   "paths": [
-    "docs/THREE_D_WORLD_STRATEGY.md",
-    "docs/THREE_D_REBUILD_HANDOFF.md",
-    "docs/CLAUDE_3D_VIEWER_BRIEF.md",
+    "docs/NO-3D.md",
     "godot/README.md",
     "godot/scripts/camera_director.gd",
     "godot/scripts/confirmed_route_transition.gd",
@@ -26,7 +24,9 @@
     "classify_tether"
   ],
   "coordination": {
-    "depends_on": ["714bf8a8"],
+    "depends_on": [
+      "714bf8a8"
+    ],
     "conflicts_with": [],
     "notes": "Builds on the shipped single Godot viewer and authoritative node projection. The only open PR removes generated creature art and does not overlap these paths. Historical viewer docs are revised in place so the repository retains one product direction."
   },

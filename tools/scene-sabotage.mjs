@@ -35,7 +35,7 @@
  *    something else is reported as a miss rather than as a pass.
  */
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const NODE = process.execPath
 
@@ -270,6 +270,18 @@ const skipped = cases.length - selected.length
 
 let misses = 0
 for (const c of selected) {
+  // The file a case aims at can be gone - cases 5-7 target the 3D content pack
+  // and content registry, deleted with the rest of the 3D subsystem
+  // (docs/NO-3D.md). `readFileSync` on it used to throw ENOENT and take the
+  // whole harness down mid-run, which reads as a crash rather than as the fact
+  // it is, and left every case after it unrun with nothing saying so. Counted
+  // as a miss, because a case that could not be attempted has proved exactly as
+  // much as one that failed to bite.
+  if (!existsSync(c.file)) {
+    console.log(`ABORT ${c.name}: ${c.file} does not exist, so this case proves nothing`)
+    misses += 1
+    continue
+  }
   const before = readFileSync(c.file, 'utf8')
   let sabotaged
   if (c.deleteLine) {

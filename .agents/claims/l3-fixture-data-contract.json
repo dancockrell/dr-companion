@@ -10,12 +10,17 @@
     "tools/godot-fixture-contract-test.mjs",
     "package.json",
     "tools/test-suites.json",
-    "docs/THREE_D_REBUILD_HANDOFF.md",
+    "docs/NO-3D.md",
     "docs/PLAN_TO_1_0.md"
   ],
-  "symbols": ["test:godot-fixture-contract", "contractViolations"],
+  "symbols": [
+    "test:godot-fixture-contract",
+    "contractViolations"
+  ],
   "coordination": {
-    "depends_on": ["l2-mock-fixture-derived"],
+    "depends_on": [
+      "l2-mock-fixture-derived"
+    ],
     "conflicts_with": [],
     "notes": "Registered in package.json and tools/test-suites.json both, and the full run's total rose by exactly this suite's checks. The rules are properties of any manifest handed to the viewer, not of the mock, so the same function will serve a live snapshot. No godot/*.gd was touched; the section 9 table names the Godot-side tests that already exist and says plainly where a requirement has a name in only one column."
   },

@@ -2,7 +2,7 @@
  * Compiles this app's own live room state into the `WorldSnapshot` shape
  * `src-tauri/src/presentation_bridge.rs` and the Godot viewer's
  * `world_manifest_loader.gd`/`bridge_client.gd` already agree on (see
- * `docs/THREE_D_REBUILD_HANDOFF.md` section 4), and publishes it to Rust
+ * `docs/NO-3D.md` section 4), and publishes it to Rust
  * whenever any viewer-relevant live fact or zone topology changes.
  *
  * This file is the one place that turns "what this app already knows" into
@@ -77,7 +77,6 @@
  */
 import type { CharacterStatus, InventorySummary } from '../types/index.ts'
 import type { MapRoom, MapZone, MapZoneRoom } from '../bridge/types.ts'
-import { appearanceFor, playerAppearanceFor } from './appearance.ts'
 import { fromRoom } from './room.ts'
 import { combatantFor, indexCombatants } from './combat.ts'
 import {
@@ -277,7 +276,7 @@ export function compileWorldSnapshot(params: {
   overrides?: SceneOverrides | null
   sequence: number
 }): CompiledWorldSnapshot | null {
-  const { zone, here, character, inventory, content, overrides, sequence } = params
+  const { zone, here, character, content, overrides, sequence } = params
 
   // No zone, no zone id, or the zone itself reported failure: there is
   // nothing true to publish. A snapshot with an empty cells array would
@@ -339,12 +338,6 @@ export function compileWorldSnapshot(params: {
 
   const entities: EntitySnapshot[] = fromRoom(character).map((card) => {
     const tracked = combatantFor(card, combatants)
-    // Resolved from the entity's own noun, which for a creature names neither
-    // a weapon nor a piece of armour, so this is absent nearly always - and
-    // that is the intended answer rather than a shortfall. Guessing a mesh
-    // for an unrecognised noun is the substitution the asset registry's
-    // `forbiddenSubstitutions` rule forbids.
-    const appearance = appearanceFor('weapon', card.noun) ?? appearanceFor('armor', card.noun)
     return {
       id: card.id,
       roomId: currentCellId,
@@ -357,7 +350,6 @@ export function compileWorldSnapshot(params: {
       // any - see EntitySnapshot's own doc comment.
       ...(card.lore ? { lore: card.lore } : {}),
       ...(card.loreApproximate ? { loreApproximate: card.loreApproximate } : {}),
-      ...(appearance ? { appearance } : {}),
       // Carried through field for field, never reshaped or defaulted - see
       // TacticalSnapshot's doc comment for why staleness travels with it.
       ...(tracked
@@ -380,12 +372,10 @@ export function compileWorldSnapshot(params: {
   })
 
   const groundItems: GroundItemSnapshot[] = (character?.roomItems ?? []).map((name, i) => {
-    const appearance = appearanceFor('weapon', name) ?? appearanceFor('armor', name)
     return {
       id: `${currentCellId}:item:${i}`,
       roomId: currentCellId,
       name,
-      ...(appearance ? { appearance } : {}),
     }
   })
 
@@ -394,9 +384,6 @@ export function compileWorldSnapshot(params: {
   // "no flags lit, full health" would be a claim this file cannot support.
   // Same absent-means-unknown contract `injuries` uses in types/index.ts.
   const maxHealth = character?.vitals?.healthMax ?? 0
-  const playerAppearance = character
-    ? playerAppearanceFor(character.hands, inventory?.worn)
-    : null
   const player: PlayerSnapshot | null = character
     ? {
         situation: character.situation ?? [],
@@ -412,11 +399,6 @@ export function compileWorldSnapshot(params: {
         // moment in a fight, and the moment it is dead even, as "unknown".
         balance: character.balance ?? null,
         position: character.position ?? null,
-        // `hands` is the wielded-item field - it is not called `wield`
-        // anywhere in this codebase, which is worth saying because the
-        // obvious grep for one misses it. Absent when neither hand nor any
-        // worn piece resolved to a class.
-        ...(playerAppearance ? { appearance: playerAppearance } : {}),
       }
     : null
 

@@ -20,16 +20,22 @@
 //! a file with the app's own permissions, not in `argv`.
 //!
 //! A mode flag is not a credential, and one is now passed. Until this was
-//! written the launch passed no arguments at all, and
-//! `godot/scripts/world_root.gd` goes live only when `--live-presentation` is
-//! among the user arguments - so every viewer the app had ever started came up
-//! in the mock Crossing fixture, showing a world that was not the player's.
-//! Nothing errored, which is why it survived: a mock world and a live one look
-//! the same until you read the room names.
+//! written the launch passed no arguments at all, and the Godot main script
+//! goes live only when `--live-presentation` is among the user arguments - so
+//! every viewer the app had ever started came up in the mock Crossing fixture,
+//! showing a world that was not the player's. Nothing errored, which is why it
+//! survived: a mock world and a live one look the same until you read the room
+//! names.
+//!
+//! Which script reads that flag is deliberately not written down here. The 3D
+//! `world_root.gd` that used to read it is deleted (`docs/NO-3D.md`), and the
+//! 2D isometric main scene that replaces it is not authored yet. So the test
+//! below *scans* `godot/scripts/*.gd` for the read site rather than naming a
+//! file, and says so plainly when no script reads it yet.
 //!
 //! # The app has to stay usable when the viewer is absent
 //!
-//! `docs/THREE_D_REBUILD_HANDOFF.md` makes it an acceptance rule: "client
+//! `docs/NO-3D.md` makes it an acceptance rule: "client
 //! remains usable if Godot is absent/crashed". So every path here reports
 //! rather than throws, "not installed" is an ordinary answer rather than an
 //! error, and nothing in the app's startup depends on any of it.
@@ -89,7 +95,7 @@ fn apply_held(status: &mut ViewerStatus, held: Held) {
 /// it would mean a viewer that launches and can never be found again.
 pub const VIEWER_EXE: &str = "DRCompanionWorldViewer.exe";
 
-/// The flag `godot/scripts/world_root.gd::_live_requested` looks for. Spelled
+/// The flag the Godot main script's `_live_requested` looks for. Spelled
 /// once, here, because the two halves live in different languages and a
 /// typo in either produces a viewer that starts happily in the mock world.
 pub const LIVE_FLAG: &str = "--live-presentation";
@@ -394,7 +400,7 @@ mod tests {
             .collect();
         let [site] = sites.as_slice() else {
             return Err(format!(
-                "expected exactly one call to get_cmdline_user_args in world_root.gd, \
+                "expected exactly one call to get_cmdline_user_args in this script, \
                  found {}: {sites:?}",
                 sites.len()
             ));
@@ -428,10 +434,85 @@ mod tests {
             .ok_or_else(|| {
                 format!(
                     "the check reads `{arg}`, which is neither a string literal nor a \
-                     file-scope string const in world_root.gd (consts seen: {:?})",
+                     file-scope string const in this script (consts seen: {:?})",
                     consts.iter().map(|(n, _)| *n).collect::<Vec<_>>()
                 )
             })
+    }
+
+    /// Where the GDScript lives, as a path resolved at *test run time* rather
+    /// than a filename baked in at compile time by `include_str!`. That
+    /// hardcoded filename is what broke the whole crate's build when the 3D
+    /// `world_root.gd` was deleted: a missing script must be an ordinary
+    /// answer this test can report, not a compile error.
+    ///
+    /// The environment override exists so the not-found branch can be executed
+    /// deliberately - a branch nobody can trigger is a branch nobody can prove
+    /// they fixed.
+    fn gdscript_dir() -> PathBuf {
+        match std::env::var_os("DRC_GODOT_SCRIPTS_DIR") {
+            Some(dir) => PathBuf::from(dir),
+            None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../godot/scripts"),
+        }
+    }
+
+    /// Every `*.gd` under `gdscript_dir()`, as (file name, source). Sorted, so
+    /// a failure names the same file every run.
+    ///
+    /// Returns `Err` rather than an empty vector when the directory itself
+    /// cannot be read: "no scripts here" and "I could not look" are different
+    /// answers and only one of them is safe to pass on.
+    fn all_gdscripts() -> Result<Vec<(String, String)>, String> {
+        let dir = gdscript_dir();
+        let entries = std::fs::read_dir(&dir)
+            .map_err(|why| format!("cannot read {}: {why}", dir.display()))?;
+        let mut out = Vec::new();
+        for entry in entries {
+            let path = entry.map_err(|why| format!("bad entry in {}: {why}", dir.display()))?;
+            let path = path.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("gd") {
+                continue;
+            }
+            let name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("<unnamed>")
+                .to_string();
+            let source = std::fs::read_to_string(&path)
+                .map_err(|why| format!("cannot read {}: {why}", path.display()))?;
+            out.push((name, source));
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        Ok(out)
+    }
+
+    #[test]
+    fn the_gdscript_scan_actually_examined_scripts() {
+        // The denominator for the test below. Without this, a scan pointed at
+        // the wrong directory finds nothing, and "nothing reads the flag yet"
+        // - a legitimate state today - would be indistinguishable from "the
+        // scan is broken". The number that goes to zero when the mechanism
+        // breaks is the file count, so that is what is asserted and printed.
+        let dir = gdscript_dir();
+        let scripts = all_gdscripts()
+            .unwrap_or_else(|why| panic!("the GDScript scan could not look at all: {why}"));
+        println!(
+            "gdscript scan: {} .gd file(s) under {}: {:?}",
+            scripts.len(),
+            dir.display(),
+            scripts.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>()
+        );
+        assert!(
+            dir.is_dir(),
+            "the GDScript directory {} does not exist - the scan below would \
+             report 'no script reads the flag' having looked at nothing",
+            dir.display()
+        );
+        assert!(
+            !scripts.is_empty(),
+            "no .gd files under {} - the scan below cannot have verified anything",
+            dir.display()
+        );
     }
 
     #[test]
@@ -439,15 +520,56 @@ mod tests {
         // The two ends of this are in different languages, so nothing else
         // compares them. A silent disagreement here is a viewer that starts in
         // the mock world and looks entirely healthy doing it.
-        let gd = include_str!("../../godot/scripts/world_root.gd");
-        let read = flag_the_gdscript_reads(gd)
-            .unwrap_or_else(|why| panic!("cannot tell what world_root.gd reads: {why}"));
-        assert_eq!(
-            read, LIVE_FLAG,
-            "world_root.gd's command-line check reads {read:?}, but this module \
-             launches the viewer with {LIVE_FLAG:?} - the viewer would boot into the \
-             mock world"
+        //
+        // Located by behaviour, not by filename: whichever script performs the
+        // command-line read is the one that decides the launch mode.
+        let dir = gdscript_dir();
+        let scripts = all_gdscripts()
+            .unwrap_or_else(|why| panic!("the GDScript scan could not look at all: {why}"));
+        let readers: Vec<&(String, String)> = scripts
+            .iter()
+            .filter(|(_, src)| src.contains("get_cmdline_user_args"))
+            .collect();
+
+        println!(
+            "launch-flag scan: searched {} .gd file(s) under {} ({:?}); {} read the \
+             command line",
+            scripts.len(),
+            dir.display(),
+            scripts.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>(),
+            readers.len()
         );
+
+        match readers.as_slice() {
+            [] => {
+                // The current, expected state: the 3D main script that read
+                // this flag is deleted and the 2D one is not authored yet. Say
+                // so out loud - this run verified nothing about the pairing,
+                // and a silent pass would read as though it had.
+                println!(
+                    "launch-flag scan: NOT CHECKED - no script under {} reads \
+                     OS.get_cmdline_user_args() yet, so nothing consumes {LIVE_FLAG:?}. \
+                     The 2D main scene must read it when it lands.",
+                    dir.display()
+                );
+            }
+            [(name, src)] => {
+                let read = flag_the_gdscript_reads(src)
+                    .unwrap_or_else(|why| panic!("cannot tell what {name} reads: {why}"));
+                assert_eq!(
+                    read, LIVE_FLAG,
+                    "{name}'s command-line check reads {read:?}, but this module \
+                     launches the viewer with {LIVE_FLAG:?} - the viewer would boot \
+                     into the mock world"
+                );
+            }
+            many => panic!(
+                "{} scripts read OS.get_cmdline_user_args(): {:?}. Two scripts \
+                 deciding the launch mode is itself the bug - exactly one must own it.",
+                many.len(),
+                many.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>()
+            ),
+        }
     }
 
     #[test]
