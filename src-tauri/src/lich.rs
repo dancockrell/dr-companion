@@ -1754,9 +1754,8 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         let real = session_dir();
-        let dir = std::env::temp_dir().join(format!("drc-session-seam-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).expect("a session directory");
+        let scratch = crate::test_support::scratch_dir("session-seam");
+        let dir = scratch.path().to_path_buf();
         std::fs::write(
             dir.join("Seamcheck.session"),
             format!(
@@ -1771,7 +1770,6 @@ mod tests {
         let found = character_on_port(&session_descriptors_in(&aimed), DETACHABLE_PORT);
         std::env::remove_var("DRC_SESSION_DIR");
         let back = session_dir();
-        let _ = std::fs::remove_dir_all(&dir);
 
         assert_eq!(aimed, dir, "the override decides the directory");
         assert_ne!(
@@ -1806,8 +1804,12 @@ mod tests {
     fn a_dry_run_reports_the_argv_writes_the_file_and_spawns_nothing() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
-        let dir = std::env::temp_dir().join(format!("drc-dryrun-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let scratch = crate::test_support::scratch_dir("dryrun");
+        // A path *inside* the scratch directory that does not exist yet. The
+        // assertion far below that `dir` exists is the positive control that
+        // the launch code created it, and a directory handed over ready-made
+        // would satisfy that for free.
+        let dir = scratch.join("launch");
         std::env::set_var("DRC_LAUNCH_DIR", &dir);
         std::env::set_var("DRC_LICH_DRY_RUN", "1");
 
@@ -1879,8 +1881,6 @@ mod tests {
             "the dry run left something in {}",
             dir.display()
         );
-
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// Shredding is called from three places and any may be first, so it has
@@ -2496,11 +2496,8 @@ mod tests {
         let _pending = LAUNCH_FILE_TEST_LOCK
             .lock()
             .unwrap_or_else(|e| e.into_inner());
-        let path = std::env::temp_dir().join(format!(
-            "drc-backstop-{}-{:?}.sal",
-            std::process::id(),
-            std::thread::current().id()
-        ));
+        let scratch = crate::test_support::scratch_dir("backstop");
+        let path = scratch.join("launch.sal");
         std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
         assert!(path.exists(), "control: the fixture is on disk");
         remember_launch_file_for_test(path.clone());
@@ -2591,13 +2588,8 @@ mod tests {
         let pid = child.id();
         SPAWNED_LICH.hold(child, DETACHABLE_PORT);
 
-        let path = std::env::temp_dir().join(format!(
-            // The child's pid, plus this process's own, so two
-            // concurrent `cargo test` runs cannot name one file
-            // (issue #502).
-            "drc-stop-{pid}-{}.sal",
-            std::process::id()
-        ));
+        let scratch = crate::test_support::scratch_dir("stop");
+        let path = scratch.join("launch.sal");
         std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
         remember_launch_file_for_test(path.clone());
 
@@ -2649,13 +2641,8 @@ mod tests {
         let pid = child.id();
         SPAWNED_LICH.hold(child, DETACHABLE_PORT);
 
-        let path = std::env::temp_dir().join(format!(
-            // The child's pid, plus this process's own, so two
-            // concurrent `cargo test` runs cannot name one file
-            // (issue #502).
-            "drc-release-{pid}-{}.sal",
-            std::process::id()
-        ));
+        let scratch = crate::test_support::scratch_dir("release");
+        let path = scratch.join("launch.sal");
         std::fs::write(&path, "KEY=not-a-real-key\n").expect("the fixture writes");
         remember_launch_file_for_test(path.clone());
 
