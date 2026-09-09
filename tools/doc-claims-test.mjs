@@ -25,7 +25,7 @@
  * NOT CHECKED with the reason rather than passing quietly. A skip is not a
  * pass; the summary carries the count.
  */
-import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 
@@ -963,6 +963,306 @@ const pkg = JSON.parse(read('package.json'))
     'control: the same counter reports two call sites when there are two',
     twoCallers.length === 2,
     twoCallers.join(', ') || 'found none'
+  )
+}
+
+
+// --------------------------------------------------------------------------
+// M. No surviving 3D instruction anywhere an agent reads. (V7, and V3's half)
+// --------------------------------------------------------------------------
+// `docs/NO-3D.md` states the whole reason this check exists, in its own words:
+// a surviving 3D document keeps producing the behaviour after the direction is
+// gone. A session opened `THREE_D_REBUILD_HANDOFF.md`, found a document headed
+// "approved direction; ready for parallel implementation", and started building
+// against it long after the decision had reversed. Prose is not a tidying
+// matter here. It is the failure mode, and deleting it once is the half a
+// person does once.
+//
+// # What is in the population
+//
+// Everything an agent reads for direction: `docs/`, `.claude/`, `.agents/`,
+// `AGENTS.md`, `CLAUDE.md`, `README.md` — plus, for V3, the Godot project's own
+// config, where an `include_filter` naming three `.glb` files was a *live* 3D
+// reference rather than a dead sentence about one.
+//
+// # Three states, and the third is where the honesty is
+//
+// A hit is live direction, or it is history, or it is a restatement of the
+// cancellation itself. Only the first is a failure, and the other two are
+// printed rather than swallowed — an allowance nobody sees is an allowance
+// nobody re-reads.
+//
+// History is recognised four ways, in descending order of how much it excuses:
+//
+//   1. `docs/NO-3D.md` and `docs/verification/**`. The direction, and dated
+//      records of what was run on a day. Both are history by construction.
+//   2. A file-level marker in the first 40 lines: `no-3d-file-history: <why>`
+//      in prose, or a top-level `"no-3d-file-history"` key in JSON. For a
+//      document that is entirely a record — a completed claim, a superseded
+//      design, a dated state snapshot. Capped, and every use printed.
+//   3. Inside `docs/PLAN_TO_1_0.md` only, an increment or section whose own
+//      block carries `superseded:`, `gone:` or the `[-]` marker. The plan
+//      already has that vocabulary and §0.1 defines it; a second marker
+//      meaning the same thing would be a fork of it.
+//   4. An inline `no-3d-history:` or `no-3d-direction: <why>`, good for the
+//      thirty lines after it. `no-3d-direction` is for prose that restates the
+//      prohibition where the reader is — the plan's own header does this.
+//
+// Every marker's reason is mandatory. A bare `no-3d-file-history:` excuses
+// nothing, which is checked below against a synthetic string rather than hoped
+// for.
+//
+// # N of N
+//
+// The counts are printed and the floors asserted before any verdict, because a
+// grep pointed at a directory that does not exist finds no 3D instruction for
+// exactly the same reason a clean repository does. A zero is a claim about the
+// instrument first.
+{
+  const NEEDLE =
+    /\b3-?D\b|\bglb\b|\bgltf\b|\bmesh(es)?\b|\brigg(ing|ed)\b|WorldRoot|content_registry|primitive-world|geometric-kit|geometry kits?/i
+
+  /** Roots an agent reads for direction. */
+  const ROOTS = ['docs', '.claude', '.agents', 'AGENTS.md', 'CLAUDE.md', 'README.md']
+  /** And V3's half: the Godot project's config, where a 3D reference is live. */
+  const GODOT_CONFIG = ['godot/project.godot', 'godot/export_presets.cfg', 'godot/README.md']
+  const READABLE = /\.(md|json|txt|ya?ml|godot|cfg)$/
+
+  // Floors, well below the real counts, so a walk that returned little fails
+  // instead of certifying a clean tree. They do not need touching as docs grow.
+  const MIN_FILES = 60
+  const MIN_HITS = 20
+
+  // Ceilings on the allowances, the mirror of the floors. They may shrink.
+  const MAX_FILE_HISTORY = 40
+  const MAX_INLINE = 5
+
+  // The optional quotes around the colon are what let one marker live in a
+  // JSON record as a key (`"no-3d-file-history": "…"`) and in prose as an HTML
+  // comment. Without them the JSON form never matched, and sixteen marked claim
+  // files stayed red while looking marked — the marker was there, the check
+  // could not see it, and nothing said which.
+  const MARKER_FILE = /no-3d-file-history"?[ \t]*:[ \t]*"?(\S[^\n"]*)/i
+  const MARKER_INLINE = /no-3d-(?:history|direction)"?[ \t]*:[ \t]*"?(\S[^\n"]*)/i
+  const MARKER_WINDOW = 30
+  const HISTORY_BLOCK = /superseded|gone:|\[-\]|no-3d-(?:history|direction):/i
+
+  /*
+   * The fifth allowance, and the one that keeps the other four from drowning in
+   * markers: a sentence that names 3D *and* says it is over.
+   *
+   * NO-3D.md asks every document to say plainly that 3D is cancelled. Doing that
+   * trips a grep for `3D` — every honest sentence about the removal does.
+   * Requiring a hand-placed marker on each would put about fifty of them into
+   * prose, and a marker on every second line is a marker nobody reads.
+   *
+   * So a line carrying a 3D noun beside a cancellation verb is counted as a
+   * *statement of the cancellation* rather than as an instruction. It is not
+   * silently excused: the category has its own ceiling, its own count, and a
+   * per-file breakdown printed on every run, so if it starts growing somebody
+   * is looking at where.
+   *
+   * The hole this leaves, stated rather than left to be found: "the 3D pipeline
+   * was deleted; rebuild it in Godot" would pass. Nobody has written that, and
+   * the markers above are what a genuinely ambiguous line should use.
+   * `docs/SCENE_ART.md` is the near miss that shaped this — it read "New board
+   * production follows the world-board strategy, using reusable geometry kits",
+   * which is live 3D direction *linking to NO-3D.md*, and carries no
+   * cancellation verb, so it is caught rather than waved through.
+   */
+  const CANCELLED =
+    /\bcancell?ed\b|\bdelet(e|ed|es|ion)\b|\bremov(e|ed|es|al)\b|\bgone\b|\bretired?\b|\bsuperseded\b|\bno longer\b|\bnever\b|\bused to\b|\bnot 3-?D\b|\bwas the\b|\bwere the\b/i
+
+  const walk = (p, out) => {
+    if (!existsSync(p)) return out
+    for (const entry of readdirSync(p, { withFileTypes: true })) {
+      const full = join(p, entry.name).replace(/\\/g, '/')
+      if (entry.isDirectory()) walk(full, out)
+      else if (READABLE.test(entry.name)) out.push(full)
+    }
+    return out
+  }
+  const population = []
+  for (const r of ROOTS) {
+    if (!existsSync(r)) continue
+    if (statSync(r).isDirectory()) walk(r, population)
+    else population.push(r)
+  }
+  for (const f of GODOT_CONFIG) if (existsSync(f)) population.push(f)
+
+  ok(
+    'the 3D sweep found an instruction surface to read',
+    population.length >= MIN_FILES,
+    `${population.length} file(s) under ${ROOTS.join(', ')} + ${GODOT_CONFIG.length} Godot config file(s), floor ${MIN_FILES}`,
+  )
+
+  /** The plan's blocks: an increment bullet or a heading starts one. */
+  const planBlocks = (lines) => {
+    const starts = []
+    for (let i = 0; i < lines.length; i++) {
+      if (/^- \[[ x!~-]\] /.test(lines[i]) || /^#{2,4} /.test(lines[i])) starts.push(i)
+    }
+    return (index) => {
+      let from = 0
+      for (const s of starts) {
+        if (s <= index) from = s
+        else return lines.slice(from, s).join('\n')
+      }
+      return lines.slice(from).join('\n')
+    }
+  }
+
+  const live = []
+  const asHistory = []
+  const asRestatement = []
+  const asCancellation = []
+  const fileHistoryFiles = []
+  let hits = 0
+
+  for (const file of population) {
+    const text = read(file)
+    const lines = text.split('\n')
+    const head = lines.slice(0, 40).join('\n')
+    const fileMarker = head.match(MARKER_FILE)
+    const implicit =
+      file === 'docs/NO-3D.md'
+        ? 'the direction itself'
+        : file.startsWith('docs/verification/')
+          ? 'a dated record of what was run'
+          : null
+    const blockFor = file === 'docs/PLAN_TO_1_0.md' ? planBlocks(lines) : null
+
+    for (let i = 0; i < lines.length; i++) {
+      // `NO-3D` is a filename, not a 3D reference. Stripped before matching, or
+      // every pointer at the direction reads as a violation of it.
+      const line = lines[i].replace(/NO-?3D/gi, 'NOTHREED')
+      if (!NEEDLE.test(line)) continue
+      hits += 1
+      const where = `${file}:${i + 1}`
+      if (implicit) {
+        asHistory.push(`${where}  ${implicit}`)
+        continue
+      }
+      if (fileMarker) {
+        asHistory.push(`${where}  file history: ${fileMarker[1].trim()}`)
+        if (!fileHistoryFiles.includes(file)) fileHistoryFiles.push(file)
+        continue
+      }
+      if (blockFor && HISTORY_BLOCK.test(blockFor(i))) {
+        asHistory.push(`${where}  in a superseded/gone block`)
+        continue
+      }
+      const near = lines.slice(Math.max(0, i - MARKER_WINDOW), i + 1).join('\n')
+      const inline = near.match(MARKER_INLINE)
+      if (inline) {
+        asRestatement.push(`${where}  ${inline[1].trim()}`)
+        continue
+      }
+      if (CANCELLED.test(line)) {
+        asCancellation.push(where)
+        continue
+      }
+      live.push(`${where}  ${lines[i].trim().slice(0, 150)}`)
+    }
+  }
+
+  ok(
+    'and it found 3D language to judge',
+    hits >= MIN_HITS,
+    `${hits} hit(s) across the surface, floor ${MIN_HITS} — a sweep that matched nothing would ` +
+      `report a clean repo for the same reason a clean repo does`,
+  )
+
+  // The controls. Each is a synthetic string, so they hold whether or not the
+  // tree happens to be clean today.
+  const plantedLive = 'the 3D viewer renders the room'
+  const plantedHistory = 'superseded: 2026-09-09 — 3D cancelled; the viewer is gone'
+  ok(
+    'control: the needle sees a planted instruction',
+    NEEDLE.test(plantedLive.replace(/NO-?3D/gi, 'NOTHREED')),
+    plantedLive,
+  )
+  ok(
+    'control: and a history line is still a hit, excused by its block rather than unseen',
+    NEEDLE.test(plantedHistory) && HISTORY_BLOCK.test(plantedHistory),
+    'a rule that stopped matching history would also stop matching instruction',
+  )
+  ok(
+    'control: a pointer at NO-3D.md is not itself a 3D reference',
+    !NEEDLE.test('see docs/NO-3D.md for the direction'.replace(/NO-?3D/gi, 'NOTHREED')),
+    'negative control',
+  )
+  const bare = 'no-3d-file-history:'
+  const withWhy = 'no-3d-file-history: a completed claim, kept as a record'
+  ok(
+    'control: a marker without a reason excuses nothing',
+    !MARKER_FILE.test(bare) && MARKER_FILE.exec(withWhy)?.[1].startsWith('a completed claim'),
+    'the reason is what makes an allowance arguable later',
+  )
+
+  ok(
+    `${fileHistoryFiles.length} file(s) marked wholly historical, at or below the ceiling of ${MAX_FILE_HISTORY}`,
+    fileHistoryFiles.length <= MAX_FILE_HISTORY,
+    fileHistoryFiles.length ? fileHistoryFiles.slice(0, 4).join(', ') + (fileHistoryFiles.length > 4 ? ', …' : '') : 'none',
+  )
+  ok(
+    `${asRestatement.length} inline allowance(s), at or below the ceiling of ${MAX_INLINE}`,
+    asRestatement.length <= MAX_INLINE,
+    asRestatement.map((r) => r.split('  ')[0]).join(', ') || 'none',
+  )
+  // Printed every run, both of them, because an allowance nobody sees is one
+  // nobody argues with.
+  for (const r of asRestatement) console.log(`     ALLOWED marked  ${r}`)
+
+  // The cancellation-verb category, capped and broken down by file. A ceiling
+  // rather than a floor, so it can shrink freely and cannot quietly become the
+  // way everything gets excused.
+  const MAX_CANCELLATION = 90
+  const perFile = new Map()
+  for (const c of asCancellation) {
+    const f = c.slice(0, c.lastIndexOf(':'))
+    perFile.set(f, (perFile.get(f) ?? 0) + 1)
+  }
+  ok(
+    `${asCancellation.length} line(s) state the cancellation rather than instruct, ceiling ${MAX_CANCELLATION}`,
+    asCancellation.length <= MAX_CANCELLATION,
+    [...perFile].sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(', ') || 'none',
+  )
+
+  ok(
+    'no live 3D instruction survives on the instruction surface',
+    live.length === 0,
+    `${hits} hit(s): ${asHistory.length} history, ${asRestatement.length} restatement, ${live.length} live` +
+      (live.length ? ` — first: ${live[0]}` : ''),
+  )
+  for (const l of live.slice(0, 20)) console.log(`     LIVE 3D  ${l}`)
+  if (live.length > 20) console.log(`     ...and ${live.length - 20} more`)
+
+  // V3's half, stated separately because it is a different kind of claim: not
+  // prose about 3D but a config that would *load* a model.
+  const godotConfig = GODOT_CONFIG.filter((f) => existsSync(f)).map((f) => ({ f, text: read(f) }))
+  const assetRefs = godotConfig.flatMap(({ f, text }) =>
+    text
+      .split('\n')
+      .map((line, i) => ({ line, i }))
+      .filter(({ line }) => /\.(glb|gltf)\b/i.test(line) && !/no-3d-history:/i.test(line))
+      .map(({ line, i }) => `${f}:${i + 1}: ${line.trim().slice(0, 120)}`),
+  )
+  ok(
+    'the Godot project config names no model file',
+    godotConfig.length === GODOT_CONFIG.length && assetRefs.length === 0,
+    godotConfig.length === GODOT_CONFIG.length
+      ? `${godotConfig.length} config file(s) read, ${assetRefs.length} .glb/.gltf reference(s)`
+      : `only ${godotConfig.length} of ${GODOT_CONFIG.length} config files exist — this checked less than it claims`,
+  )
+  for (const r of assetRefs) console.log(`     MODEL REF  ${r}`)
+  // The control on that one, for the same reason as the include_filter parser
+  // in tools/export-godot-viewer.mjs: "no .glb found" and "the pattern stopped
+  // matching" are the same observation.
+  ok(
+    'control: the model-file pattern matches one when shown one',
+    /\.(glb|gltf)\b/i.test('include_filter="kit/rock_smallA.glb"'),
+    'negative result and absent instrument are otherwise identical',
   )
 }
 

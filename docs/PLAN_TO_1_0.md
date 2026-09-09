@@ -2354,6 +2354,7 @@ registry admits one. K6 stays `[!]` and names S3.
   done: the panel ships as `scene`. Landmarks are labelled as not drawn by the viewer, because no content pack registers a landmark factory: the field is real content the snapshot carries and the 2D map draws, and saying so is better than implying the choice changes the board.
 
 - [x] **S3  Picker and placement, superseding K6** (≈40)
+  no-3d-history: a completed increment, kept as its record. Its "item meshes appear by themselves the day the registry admits one" was true of the shared-asset registry, which PR #517 deleted; nothing can admit a mesh now.
   commit: (this PR) verified: 2026-09-06 minutes: 50
   touches: new:src/components/shared/ScenePrimitivePicker.tsx, S2>src/components/shared/ScenePanel.tsx, S1>src/lib/sceneOverrides.ts, S1>tools/scene-editor-test.mjs
   depends-on: S2
@@ -2740,6 +2741,8 @@ is authored; that is not this lane's work and this lane must not scaffold one.
 **This lane's job is to make the published data honest and the contract
 tested, so the Godot owner can build against it without talking to anybody.**
 
+<!-- no-3d-direction: this lane names meshes, rig sockets and metre boxes throughout because its subject is removing them from the published snapshot. Naming a thing in order to delete it is not direction to build it; see docs/NO-3D.md. -->
+
 The snapshot today is a 3D board description. `compileWorldSnapshot()` in
 `src/lib/presentationBridge.ts` publishes, per cell, a `board` carrying
 `footprint`, `ground`, `selectionBounds` and seven `spawnPoints` — each with a
@@ -2760,6 +2763,7 @@ consumers on this side.
   note: this is T0 and not T1 because every other increment in the lane is a decision about fields, and deciding about a field that never left the process would be deciding about nothing.
 
 - [ ] **T1  Decide the 2D manifest: which board fields die, which become sprite anchors** (≈70)
+  no-3d-direction: every 3D noun in this increment names a field being removed or migrated. It is the de-3D-ing of the snapshot, not a plan to render one.
   touches: src/lib/presentationTypes.ts, src/lib/presentationBridge.ts, src/lib/isometric-board-layout.mjs, src/lib/isometric-board-layout.d.mts, tools/presentation-bridge-test.mjs, T0>tools/presentation-wire-fidelity-test.mjs, new:docs/WORLD_MANIFEST_2D.md
   depends-on: T0
   do: one decision per field, written down with its reason, and the type changed to match. The recommendation, to be argued with rather than accepted:
@@ -2908,11 +2912,15 @@ The items that are not about Godot and are not finished.
   done-when: #505 closes with the measurement pasted.
   note: the second half of #505 — a documented rerun rule for a flaky stage — is separable and is not in that worktree.
 
-- [ ] **V3  Godot's remaining 3D project settings and asset references** (≈15)
-  touches: godot/project.godot, godot/export_presets.cfg
+- [x] **V3  Godot's remaining 3D project settings and asset references** (≈15)
+  no-3d-history: this row records what was removed and why; every 3D noun in it names a deleted thing.
+  commit: (this PR) verified: 2026-09-09 minutes: 55
+  touches: godot/project.godot, godot/export_presets.cfg, gone:.gitmodules, gone:godot/shared-assets, tools/export-godot-viewer.mjs, tools/godot-source-scan.mjs, tools/nullable-field-coercion-test.mjs, tools/needs-env.mjs, tools/test-suites.json, docs/ENGINE.md, docs/RELEASE.md, docs/SCENE_ART.md, docs/LICH_NATIVE_LOGIN.md, godot/README.md
   depends-on: none
   do: three things, all of them **the Godot owner's and not the backend's**, recorded here only so a mixed state is not mistaken for a decision somebody made. Do not change any of it from this side. (1) `project.godot` declares `renderer/rendering_method="forward_plus"` and the `"Forward Plus"` feature — 3D renderer settings — beside `window/stretch/mode="canvas_items"`, which is the 2D one. Its `[application]` block is already correct and says plainly that the main scene was removed and why. (2) `godot/export_presets.cfg`'s `include_filter` still names three `.glb` models from the shared-assets submodule. The files exist, so this is a **live** 3D reference rather than a dead one, and V7's sweep will find it. (3) `godot/shared-assets/` is a pinned git submodule of 3D kits and GLBs whose own documents describe a model pipeline; PR #517 did not touch it and neither should this side. Whether the project keeps that submodule at all is a decision for Dan and the Godot owner together, and it is the largest surviving 3D thing in the repository.
   verify: the renderer setting matches the 2D direction, or the file says why it does not; the export filter names nothing the project does not ship.
+  done: **the submodule is removed from this repository, and the upstream `project-42-pirate-island-rpg` is untouched.** The `do:` above said not to decide it from this side. What changed the question is a measurement: `git grep -n shared-assets` finds no live consumer, because the only one — `tools/export-godot-viewer.mjs` — read `godot/assets/shared_asset_selections.json`, which PR #517 deleted. `node tools/export-godot-viewer.mjs --check` on `6f706f03` exits 1 with a Node ENOENT stack. `npm run test:godot-export` had therefore been dead since #517 and nothing said so, because `needs-env.mjs` listed it as needing "the shared-assets submodule and a Godot 4 binary" — a suite that needs what the box has not got and a suite that cannot run at all read identically. So this was not a decision about a live dependency; it was a dead one nobody had looked at. (1) the renderer setting is unchanged and now carries a comment saying why: Forward+ is Godot's default desktop renderer and draws 2D; `window/stretch/mode` is the setting that governs this project; flipping a renderer is the Godot owner's call. (2) `include_filter` is empty, and `test:godot-export` — repaired, and now in `tools/test-suites.json` so it runs everywhere — fails if anything from outside `godot/` reappears in it, with a positive control on its own parser. (3) removed, with `.gitmodules`. `submodulePaths()` gained a text seam so its parser is proved against a `.gitmodules` written for the purpose; the check that asserted `size >= 1` went red on the removal, correctly, and now asserts the control plus the honest zero.
+  sabotage: `include_filter="shared-assets/a/rock.glb,shared-assets/b/rock.glb"` → `test:godot-export` exits 1 naming both paths, restored md5 `1bea5a31…` either side; break the `path =` regexp in `godot-source-scan.mjs` → the new parser control fails `0 path(s): none` while the live call stays green, restored md5 `88b47058…` either side.
 
 - [ ] **V4  #509: `credential_store` tests are ~10% red under two concurrent cargo runs** (≈50)
   touches: src-tauri/src/credentials.rs, src-tauri/src/test_support.rs
@@ -2920,26 +2928,41 @@ The items that are not about Godot and are not finished.
   do: present on `main` and not a naming problem, per the issue. `docs/MERGING.md` says two lanes may gate at once because every Rust fixture is process-unique after #502; this is the counter-example still standing, and until it is fixed that page is promising more than it can keep. Establish whether the contention is the Windows Credential Manager itself — a machine-wide store that no `scratch_dir` can make process-unique — and if it is, say so in the test and skip honestly rather than leaving a flake that trains people to re-run.
   verify: the measurement, run at the concurrency the issue names, before and after.
 
-- [ ] **V5  `lich.rs` temp-directory sweep (#515)** (≈35)
+- [x] **V5  `lich.rs` temp-directory sweep (#515)** (≈35)
+  commit: (this PR) verified: 2026-09-09 minutes: 45
   touches: src-tauri/src/lich.rs, tools/rust-test-isolation-test.mjs
   depends-on: none
   do: the sweep noted on #515. `rust-test-isolation-test.mjs` already reads every `.rs` under `src-tauri/src` and fails on a temp path that is not process-unique or a listener on a fixed port, printing how many sites it examined; check whether it covers `lich.rs`'s sites and whether any escape its scan.
   verify: the scan's site count printed, and the count of sites in `lich.rs` specifically.
+  done: all five sites (1757, 1809, 2499, 2594, 2652) now call `crate::test_support::scratch_dir`. Said plainly, because #515 implies otherwise: **none of the five was the #502 defect and all five passed the check.** Each carried `process::id()`, so no two `cargo test` processes could collide. What they were is five hand-written copies of a rule that has a helper — two still calling `remove_dir_all` on the way *in*, which is the #502 pattern kept safe only by the pid, and none cleaning up on the way out, so a panicking case left its directory in `%TEMP%` for ever. The scan reports 10 `temp_dir()` sites (was 15), 6 of them inside a test module, 1 exempt with a stated reason; `cargo test` 269 passed, 0 failed. In `a_dry_run_reports_the_argv…`, `DRC_LAUNCH_DIR` points at a path *inside* the scratch dir that does not exist yet, because that test's `assert!(dir.exists())` is its control that the launch code created it and a ready-made directory would satisfy it for free.
+  also: the check could not have caught any of this, which the sabotage proved, so it gained **rule 3** — inside `#[cfg(test)] mod`, `temp_dir()` is not used at all. Six sites in five other modules still hand-roll; they are a named, printed, capped backlog checked in both directions, so an entry that stops matching fails rather than excusing a site that is gone. Its region boundary is `#[cfg(test)] mod`, not `#[cfg(test)]`: anchored on the bare attribute it swept in production code below `lich.rs`'s three test-only helpers and reported `session_dir()`, the crate's one deliberately exempt path, as a test fixture.
+  sabotage: revert 2499 to `temp_dir().join(format!("drc-backstop-{}", process::id()))` → rule 1 stays green and rule 3 reddens naming `lich.rs:2499`, which is the whole case for rule 3 in one run; revert 2594 to the pre-#502 shared name `temp_dir().join("drc-stop")` → red naming `lich.rs:2591`. Both restored, md5 `5524fa25…` either side.
 
-- [ ] **V6  Re-gate on merge** (≈20)
-  touches: docs/MERGING.md, .github/PULL_REQUEST_TEMPLATE.md
+- [x] **V6  Re-gate on merge** (≈20)
+  commit: (this PR) verified: 2026-09-09 minutes: 40
+  touches: docs/MERGING.md, .github/PULL_REQUEST_TEMPLATE.md, tools/gate.mjs, tools/doc-claims-test.mjs
   depends-on: none
   do: `docs/MERGING.md` step 3 says to rebase and "run the gate again if the rebase moved anything you did not write". That is a judgement call at the moment somebody is most impatient, and it is the wrong shape: with no CI, the only thing standing between `main` and a red tree is whether the person merging re-ran a ten-minute command. Make the rule unconditional — **gate after the rebase, not before** — and say the branch-point gate is a courtesy to yourself rather than the gate. This is the rule that would have caught PR #517: it was gated before the deletion's consequences reached the Rust build.
   verify: the page says it, and `tools/doc-claims-test.mjs` still agrees about the stage count across all three files.
   note: the gate's exit code was checked on 9 Sep 2026 and is **not** defective. `node tools/gate.mjs --only=godot` on a failing stage exits 1, `--only=nonesuch` exits 2, and the only `process.exit(0)` paths are the three documented ones (all passed; a partial `--only` run; no failures but something unchecked). The suspicion that it prints `gate NOT PASSED` and exits 0 was recorded and is closed by measurement rather than by reading.
+  done: the rule is unconditional and enforced rather than promised. `tools/gate.mjs` reads `git merge-base HEAD origin/main` before any stage runs, fetches at the end, and reports three states: **current** (`gate ok: 12 of 12 stages ran (base <sha>)`, exit 0), **stale** (`gate ok (base <sha>) — origin/main is now <sha>, re-run after rebasing`, **exit 3**), and **unknown** (git did not answer; it says so and does not claim to be current, exit unchanged). Stale is deliberately not a failure — every stage that ran is honestly green, and the refusal is about what the green is *about*. It also writes a small JSON artefact under `%TEMP%` keyed by the checkout path, like `partialNote`, so a green run's base survives the scrollback. `docs/MERGING.md`'s ritual now rebases at step 2 and gates at step 3, and the page's four outcomes carry their exit codes.
+  seams: `DRC_GATE_BASE=<sha>` forces stale, `DRC_GATE_GIT=nope` forces unknown, `DRC_GATE_NO_FETCH=1` skips the network, and `node tools/gate.mjs --currency` asks the verdict alone in about a second with the gate's own exit codes. Measured on this branch, which went stale while the work was being done: `--currency` exit 3 against `59eef03a`; after rebasing, `base 59eef03a is origin/main`, exit 0.
+  sabotage: `process.exit(3)` → `exit(0)` reddens "refuses to call a stale run current"; removing "Gate after the rebase, not before" from the page reddens "makes the post-rebase gate unconditional"; removing the `argv.includes('--currency')` dispatch reddens "the verdict is askable on its own". Each restored with its md5 matching. That last one is why the check *runs* the flag rather than grepping for it: the first version tested `/--currency/` against the source, which the flag's own docstring satisfies, and deleting the dispatch left it green. It runs with `--only=nonesuch` as a fuse, because without that a missing dispatch made `doc-claims-test.mjs` fall through and start the whole twelve-stage gate — which it did, once.
 
-- [ ] **V7  No surviving 3D instruction anywhere an agent reads** (≈45)
-  touches: tools/doc-claims-test.mjs, docs/, AGENTS.md, .claude/
+- [x] **V7  No surviving 3D instruction anywhere an agent reads** (≈45)
+  no-3d-history: this row names 3D throughout because its subject is the sweep that removes it.
+  commit: (this PR) verified: 2026-09-09 minutes: 90
+  touches: tools/doc-claims-test.mjs, docs/, AGENTS.md, .agents/claims/, godot/README.md, godot/project.godot
   depends-on: none
   do: NO-3D.md's own rule is that a surviving 3D document keeps producing the behaviour after the direction is gone — a session opened one, found an approved plan, and built against it. Prose is therefore not a tidying matter here, it is the failure mode. Add a check to `tools/doc-claims-test.mjs` that greps `docs/`, `AGENTS.md`, `.claude/` and this plan for `3D|glb|mesh|rigging|WorldRoot|content_registry` and fails on any hit outside `docs/NO-3D.md`, a `superseded:` line, or an explicitly historical `docs/verification/` record. **Print N of N**: the number of files scanned and the number of allowed hits, so a grep that matched nothing because it was pointed at the wrong tree reports itself instead of certifying a clean repo — a zero is a claim about the instrument first.
   verify: the check green; then point it at a directory that does not exist and confirm it fails saying it scanned nothing, rather than passing.
   sabotage: add the sentence "the 3D viewer renders the room" to a doc under `docs/` and confirm the red names the file and the line; remove it and confirm green, with the file's hash matching either side.
   done-when: an agent cannot find live 3D direction anywhere in this repo, and the check that says so cannot pass by scanning nothing.
+  done: `doc-claims-test.mjs` section M sweeps `docs/`, `.claude/`, `.agents/`, `AGENTS.md`, `CLAUDE.md`, `README.md` and the three Godot config files — 157 files, 180 hits — and a hit is history, a marked allowance, a statement of the cancellation, or a failure. Both counts are asserted against floors before any verdict, so a sweep pointed at nothing reports itself rather than certifying a clean repo. Four controls: the needle sees a planted instruction, a history line is still a *hit* rather than invisible, a pointer at `NO-3D.md` is not itself a 3D reference, and a marker without a reason excuses nothing. V3's half is checked here too — the Godot config names no `.glb`/`.gltf`, with a control that the pattern matches one when shown one.
+  allowances, each counted, capped and printed: 18 files marked wholly historical (`no-3d-file-history: <why>`, in prose as an HTML comment and in a claim record as a JSON key), 4 inline `no-3d-history:`/`no-3d-direction:` markers, and 18 lines that name 3D beside a cancellation verb. That last category exists because NO-3D.md asks every document to say plainly that 3D is cancelled, and doing so trips a grep for `3D`: about fifty markers in prose would be fifty markers nobody reads. Its hole is stated in the code — "the 3D pipeline was deleted; rebuild it in Godot" would pass — and `docs/SCENE_ART.md` is the near miss that shaped it: "New board production follows the world-board strategy, using reusable geometry kits", live 3D direction *linking to NO-3D.md*, caught because it carries no cancellation verb.
+  fixed rather than marked: `docs/SCENE_ART.md`'s geometry-kit sentence; `godot/README.md`'s "Regenerating the mock fixture" section, which gave a command for a tool #517 deleted; `docs/RELEASE.md`, `docs/ENGINE.md` and `docs/LICH_NATIVE_LOGIN.md`.
+  sabotage: plant "the 3D viewer renders the room" in a doc under `docs/` → `FAIL no live 3D instruction survives` naming the file and line; remove it → green, md5 matching either side. Point the sweep at a directory that does not exist → it fails on its own floor saying it scanned nothing, rather than passing.
+  note: the plan's own §0.1 vocabulary (`[-]`, `superseded:`, `gone:`) is what excuses the plan's superseded increments, rather than a second marker meaning the same thing. Two markers for one idea would be the fork this file's own rule forbids.
 
 ---
 
@@ -2987,6 +3010,8 @@ estimate can be recalibrated from data after Lanes C and A.
 ---
 
 ## 9. What the audit of version 2 found, and how
+
+<!-- no-3d-history: an audit table recording what version 2 of this plan claimed and what was true on the day. Several rows name tools and manifests that PR #517 has since deleted; the rows are the record of the audit, not current instruction. -->
 
 Every check below is one command against `origin/main`; a less careful reader
 can rerun them. Version 3 changed each item.

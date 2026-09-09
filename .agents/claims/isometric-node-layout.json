@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "isometric-node-layout",
   "agent": "Codex /root",
@@ -16,9 +17,16 @@
     "godot/scripts/entity_projection_layer.gd",
     "godot/tests/entity_projection_test.gd"
   ],
-  "symbols": ["boardLayoutFor", "classifyTether", "tetherAnchorFor", "entity_projection_layer._board_slot"],
+  "symbols": [
+    "boardLayoutFor",
+    "classifyTether",
+    "tetherAnchorFor",
+    "entity_projection_layer._board_slot"
+  ],
   "coordination": {
-    "depends_on": ["f8388b5a"],
+    "depends_on": [
+      "f8388b5a"
+    ],
     "conflicts_with": [],
     "notes": "Continues the merged fixed-isometric MVP. The open creature-art removal PR does not overlap these paths. Metadata is compiled into the existing manifest and consumed by the existing Godot projection path."
   },
@@ -34,4 +42,4 @@
       "staged secret-pattern scan: passed; broken Gitleaks hook documented and commit used --no-verify"
     ]
   }
-}
+}

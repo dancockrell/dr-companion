@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "h8-script-repair",
   "agent": "claude-code",
@@ -28,7 +29,10 @@
     "read_script"
   ],
   "coordination": {
-    "depends_on": ["G6", "H3"],
+    "depends_on": [
+      "G6",
+      "H3"
+    ],
     "conflicts_with": [],
     "notes": "Both depends-on are [x] on main: G6 at fa5301dd, H3 in PR #318. Every file touched has an existing owner and was extended rather than copied. The producer joins proposeMapReconciliation in aiJobProducers.ts, which already owns both the producer and the validator that aiWorker.ts calls; read_script joins the three tools in aiKnowledgeTools.ts and reuses its cap, trace and untrusted wrapper rather than reading a file itself; the repair branch joins the map branch in aiWorker.ts. No sibling module was created. The worker reaches the script through callTool('read_script', ...) rather than through the port directly, so the 64 KB ceiling, the audit trace and the untrusted label all apply - a job that read the file itself would have none of the three and would look identical at the call site.",
     "deviations": "Two, both recorded rather than softened. (1) `node --check` is named in the increment's do: and is not run, because it was measured to be unusable here: none of the three languages scriptFiles.ts admits is JavaScript, and pointed at a .ts file node v24.19.0 parses it as CommonJS and reports 'SyntaxError: Missing initializer in const declaration' on the valid line `const a: number = 1`. A check that fires on everything is as empty as one that fires on nothing. TypeScript gets tsc --noEmit; Python gets python -m py_compile, which the plan's list predates. (2) The app is not wired, for two reasons neither of which is inside this increment's touches: nothing tells the AI host that a task failed (the host ingests the game stream; pythonTasks.ts and nodeTasks.ts report run outcomes to the UI and nowhere else), so there is no signal for the producer to count; and the port needs a Tauri-side implementation to read scripts, write into the real app data directory and run the interpreters, which the browser cannot do. An earlier draft blamed Lane G's claim on aiWorkerHost.ts; G finished in PR #327 while this branch was open, so that reason is gone. The ports are optional on WorkerDeps and an absent one makes the job fail saying it had nowhere to work, never succeed quietly. Filed as an issue rather than done silently."
@@ -55,4 +59,4 @@
       "node tools/plan-audit.mjs: plan ok: 113 increments, 262 paths checked, 0 awaiting"
     ]
   }
-}
+}

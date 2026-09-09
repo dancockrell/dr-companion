@@ -8,6 +8,8 @@ well-tested shell for the real world content to register into, not a final art
 pass. No generated art, no live DragonRealms connection, and no packaging exist
 yet; none of those are required for this slice's acceptance gate.
 
+<!-- no-3d-history: the paragraph below is the record of what PR #517 deleted. It names the deleted scripts so a reader meeting this directory can tell an absence from an oversight. -->
+
 **The 3D main scene is deleted, and no main scene has replaced it yet.** PR
 #517 removed `scripts/world_root.gd`, `scenes/WorldRoot.tscn`,
 `scripts/content_registry.gd`, `scripts/camera_director.gd`,
@@ -67,9 +69,12 @@ directory is right.
   at a second interpretation of `cannotAct` or of stale knowledge.
 - `mock/crossing_mock_world.json` — the checked-in mock fixture the first
   acceptance gate requires: Town Green North plus its depth-2 neighborhood
-  (19 cells), extracted from the real compiled Crossing manifest by
-  `tools/build-primitive-world-manifest.mjs` — real room IDs, titles,
-  positions, and exits, not hand-authored.
+  (19 cells) — real room IDs, titles, positions and exits, not hand-authored.
+  **It is a frozen artefact with no generator.** The tool that extracted it was
+  deleted with the rest of the 3D subsystem in PR #517, so a hand-edit to this
+  file is caught only by `npm run test:godot-fixture-contract`'s rules, which
+  say so on every run. Writing a 2D generator sourced from `src/data/map` and
+  `src/data/world` is outstanding work.
 - `tests/foundation_test.gd` — the acceptance-gate test itself, runnable
   headlessly with no editor and no live connection.
 - `tests/combat_presentation_test.gd` — verifies the honest distinction among
@@ -98,9 +103,9 @@ and authenticated live modes, the two intent-validation gates, event playback,
 the visibility budget, and the accessible inspector. Nothing draws a world.
 
 The art direction for the layer that replaces it is 2D isometric sprite work,
-not 3D geometry — see `docs/NO-3D.md`, which is the current direction and
-outranks any surviving 3D wording elsewhere in this file. DR room topology and
-live state always come from the MUD graph regardless of how they are drawn.
+not 3D geometry — see `docs/NO-3D.md`, which is the direction and outranks
+anything here that disagrees with it. DR room topology and live state always
+come from the MUD graph regardless of how they are drawn.
 
 ## Running the test
 
@@ -139,20 +144,19 @@ The ignored build directory is evidence/output, not source. Tauri packaging and
 process supervision remain a separate gate: they must consume a verified
 export rather than silently packaging a placeholder.
 
-## Regenerating the mock fixture
+## Regenerating the mock fixture — you cannot, yet
 
-The mock fixture was extracted from a real compiled manifest, not
-hand-written. To rebuild the full Crossing manifest it was extracted from
-(not required to run the tests above — the extracted fixture is already
-checked in):
+This section used to give a command for rebuilding the Crossing manifest the
+fixture was extracted from. That tool was deleted with the 3D subsystem in PR
+#517, along with the manifest format it wrote, so the command is gone and
+running it is not a thing anybody can do.
 
-```bash
-node tools/build-primitive-world-manifest.mjs 1
-```
-
-writes `data/world/out/1-primitive-world.json` (gitignored — a generated
-build artifact, not source). As of this commit it reproduces the handoff
-doc's stated acceptance numbers exactly: 1,060 cells, 2,389 local routes.
+`mock/crossing_mock_world.json` is therefore frozen: real data, correctly
+extracted once, with nothing left that could reproduce it. Two Godot tests
+read it and `npm run test:godot-fixture-contract` prints NOT CHECKED for the
+"matches a fresh generation" rule on every run rather than passing over the
+gap. A 2D generator sourced from `src/data/map` and `src/data/world` is what
+fills it.
 
 ## What this slice does NOT do
 
@@ -176,8 +180,8 @@ on purpose, so nobody mistakes this for further along than it is:
   creature facts. Standalone mock snapshots remain honestly empty; focused
   tests inject explicit fixtures to exercise dense-room and combat states.
 - **No animation of any kind.** Whatever animates the 2D isometric art later
-  maps confirmed live events onto it; it does not own combat truth. Rigged 3D
-  models are not that path — see `docs/NO-3D.md`.
+  maps confirmed live events onto it; it does not own combat truth.
+  Rigged models are not that path, because 3D is cancelled: `docs/NO-3D.md`.
 - **No interiors, no portals, no tactical effects, no guild/shop index.**
   Slices 2 through 5 in full.
 - **No CI wiring.** The headless test command above has to be run by hand;

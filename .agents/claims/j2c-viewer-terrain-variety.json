@@ -1,4 +1,5 @@
 {
+  "no-3d-file-history": "a completed claim record from the 3D era. It names GLBs, meshes and the appearance system because that is what the work was; PR #517 deleted all of it and the claim is kept for attribution, not as direction. See docs/NO-3D.md.",
   "schema_version": 1,
   "task_id": "j2c-viewer-terrain-variety",
   "agent": "claude-code",
@@ -28,4 +29,4 @@
       "also checked while measuring, and reported in the #175 triage rather than left implicit: stamp.variant is hash(...) % 4 but is indexed images[variant % images.length], so no kind ever asks for an image that is not there"
     ]
   }
-}
+}
