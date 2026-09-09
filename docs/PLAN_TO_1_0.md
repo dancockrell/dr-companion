@@ -399,7 +399,6 @@ PRs per lane, squash-merged.
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | Q | Q2 | `lane-q/q2-highlights` | `C:\Users\Admin\dev\wt-q2` | 2026-09-06 |
 | S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
-| O | O1-O5 | `feat/play-first-layout` | `C:\Users\Admin\dev\wt-layout` | 2026-09-09 |
 
 **Lanes R, W, X, Y and Z are new on 9 September 2026, unheld, and are the
 first player-facing work in this plan** — see section 6b and
