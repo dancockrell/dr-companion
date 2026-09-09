@@ -16,7 +16,6 @@ extends SceneTree
 ## every failing assertion if anything here regresses, so CI (once wired)
 ## can trust a green run rather than a script that merely didn't crash.
 ## Uses the project's real autoload singletons (WorldManifestLoader,
-## BridgeClient, IntentSender, ContentRegistry) rather than instantiating
 ## fresh copies of their scripts - the same objects the running viewer
 ## actually uses, so a bug in how they're wired as autoloads would show up
 ## here too, not just a bug in the class bodies in isolation.
@@ -69,7 +68,6 @@ func _run() -> void:
 	var loader := _autoload("WorldManifestLoader")
 	var bridge := _autoload("BridgeClient")
 	var intents := _autoload("IntentSender")
-	var registry := _autoload("ContentRegistry")
 
 	# -- manifest loads deterministically, no live connection needed --
 	var loaded: bool = loader.load_from_path(MOCK_FIXTURE_PATH)
@@ -104,41 +102,6 @@ func _run() -> void:
 		real_moves.size() > 0 and loader.is_true_exit(TOWN_GREEN_NORTH, real_moves[0]),
 		real_moves[0] if real_moves.size() > 0 else "(no exits to test)")
 
-	# -- content registration never makes neutral foundation art silently vanish --
-	var shared_content := _autoload("SharedAssetContent")
-	shared_content.ensure_registration()
-	_ok("neutral foundation content registers its documented primitive slots",
-		registry.is_registered("terrain-cell-5m") and registry.is_registered("water-ribbon-5m") and registry.is_registered("bridge-span-5m"))
-	var terrain: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "terrain-cell-5m", "role": "base"})
-	_ok("a registered terrain primitive produces visible presentation geometry, not nothing",
-		terrain != null and terrain is Node3D and terrain.get_child_count() > 0)
-	if terrain != null:
-		terrain.free()
-	var unknown: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "unmade-special-landmark", "role": "landmark"})
-	_ok("an unregistered lore-specific primitive still produces an honest placeholder, not a guessed building",
-		unknown != null and unknown is Node3D)
-	if unknown != null:
-		unknown.free()
-	var content_status: Dictionary = shared_content.shared_asset_status()
-	_ok("shared content declares its visual-only fallback policy",
-		content_status.get("fallbackPolicy", "") != "")
-	var shared_library_available: bool = content_status.get("sharedLibraryAvailable", false)
-	if shared_library_available:
-		_ok("an initialised shared library makes both selected source models importable",
-			shared_library_available)
-	else:
-		_ok("a bare checkout reports the missing shared library and stays on its documented honest fallback",
-			content_status.get("fallbackPolicy", "") != "")
-	var boundary: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "rough-edge-boundary-kit", "role": "boundary"})
-	_ok("the selected weathered-stone source model can decorate a neutral boundary",
-		boundary != null and boundary.get_child_count() == 2)
-	if boundary != null:
-		boundary.free()
-	var bridge_visual: Node3D = registry.build({"id": TOWN_GREEN_NORTH}, {"kind": "bridge-span-5m", "role": "landform"})
-	_ok("the selected bridge source model can render without inventing a route",
-		bridge_visual != null and bridge_visual.get_child_count() > 0)
-	if bridge_visual != null:
-		bridge_visual.free()
 
 	# -- starting the mock bridge builds the first snapshot honestly --
 	var started: bool = bridge.start_mock("crossing-mock", TOWN_GREEN_NORTH)

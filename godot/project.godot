@@ -13,15 +13,14 @@ config_version=5
 [application]
 
 config/name="DR Companion World Viewer"
-config/description="Single continuous 3D world/route/room viewer for DR Companion. Local presentation renderer only — owns no game state, credentials, or topology truth."
-run/main_scene="res://scenes/WorldRoot.tscn"
+config/description="World/route/room viewer for DR Companion, 2D isometric. Local presentation renderer only: owns no game state, credentials, or topology truth. 3D is cancelled, see ../docs/NO-3D.md."
+; run/main_scene removed: WorldRoot.tscn was the 3D scene. A 2D main scene
+; must be authored before this project runs. See ../docs/NO-3D.md.
 config/features=PackedStringArray("4.3", "Forward Plus")
 
 [autoload]
 
 WorldManifestLoader="*res://scripts/world_manifest_loader.gd"
-ContentRegistry="*res://scripts/content_registry.gd"
-SharedAssetContent="*res://scripts/shared_asset_content.gd"
 BridgeClient="*res://scripts/bridge_client.gd"
 IntentSender="*res://scripts/intent_sender.gd"
 EventPlayer="*res://scripts/event_player.gd"

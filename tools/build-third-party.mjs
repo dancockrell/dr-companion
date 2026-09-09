@@ -32,8 +32,8 @@
  *
  * **Godot** is MIT, for the optional world viewer.
  *
- * **Shared 3D assets** from every `sourceLicense` in
- * `godot/assets/shared_asset_selections.json`.
+ * (the shared 3D asset section is deleted; see docs/NO-3D.md)
+ * (the shared 3D asset selections it used to read are deleted; see docs/NO-3D.md)
  *
  * **The music library** from `data/audio/manifest.json`, which is the source
  * of truth for what `tools/vendor-audio.mjs` fetches and what the app's own
@@ -52,7 +52,6 @@ import { LICH_LICENSE as LICH } from '../src/data/lichLicense.ts'
 const OUT = 'THIRD_PARTY.md'
 const LOCK = 'package-lock.json'
 const CARGO_LOCK = 'src-tauri/Cargo.lock'
-const SELECTIONS = 'godot/assets/shared_asset_selections.json'
 const AUDIO_MANIFEST = 'data/audio/manifest.json'
 
 /** The only target this app is built for; see the header. */
@@ -160,9 +159,6 @@ function lockedCrates() {
 
 /* --------------------------------------------------------- other parties --- */
 
-const selections = JSON.parse(readFileSync(SELECTIONS, 'utf8'))
-const assetLicences = [...new Set(selections.selections.map((s) => s.sourceLicense))].sort()
-if (!assetLicences.length) throw new Error(`${SELECTIONS} declared no sourceLicense; refusing to publish.`)
 
 const music = musicEntries()
 if (!music.length)
@@ -262,20 +258,6 @@ None are bundled. The interface asks for the platform's own UI font
 (\`Segoe UI\` on Windows) and falls back through the system stack, so no font
 file is redistributed and no font licence applies.
 
-## Shared 3D assets
-
-The world viewer draws on a shared asset library, tracked as a submodule at
-\`godot/shared-assets\` and admitted one selection at a time through
-\`${SELECTIONS}\`. Every admitted selection to date is **${assetLicences.join(', ')}**.
-
-| Selection | Source pack | Licence |
-|---|---|---|
-${selections.selections.map((s) => `| \`${s.id}\` | \`${s.sourcePack}\` | ${s.sourceLicense} |`).join('\n')}
-
-Nothing in that library contributes routes, exits, collision, navigation or
-any other game fact; it is presentation only, which is a rule of the admission
-process rather than a property of the licences.
-
 ## Music library (optional, installed on request)
 
 The app can download a curated music library. It is **not** in the installer:
@@ -327,7 +309,7 @@ if (!check) {
     process.exit(1)
   }
   writeFileSync(OUT, document(crates))
-  console.log(`${OUT}: ${runtime.length} runtime and ${build.length} build npm packages, ${crates.length} Rust crates, ${selections.selections.length} shared assets`)
+  console.log(`${OUT}: ${runtime.length} runtime and ${build.length} build npm packages, ${crates.length} Rust crates`)
   process.exit(0)
 }
 
@@ -414,7 +396,7 @@ if (crates) {
 }
 
 // The document must not have lost a section to a template edit.
-for (const heading of ['## Lich', '## Godot', '## npm packages', '## Rust crates', '## Fonts', '## Shared 3D assets', '## Music library']) {
+for (const heading of ['## Lich', '## Godot', '## npm packages', '## Rust crates', '## Fonts', '## Music library']) {
   ok(`the document still has its ${heading.replace('## ', '')} section`, committed.includes(heading))
 }
 

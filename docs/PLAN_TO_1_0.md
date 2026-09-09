@@ -1,5 +1,18 @@
 # DR Companion — the working plan to 1.0
 
+> **`npm run test:plan` fails with 22 findings, and that is correct. Do not
+> "fix" it by restoring files.** 3D was cancelled on 9 Sep 2026 and its
+> artifacts were deleted (see [NO-3D.md](NO-3D.md)). Increments across lanes B, K, L, M and S
+> were genuinely completed and genuinely delivered 3D work, so
+> they stay marked done; the files they name are gone on purpose. The audit
+> is telling the truth and the plan is telling the truth, and they disagree
+> because the world changed under both.
+>
+> The wrong repair is recreating `content_registry.gd`, `world_root.gd`,
+> `WorldRoot.tscn`, or the primitive-world tools to make a check go green.
+> The right repair is a decision about how these increments should read now
+> that 3D is gone, which is Dan's to make.
+
 Version 3.1, 5 Sep 2026 (3.0 earlier the same day), written against `main` @ `ae0e57a9` with PR #285 @
 `8299fe86` open and mergeable. Section 11 evaluates the 5 Sep handoff PDF against this plan. Section 9 lists what the audit of version 2
 found wrong and how each was found. Section 10 lists the decisions only Dan
