@@ -773,6 +773,20 @@ export interface AppState {
   disconnectBridge: () => void
   setBridgeMode: (m: 'mock' | 'live') => void
   /**
+   * Start the demo, ending a game connection first if there is one.
+   *
+   * The button's action, and the only one. `setBridgeMode('mock')` is the
+   * transport-level half and knows nothing about the game socket, which is how
+   * the two came to run at once (#525). See `src/store/sessionSwitch.ts`.
+   */
+  startDemo: () => Promise<void>
+  /**
+   * Connect to the game, ending the demo first if it is running.
+   *
+   * The only sanctioned caller of `attachGame`. Same reason as above.
+   */
+  connectToGame: (port: number, host?: string, waitMs?: number) => Promise<void>
+  /**
    * Put the store through a bridge transport status without a bridge.
    *
    * A development and test seam, for the reason `bridge.setPauseLatchMode`

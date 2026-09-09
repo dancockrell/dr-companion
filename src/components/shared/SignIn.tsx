@@ -82,8 +82,11 @@ import {
 } from '../../lib/rememberSignIn.ts'
 import { screenFor, type SignInScreen } from '../../lib/signInStates.ts'
 import { RememberSignInCheckbox } from './RememberSignIn.tsx'
+// The attach goes through the store, not through `attachGame`: signing in is
+// asking for the real game, so it leaves the demo first, and that decision
+// lives in one place (`src/store/sessionSwitch.ts`, #525).
+import { useAppStore } from '../../store/useAppStore.ts'
 import {
-  attachGame,
   gameState,
   linkPhase,
   subscribeGame,
@@ -327,7 +330,7 @@ export function SignIn() {
       setLaunched(name)
       setStep('attaching')
       try {
-        await attachGame(result.port, undefined, LICH_STARTUP_WAIT_MS)
+        await useAppStore.getState().connectToGame(result.port, undefined, LICH_STARTUP_WAIT_MS)
         setStage('attached')
       } catch (attachFailure) {
         // The one place in this app that knows an attach failure *followed a
@@ -412,7 +415,7 @@ export function SignIn() {
     setBusy(true)
     setFailure(null)
     try {
-      await attachGame(advice.port)
+      await useAppStore.getState().connectToGame(advice.port)
       setAlreadyRunning(false)
       setOffer(null)
       setStage('attached')

@@ -16,7 +16,6 @@
 import { useState } from 'react'
 import { Plug, PlugZap, Info, Trash2, Link2, Unlink } from 'lucide-react'
 import {
-  attachGame,
   clearGame,
   DEFAULT_ATTACH_PORT,
   detachGame,
@@ -27,6 +26,10 @@ import {
   linkPhaseLabel,
   subscribeGame,
 } from '../../lib/gameLink.ts'
+// Not `attachGame`. Attaching ends the demo, and that decision lives in one
+// place so six buttons cannot each hold a different half of it - see
+// `src/store/sessionSwitch.ts` and issue #525.
+import { useAppStore } from '../../store/useAppStore.ts'
 import { useSyncExternalStore } from 'react'
 import { isTauri } from '../../lib/tauri.ts'
 import { useHighlights } from '../../lib/useHighlights.ts'
@@ -183,7 +186,7 @@ export function GameConnectionBar() {
             <button
               type="button"
               className="rounded border border-accent/40 bg-accent/10 p-1 text-accent disabled:opacity-40"
-              onClick={() => void attachGame(Number(port))}
+              onClick={() => void useAppStore.getState().connectToGame(Number(port))}
               title={`Attach to a Lich running with --detachable-client=${port}`}
               aria-label="Attach"
               disabled={!validPort(port)}

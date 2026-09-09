@@ -1,0 +1,34 @@
+(node:8780) ExperimentalWarning: Module mocking is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+=== #523: is Attach reachable in a state where a socket can exist
+  the console row is gated on `character`: true
+    positive control - that pattern does match some block in this file: true
+  the console row holds GameChatColumn: true
+  GameChatColumn owns GameConnectionBar: true
+  setBridgeMode clears the character: true
+  WaitingForCharacter can tell an open socket from nothing: false
+  >>> Leave the demo -> character null -> the row unmounts -> the only Attach
+      control is gone, while the socket it opened is still open.
+
+=== #525a: does anything own the demo and the socket together
+  a module owns both: false
+    it closes the socket before starting the demo: false
+    it leaves the demo before attaching: false
+  setBridgeMode() alone mentions the game socket: false
+  attachGame() alone mentions the demo mode: false
+  >>> Nothing forbids bridgeMode === 'mock' with an open game socket. The demo
+      banner says "this is invented data" over a window half full of real text.
+
+=== #525b: where the live text actually goes
+  lines delivered through the socket (the denominator): 4
+  untagged lines (the main game window): 2
+  tagged lines (channels): 2
+  the tab row a game pane can offer: ["talk","thoughts"]
+  untagged lines reachable through a tab: 0 of 2
+  tagged lines reachable (positive control): 2 of 2
+    and with a main-window tab present they would be reachable: 2 of 2
+  >>> 2 of 4 live lines have no tab and cannot be
+      displayed by any means: gameStreams() drops the empty stream with .filter(Boolean).
+
+18 facts measured, socket open.

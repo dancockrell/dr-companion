@@ -160,5 +160,7 @@
   "test:window-command-async",
   "test:task-catalog-status",
   "test:game-connection-owner",
+  "test:session-source",
+  "test:attach-states",
   "test:sound-actions"
 ]

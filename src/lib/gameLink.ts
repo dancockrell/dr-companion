@@ -748,7 +748,57 @@ export function gameLinesFrom(stream: string): GameLine[] {
   return buffer.filter((l) => l.stream === stream)
 }
 
-/** Which channels have actually been seen, so a UI can offer only real ones. */
+/**
+ * The main game window: the stream a line has when the game named none.
+ *
+ * It is not a channel and it is not an absence. Most of what a MUD says - room
+ * descriptions, movement, combat, the reply to every command anybody types -
+ * arrives with no tag on it at all, and `''` is what the parser leaves in
+ * `stream` for those.
+ */
+export const MAIN_STREAM = ''
+
+/**
+ * Which channels have actually been seen, so a UI can offer only real ones.
+ *
+ * The main window is deliberately **not** in here: this list is the game's own
+ * channel names and `''` is not one. `gameTabs()` is what a tab row wants.
+ */
 export function gameStreams(): string[] {
   return [...new Set(buffer.map((l) => l.stream).filter(Boolean))].sort()
+}
+
+/** Whether any main-window text has arrived. See {@link MAIN_STREAM}. */
+export function hasMainStream(): boolean {
+  return buffer.some((l) => l.stream === MAIN_STREAM)
+}
+
+/**
+ * Every tab a game pane can offer, main window first.
+ *
+ * # What was wrong (issue #525)
+ *
+ * `StreamTabs` built its row from `gameStreams()`, whose `.filter(Boolean)`
+ * drops the empty stream, and then selected lines with
+ * `allLines.filter((l) => l.stream === tab)`. No tab was ever `''`, so no
+ * filter ever matched `''`, so **the main game window could not be displayed
+ * by any means**. Measured against a real socket by
+ * `tools/lane-attach-probe.mjs` on `origin/main`:
+ *
+ *     untagged lines reachable through a tab: 0 of 2
+ *     tagged lines reachable through a tab (positive control): 2 of 2
+ *
+ * That is the whole of "live game text does not reach the game pane". The
+ * channel counters climbed because channels had tabs; the game itself did not,
+ * so the pane sat on the companion's own log and a player watched this app
+ * talk about itself while their character stood in a room.
+ *
+ * Derived here rather than assembled in the component for the reason `#514`
+ * gave about `linkPhase`: a row that decides for itself which streams exist is
+ * one opinion per component, and the search pane, the pop-out and this row
+ * would each have to remember the empty one.
+ */
+export function gameTabs(): string[] {
+  const named = gameStreams()
+  return hasMainStream() ? [MAIN_STREAM, ...named] : named
 }

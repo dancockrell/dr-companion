@@ -695,20 +695,35 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
     'null is not treated as false'
   )
 
-  // -- #458: the attach waits, and the screen says so -----------------------
+  /*
+   * -- #458: the attach waits, and the screen says so ------------------------
+   *
+   * `attachGame` here became `connectToGame`, the store action that leaves the
+   * demo before attaching - signing in is asking for the real game, and it may
+   * not land beside invented text (#525). Same arguments, including the wait,
+   * so both properties below are exactly as true as they were. Either call
+   * name is accepted; the requirement that it be the store action is asserted
+   * in tools/session-source-test.mjs, where it belongs.
+   */
+  const ATTACH_CALL = String.raw`(?:attachGame|connectToGame)`
   ok(
     'the attach after a launch is given time for Lich to start',
-    /attachGame\(result\.port, undefined, LICH_STARTUP_WAIT_MS\)/.test(signIn)
+    new RegExp(`${ATTACH_CALL}\\(result\\.port, undefined, LICH_STARTUP_WAIT_MS\\)`).test(signIn)
   )
   ok(
     'and the screen does not claim it is launched until it has attached',
     // The stage names changed with the screen-per-state rewrite: `progress`
     // covers contacting, starting and attaching, and the step is what says
     // which. The property is the same one - nothing claims to be attached
-    // until `attachGame` has resolved.
+    // until the attach has resolved.
+    //
+    // And the attach itself is now the store's `connectToGame`, which leaves
+    // the demo first (#525), so the call name is the widened one. Both halves
+    // of this check are somebody's mechanism standing in for one property; the
+    // property is unchanged by either edit.
     /setStep\('starting_lich'\)/.test(signIn) &&
       /setStep\('attaching'\)/.test(signIn) &&
-      /await attachGame[\s\S]{0,120}setStage\('attached'\)/.test(signIn)
+      new RegExp(`await [\\s\\S]{0,40}${ATTACH_CALL}[\\s\\S]{0,160}setStage\\('attached'\\)`).test(signIn)
   )
   {
     const link = read('src/lib/gameLink.ts')
@@ -830,9 +845,11 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   )
   ok(
     'and the port comes from the offer rather than a constant',
-    !/attachGame\(Number\(DEFAULT_ATTACH_PORT\)\)/.test(signIn) &&
-      /attachGame\(advice\.port\)/.test(signIn),
-    'attachGame takes the read port'
+    // Same widening as above, and the same reason. The property is which port
+    // is passed, not which function it is passed to.
+    !/(?:attachGame|connectToGame)\(Number\(DEFAULT_ATTACH_PORT\)\)/.test(signIn) &&
+      /(?:attachGame|connectToGame)\(advice\.port\)/.test(signIn),
+    'the attach takes the read port'
   )
 }
 console.log(`\n${pass} checks passed, ${fail} failed` + (skipped.length ? `, ${skipped.length} not checked` : ''))

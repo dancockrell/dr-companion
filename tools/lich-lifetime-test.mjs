@@ -227,7 +227,11 @@ ok(
   // image-name match could join another account's character with nothing on
   // screen saying so. So this now asks what its own name asks: does pressing
   // the button attach, at a port that was read rather than assumed.
-  /attachGame\(advice\.port\)/.test(signIn) && /lichAttachOffer\(/.test(signIn),
+  //
+  // Either call name, for the same reason: `attachGame` became the store's
+  // `connectToGame`, which leaves the demo first so an attach cannot land
+  // beside invented text (#525). Same port, same act, one more guarantee.
+  /(?:attachGame|connectToGame)\(advice\.port\)/.test(signIn) && /lichAttachOffer\(/.test(signIn),
 )
 ok(
   'source: the port is the one shared constant, not a retyped number',

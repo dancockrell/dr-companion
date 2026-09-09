@@ -1,4 +1,6 @@
-import { useCallback, type ReactNode } from 'react'
+import { useCallback, useSyncExternalStore, type ReactNode } from 'react'
+import { gameState, linkPhase, subscribeGame } from '../../lib/gameLink.ts'
+import { sessionSource } from '../../lib/sessionSource.ts'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { useBridgeModeSync } from '../../lib/bridgeModeSync.ts'
 import { DemoBanner } from './DemoBanner.tsx'
@@ -32,6 +34,17 @@ import { DemoBanner } from './DemoBanner.tsx'
 export function WindowShell({ aux = false, children }: { aux?: boolean; children: ReactNode }) {
   const setupComplete = useAppStore((s) => s.setupComplete)
   const bridgeMode = useAppStore((s) => s.bridgeMode)
+  /*
+   * The banner is decided by `sessionSource`, not by `bridgeMode` alone.
+   *
+   * This is the reader that makes the invariant load-bearing rather than
+   * advisory. The banner's sentence is "this is invented data", and it is only
+   * true while no game socket is open; on the clean VM it was displayed over a
+   * live connection (#525). `sessionSource` throws on that pair, so a future
+   * change that reopens it fails here, loudly, instead of printing the lie.
+   */
+  const link = useSyncExternalStore(subscribeGame, gameState, gameState)
+  const source = sessionSource({ bridgeMode, gameSocketOpen: linkPhase(link) !== 'idle' })
 
   /*
    * The demo is one fact about the app, not one per window - issue #424.
@@ -58,7 +71,7 @@ export function WindowShell({ aux = false, children }: { aux?: boolean; children
 
   return (
     <div className="flex h-full w-full flex-col bg-surface">
-      {setupComplete && bridgeMode === 'mock' && <DemoBanner compact={aux} />}
+      {setupComplete && source === 'demo' && <DemoBanner compact={aux} />}
       {/* `relative` on purpose: `AppControls` pins the status dot and the
           window buttons with `absolute right-1 top-1`, and with no positioned
           ancestor those anchored to the viewport - so with the banner above
