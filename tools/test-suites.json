@@ -82,6 +82,7 @@
   "test:location-line",
   "test:first-screen",
   "test:sign-in",
+  "test:sign-in-experience",
   "test:login-fixture",
   "test:lich-lifetime",
   "test:freelayout",

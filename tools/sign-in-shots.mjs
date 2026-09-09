@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The render check for the sign-in screen (increment N5).
+ * The render check for the sign-in screen.
  *
  * Drives a real browser through the whole flow and saves what it saw, rather
  * than describing it. Reading the component is not looking at it, and every
@@ -8,12 +8,25 @@
  * obvious in a picture - issue #418 was a call to action rendered below the
  * bottom edge of the window.
  *
- * Four states, each reached by pressing what a person would press:
+ * States, each reached by pressing what a person would press:
  *
- *   form      the account/password/game form on a profile with nothing stored
- *   picker    the character list that came back, which is the `C` reply
- *   launched  after picking one, with the attach flow taking over
- *   error     a failure shown as a sentence, not a stack trace
+ *   form         the account/password/game form on a profile with nothing stored
+ *   picker       the character list that came back, which is the `C` reply
+ *   launched     after picking one, with the attach flow taking over
+ *   error        a failure shown as a sentence, not a stack trace
+ *   one press    a returning player with everything remembered, signing in
+ *                with a single press (9 September 2026)
+ *   stranded     an offer with nothing to attach to, which must still have a
+ *                way back (#523)
+ *
+ * # Why this file grew rather than a second one appearing beside it
+ *
+ * The 9 September 2026 work on the first-contact experience asked for a
+ * real-browser harness. There was already one, for this screen, and a second
+ * would have been two harnesses answering one question - which drift, and then
+ * both are wrong. So the new states are cases here, the screenshots carry the
+ * new date, and the checks that the reversal turned over were turned over
+ * rather than duplicated.
  *
  * Usage: node tools/sign-in-shots.mjs [http://127.0.0.1:1420/]
  *
@@ -44,6 +57,10 @@ const check = (label, cond, detail) => {
   if (!cond) bad += 1
 }
 
+/** Whether the account field arrived filled, and what it held. */
+const accountPrefilled = (o) => o.accountValue === 'saved'
+const accountDetail = (o) => JSON.stringify(o.accountValue)
+
 /** Type into a field found by its label text, the way a person reaches it. */
 async function fill(b, labelText, value) {
   const done = await b.run(`
@@ -64,20 +81,33 @@ async function fill(b, labelText, value) {
 }
 
 const b = await launch({ width: 1024, height: 768, headless: true })
-try {
-  // A profile that has been through setup and nothing else, at the smallest
-  // window size the sign-in has to fit in without clipping.
+
+/**
+ * A profile that has been through setup and remembers nothing, at the smallest
+ * window size the sign-in has to fit in without clipping.
+ *
+ * Every cold case starts here. Before 9 September 2026 one `localStorage.clear()`
+ * at the top was enough, because nothing was remembered unless a box was
+ * ticked; now a successful sign-in remembers the account, the game and the
+ * character by default, so the second case would open on a returning player's
+ * screen with a button reading "Sign in as Phemius" and its click would miss.
+ * The first run of this harness died exactly there, and the app was right.
+ */
+async function freshProfile() {
   await b.goto(base)
   await b.run(`
     localStorage.clear();
     localStorage.setItem('dr-companion-prefs-v1', JSON.stringify({ setupComplete: true }));
     return true;
   `)
-
-  // ---------------------------------------------------------------- form
   await b.goto(url('bridge=live'))
+}
+
+try {
+  // ---------------------------------------------------------------- form
+  await freshProfile()
   const formText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-2026-09-06-form.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-form.png'))
 
   // Case-insensitive: the heading carries `uppercase`, and innerText reports
   // what is rendered, so an exact-case match tests the stylesheet.
@@ -87,23 +117,47 @@ try {
   check('form: and which game', /DragonRealms/.test(formText))
   check(
     'form: the password sentence is the true one',
-    /held only in memory, and not stored unless you later ask for it/.test(formText)
+    /and kept in Windows Credential Manager unless you untick the box/.test(formText)
+  )
+  check(
+    'form: and the sentence it replaced is gone from the screen',
+    !/not stored unless you later ask for it/.test(formText),
+    'the opt-in promise is not still on the panel'
   )
   check(
     'form: nothing tells anybody to configure another client',
     !/lichconnect|licharguments|#config/i.test(formText),
     'no retired walkthrough on screen'
   )
-  // N8 built the box; this used to assert its absence. What is on screen now
-  // must be the offer *and* the warning, because a box that says only
-  // "remember password" hides the half a player needs to decide.
+  // The box, its consequence and its warning. It governs the whole sign-in
+  // now, not the password alone, and it is ticked when the screen opens -
+  // which is exactly why the consequence has to be on the panel rather than
+  // behind the act of ticking: nobody had to do anything to reach this state.
   check(
-    'form: the remember-password box is offered',
-    /Remember password on this computer/i.test(formText)
+    'form: the remember box is offered, and named for what it does',
+    /Remember my sign-in on this computer/i.test(formText)
+  )
+  check(
+    'form: it says what is kept and why',
+    /account name, game, character and password are kept/i.test(formText)
   )
   check(
     'form: and it says who else on this machine could use it',
     /Anyone signed in to this Windows account can use it/i.test(formText)
+  )
+  const rememberTicked = await b.run(`
+    const box = [...document.querySelectorAll('input')].filter((i) => i.type === 'checkbox');
+    return { count: box.length, checked: box.map((i) => i.checked) };
+  `)
+  check(
+    'form: the box is on screen (control)',
+    rememberTicked.count === 1,
+    `${rememberTicked.count} checkbox(es)`
+  )
+  check(
+    'form: and it is ticked when the screen opens',
+    rememberTicked.checked[0] === true,
+    JSON.stringify(rememberTicked.checked)
   )
 
   // Nothing may sit outside the window at 1024x768, which is the defect #418
@@ -146,7 +200,7 @@ try {
     await new Promise((r) => setTimeout(r, 100))
   }
   const pickerText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-2026-09-06-picker.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-picker.png'))
 
   check('picker: the account’s own characters are offered', /Phemius/.test(pickerText))
   check('picker: all three the command returned', /Testwright/.test(pickerText) && /Nobody/.test(pickerText))
@@ -177,18 +231,18 @@ try {
   // ------------------------------------------------------------ launched
   await b.click('button', /^Phemius$/)
   for (let i = 0; i < 60; i += 1) {
-    if (/Started Phemius/.test(await b.eval('document.body.innerText'))) break
+    if (/Phemius is in the game/i.test(await b.eval('document.body.innerText'))) break
     await new Promise((r) => setTimeout(r, 100))
   }
   const launchedText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-2026-09-06-launched.png'))
-  check('launched: the app says what it started', /Started Phemius/.test(launchedText))
+  await b.screenshot(out('sign-in-experience-2026-09-09-launched.png'))
+  check('launched: the app says who it signed in', /Phemius is in the game/i.test(launchedText))
   check('launched: and what happens next', /game text appears/.test(launchedText))
 
   // --------------------------------------------------------------- error
   // A failure has to read as a sentence. `locked` is a fixture account whose
   // whole purpose is to make this arm reachable without an account.
-  await b.goto(url('bridge=live'))
+  await freshProfile()
   await fill(b, 'Account name', 'locked')
   await fill(b, 'Password', 'not-a-real-password-9d4f')
   await b.click('button', /^Sign in$/)
@@ -197,7 +251,7 @@ try {
     await new Promise((r) => setTimeout(r, 100))
   }
   const errorText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-2026-09-06-error.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-error.png'))
   check('error: it is a sentence a player can act on', /Play\.net has locked this account/.test(errorText))
   check('error: no token, no stack, no error code', !/account_locked|Error:|at \w+ \(/.test(errorText))
   const cleared = await b.run(`
@@ -230,35 +284,35 @@ try {
     {
       account: 'runningours',
       kind: 'ours',
-      shot: 'sign-in-2026-09-07-attach-ours.png',
+      shot: 'sign-in-experience-2026-09-09-attach-ours.png',
       says: /This app started that Lich and it is still running\./,
       action: /^Attach to it$/,
     },
     {
       account: 'running',
       kind: 'foreign',
-      shot: 'sign-in-2026-09-07-attach-foreign.png',
+      shot: 'sign-in-experience-2026-09-09-attach-foreign.png',
       says: /A Lich is running for Someoneelse on port 11024\./,
       action: /^Attach to Someoneelse$/,
     },
     {
       account: 'runningnoport',
       kind: 'no_port',
-      shot: 'sign-in-2026-09-07-attach-no-port.png',
+      shot: 'sign-in-experience-2026-09-09-attach-no-port.png',
       says: /has no attachable port/,
       action: null,
     },
     {
       account: 'runningnolich',
       kind: 'no_lich',
-      shot: 'sign-in-2026-09-07-attach-no-lich.png',
+      shot: 'sign-in-experience-2026-09-09-attach-no-lich.png',
       says: /No Lich is running now\./,
       action: null,
     },
     {
       account: 'runningunknown',
       kind: 'unknown',
-      shot: 'sign-in-2026-09-07-attach-unknown.png',
+      shot: 'sign-in-experience-2026-09-09-attach-unknown.png',
       says: /Could not tell which Lich is running/,
       action: null,
     },
@@ -266,7 +320,7 @@ try {
 
   const kindsSeen = []
   for (const row of OFFERS) {
-    await b.goto(url('bridge=live'))
+    await freshProfile()
     await fill(b, 'Account name', row.account)
     await fill(b, 'Password', 'not-a-real-password-9d4f')
     await b.click('button', /^Sign in$/)
@@ -304,16 +358,36 @@ try {
       seen.buttons.join(' | ')
     )
     if (row.action) {
+      // One *attach*, and it says what it will join. The panel also carries a
+      // way back now (#523), so the old `buttons.length === 1` would have been
+      // asserting the absence of the escape hatch rather than the presence of
+      // one offer.
+      const attaches = seen.buttons.filter((x) => /^Attach/.test(x))
       check(
-        `attach ${row.kind}: one button, and it says what it will join`,
-        seen.buttons.length === 1 && row.action.test(seen.buttons[0]),
+        `attach ${row.kind}: one attach button, and it says what it will join`,
+        attaches.length === 1 && row.action.test(attaches[0]),
+        seen.buttons.join(' | ')
+      )
+      check(
+        `attach ${row.kind}: and a way back beside it`,
+        seen.buttons.some((x) => /Back to sign in/.test(x)),
         seen.buttons.join(' | ')
       )
     } else {
+      // #523, and this is the check that turned over on 9 September 2026. It
+      // used to assert *no* buttons at all, which was right about the attach
+      // and wrong about the screen: a sentence saying why nothing can be
+      // pressed, with nothing to press, is where a player was stranded. There
+      // is no attach, and there is a way back.
       check(
-        `attach ${row.kind}: nothing to press, because pressing could not work`,
-        seen.buttons.length === 0,
+        `attach ${row.kind}: no attach, because pressing could not work`,
+        !seen.buttons.some((x) => /^Attach/.test(x)),
         seen.buttons.join(' | ')
+      )
+      check(
+        `attach ${row.kind}: and still a way back rather than a dead end`,
+        seen.buttons.some((x) => /Back to sign in/.test(x)),
+        seen.buttons.join(' | ') || 'no buttons at all'
       )
     }
   }
@@ -326,7 +400,7 @@ try {
     kindsSeen.join(', ')
   )
   // ------------------------------------------------- the empty-list state
-  await b.goto(url('bridge=live'))
+  await freshProfile()
   await fill(b, 'Account name', 'nochars')
   await fill(b, 'Password', 'not-a-real-password-9d4f')
   await b.click('button', /^Sign in$/)
@@ -335,10 +409,10 @@ try {
     await new Promise((r) => setTimeout(r, 100))
   }
   const emptyText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-2026-09-06-no-characters.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-no-characters.png'))
   check(
     'empty: an account with no characters says so',
-    /has no DragonRealms characters/.test(emptyText)
+    /has no characters in the game you chose/.test(emptyText)
   )
   check('empty: and still offers a way back', /Back to sign in/.test(emptyText))
 
@@ -353,7 +427,7 @@ try {
   // locked: the sentence that costs a player most, and the reason #457 was
   // filed. A locked account used to read "Signing in failed. the account
   // cannot sign in right now (NEW)".
-  await b.goto(url('bridge=live'))
+  await freshProfile()
   await fill(b, 'Account name', 'locked')
   await fill(b, 'Password', 'not-a-real-password-9d4f')
   await b.click('button', /^Sign in$/)
@@ -362,15 +436,26 @@ try {
     await new Promise((r) => setTimeout(r, 100))
   }
   const lockedText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-errors-2026-09-06-locked.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-locked.png'))
   check(
     'locked: the player is told where to go and what to do',
     /Sign in on the Play\.net website to unlock it/.test(lockedText)
   )
   check(
-    'locked: and what the server actually said is under it, not instead of it',
-    /the account cannot sign in right now/.test(lockedText),
-    'the detail line'
+    'locked: the technical line is not on the panel',
+    !/the account cannot sign in right now/.test(lockedText),
+    'nothing but the sentence, until it is asked for'
+  )
+  await b.click('button', /Details for a bug report/)
+  for (let i = 0; i < 40; i += 1) {
+    if (/the account cannot sign in right now/.test(await b.eval('document.body.innerText'))) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const lockedDetail = await b.eval('document.body.innerText')
+  check(
+    'locked: and one press away, for a bug report',
+    /the account cannot sign in right now/.test(lockedDetail),
+    'the detail line, disclosed'
   )
   check(
     'locked: the generic sentence is not what is shown',
@@ -405,7 +490,7 @@ try {
 
   // badpw: an account with nothing in the fixtures, which the stand-in
   // refuses with the real `bad_credentials` object.
-  await b.goto(url('bridge=live'))
+  await freshProfile()
   await fill(b, 'Account name', 'nosuchaccount')
   await fill(b, 'Password', 'not-a-real-password-9d4f')
   await b.click('button', /^Sign in$/)
@@ -414,7 +499,7 @@ try {
     await new Promise((r) => setTimeout(r, 100))
   }
   const badpwText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-errors-2026-09-06-badpw.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-badpw.png'))
   check(
     'badpw: a refusal says which two things to check',
     /That account name or password was not accepted\. Check both and try again\./.test(badpwText)
@@ -428,17 +513,17 @@ try {
   // stored: `saved` is a fixture account the stand-in reports a stored
   // password for. The password field must be gone, the Sign in button must
   // still work, and there must be a way to type a different one.
-  await b.goto(url('bridge=live'))
+  await freshProfile()
   await fill(b, 'Account name', 'saved')
   for (let i = 0; i < 60; i += 1) {
-    if (/Using the password saved/.test(await b.eval('document.body.innerText'))) break
+    if (/Using the password remembered/.test(await b.eval('document.body.innerText'))) break
     await new Promise((r) => setTimeout(r, 100))
   }
   const storedText = await b.eval('document.body.innerText')
-  await b.screenshot(out('sign-in-errors-2026-09-06-stored.png'))
+  await b.screenshot(out('sign-in-experience-2026-09-09-stored.png'))
   check(
     'stored: the form says it is using the saved password',
-    /Using the password saved on this computer for saved/.test(storedText)
+    /Using the password remembered on this computer for saved/.test(storedText)
   )
   check('stored: and offers a way past it', /Use a different password/.test(storedText))
   const storedFields = await b.run(`
@@ -447,7 +532,7 @@ try {
       signInDisabled: [...document.querySelectorAll('button')]
         .filter((x) => x.innerText.trim() === 'Sign in')
         .map((x) => x.disabled),
-      remember: /Remember password on this computer/.test(document.body.innerText),
+      remember: /Remember my sign-in on this computer/.test(document.body.innerText),
     };
   `)
   check('stored: there is no password box at all', storedFields.password === 0, `${storedFields.password} found`)
@@ -456,9 +541,14 @@ try {
     storedFields.signInDisabled.length === 1 && storedFields.signInDisabled[0] === false,
     JSON.stringify(storedFields.signInDisabled)
   )
+  // Turned over on 9 September 2026, not deleted. The box used to be hidden
+  // here on the reasoning that there was nothing to remember - true while it
+  // governed a password only. It governs the account, the game and the
+  // character too now, so hiding it would hide the control that turns all of
+  // that off from the one screen a returning player ever sees.
   check(
-    'stored: the remember box is not offered when nothing is being typed',
-    storedFields.remember === false
+    'stored: the remember box is still offered, because it governs more than the password',
+    storedFields.remember === true
   )
 
   // The direction that finds things: pressing "Use a different password" must
@@ -476,6 +566,75 @@ try {
     return [...document.querySelectorAll('input')].filter((i) => i.type === 'password').length;
   `)
   check('stored: "Use a different password" brings the field back', backToTyping === 1, `${backToTyping} field(s)`)
+
+  /* ------------------------------------------------ one press (9 Sep 2026)
+   *
+   * The whole point of remembering everything. A returning player's screen
+   * opens with the account filled, no password field, the last character
+   * named on the button, and focus already on it - so the sign-in is one
+   * press and the character list never appears.
+   *
+   * Seeded through `localStorage` rather than by signing in first, because
+   * what is being checked is the state a player *arrives* in.
+   */
+  await b.goto(base)
+  await b.run(`
+    localStorage.setItem('dr-companion-prefs-v1', JSON.stringify({
+      setupComplete: true,
+      lichAccount: 'saved',
+      lichGameCode: 'DR',
+      lichCharacter: 'Phemius',
+      lichRemember: true,
+    }));
+    return true;
+  `)
+  // Not `freshProfile()`: this case is about the state a returning player
+  // arrives in, so the profile seeded above is the whole point.
+  await b.goto(url('bridge=live')) // returning profile, seeded above
+  for (let i = 0; i < 60; i += 1) {
+    if (/Sign in as Phemius/i.test(await b.eval('document.body.innerText'))) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const backText = await b.eval('document.body.innerText')
+  await b.screenshot(out('sign-in-experience-2026-09-09-one-press.png'))
+  check('one press: the screen greets a returning player', /Welcome back/i.test(backText))
+  check('one press: and names the character on the button', /Sign in as Phemius/i.test(backText))
+  const onepress = await b.run(`
+    const buttons = [...document.querySelectorAll('button')];
+    const submit = buttons.find((x) => /^Sign in as Phemius$/.test(x.innerText.trim()));
+    return {
+      passwordFields: [...document.querySelectorAll('input')].filter((i) => i.type === 'password').length,
+      accountValue: (document.querySelector('input[name="username"]') || {}).value || '',
+      submitFound: Boolean(submit),
+      submitDisabled: submit ? submit.disabled : null,
+      focused: document.activeElement ? document.activeElement.innerText.trim() : '',
+      actionsToPlay: (document.querySelector('[data-actions-to-play]') || {}).dataset
+        ? document.querySelector('[data-actions-to-play]').dataset.actionsToPlay
+        : null,
+    };
+  `)
+  check('one press: the account is already filled', accountPrefilled(onepress), accountDetail(onepress))
+  check('one press: no password is asked for', onepress.passwordFields === 0, `${onepress.passwordFields} field(s)`)
+  check('one press: the button is there and pressable (control)',
+    onepress.submitFound === true && onepress.submitDisabled === false,
+    JSON.stringify({ found: onepress.submitFound, disabled: onepress.submitDisabled }))
+  check('one press: focus is already on it, so Enter is enough',
+    /Sign in as Phemius/.test(onepress.focused), JSON.stringify(onepress.focused))
+  // The number, on the screen rather than only in a test: one act from here.
+  check('one press: the screen is offering a one-act sign-in',
+    onepress.actionsToPlay === '1', String(onepress.actionsToPlay))
+
+  // And it works: one press, no character list, straight to the game.
+  await b.click('button', /^Sign in as Phemius$/)
+  for (let i = 0; i < 80; i += 1) {
+    if (/Phemius is in the game/i.test(await b.eval('document.body.innerText'))) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const afterPress = await b.eval('document.body.innerText')
+  await b.screenshot(out('sign-in-experience-2026-09-09-one-press-done.png'))
+  check('one press: one press reached the game', /Phemius is in the game/i.test(afterPress))
+  check('one press: and the character list was never shown',
+    !/Pick a character/.test(afterPress), 'the picker was skipped')
 } finally {
   await b.close()
 }

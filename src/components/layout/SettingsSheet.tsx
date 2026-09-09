@@ -29,7 +29,7 @@ import {
 import { useModalDialog } from '../../lib/useModalDialog.ts'
 import { LICH_LICENSE } from '../../data/lichLicense.ts'
 import { DiagnosticsPanel } from '../shared/DiagnosticsPanel.tsx'
-import { ForgetStoredPassword } from '../shared/RememberPassword.tsx'
+import { ForgetEverything } from '../shared/RememberSignIn.tsx'
 
 /**
  * What each pause-latch mode means, in the words the chooser shows.
@@ -643,8 +643,8 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-ink-faint leading-snug">
               No telemetry and no analytics. Nothing about your character or
               your game text leaves this machine. Your password is typed into
-              this app, used once to sign in to Simutronics, held only in
-              memory, and not stored unless you later ask for it. The wiki
+              this app, used once to sign in to Simutronics, and kept in
+              Windows Credential Manager unless you untick the box. The wiki
               lookup on a watched room asks Elanthipedia about that room and
               nothing else.{' '}
               <a
@@ -657,12 +657,18 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               </a>
               .
             </p>
-            {/* N8. "Unless you later ask for it" is a promise with two halves,
-                and this is the second one: a player who asked must be able to
-                un-ask. The control is here rather than only beside the sign-in
-                box because the person who wants it is not signing in — they
-                are looking for where their password went. */}
-            <ForgetStoredPassword />
+            {/* "Unless you untick the box" is a promise with two halves, and
+                this is the second one. It matters more than it did when the box
+                was opt-in (N8, #452): remembering is on by default since
+                9 September 2026, so nobody had to do anything to reach the
+                state this control undoes. It is here rather than only beside
+                the sign-in box because the person who wants it is not signing
+                in — they are looking for where their password went. One
+                control, clearing the credential entry and the remembered
+                account, game and character together: two controls that each
+                forgot half would leave somebody who used one believing they
+                had used both. */}
+            <ForgetEverything />
             <p className="text-xs text-ink-faint leading-snug">
               DR Companion is MIT. It installs and talks to{' '}
               <a

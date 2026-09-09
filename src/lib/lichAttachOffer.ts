@@ -71,6 +71,18 @@ export type AttachOffer =
   | { kind: 'unknown'; why: string }
 
 /**
+ * Every answer `lich_attach_offer` can give, as a value rather than only a
+ * type.
+ *
+ * The union above is erased at runtime, so nothing could enumerate it - and
+ * `src/lib/signInStates.ts` has to, because it owes a screen to each answer and
+ * the denominator of that obligation must come from this file rather than from
+ * a second list somebody keeps in step by hand. `attachAdvice` below switches
+ * on the same union, so the compiler fails if the two ever part company.
+ */
+export const ATTACH_OFFER_KINDS = ['ours', 'foreign', 'no_port', 'no_lich', 'unknown'] as const
+
+/**
  * Ask which Lich is running.
  *
  * Read fresh at every point the screen needs it - after the refusal, and again

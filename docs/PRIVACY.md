@@ -15,14 +15,14 @@
 - **Your account details go to Simutronics, and nowhere else.** Signing in is
   the one exception to the line above, and it is worth stating plainly rather
   than burying: **your password is typed into this app, used once to sign in to
-  Simutronics, held only in memory, and not stored unless you later ask for
-  it.** It goes to `eaccess.play.net` over TLS - Simutronics' own account
+  Simutronics, and kept in Windows Credential Manager unless you untick the
+  box.** It goes to `eaccess.play.net` over TLS - Simutronics' own account
   server, the same one every other DragonRealms client uses - and nowhere else.
   It is never written to a settings file, never put on a command line, and
-  never logged. If you do ask for it to be remembered, it is kept in Windows
-  Credential Manager rather than in any file this app writes - the box that
-  asks is off every time until you tick it, and Settings has a control that
-  forgets it again.
+  never logged. The box that decides this is on the sign-in screen and is
+  **ticked by default**; unticking it deletes what is stored at once, and
+  Settings has a control that forgets the password, the account name, the game
+  and the character together.
 - **Everything the app stores, it stores on your machine.** `docs/PLAYER_DATA.md`
   is the generated inventory of that.
 - **A local AI model, if you install one, runs on loopback.** It is a process
@@ -41,7 +41,7 @@ are then fetched by your browser, not by this app.
 
 - **What is sent:** Your account name, your password (obscured by the XOR the protocol specifies, which is not encryption - the TLS around it is), the game you chose, and the character you picked from the list it sends back. Nothing else: no game text, no map, no settings, and nothing about this app.
 - **Where in the code:** `src-tauri/src/credentials.rs`, which declares the endpoint and holds the password while it is in use. The protocol client that speaks to it is the rest of Lane N; the connection is TLS on port 7910. **That destination is fixed in the app you install.** Development builds accept two environment variables that point the login at a test server instead, which is how the failure cases are tested without an account; a release build ignores them and returns the declared endpoint before either is read, and the generator of this document refuses to publish if that stops being true.
-- Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is not stored at all unless you tick a box asking for it, and if you do, it goes to Windows Credential Manager and nowhere else. That box is off every time the screen opens, it says what ticking it means - "Stored in Windows Credential Manager. Anyone signed in to this Windows account can use it." - and Settings carries a Forget control that removes the entry again (`src-tauri/src/credential_store.rs`, `src/lib/rememberPassword.ts`). This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.
+- Your password is typed into this app. It is held in memory for the length of one sign-in, in a type that overwrites its own bytes when it drops, and it is not written to any settings file, not put on a command line, not placed in the launch file Lich reads, and not logged. It is remembered, in Windows Credential Manager and nowhere else, unless you untick the box on the sign-in screen. That box was off by default when it shipped and Dan turned it on for good on 9 September 2026, for a desktop app on his own machine; it says beside itself what it means - "Stored in Windows Credential Manager. Anyone signed in to this Windows account can use it." - unticking it deletes the entry at once rather than at the next sign-in, and Settings carries a Forget control that clears the password and the remembered account name, game and character together (`src-tauri/src/credential_store.rs`, `src/lib/rememberSignIn.ts`). This is a change: earlier versions of this app never handled a password, because the sign-in happened in another program. That program is gone from the path, and saying the app still never sees it would be false.
 
 ### `elanthipedia.play.net`
 
@@ -128,7 +128,7 @@ same list and are checked in the same two directions, so a socket cannot be
 described here without existing in the code, or exist in the code without
 being described here.
 
-The scan currently matches 71 lines across 340 source
+The scan currently matches 71 lines across 341 source
 files, plus 1 declared non-URL endpoint line(s), and
 finds 9 hosts, which is the number of sections above. It cannot
 tell a request from a link - both are an `https://` in a file - so that

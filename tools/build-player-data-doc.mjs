@@ -313,16 +313,24 @@ drives a whole sign-in and then reads these preferences back to prove it.
 
 ## The one thing that is not in this list
 
-The second change is that the password can now be **remembered, if you ask**.
-That is the only thing this app stores anywhere but \`localStorage\` without
-you having asked for a file by name, and the difference is deliberate:
+The second change is that the password is **remembered by default**. That is
+the only thing this app stores anywhere but \`localStorage\` without you having
+asked for a file by name, and the difference is deliberate:
 
 | | \`localStorage\` | the remembered password |
 |---|---|---|
 | Where | this window's storage, in the app's own data directory | Windows Credential Manager |
-| Written | whenever you change a setting | only when you tick "Remember password on this computer", which is off every time until you do |
-| Removed by | clearing site data, or uninstalling | the Forget control in Settings, which deletes the Credential Manager entry |
-| Readable by | this app | anything running as your Windows user - which is what the app tells you before you tick the box |
+| Written | whenever you change a setting | on every successful sign-in, unless you untick "Remember my sign-in on this computer" |
+| Removed by | clearing site data, or uninstalling | the Forget control in Settings, or unticking the box, either of which deletes the Credential Manager entry at once |
+| Readable by | this app | anything running as your Windows user - which is what the app tells you beside the box |
+
+The box was off by default when it shipped on 6 September 2026 (increment N8).
+Dan reversed it on **9 September 2026**, for a desktop app on his own machine,
+and asked for everything a sign-in produces to be remembered rather than the
+password alone. The account name, the game and the character were already
+stored in \`localStorage\`; what changed is that they are now written together
+with the password, by one function, under one choice
+(\`src/lib/rememberSignIn.ts\`), and that the choice starts ticked.
 
 Nothing in the table below is that password, and there is no third place: a
 password in a settings file, obfuscated or not, is a plaintext password with a

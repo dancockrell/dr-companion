@@ -52,19 +52,32 @@ export interface PersistedPrefs {
    * The Play.net account name last signed in with, so a returning player types
    * it once rather than every session.
    *
-   * There is deliberately no `lichPassword` beside these three, and no
-   * commented-out one either. The password is held in the sign-in form's own
-   * `useState` for the length of one call and never reaches this file - see
-   * `src/lib/lichLogin.ts` and `docs/LICH_NATIVE_LOGIN.md` §5. Remembering it is
-   * increment N8, opt-in and not built, and when it is built it goes to Windows
-   * Credential Manager rather than here: a password in a JSON preferences file
-   * is a plaintext password whatever it is spelled with.
+   * There is deliberately no `lichPassword` beside these four, and no
+   * commented-out one either. The password is remembered - by default, since
+   * 9 September 2026 - but it goes to Windows Credential Manager and never to
+   * this file: a password in a JSON preferences file is a plaintext password
+   * whatever it is spelled with. See `src/lib/rememberSignIn.ts` and
+   * `docs/LICH_NATIVE_LOGIN.md` §8.
+   *
+   * The line that stood here said remembering was "increment N8, opt-in and
+   * not built". N8 built it the next day and Dan reversed the default the day
+   * after; a comment describing a plan two decisions out of date is worse than
+   * none, because it reads as the current position.
    */
   lichAccount?: string
   /** DR, DRX, DRF or DRT - see `GAME_CODES` in `lichLogin.ts`. */
   lichGameCode?: string
   /** The character last launched, so the picker can preselect it. */
   lichCharacter?: string
+  /**
+   * Whether the player wants their sign-in remembered.
+   *
+   * Absent means they have never said, which is what
+   * `REMEMBER_SIGN_IN_DEFAULT` answers (on). Stored so that unticking survives
+   * a restart: a preference that reverts to the default on the next launch is
+   * not a preference.
+   */
+  lichRemember?: boolean
   houseEntryMethod?: 'rope' | 'lockpick' | 'lockpick_ring'
   houseEntryMaxSearches?: number
   /**
