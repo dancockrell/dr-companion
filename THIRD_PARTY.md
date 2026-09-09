@@ -68,15 +68,15 @@ bundler, the type system and the CSS toolchain all contribute to what ships.
 
 ## Rust crates
 
-326 crates reach the shipped Windows binary, resolved for
+328 crates reach the shipped Windows binary, resolved for
 `x86_64-pc-windows-msvc`. `src-tauri/Cargo.lock` lists more than this: it carries
 every platform's crates, including the GTK and Android ones this app has never
 built, and naming those here would claim to ship software it does not.
 
 | Licence | Crates |
 |---|---:|
-| MIT OR Apache-2.0 | 159 |
-| MIT | 62 |
+| MIT OR Apache-2.0 | 160 |
+| MIT | 63 |
 | Apache-2.0 OR MIT | 32 |
 | Unicode-3.0 | 18 |
 | MIT/Apache-2.0 | 12 |
@@ -250,6 +250,7 @@ built, and naming those here would claim to ship software it does not.
 | `miniz_oxide` | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
 | `mio` | 1.2.2 | MIT |
 | `muda` | 0.19.3 | Apache-2.0 OR MIT |
+| `native-tls` | 0.2.18 | MIT OR Apache-2.0 |
 | `new_debug_unreachable` | 1.0.6 | MIT |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 |
 | `num-traits` | 0.2.19 | MIT OR Apache-2.0 |
@@ -293,6 +294,7 @@ built, and naming those here would claim to ship software it does not.
 | `rustls-webpki` | 0.103.15 | ISC |
 | `ryu` | 1.0.23 | Apache-2.0 OR BSL-1.0 |
 | `same-file` | 1.0.6 | Unlicense/MIT |
+| `schannel` | 0.1.29 | MIT |
 | `schemars` | 0.8.22 | MIT |
 | `schemars` | 0.9.0 | MIT |
 | `schemars` | 1.2.2 | MIT |

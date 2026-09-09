@@ -74,6 +74,14 @@ pub enum LoginCode {
     ObscuredByteOutOfRange,
     /// `EAccessError::Network`.
     Network,
+    /// `EAccessError::CertificateChanged`. The login service answered and its
+    /// certificate is not the one this app pins.
+    ///
+    /// Not folded into [`Self::Network`], which is the code for "there was
+    /// nothing on the other end". The two want opposite things from the
+    /// player: an unreachable service is worth trying again in a minute, and
+    /// this is not worth trying again at all until the app ships a new pin.
+    CertificateChanged,
     /// The account login worked and Lich did not: it could not be started, it
     /// exited before opening its detachable port, or it never opened it.
     /// One code because there is one thing the player does about all three,
@@ -115,7 +123,7 @@ impl LoginCode {
     /// The denominator for the fixture test: a code added to the enum and not
     /// to this array leaves the fixture short, and the test that counts it
     /// goes red naming the shortfall.
-    pub const ALL: [LoginCode; 13] = [
+    pub const ALL: [LoginCode; 14] = [
         LoginCode::BadCredentials,
         LoginCode::AccountLockedOrExpired,
         LoginCode::AccountRefused,
@@ -124,6 +132,7 @@ impl LoginCode {
         LoginCode::PasswordLength,
         LoginCode::ObscuredByteOutOfRange,
         LoginCode::Network,
+        LoginCode::CertificateChanged,
         LoginCode::LichDidNotStart,
         LoginCode::LichAlreadyRunning,
         LoginCode::PasswordNeeded,
@@ -143,6 +152,7 @@ impl LoginCode {
             LoginCode::PasswordLength => "password_length",
             LoginCode::ObscuredByteOutOfRange => "obscured_byte_out_of_range",
             LoginCode::Network => "network",
+            LoginCode::CertificateChanged => "certificate_changed",
             LoginCode::LichDidNotStart => "lich_did_not_start",
             LoginCode::LichAlreadyRunning => "lich_already_running",
             LoginCode::PasswordNeeded => "password_needed",
@@ -546,6 +556,15 @@ mod tests {
             EAccessError::Network {
                 endpoint: "eaccess.play.net:7910".into(),
                 detail: "could not connect: connection refused".into(),
+            },
+            // A fingerprint that is not the pinned one, so the fixture shows
+            // the sentence a substituted certificate really produces. The
+            // digits are a stand-in and say so; no real certificate has this
+            // fingerprint, which is the point - a fixture carrying the pinned
+            // value would be recording a state this variant cannot be in.
+            EAccessError::CertificateChanged {
+                endpoint: "eaccess.play.net:7910".into(),
+                presented: "0".repeat(64),
             },
         ];
         let mut out: Vec<LoginFailure> = protocol.into_iter().map(LoginFailure::from).collect();

@@ -165,6 +165,11 @@ const REQUIRED_CODES = [
   'password_length',
   'obscured_byte_out_of_range',
   'network',
+  // #529: the login service answered and its certificate is not the one this
+  // app pins. Separate from `network` because the two want opposite things
+  // from the player - one is worth retrying in a minute, and this is not worth
+  // retrying at all until the app ships a new pin.
+  'certificate_changed',
   'lich_did_not_start',
   // #488 §3: the app started no Lich because one is already up. A separate
   // code from `lich_did_not_start` because the two want opposite things from
