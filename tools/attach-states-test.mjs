@@ -164,23 +164,51 @@ ok("  positive control: the matcher finds can('connection-help')", /can\('connec
 // ------------------------------ 4. the Attach control is mounted in every state
 console.log('\n--- the Attach control is on screen wherever a socket can exist')
 const appTsx = readFileSync(join(root, 'src/App.tsx'), 'utf8')
-const rowIdx = appTsx.indexOf('aria-label="Console"')
-if (rowIdx < 0) {
+/*
+ * The name of this section is the part that survives; the body has now been
+ * repointed twice.
+ *
+ * It asked about the console row, `aria-label="Console"`, because that was the
+ * mechanism by which the transcript escaped the `character` gate: the row sat
+ * outside `main`, so the Attach control it contains stayed mounted with no
+ * character. The play-first frame deletes that row - the transcript is the
+ * workspace now, `aria-label="Text"` - so the mechanism is gone and the
+ * property is not. The gate moved to the right rail, which genuinely is a
+ * reading of a live character.
+ *
+ * Repointing rather than deleting, and saying so, because a test that goes
+ * NOT CHECKED after a rename is a test that has stopped defending anything -
+ * and this one exits non-zero on a skip precisely so that cannot pass quietly.
+ * (CLAUDE.md section 1: read the name before the body.)
+ */
+const textIdx = appTsx.indexOf('aria-label="Text"')
+if (textIdx < 0) {
   checks++
   skips++
   console.log(
-    'NOT CHECKED the console row gate\n' +
-      '     because: no element with aria-label="Console" was found in App.tsx\n' +
-      '     settle it with: grep -n "Console" src/App.tsx'
+    [
+      'NOT CHECKED the text region gate',
+      '     because: no element with aria-label="Text" was found in App.tsx',
+      '     settle it with: grep -n aria-label=.Text. src/App.tsx',
+    ].join('\n')
   )
 } else {
-  const before = appTsx.slice(Math.max(0, rowIdx - 400), rowIdx)
-  ok('the console row is not gated on `character`', !/\{setupComplete && character && \(/.test(before))
+  const region = appTsx.slice(textIdx, appTsx.indexOf('<GameChatColumn />', textIdx) + 20)
+  /*
+   * A *positive* gate, which is the thing that would hide the Attach control.
+   * `{!character && (` inside the region is the opposite condition - the call
+   * to action that shows only while there is no character - and forbidding it
+   * would forbid the empty state from saying anything, so the `!` is excluded
+   * deliberately rather than by accident.
+   */
+  ok('the text region is not gated on `character`', !/(^|[^!])character &&/.test(region), region.match(/.{0,20}character &&.{0,10}/)?.[0] ?? 'no gate of any shape')
   // Positive control: the pattern matches somewhere, so the negative above is
-  // a fact about the row rather than about a regexp that matches nothing.
-  ok('  positive control: that gate shape does exist elsewhere in App.tsx',
-    /\{setupComplete && character && \(/.test(appTsx))
-  ok('the console row holds the game pane', /aria-label="Console"[\s\S]{0,1800}<GameChatColumn \/>/.test(appTsx))
+  // a fact about the region rather than about a regexp that matches nothing.
+  ok('  positive control: that gate shape does exist elsewhere in App.tsx', /character && \(?/.test(appTsx))
+  ok('the text region holds the game pane', /aria-label="Text"[\s\S]{0,2200}<GameChatColumn \/>/.test(appTsx))
+  // And the other half: what IS a reading of a live character still waits for
+  // one. Without this, deleting every gate in the file would pass the above.
+  ok('the right rail is still gated on `character`', /showRail && character && \(/.test(appTsx))
 }
 const bar = readFileSync(join(root, 'src/components/room/GameChatColumn.tsx'), 'utf8')
 ok('the game pane holds the connection bar', /<GameConnectionBar \/>/.test(bar))

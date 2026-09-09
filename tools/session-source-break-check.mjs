@@ -202,22 +202,27 @@ const CASES = [
     reddens: ['  live-waiting: has at least one action'],
   },
   {
-    name: 'the console row is gated on `character` again',
+    name: 'the text region is gated on `character` again',
     suite: 'states',
     file: 'src/App.tsx',
+    /*
+     * Repointed with the check it drives. This case used to gate the console
+     * row, which was how the transcript escaped the `character` gate before
+     * the play-first frame; that row is gone and the transcript is the
+     * workspace, so the sabotage now puts a positive `character` gate inside
+     * the text region instead. Same bug (#523), same red line, different
+     * mechanism - and the case aborts rather than passing if it stops
+     * matching, which is what caught the rename in the first place.
+     *
+     * One line and no newline in the needle, so CRLF cannot silently make it
+     * match nothing.
+     */
     edit: (s) => {
-      const i = s.indexOf('aria-label="Console"')
-      if (i < 0) return null
-      // Through `eol`, because App.tsx is CRLF and a plain-newline anchor
-      // matches nothing in it.
-      const open = eol(
-        s,
-        '{setupComplete && (\n        <div\n          className="flex shrink-0 overflow-hidden border-t border-border bg-surface-raised"'
-      )
-      if (!s.includes(open)) return null
-      return s.replace(open, open.replace('{setupComplete && (', '{setupComplete && character && ('))
+      const anchor = ' aria-label="Text">'
+      if (!s.includes(anchor)) return null
+      return s.replace(anchor, `${anchor}{character && null}`)
     },
-    reddens: ['the console row is not gated on `character`'],
+    reddens: ['the text region is not gated on `character`'],
   },
 ]
 
