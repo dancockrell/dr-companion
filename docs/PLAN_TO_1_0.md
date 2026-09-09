@@ -601,9 +601,9 @@ passes.
   the acceptance list in `docs/verification/godot-2d-acceptance.md` (T5) has
   no line that is neither recorded nor marked as needing a live character.
 
-  Rewritten 9 Sep 2026. It named L1–L6, four of which are now `[-]`
-  superseded: they were about a 3D Crossing slice and a handoff document
-  that no longer exist, so the gate was waiting on increments that could
+  Rewritten 9 Sep 2026. It named L1–L6, four of which are now superseded
+  `[-]` — they were about a 3D Crossing slice and a handoff document that
+  no longer exist, so the gate was waiting on increments that could
   never become `[x]` — a permanent red mark on the status board rather than
   a condition. `tools/plan-audit.mjs` now fails a gate line that names a
   superseded increment, so this cannot happen quietly again. L2 and L3 stay
