@@ -958,7 +958,14 @@ const pkg = JSON.parse(read('package.json'))
   // it, `readers.length === 1` is equally satisfied by a counter that can
   // only ever return 0 or 1 - and the check above would then be measuring
   // its own arithmetic rather than the tree.
-  const twoCallers = hits('exportPinsToFile(').filter((f) => f !== 'src/lib/pinsFile.ts')
+  //
+  // The control used `exportPinsToFile(`, whose two callers were `MapPanel`
+  // and `MapWindow`. Both were deleted with the map (docs/NO-3D.md), so the
+  // control silently went to zero - it went red, which is the point of
+  // having it: a control that had quietly become a second one-site symbol
+  // would have passed while proving nothing. `openPanelWindow(` is the
+  // replacement, called from the dashboard and from the app controls.
+  const twoCallers = hits('openPanelWindow(').filter((f) => f !== 'src/lib/panelWindows.ts')
   ok(
     'control: the same counter reports two call sites when there are two',
     twoCallers.length === 2,

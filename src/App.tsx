@@ -5,7 +5,6 @@ import { GameSignals } from './components/shared/GameSignals.tsx'
 import { GameActionNotice } from './components/game/GameActionNotice.tsx'
 import { BattleColumn } from './components/room/BattleColumn.tsx'
 import { GameChatColumn } from './components/room/GameChatColumn.tsx'
-import { MapColumn } from './components/room/MapColumn.tsx'
 import { Splitter } from './components/layout/Splitter.tsx'
 import { TopBar } from './components/layout/TopBar.tsx'
 import { TaskFlowPanel } from './components/dashboard/TaskFlowPanel.tsx'
@@ -19,13 +18,11 @@ import { SituationBanner } from './components/layout/SituationBanner.tsx'
 import { WindowShell } from './components/layout/WindowShell.tsx'
 import { Console } from './components/layout/Console.tsx'
 import { QuickSwitchBar } from './components/layout/QuickSwitchBar.tsx'
-import { MapWindow } from './components/MapWindow.tsx'
 import { PanelWindow } from './components/PanelWindow.tsx'
 import { PanelBoundary } from './components/shared/PanelBoundary.tsx'
 import { AuxiliaryWindowBoundary } from './components/shared/AuxiliaryWindowBoundary.tsx'
 import { CommandPalette } from './components/shared/CommandPalette.tsx'
 import { LichClosePrompt } from './components/shared/LichClosePrompt.tsx'
-import { useMapDock } from './lib/mapDock.ts'
 import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
 import { subscribePresentationIntents } from './lib/presentationIntents.ts'
 import { useAiWorkerHost } from './lib/aiWorkerHost.ts'
@@ -43,7 +40,7 @@ import {
   CONSOLE_H,
   TOPBAR_H,
 } from './lib/columns.ts'
-import { windowView, type WindowView } from './lib/windowView.ts'
+import { windowView } from './lib/windowView.ts'
 import { useAppStore } from './store/useAppStore.ts'
 import { installKeybindings, runMacroCommands } from './lib/keybindings.ts'
 import { requestGameAction } from './lib/gameActions.ts'
@@ -60,45 +57,19 @@ import { LazySurface } from './components/shared/LazySurface.tsx'
 
 const SetupWizard = lazy(() => import('./components/first-run/SetupWizard.tsx').then((module) => ({ default: module.SetupWizard })))
 
-/**
- * Is the standalone map window reachable at all?
+/*
+ * The map window is gone.
  *
- * Off, on the way to being deleted in D6. The layout the app is moving to
- * (`docs/mockups/dr-companion-isometric-mvp.html`) has one window with a
- * board slot in it, and a second top-level window showing a second map is
- * the thing that mockup exists to replace.
+ * D3 put `?view=map` behind `MAP_WINDOW_ENABLED = false`; D6 removes the
+ * constant, the branch, `MapWindow.tsx` and the `'map'` case in `windowView`
+ * together. Dan, 9 Sep 2026 (`docs/NO-3D.md`): "The map is gone. It is not
+ * coming back, and cancelling 3D did not revive it. The room-graph data is
+ * retained for one reason: so Godot can consume it."
  *
- * A flag rather than a straight deletion because this is one increment of
- * several: D4 rearranges what the main window shows, and turning the old
- * route off first means that if the new layout is wrong, the difference
- * between "the new layout is wrong" and "the map window is gone" is one
- * constant rather than a revert. D6 removes the constant, the branch and
- * `MapWindow.tsx` together, once D5's measurements have survived a real
- * play session.
- *
- * Worth recording while turning it off: nothing in `src/` opens this route.
- * `MapPanel`'s pop-out button calls `openPanelWindow('map', 'Map')`, which
- * is the generic panel window (`?view=panel&id=map`) and is untouched by
- * this flag. The only way to reach the branch below was to type the query
- * string, so the flag removes an entry point that had already lost its door.
+ * So there is no local `view()` wrapper any more - `windowView()` is the whole
+ * answer, and a wrapper whose only job was to hide one branch from it would be
+ * a second source of truth about which windows exist.
  */
-const MAP_WINDOW_ENABLED = false
-
-/**
- * Which window this is, with the map flag applied.
- *
- * The parsing itself is `windowView` in `src/lib/windowView.ts`. It moved
- * there because a *panel* also has to ask which document it is in - see that
- * module's header for the map-panel case that found it. What stays here is
- * the flag: `MAP_WINDOW_ENABLED` gates this branch and nothing else, so with
- * it off a `?view=map` document falls through to the app view exactly as
- * before, rather than the shared parser pretending the route does not exist.
- */
-function view(): WindowView {
-  const v = windowView()
-  if (v.kind === 'map' && !MAP_WINDOW_ENABLED) return { kind: 'app' }
-  return v
-}
 
 /*
  * The three widths of the approved frame's workspace row.
@@ -131,11 +102,14 @@ const BOARD_KEY = 'drc.board-slot-width.v1'
  * moved to the console row's own right cell, so the old name would describe
  * neither the slot nor its contents. */
 const RIGHT_RAIL_KEY = 'drc.right-rail-width.v1'
-/** How the board slot divides between the map above and the battle picture
- * below. `.v4` because the slot changed: v3 measured the map against the
- * game transcript, which now lives in the console row instead. */
-const MAP_HEIGHT_KEY = 'drc.map-height.v4'
-const LEGACY_MAP_HEIGHT_KEY = 'drc.map-height.v1'
+/*
+ * `drc.map-height.v4` and `drc.map-height.v1` used to be read here: how the
+ * board slot divided between the map above and the battle picture below.
+ * Nothing divides it now - the map is gone and the board slot is the battle
+ * picture - so both keys are unread rather than reinterpreted. Reading a
+ * stored map height as anything else is the "old data under a new meaning"
+ * trap; `stripRetiredKeys` in `src/lib/layout.ts` deletes them instead.
+ */
 
 /**
  * Stored as a share of the window (0 to 1), not a pixel count.
@@ -179,38 +153,20 @@ const SPLIT_W = 8
 const MIN_PX = 80
 
 /**
- * The floor GameChatColumn keeps when the map above it grows - not MIN_PX.
- *
- * Found live: at a shorter window, `Math.min(mapH, hostH - MIN_PX)` let the
- * map claim everything down to an 80px sliver for Game+Channels, which is
- * this app's whole reason for existing, not a column somebody parked out of
- * the way. Measured what that produced - a 98px-tall box, room for the
- * header row and nothing else, the command input and every channel tab
- * pushed out with no way to reach them - and it is exactly the "map
- * squeezing the game pane to nothing" bug this app has already been broken
- * by once (see columns.ts's ROOM_MIN, the same floor for the same reason on
- * the horizontal axis). 240px holds the header, a handful of game lines and
- * the input row without feeling cramped.
- */
-const MIN_BATTLE_H = 240
-/** The map is watched continuously; game/chat remains open below it. */
-const DEFAULT_MAP_SHARE = 0.58
-
-/**
  * Every window of this app, rendered inside one frame.
  *
  * The frame is not decoration: `WindowShell` owns the demo banner, and it is
  * mounted here, above the view switch, so that *every* window carries it -
- * main, map, and each popped-out panel. Issue #400 was the other shape, where
- * the banner sat inside the `v.kind === 'app'` return and the two auxiliary
- * returns above it showed an invented world with nothing saying so.
+ * main and each popped-out panel. Issue #400 was the other shape, where the
+ * banner sat inside the `v.kind === 'app'` return and the auxiliary return
+ * above it showed an invented world with nothing saying so.
  *
  * `AppViews` therefore has no `return` a person can reach without passing
  * through the shell, which is the property `tools/first-screen-test.mjs`
- * asserts. Adding a fourth window kind cannot reintroduce the bug.
+ * asserts. Adding a third window kind cannot reintroduce the bug.
  */
 export default function App() {
-  const v = view()
+  const v = windowView()
   return (
     <WindowShell aux={v.kind !== 'app'}>
       <AppViews />
@@ -225,12 +181,12 @@ export default function App() {
 }
 
 function AppViews() {
-  // Read once, up front - `view()` is a pure read of location.search, and
+  // Read once, up front - `windowView()` is a pure read of location.search, and
   // every hook below that needs to know which window this is (the
   // presentation-bridge publisher chief among them) has to have it before
   // any hook is called, since hooks can't be called conditionally on the
   // `v.kind` branches further down.
-  const v = view()
+  const v = windowView()
   const setupComplete = useAppStore((s) => s.setupComplete)
   const connectBridge = useAppStore((s) => s.connectBridge)
   const hostRef = useRef<HTMLElement | null>(null)
@@ -346,37 +302,6 @@ function AppViews() {
   )
 
   /**
-   * How tall the map gets at the top of its shared column, as a share of the
-   * window - player-set, the same way the other columns are.
-   *
-   * This used to be a fixed 120px, which is smaller than the map panel's own
-   * chrome: measured live, the header is 27px and the pin-palette tool rail
-   * is 78px, plus padding and gaps of about 28px more - 133px of always-there
-   * content before a single pixel of the actual chart can be drawn. At 120
-   * the chart got 0px and rendered nothing, silently: no error, no "too
-   * short" notice, just an empty box, on an entirely ordinary window size.
-   * Floored at 300 instead, so the worst case is a small but real map rather
-   * than an invisible one - and `mapCanShareHeight` below (which gates the
-   * "map hidden while the window is this short" message on this same
-   * constant) now actually fires before the chart disappears, instead of
-   * after.
-   */
-  const MIN_MAP_H = 300
-  const [mapHShare, setMapHShare] = useState<number>(() => {
-    const shared = Number(localStorage.getItem(MAP_HEIGHT_KEY))
-    if (Number.isFinite(shared) && shared > 0 && shared < 1) return shared
-    const legacy = Number(localStorage.getItem(LEGACY_MAP_HEIGHT_KEY))
-    // Keep a real v1 customization. Only migrate the old shipped 480px
-    // default, which is far too shallow on tall and ultrawide displays.
-    if (Number.isFinite(legacy) && legacy >= MIN_MAP_H && legacy !== 480) {
-      return sizeShareForPixels(legacy, window.innerHeight)
-    }
-    return DEFAULT_MAP_SHARE
-  })
-
-  const dock = useMapDock()
-
-  /**
    * How wide `main` is right now.
    */
   const [hostW, setHostW] = useState(0)
@@ -399,11 +324,9 @@ function AppViews() {
   // Re-resolving them against the measured host on every render means a
   // running window keeps the player's proportions while it is resized.
   const widthReference = hostW || window.innerWidth
-  const heightReference = hostH || window.innerHeight
   const leftRailW = pixelsForSizeShare(leftRailShare, widthReference, MIN_PX)
   const boardW = pixelsForSizeShare(boardShare, widthReference, MIN_PX)
   const rightRailW = pixelsForSizeShare(rightRailShare, widthReference, MIN_PX)
-  const mapH = pixelsForSizeShare(mapHShare, heightReference, MIN_MAP_H)
 
   const setLeftRailW = (px: number) => {
     const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
@@ -420,12 +343,6 @@ function AppViews() {
     setRightRailShare(share)
     writeShare(RIGHT_RAIL_KEY, share)
   }
-  const setMapH = (px: number) => {
-    const share = sizeShareForPixels(Math.max(MIN_MAP_H, Math.round(px)), heightReference)
-    setMapHShare(share)
-    writeShare(MAP_HEIGHT_KEY, share)
-  }
-
   const character = useAppStore((s) => s.character)
   const battleActive = character?.situation.includes('in_combat') ?? false
   const leftRailWantVisible = leftRailW
@@ -434,11 +351,6 @@ function AppViews() {
    * display-time request only: the stored widths are untouched and return
    * the instant combat ends. */
   const boardWantVisible = combatBattleWant(boardW, hostW, battleActive)
-  // When both minimum panes physically cannot fit, preserve the primary game
-  // surface and temporarily collapse the supplementary map. This is a view
-  // adaptation only: mapH is not rewritten and returns with a taller window.
-  const mapCanShareHeight =
-    hostH <= 0 || hostH >= MIN_MAP_H + MIN_BATTLE_H + SPLIT_W
 
   /*
    * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "room", "map"
@@ -569,17 +481,6 @@ function AppViews() {
    */
   const railStyle = (px: number) => ({ width: Math.round(px) })
 
-  if (v.kind === 'map') {
-    return (
-      <AuxiliaryWindowBoundary
-        label="Map window"
-        onError={(error) => useAppStore.getState().addLog(`Map window crashed: ${error.message}`, 'error')}
-      >
-        <StorageWarning />
-        <MapWindow />
-      </AuxiliaryWindowBoundary>
-    )
-  }
   if (v.kind === 'panel') {
     const label = `${v.id} panel window`
     return (
@@ -599,8 +500,8 @@ function AppViews() {
       <StorageWarning />
       {setupComplete && <SituationBanner />}
       {/* The demo banner is not here. It is in `WindowShell`, above the view
-          switch, so that the map window and the popped-out panels carry it
-          too - see WindowShell.tsx and issue #400. */}
+          switch, so that the popped-out panel windows carry it too - see
+          WindowShell.tsx and issue #400. */}
       {/* Runs regardless of what is on screen - see GameSignals.tsx's own
           header on why this cannot live inside a panel that might not
           mount. */}
@@ -673,42 +574,13 @@ function AppViews() {
 
             {/*
               The board slot. D0 chose a separate Godot window for 1.0, so
-              until that window is up this holds the surfaces the board is
-              made of: the zone map, and the battle picture under it. The
-              divider between them is the same stored share it always was.
+              until that window is up this holds the battle picture and
+              nothing else. The zone map used to sit above it behind a
+              draggable divider; the map is gone (`docs/NO-3D.md`) and Godot
+              will own world and route presentation, so the slot is one
+              surface again rather than a split with one half missing.
             */}
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Board">
-              {dock.docked && mapCanShareHeight && (
-                <>
-                  <div
-                    className="shrink-0 overflow-hidden"
-                    style={{
-                      height:
-                        hostH > 0
-                          ? Math.max(0, Math.min(mapH, hostH - MIN_BATTLE_H - SPLIT_W))
-                          : mapH,
-                    }}
-                  >
-                    <PanelBoundary label="Map">
-                      <MapColumn />
-                    </PanelBoundary>
-                  </div>
-                  <Splitter
-                    label="Resize the map and the battle picture"
-                    orientation="horizontal"
-                    value={hostH > 0 ? mapH / hostH : DEFAULT_MAP_SHARE}
-                    onChange={(share) => setMapH(hostH * share)}
-                    min={MIN_MAP_H / Math.max(hostH, 1)}
-                    max={hostH > 0 ? 1 - (MIN_BATTLE_H + SPLIT_W) / hostH : 0.8}
-                    defaultValue={DEFAULT_MAP_SHARE}
-                  />
-                </>
-              )}
-              {dock.docked && !mapCanShareHeight && (
-                <div className="flex h-8 shrink-0 items-center border-b border-border bg-surface-raised px-2 text-xs text-ink-faint" role="status">
-                  Map hidden while the window is this short. Enlarge it to restore your saved map height.
-                </div>
-              )}
               <div className="min-h-0 flex-1 overflow-hidden">
                 <PanelBoundary label="Battle">
                   <BattleColumn />

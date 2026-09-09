@@ -75,14 +75,19 @@ check('an auction house is not flattened into a generic shop', landmarkFor(room(
 check('a warehouse gets a storage landmark', landmarkFor(room('Shipping Warehouse'))?.kind === 'storage')
 check('one room never receives an overlapping pile of automatic pins', landmarksFor(room('Temple Grounds, Entry Gates', ['temple', 'gate'])).length === 1)
 
-const canvas = readFileSync('src/components/shared/MapCanvas.tsx', 'utf8')
-const hoverCard = readFileSync('src/components/shared/RoomHoverCard.tsx', 'utf8')
-check('automatic landmarks render below saved pins', canvas.indexOf('Automatic world landmarks') < canvas.indexOf('A saved place'))
-check('automatic landmarks do not add a second persistent pin bar', !canvas.includes('Landmarks · hover for meaning'))
-check('every room tooltip offers an Elanthipedia lookup', hoverCard.includes('Look up this place on Elanthipedia') && hoverCard.includes('Special:Search'))
-check('room tooltips remain open while crossing into their controls', canvas.includes('closeHoverSoon') && canvas.includes('onMouseEnter={keepHoverOpen}') && hoverCard.includes('onMouseEnter={onMouseEnter}'))
-check('room tooltips grow inward from map edges', hoverCard.includes('containerWidth / 2') && hoverCard.includes('containerHeight / 2') && hoverCard.includes('max-h-[calc(100%-1rem)]'))
-check('room tooltips explain gateway and movement context', hoverCard.includes('Next map') && hoverCard.includes('Leaves by') && hoverCard.includes('Ways out'))
+/*
+ * Six source checks stood here, against MapCanvas.tsx and RoomHoverCard.tsx:
+ * how automatic landmarks layered under saved pins, and what a room tooltip
+ * said. Both files are gone with the map (docs/NO-3D.md).
+ *
+ * They were deleted rather than pointed somewhere else. What they asserted
+ * was about drawing, and nothing in this app draws a map now. The landmark
+ * *vocabulary* they rested on is what survives, because
+ * tools/build-world-content.mjs and tools/build-scene-registry.mjs read it
+ * to build what Godot consumes - and that is exactly what every check above
+ * this line tests. tools/world-content-test.mjs and
+ * tools/scene-editor-test.mjs check the consuming side.
+ */
 
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or

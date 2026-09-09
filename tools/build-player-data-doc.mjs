@@ -194,9 +194,6 @@ const DESCRIBES = {
   'drc.right-rail-width.v1': 'How wide the context side is, as a fraction of the window. Replaces `drc.experience-width.v2`; the experience strip moved to the console row and this rail holds alerts, actions and the AI worker.',
   'drc.layout.v1': 'Panel order and rectangles, one entry per UI mode: the real keys are `drc.layout.v1.<mode>`. Merged against the current defaults on read, so a panel added later still appears.',
   'drc.macros.v1': 'Which variation each macro slot runs.',
-  'drc.map-height.v1': 'Superseded by `drc.map-height.v4`. Read once, to migrate a genuine v1 customisation; never written.',
-  'drc.map-height.v4': 'How the board slot divides between the map above and the battle picture below, as a fraction of the window. `.v4` because v3 measured the map against the game transcript, which now lives in the console row.',
-  'drc.map.v1': 'Where the map is docked, how wide, and how far it is zoomed. A property of this window rather than of a character, so it does not follow a profile.',
   'drc.middle-panels-hidden.v1': 'Which boxes in the dashboard middle column the player has switched off, on top of whichever set the mode already shows.',
   'drc.off-highlight-classes.v1': 'Highlight classes the player has switched off, kept out of the shared highlight file so a shared set is not edited by toggling one.',
   'drc.pins.v1': 'Map pins the player placed, per profile.',
@@ -204,7 +201,6 @@ const DESCRIBES = {
   'drc.portrait.v1': 'The portrait chosen for each character.',
   'drc.quickswitch.v3': 'What is pinned to the Quick Switch bar and in what order: tasks (with their language), commands and raw scripts.',
   'drc.script-icons.v1': 'Icon overrides for scripts, one entry per script rather than one per profile.',
-  'drc.watched-rooms.v1': 'Rooms the player is watching, per profile.',
   'drc.armor-loadouts.v1': "A character's corrections to the derived armour coverage, which the live inventory feed cannot supply.",
   'drc.ai-provider.v1': 'The address of a model server on this machine, if the player has chosen to run one. Absent on every install that has not. One URL and nothing else: no key, no token, no game text - the provider refuses any address that is not 127.0.0.1 or localhost, so this cannot name somewhere off the machine.',
   'drc.scene.v1': 'Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. Bounded: 1,048,576 characters in total, 4,096 for any one room and 64 placed primitives in one cell, checked on every write and on every import (`SCENE_LIMITS` in `src/lib/sceneOverrides.ts`). An import past the total is refused room by room, naming each - unbounded, this one key could take the whole origin to its quota and every other key on this list would start failing to save.',
@@ -357,6 +353,25 @@ ${fileRows.join('\n')}
 | Key | What it holds | Owner |
 |---|---|---|
 ${rows.join('\n')}
+
+### Three keys this app used to write, and now deletes
+
+\`drc.map.v1\`, \`drc.map-height.v4\` and \`drc.map-height.v1\` held where the map
+was docked, how far it was zoomed, and how the board slot divided between the
+map and the battle picture. The map is gone (\`docs/NO-3D.md\`) and nothing
+reads them.
+
+They are not merely unread. \`stripRetiredKeys()\` in \`src/lib/layout.ts\`
+removes them on the next start, and \`src/lib/layout.ts\` also drops \`map\` out
+of a saved layout's panels, placements and dock. Two reasons, and the second
+is the one that matters to you: a number left in storage under a name whose
+meaning has gone is a number the next version can read wrongly, and this page
+should be able to say that what it lists is what is actually there.
+
+This section is written by hand in \`tools/build-player-data-doc.mjs\`, not
+derived, because a key nothing writes cannot be found by scanning for writes.
+Where it and the table above disagree, the table is right: it is generated
+from the source on every build and this paragraph is not.
 
 ## When a write fails
 

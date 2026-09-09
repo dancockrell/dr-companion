@@ -200,15 +200,16 @@ console.log('\n-- every zone is reachable through the map UI --')
     console.log(`INFO   ${id.padEnd(6)}${UNREACHABLE[id]}`)
   }
 
+  /*
+   * `ZONE_INDEX` outlives the map. The two map surfaces that browsed it are
+   * gone (docs/NO-3D.md), and so is `useZoneBrowsing`; `PlaceSearch` is not,
+   * because `ScenePanel` renders it. So what remains checkable, and worth
+   * checking, is that the shipped index is what feeds the place search a
+   * player can still reach.
+   */
   const mapIndex = readFileSync('src/lib/mapZoneIndex.ts', 'utf8')
   const search = readFileSync('src/components/shared/PlaceSearch.tsx', 'utf8')
-  const panel = readFileSync('src/components/shared/MapPanel.tsx', 'utf8')
-  const window = readFileSync('src/components/MapWindow.tsx', 'utf8')
-  const browsing = readFileSync('src/lib/useZoneBrowsing.ts', 'utf8')
   ok('all-zone browser is populated from the shipped index', mapIndex.includes('export const ZONE_INDEX') && search.includes('ZONE_INDEX.map'))
-  ok('docked and popped-out maps expose all-zone browsing', panel.includes('<PlaceSearch here={zone.zone} onPick={goToPlace} onZone={pushZone} />') && window.includes('<PlaceSearch here={zone?.zone} onPick={goToPlace} onZone={pushZone} />'))
-  ok('zone transitions load before changing the visible stack', browsing.indexOf("beginZoneLoad(id, 'browse'") < browsing.indexOf('setZoneStack((st) => [...st, id])'))
-  ok('zone transitions expose failure and retry state', browsing.includes('zoneLoadError') && browsing.includes('retryZone'))
 }
 
 console.log('\n-- the leaving exits that identified them are kept --')

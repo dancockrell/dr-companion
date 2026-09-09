@@ -933,7 +933,25 @@ ok(
 )
 ok(
   'and gets a named state, not a blank window',
-  /No panel called \{id\}/.test(panelWindow),
+  /No panel called/.test(panelWindow),
+  'source check: src/components/PanelWindow.tsx'
+)
+/*
+ * #518: the named state was still a dead end - one sentence on an empty
+ * surface, no control, nothing saying which ids are valid. Two properties now,
+ * and the second is the one that matters: the window offers the app, and the
+ * id list it prints is read out of `PANEL_CONTENT` itself rather than typed
+ * in, so it cannot name a panel this window could not render or omit one it
+ * could.
+ */
+ok(
+  'and offers a way back to the app',
+  /Open the app in this window/.test(panelWindow) && /window\.location\.search = ''/.test(panelWindow),
+  'source check: src/components/PanelWindow.tsx'
+)
+ok(
+  'and names the valid ids from the registry, not from a second copy of it',
+  /Object\.keys\(PANEL_CONTENT\)/.test(panelWindow),
   'source check: src/components/PanelWindow.tsx'
 )
 const panelIds = [...readFileSync(join(root, 'src', 'lib', 'layout.ts'), 'utf8').matchAll(/export type PanelId =([^\n]*(?:\n\s*\|[^\n]*)*)/g)]
@@ -944,16 +962,37 @@ ok(
   panelIds.length >= 5,
   `${panelIds.length} ids`
 )
-if (panelIds.includes('map')) {
-  notChecked(
-    'the removed map panel is not reachable',
-    "docs/NO-3D.md says the map is gone, but `map` is still a PanelId and still renders, " +
-      'so there is nothing gone to check yet - and asserting either way would be a claim about a decision rather than about the code',
-    "grep -c \"kind === 'map'\" src/App.tsx   # Gate 1 wants 0; the guard above names it gone the moment it is"
-  )
-} else {
-  ok('the removed map panel is not reachable', true, 'map is no longer a PanelId, so PanelWindow names it gone')
-}
+/*
+ * The map is gone, and this used to say NOT CHECKED because it was not.
+ *
+ * `map` was still a `PanelId` and still rendered, so there was nothing absent
+ * to assert. It is absent now, so this is four assertions rather than a skip -
+ * and deliberately four, because "not in the PanelId union" alone would pass
+ * against a build that had merely renamed the union while `?view=map` still
+ * opened a window and `PANEL_CONTENT.map` still drew one. Each names a
+ * different route a player could reach the map by.
+ */
+ok(
+  'the map is not a panel id',
+  !panelIds.includes('map'),
+  `panel ids: ${panelIds.join(', ')}`
+)
+const appSource = readFileSync(join(root, 'src', 'App.tsx'), 'utf8')
+ok(
+  'and there is no map window branch (Gate 1)',
+  !/kind === 'map'/.test(appSource),
+  "grep -c \"kind === 'map'\" src/App.tsx   # Gate 1 wants 0"
+)
+ok(
+  'and `?view=map` no longer parses as a window of its own',
+  !/kind: 'map'/.test(readFileSync(join(root, 'src', 'lib', 'windowView.ts'), 'utf8')),
+  'source check: src/lib/windowView.ts'
+)
+ok(
+  'and nothing is registered to render it',
+  !/^\s*map:/m.test(readFileSync(join(root, 'src', 'components', 'dashboard', 'panels.tsx'), 'utf8')),
+  'source check: src/components/dashboard/panels.tsx (PANEL_TITLES and PANEL_CONTENT)'
+)
 
 ok(
   'no panel treats the missing viewer as an error',

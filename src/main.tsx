@@ -8,10 +8,18 @@ import { loadNpcDefaultManifest, loadBulkNpcManifest } from './lib/npcDefaults.t
 import { loadPortraitManifest } from './lib/portraits.ts'
 import { installBridgePauseRelay } from './lib/bridgePauseRelay.ts'
 import { installLinkReplay } from './lib/linkReplay.ts'
+import { stripRetiredKeys } from './lib/layout.ts'
 import App from './App.tsx'
 
 // Before the first render, so a scaled interface does not visibly reflow.
 initTypeScale()
+
+// Preferences whose reader has been deleted: the map's dock/zoom and the board
+// slot's map-versus-battle divider. Removed rather than left behind, so the
+// next person to want one of those key names inherits nothing, and so a stored
+// number cannot be read later under a new meaning. `loadLayout` cleans the
+// saved *layout*; these are keys of their own. See layout.ts.
+stripRetiredKeys()
 
 // Not awaited. Cards draw silhouettes until this lands, and until the art pack
 // is installed it never lands, which is the ordinary case rather than a fault.

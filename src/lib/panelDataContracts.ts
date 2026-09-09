@@ -73,12 +73,6 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
     dataNeeded: ['mapZone', 'mapHere', 'src/data/world/<zone>.json (via loadWorldContent)', 'drc.scene.v1 (via sceneOverrides.ts)'],
     requiresLiveCharacter: false,
   },
-  map: {
-    purpose:
-      'Retired. The map is gone as a panel; this entry is kept only so Godot can read the room-graph data and take over world and route presentation there. Do not build new features on it. Cancelling 3D did not bring the map back (see docs/NO-3D.md): Godot is where world presentation is going, in 2D.',
-    dataNeeded: ['mapZone', 'mapHere', 'bridgeConnected', 'bridgeIntents', 'character.location.roomId'],
-    requiresLiveCharacter: false,
-  },
   vitals: {
     purpose: "The player's own health/stamina/mana/spirit and injuries - watched continuously, not looked up.",
     dataNeeded: ['character.vitals', 'character.injuries'],

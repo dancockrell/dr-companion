@@ -247,7 +247,12 @@ console.log('\n-- Every modal uses the shared accessible focus contract --')
       // entry here reads as the suite being broken rather than as a file
       // being gone.
       'layout/SettingsSheet.tsx', 'layout/ReportDialog.tsx',
-      'dashboard/ScriptIconPicker.tsx', 'shared/PinEditor.tsx', 'shared/PlayerMarkerEditor.tsx',
+      // `shared/PinEditor.tsx` and `shared/PlayerMarkerEditor.tsx` were here
+      // until the map was deleted (docs/NO-3D.md) and took both with it.
+      // Removed for the same reason the Genie entry above was: a stale path
+      // aborts the whole suite on `readFileSync`, so it reads as the suite
+      // being broken rather than as a file being gone.
+      'dashboard/ScriptIconPicker.tsx',
     ]
     for (const file of files) {
       const source = readFileSync(new URL(`../src/components/${file}`, import.meta.url), 'utf8')

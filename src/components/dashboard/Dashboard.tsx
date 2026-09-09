@@ -189,16 +189,14 @@ export function Dashboard() {
   // It also means the map is drawn exactly once. The previous build had it in
   // a plane and in the dock at the same time, which is a bug and looked like
   // one.
-  // `map` is held out of the dashboard because it has a column of its own -
-  // drawing it in both is the bug the comment above describes.
-  //
-  // In freeform there is no map column: App hands the whole window to this
-  // canvas. So the map has to come back in, or the one panel most people look
-  // at most is the one thing they cannot move.
+  // `game` is held out of the dashboard because it has a column of its own -
+  // drawing it in both is the bug the comment above describes. In freeform
+  // there is no such column: App hands the whole window to this canvas, so it
+  // has to come back in or it is the one thing nobody can move.
   const docked = layout.order.filter(
     (id) =>
       id !== 'vitals' &&
-      (layout.freeform || (id !== 'map' && id !== 'game')) &&
+      (layout.freeform || id !== 'game') &&
       !out.includes(id) &&
       !isHiddenViaSettings(id, hiddenMiddlePanels)
   )

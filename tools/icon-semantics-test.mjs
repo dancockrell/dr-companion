@@ -6,7 +6,6 @@ const taskFlow = read('src/components/dashboard/TaskFlowPanel.tsx')
 const scripts = read('src/components/shared/ScriptLibraryPanel.tsx')
 const profiles = read('src/components/layout/ProfilesPanel.tsx')
 const panel = read('src/components/shared/Panel.tsx')
-const map = read('src/components/shared/MapPanel.tsx')
 const links = read('src/components/shared/LinksPanel.tsx')
 const connection = read('src/components/game/GameConnectionBar.tsx')
 const consolePanel = read('src/components/layout/Console.tsx')
@@ -38,7 +37,12 @@ check(profiles.includes('<CopyPlus') && !profiles.includes('<Copy '), 'profile d
 check(profiles.includes("Copy this character's settings onto the one you are playing"), 'profile copy must retain its explanatory title')
 
 check(panel.includes('<AppWindow') && !panel.includes('<ExternalLink'), 'in-app panel windows must use AppWindow')
-check(map.includes('<AppWindow'), 'map window and generic panel window must share AppWindow')
+// `MapPanel.tsx` was checked here for using `<AppWindow` rather than an
+// external-link icon on its pop-out button. It is gone with the map
+// (docs/NO-3D.md), and no surviving panel carries a pop-out button of its
+// own - `Dashboard.tsx` owns the only one. Removed rather than repointed:
+// the assertion was about that button, and repointing it at a file that
+// does not have one would be a check that cannot fail.
 check(links.includes('<ExternalLink'), 'real outbound links must retain ExternalLink')
 check(panel.includes('aria-label="Open in its own window"'), 'panel window action must retain its accessible name')
 
