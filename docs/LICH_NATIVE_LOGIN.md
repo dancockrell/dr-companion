@@ -750,14 +750,49 @@ What shipped, and the parts worth knowing before building on it:
   `.`. So `cmdkey /list | findstr dr-companion.play.net` is the manual check,
   and `the_entry_is_in_windows_credential_manager` is the automated one, which
   asserts 0 → 1 → 0 through `cmdkey` rather than through the code under test.
-- The checkbox defaults to **off** (`REMEMBER_PASSWORD_DEFAULT` in
-  `src/lib/rememberPassword.ts`), and the sentence beside it says who else can
+- The checkbox defaults to **on** (`REMEMBER_SIGN_IN_DEFAULT` in
+  `src/lib/rememberSignIn.ts`), and the sentence beside it says who else can
   read the entry: *"Stored in Windows Credential Manager. Anyone signed in to
   this Windows account can use it."* Settings carries the Forget control.
 
-**Not storing the password is still the shipped default and the rest of the
-lane works without any of this** — it is a feature that is genuinely optional,
-not a stub.
+**The default changed on 9 September 2026, at Dan's instruction, and this
+paragraph exists so nobody changes it back on privacy grounds without knowing
+that.** He said it twice and unambiguously: *"it's on my computer so definitely
+store the password. 100%"*, and then, generalising past the password, *"remember
+everything about anything signed in. passwords account names, etc. you can put a
+check box, but default it to checked, it's on the desktop."*
+
+The reasoning is the product's, not a relaxation of the position in §5.1 and
+§5.2. This is a desktop application for one machine that its user owns; the
+threat the opt-in default guarded against is another *user of that machine*, and
+Windows Credential Manager is exactly the store that already handles that
+boundary. Nothing about how the secret is held changed: it is still Credential
+Manager or nowhere, still never a file this app writes, still unreadable from
+the webview because `load` returns a `Secret` and a `#[tauri::command]` cannot
+return one. What changed is one boolean and what the player is told about it.
+
+Three things travelled with the reversal, and they are the parts that make it
+safe to leave alone:
+
+- **One preference, one owner.** `src/lib/rememberSignIn.ts` (which was
+  `rememberPassword.ts`) now owns the account name, the game, the character, the
+  password and the choice itself, so a sign-in this app grows later inherits the
+  decision instead of inventing a second default. `REMEMBERED_FIELDS` is the
+  enumeration and the tests count against it.
+- **Unticking forgets now**, not at the next sign-in, and the Settings control
+  clears the credential entry and the remembered preferences in one act.
+- **The sentences changed with the code.** `docs/PRIVACY.md` and
+  `docs/PLAYER_DATA.md` are generated and were regenerated; the three components
+  that carried the opt-in promise now carry *"and kept in Windows Credential
+  Manager unless you untick the box"*, pinned identical across the three by
+  `tools/doc-claims-test.mjs` section K. That section also lists the previous
+  wording in its retired set, so it cannot come back \u2014 which is why the
+  previous wording is **not** quoted anywhere on this page: section K scans
+  documents and comments alike, and it is right to.
+
+**The rest of the lane still works without any of this** — it is a feature that
+is genuinely optional, not a stub, and a build with the box unticked signs in
+exactly as before.
 
 There is no third option. A password in a JSON settings file, obfuscated or
 not, is a plaintext password with a decoding step, and this design does not

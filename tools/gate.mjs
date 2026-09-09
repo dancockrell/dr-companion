@@ -50,7 +50,11 @@
  *     is asserted against `EXPECTED_STAGES` rather than against the list it
  *     came from. Both halves used to be derived from `STAGES`, so trimming the
  *     list to two printed `2 of 2 stages ran` and exited 0 — a denominator that
- *     shrinks with its numerator measures nothing.
+ *     shrinks with its numerator measures nothing. It moved 12 to 13 to 14 on
+ *     9 September 2026, with `break-ui-jargon` and `break-sign-in-experience`
+ *     arriving from two lanes within the hour, and moving it is the point: a
+ *     stage cannot be added without saying so here, and the rebase that brought
+ *     the two together could not quietly drop one.
  *   - A skip inside a stage reaches this summary. `run-tests.mjs` already
  *     refuses to say "all passed" over a suite that declined a rule, and exits
  *     0 doing it; this read only the exit status, so the honest sentence
@@ -297,6 +301,25 @@ const STAGES = [
     args: [resolve(root, 'tools', 'ui-jargon-break-check.mjs')],
   },
   {
+    // The sign-in experience's four sabotages: a state loses its screen,
+    // remembering defaults to off, a second path can store a secret, Enter
+    // stops submitting. It writes to `src/lib/` and `src/components/`, so it
+    // belongs here rather than in `tools/test-suites.json` for this list's
+    // stated reason - `run-tests.mjs` is run constantly and concurrently, and a
+    // harness that damages tracked source must not be one of several things
+    // running at once.
+    //
+    // The second case is the one that earns the stage. Remembering a password
+    // by default is a product decision Dan made on 9 September 2026, against
+    // the position the code had shipped with three days earlier, and a decision
+    // like that is exactly what a later session undoes while tidying. The
+    // default flipping back with nothing going red is the failure this catches.
+    name: 'break-sign-in-experience',
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'sign-in-experience-break-check.mjs')],
+  },
+  {
     // The same crate in the configuration that ships (#488). `rust-tests` above
     // is a debug build, so `cfg!(debug_assertions)` is true throughout it and
     // the release half of #464's two knob tests never executes: removing the
@@ -364,7 +387,7 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 13
+const EXPECTED_STAGES = 14
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */

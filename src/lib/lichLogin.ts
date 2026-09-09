@@ -24,12 +24,14 @@
  * afterwards; it is passed as a command argument and never comes back in a
  * result, an error or a log line.
  *
- * **It is stored if, and only if, the player ticks the box.** This paragraph
- * used to say remembering it was "not built"; N8 built it the following day
- * (#452), and a header asserting a password is never stored, in the module that
- * hands one to the store, is the kind of stale claim that gets believed. Ticking
- * the box passes it to Windows Credential Manager through `credential_store`.
- * `src/lib/rememberPassword.ts` is the whole of that surface and
+ * **It is stored unless the player unticks the box, which is ticked by
+ * default.** This paragraph has said three different things in four days: that
+ * remembering was "not built" (it was, the next day, #452), that it happened
+ * "if and only if the player ticks the box" (true while the box was opt-in),
+ * and now this. Dan reversed the default on 9 September 2026 for a desktop app
+ * on his own machine. The storing itself is unchanged: Windows Credential
+ * Manager through `credential_store`, never a file this app writes.
+ * `src/lib/rememberSignIn.ts` is the whole of that surface and
  * `docs/PRIVACY.md` is what the player is told.
  *
  * # The error contract, and why it is a token
@@ -62,7 +64,6 @@
  * the backend never sends.
  */
 import { invokeTauri, isTauri } from './tauri.ts'
-import { loadPrefs, savePrefs } from './persistence.ts'
 import { fakeListCharacters, fakeLaunch, dryRunRequested } from './lichLoginFake.ts'
 import { notifyLichStarted } from './lichStarted.ts'
 // Generated from `login_error.rs`'s `REFUSAL_SENTENCES` by `cargo test`, and
@@ -433,30 +434,18 @@ export async function launchCharacter(args: {
 }
 
 /**
- * Remember what is safe to remember, and nothing else.
+ * Where the remembering went.
  *
- * There is deliberately no `password` parameter here. A function that *could*
- * take one is a function somebody adds a caller to; the shape of this is the
- * guarantee, and `tools/sign-in-test.mjs` drives a whole sign-in and then reads
- * the stored preferences back to prove it.
+ * `rememberSignIn` and `rememberedSignIn` used to live here, beside the two
+ * commands, and `rememberPassword.ts` owned the password half separately. That
+ * was two owners for one question - *what do we remember about a sign-in* - and
+ * on 9 September 2026 the answer grew to cover everything a sign-in produces,
+ * so the two were merged rather than kept in step.
+ *
+ * `src/lib/rememberSignIn.ts` is the single owner now: the default, the
+ * preference, the credential surface and the one resolver every sign-in screen
+ * asks. This module is the protocol half again, which is all it was ever meant
+ * to be. Nothing is re-exported from here, deliberately - a re-export is a
+ * second name for one thing, and the next person to add a sign-in would find
+ * two places that look like the place.
  */
-export function rememberSignIn(fields: {
-  account?: string
-  gameCode?: string
-  character?: string
-}): void {
-  const next: Parameters<typeof savePrefs>[0] = {}
-  if (fields.account !== undefined) next.lichAccount = fields.account
-  if (fields.gameCode !== undefined) next.lichGameCode = fields.gameCode
-  if (fields.character !== undefined) next.lichCharacter = fields.character
-  savePrefs(next)
-}
-
-export function rememberedSignIn(): { account: string; gameCode: string; character: string } {
-  const prefs = loadPrefs()
-  return {
-    account: prefs.lichAccount ?? '',
-    gameCode: prefs.lichGameCode ?? DEFAULT_GAME_CODE,
-    character: prefs.lichCharacter ?? '',
-  }
-}

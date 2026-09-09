@@ -242,8 +242,8 @@ export function LichLauncher() {
             * now, so there is one sentence. */}
           <p className="text-xs leading-snug text-ink-faint">
             Your password is typed into this app, used once to sign in to
-            Simutronics, held only in memory, and not stored unless you later
-            ask for it.
+            Simutronics, and kept in Windows Credential Manager unless you
+            untick the box.
           </p>
 
           {/* Always offered, not only after a failed launch. A character

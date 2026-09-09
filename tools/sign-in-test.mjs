@@ -218,8 +218,14 @@ globalThis.window = {
   setTimeout: globalThis.setTimeout.bind(globalThis),
 }
 
-const { listCharacters, launchCharacter, rememberSignIn, classifyLoginError, LOGIN_ERROR_KINDS, LOGIN_ERROR_SENTENCES, EACCESS_VARIANT_KINDS, RUST_ERROR_CODES, CODE_KINDS, usingFakeBackend } =
+const { listCharacters, launchCharacter, classifyLoginError, LOGIN_ERROR_KINDS, LOGIN_ERROR_SENTENCES, EACCESS_VARIANT_KINDS, RUST_ERROR_CODES, CODE_KINDS, usingFakeBackend } =
   await import('../src/lib/lichLogin.ts')
+// `rememberSignIn` moved out of `lichLogin.ts` on 9 September 2026. It lives
+// with the rest of what a sign-in remembers, in one module with one default,
+// because the password half and the preferences half were two owners of one
+// question. Imported from there rather than re-exported from here: a re-export
+// is a second name for one thing.
+const { rememberSignIn } = await import('../src/lib/rememberSignIn.ts')
 const { loadPrefs, PREFS_STORAGE_KEY } = await import('../src/lib/persistence.ts')
 // Generated from the Rust types by `cargo test`. Read, never written here.
 const { LOGIN_ERROR_FIXTURES, REFUSAL_SENTENCES } = await import(
@@ -570,14 +576,28 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   ok('an account with no characters returns an empty list, not an error', empty.characters.length === 0)
 
   const signIn = read('src/components/shared/SignIn.tsx')
+  // Comments stripped first. The header of this component names a character in
+  // prose - "one press signs Phemius in" - and a scan that cannot tell a
+  // rendered string from an explanation would report a hardcoded list where
+  // there is none. The property is about what reaches the screen.
+  const rendered = signIn.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
   ok(
     'the picker renders the returned list rather than a hardcoded one',
-    /characters\.map\(/.test(signIn) && !/Phemius/.test(signIn),
-    'no fixture name in the component'
+    /\[\.\.\.characters\][\s\S]{0,200}\.map\(/.test(rendered) && !/Phemius/.test(rendered),
+    'no fixture name rendered by the component'
+  )
+  ok(
+    'control: the comment-stripper leaves the code it is scanning',
+    rendered.includes('characters') && rendered.length > signIn.length / 3,
+    `${rendered.length} of ${signIn.length} bytes kept`
   )
   ok(
     'an empty list renders a sentence, not an empty row of buttons',
-    /characters\.length > 0 \?/.test(signIn) && /has no /.test(signIn)
+    // The list is gated on there being one, and the sentence for the empty case
+    // is a screen of its own in the enumeration rather than an inline string.
+    /characters\.length > 0 &&/.test(rendered) &&
+      /'no_characters'/.test(rendered) &&
+      /No characters on this account/.test(read('src/lib/signInStates.ts'))
   )
   ok(
     'and offers a way back rather than a dead end',
@@ -596,7 +616,12 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
     // tools/doc-claims-test.mjs pins in three files at once. Checked here as
     // the same string rather than a paraphrase, so this suite cannot pass
     // while the four copies drift.
-    /held only in memory, and not stored unless you later\s+ask for it/.test(signIn)
+    //
+    // It changed on 9 September 2026 with the default it describes: the
+    // password is remembered now unless the box is unticked, and the sentence
+    // that stood here ("not stored unless you later ask for it") is in
+    // doc-claims section K's retired list so it cannot come back.
+    /and kept in Windows Credential Manager\s+unless\s+you\s+untick\s+the\s+box/.test(signIn)
   )
   // The retired claims, in both directions and across every document and
   // component, are tools/doc-claims-test.mjs section K's job - it owns the
@@ -612,12 +637,18 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   // asserting the box is there and starts off, which the absent version could
   // not distinguish from a form that quietly stored one.
   ok(
-    'the "remember my password" box is mounted from the shared component',
-    /<RememberPasswordCheckbox/.test(signIn) && /from '\.\/RememberPassword\.tsx'/.test(signIn)
+    'the "remember my sign-in" box is mounted from the shared component',
+    /<RememberSignInCheckbox/.test(signIn) && /from '\.\/RememberSignIn\.tsx'/.test(signIn)
   )
+  // The property, not the value it had yesterday. This check used to assert the
+  // box started off; Dan reversed the default on 9 September 2026, and the
+  // property underneath - *the form never invents its own answer* - is served
+  // by requiring it to seed from the constant and from the stored choice, in
+  // either direction. `tools/credential-store-test.mjs` owns which way the
+  // constant points.
   ok(
     'it starts from the shared default rather than a literal',
-    /useState\(REMEMBER_PASSWORD_DEFAULT\)/.test(signIn) &&
+    /useState\(initial\.remember \?\? REMEMBER_SIGN_IN_DEFAULT\)/.test(signIn) &&
       !/useState\(true\)/.test(signIn) &&
       !/defaultChecked/.test(signIn)
   )
@@ -625,30 +656,33 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   // accepted the password would remember typing mistakes, so the store call
   // must sit after `listCharacters` resolves and inside the success path.
   {
-    // Inside the function body, not the whole file: `rememberIfAsked` is also
+    // Inside the function body, not the whole file: `rememberAfterSignIn` is also
     // an import at the top, and the first version of this check compared that
     // import's offset and reported a real ordering as wrong.
     const body = signIn.slice(signIn.indexOf('const signIn = async'))
     const proved = body.indexOf('const result = await listCharacters')
-    const store = body.indexOf('rememberIfAsked')
+    const store = body.indexOf('rememberAfterSignIn')
     // Positive control first, so `store > proved` cannot pass on two -1s.
     ok('the call and the proof were both found in signIn()', store > 0 && proved > 0,
-      `listCharacters at ${proved}, rememberIfAsked at ${store}`)
+      `listCharacters at ${proved}, rememberAfterSignIn at ${store}`)
     ok(
       'the password is stored only after the sign-in succeeded',
       proved !== -1 && store > proved,
-      `listCharacters at ${proved}, rememberIfAsked at ${store}`
+      `listCharacters at ${proved}, rememberAfterSignIn at ${store}`
     )
   }
   // -- N9 (#459): the form uses a saved password rather than asking again --
   ok(
     'the form asks whether a password is saved for this account',
-    /hasStoredPassword\(/.test(signIn) && /fakeCredentialHas\(/.test(signIn),
+    /tauriCredentials\.has\(/.test(signIn) && /fakeCredentialHas\(/.test(signIn),
     'both the real backend and the stand-in'
   )
   ok(
     'a saved password means no password box, and a way past it',
-    /usingStoredPassword \?/.test(signIn) && /Use a different password/.test(signIn)
+    // The escape hatch is one of the screen's enumerated actions now rather
+    // than a hand-written button, so the label is checked where it is defined.
+    /usingStoredPassword \?/.test(signIn) &&
+      /Use a different password/.test(read('src/lib/signInStates.ts'))
   )
   ok(
     'and the Sign in button stops requiring one to be typed',
@@ -668,7 +702,13 @@ ok('the dry-run stand-in is what this run is driving', usingFakeBackend() === tr
   )
   ok(
     'and the screen does not claim it is launched until it has attached',
-    /setStage\('starting'\)/.test(signIn) && /await attachGame[\s\S]{0,120}setStage\('launched'\)/.test(signIn)
+    // The stage names changed with the screen-per-state rewrite: `progress`
+    // covers contacting, starting and attaching, and the step is what says
+    // which. The property is the same one - nothing claims to be attached
+    // until `attachGame` has resolved.
+    /setStep\('starting_lich'\)/.test(signIn) &&
+      /setStep\('attaching'\)/.test(signIn) &&
+      /await attachGame[\s\S]{0,120}setStage\('attached'\)/.test(signIn)
   )
   {
     const link = read('src/lib/gameLink.ts')

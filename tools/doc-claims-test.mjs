@@ -550,8 +550,16 @@ const pkg = JSON.parse(read('package.json'))
 //   3. and the sentence's load-bearing half, "not stored", is checked against
 //      the persistence layer rather than taken on trust.
 {
-  /** The sentence docs/PRIVACY.md, LichLauncher.tsx and SettingsSheet.tsx share. */
-  const TRUE_CLAIM = 'held only in memory, and not stored unless you later ask for it'
+  /**
+   * The sentence docs/PRIVACY.md, LichLauncher.tsx and SettingsSheet.tsx share.
+   *
+   * It changed on 9 September 2026 with the default it describes. The previous
+   * one - "held only in memory, and not stored unless you later ask for it" -
+   * is in {@link RETIRED} below rather than merely deleted, because a sentence
+   * that was true for three days is exactly the sentence somebody restores
+   * while tidying, and it would then be a promise the code does not keep.
+   */
+  const TRUE_CLAIM = 'and kept in Windows Credential Manager unless you untick the box'
 
   /**
    * Claims that were true before the app signed players in, and are not now.
@@ -564,6 +572,9 @@ const pkg = JSON.parse(read('package.json'))
     'never reaches this app at all',
     'never touches the password',
     'never sees your password',
+    // Retired 9 Sep 2026 with the default reversal. True while the box was
+    // opt-in; false the moment it shipped ticked.
+    'not stored unless you later ask for it',
   ]
 
   // The population is every document above plus every component, because a
@@ -679,7 +690,11 @@ const pkg = JSON.parse(read('package.json'))
   // and there is a way to undo it. A privacy note that described only the
   // storing half would be the more comfortable one to write.
   const privacy = read('docs/PRIVACY.md').replace(/\s+/g, ' ')
-  ok('PRIVACY.md says the remember box is off until it is ticked', /box is off every time/.test(privacy))
+  // The direction that changed. This check used to read `box is off every
+  // time`; asserting the *new* default rather than deleting the check is what
+  // stops the reversal being silently reversed again.
+  ok('PRIVACY.md says the remember box is ticked by default', /ticked by default/.test(privacy))
+  ok('PRIVACY.md says unticking it deletes what is stored', /unticking it deletes what is stored at once/.test(privacy))
   ok('PRIVACY.md says how to un-ask', /Forget control/.test(privacy))
   ok(
     'PRIVACY.md tells the reader who else on the machine could read it',
