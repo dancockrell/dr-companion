@@ -22,14 +22,21 @@ fast-moving fleet.
 
 ## 1. The chain, end to end — working
 
-    launch_lich  ->  Lich 5.20.1  ->  dr.simutronics.net  ->  Phemius
-                     |                                        |
-                     +-- :11024 detachable client  -----------+--> game_attach
-                     +-- :7415  companion_bridge   ---------------> live bridge
+    Sign in  ->  Lich 5.20.1  ->  dr.simutronics.net  ->  Phemius
+                 |                                        |
+                 +-- :11024 detachable client  -----------+--> attach
+                 +-- :7415  companion_bridge   ---------------> live bridge
 
-Verified this session: Lich launches from the app's own button, logs in
-without any password reaching this app, opens both ports, and the client
-attaches to both. `lich: "alive"` is reported on the link state.
+Verified when this was written: Lich launched from the app's own button,
+logged in, opened both ports, and the client attached to both.
+`lich: "alive"` is reported on the link state.
+
+**The first hop has changed since.** That button passed a saved character name
+to Lich, which needed an entry only the retired third-party client could
+create, so it could not work any more and was removed on 9 September 2026 with
+issue #528. The app performs the account login itself and the sign-in form is
+the route. Everything below the first arrow is unchanged - the same two ports,
+the same attach.
 
 **Two fixes it took to get here**, both committed:
 

@@ -103,12 +103,6 @@ pub struct LichStatus {
     pub ruby: Option<String>,
     /// Where Lich keeps saved logins. Present only if the folder exists.
     pub data_dir: Option<String>,
-    /// Characters Lich has saved. Meaningful only when `characters_known`.
-    pub characters: Vec<String>,
-    /// Whether the list above is an answer. False means we could not read the
-    /// entry file, which is not the same as it being empty and must never be
-    /// rendered as "you have no characters".
-    pub characters_known: bool,
     /// A Ruby process is running with `lich` in its command line.
     pub running: bool,
     /// Whether the check above could be performed at all.
@@ -151,9 +145,11 @@ pub struct LichStatus {
 /// unrelated authentication failure in the same attempt.
 ///
 /// This matters because it creates a deadlock the app was cheerfully walking
-/// people into: `launch_lich(Some(name))` needs a saved entry, the normal way
-/// to create one is Lich's GUI login, and on this machine that window cannot
-/// succeed. The app knows enough to say so; it just was not asking.
+/// people into: the saved-entry launch needed an entry, the normal way to
+/// create one is Lich's GUI login, and on this machine that window cannot
+/// succeed. That route is deleted now and the app signs players in itself;
+/// this check survives because it still decides whether opening Lich's own
+/// window is worth offering at all.
 fn gui_login_usable() -> bool {
     // The four Lich's GUI will offer, and the executables each ships as.
     // It is deliberately absent - that is the whole point of this check.
@@ -207,47 +203,6 @@ fn windowed_ruby(ruby_exe: &str) -> String {
         }
     }
     ruby_exe.to_string()
-}
-
-/// The names of saved characters, and nothing else from that file.
-///
-/// `entry.yaml` holds the account password beside the character names, in
-/// plaintext or encrypted depending on how Lich was set up. So this does not
-/// deserialize the file into a structure: it scans for `char_name:` lines and
-/// takes those, and there is no code path here through which a password can
-/// reach a struct, a log line, an error message or the webview.
-///
-/// That is a deliberate choice of a narrower tool over a better one. A real
-/// YAML parse would be more correct about quoting and more robust to layout,
-/// and it would also put the password one field access away from anything that
-/// later wants to debug-print this. A line scanner cannot leak what it never
-/// reads.
-///
-/// Returns `None` when the file could not be read at all, so the caller can
-/// tell "no characters" from "no answer".
-fn saved_characters(data_dir: &Path) -> Option<Vec<String>> {
-    let text = std::fs::read_to_string(data_dir.join("entry.yaml")).ok()?;
-    let mut names = Vec::new();
-    for line in text.lines() {
-        // The leading "- " matters and its absence was a real bug. Characters
-        // are a YAML *list*, so the line is `- char_name: Phemius`, and a
-        // prefix check for `char_name:` alone matched nothing. Every install
-        // would have reported no saved characters forever, which is the
-        // failure this function's own doc comment warns about at length.
-        //
-        // It was not caught by reading, and it could not be caught by running
-        // the test, because linking was broken on this machine at the time. It
-        // was found the moment the test could run.
-        let t = line.trim().trim_start_matches("- ").trim();
-        let Some(rest) = t.strip_prefix("char_name:") else {
-            continue;
-        };
-        let name = rest.trim().trim_matches(['"', '\'']).to_string();
-        if !name.is_empty() && !names.contains(&name) {
-            names.push(name);
-        }
-    }
-    Some(names)
 }
 
 /// Is a Lich already running?
@@ -334,7 +289,7 @@ fn other_frontend_running() -> Option<bool> {
 ///
 /// Consistent, so it is real work rather than startup contention. It is spread
 /// across filesystem probing - `detect_ruby`, `rank_lich_installs`,
-/// `saved_characters`, `gui_login_usable` - each cheap on its own and slow
+/// `gui_login_usable` - each cheap on its own and slow
 /// together on a machine with a large PATH and cloud-synced user folders.
 ///
 /// The UI calls this on mount and again on every "Check again", so those were
@@ -418,22 +373,13 @@ pub(crate) fn lich_status_blocking() -> LichStatus {
 
         let data = dir.join("data");
         if data.exists() {
+            // Reported so the diagnostics can say where Lich keeps its own
+            // state. Its *contents* are deliberately not read any more: the
+            // saved-entry launch that needed them was deleted on 6 September
+            // 2026, and `entry.yaml` holds an account password beside the
+            // names, so not opening it at all is the strongest version of not
+            // leaking it.
             s.data_dir = Some(pretty_path(&data));
-            match saved_characters(&data) {
-                Some(names) => {
-                    s.characters_known = true;
-                    s.characters = names;
-                }
-                None => {
-                    // No entry.yaml is the normal state of a fresh install, and
-                    // it is a real answer: Lich has not saved anyone yet.
-                    s.characters_known = !data.join("entry.yaml").exists();
-                }
-            }
-        } else {
-            // Lich makes this on first run. Its absence means the same thing as
-            // an absent entry file, and it is equally an answer.
-            s.characters_known = true;
         }
     }
 
@@ -453,21 +399,14 @@ pub(crate) fn lich_status_blocking() -> LichStatus {
         "Lich is here but Ruby is not, and Lich is a Ruby program.".into()
     } else if s.running {
         "Lich is already running.".into()
-    } else if !s.characters_known {
-        "Lich is installed. Whether it has a saved character could not be read, so this is unknown rather than none.".into()
-    } else if s.characters.is_empty() && !s.gui_login_usable {
-        // The deadlock, said plainly rather than left as a button that
-        // cannot work. See `gui_login_usable` for why this is deterministic
-        // rather than something to retry.
-        "Lich is installed with no saved character, and its own login window cannot \
-         complete on this machine: it only offers Wrayth, Wizard, Avalon and Saga, \
-         and none of those are installed. Sign in from this app instead: it \
-         performs the account login itself and starts Lich with the result."
-            .into()
-    } else if s.characters.is_empty() {
-        "Lich is installed with no saved character yet. Its own login window handles that, and this app never sees the password.".into()
     } else {
-        "Ready to start.".into()
+        // Deliberately not keyed on the saved-character list any more. Those
+        // entries started a route that was deleted on 6 September 2026, so
+        // "Ready to start." was true of a button that no longer exists and
+        // false of everything else on the card. This says only what the
+        // machine is; what to do about it is one line, in the card, so the
+        // two cannot say the same thing twice.
+        "Lich is installed and not running.".into()
     };
 
     s
@@ -1570,29 +1509,15 @@ fn protocol_failure(
 /// a saved entry to do. There is deliberately no fallback to the old route -
 /// see `CLAUDE.md` §0 and `docs/LICH_NATIVE_LOGIN.md` §6.
 ///
-/// A `character` is therefore refused rather than ignored. The parameter
-/// survives only so the existing call site keeps type-checking until the
-/// sign-in screen replaces it; passing one is an error naming what to call
-/// instead, which is a thing a caller can act on, where silently starting a
-/// launcher that asks for a password would not be.
+/// It therefore takes no character. It used to take one and refuse it, with
+/// an error naming the command to call instead - which was correct advice for
+/// a developer and reached a player, in red, in the Lich card, above a button
+/// offering to do the thing the sentence said could not be done. The button is
+/// gone (`LichLauncher.tsx`) and so is the parameter: a control that cannot
+/// work is worse than no control, and an error nobody can act on is worse than
+/// no error.
 #[tauri::command]
-pub fn launch_lich(character: Option<String>) -> Result<String, String> {
-    if character
-        .as_deref()
-        .map(str::trim)
-        .is_some_and(|c| !c.is_empty())
-    {
-        return Err(
-            "Signing a character in is `lich_login_launch` now, not `launch_lich`: \
-             Lich's saved-entry route needed Genie to create the entry, and the app \
-             performs the account login itself."
-                .into(),
-        );
-    }
-    launch_lich_bare()
-}
-
-fn launch_lich_bare() -> Result<String, String> {
+pub fn launch_lich() -> Result<String, String> {
     // The blocking form: this is already off the UI thread (its own command
     // is async) and calling the command wrapper here would need an await for
     // no benefit.
@@ -1716,21 +1641,15 @@ mod tests {
         assert!(launch_args("lich.rbw", Some(&sal)).is_err());
     }
 
-    /// The saved-entry route is gone, not deprecated. Its replacement is named
-    /// in the error, because "that no longer works" without a next step is how
-    /// a caller ends up reimplementing it.
+    /// The saved-entry route is gone, not deprecated, and `launch_lich` no
+    /// longer has anywhere to put a character name. Asserted on the signature
+    /// rather than by calling it, which would spawn a real Lich from a unit
+    /// test: this only has to compile to be true, and it stops the parameter
+    /// growing back.
     #[test]
-    fn a_character_is_refused_and_the_replacement_is_named() {
-        let err = launch_lich(Some("Phemius".into())).unwrap_err();
-        assert!(err.contains("lich_login_launch"), "{err}");
-        // Whitespace is not a character name, so it must not reach this
-        // refusal - it falls through to the bare launch. Asserted on the
-        // predicate rather than by calling `launch_lich`, which would spawn a
-        // real Lich from a unit test.
-        let refuses = |c: Option<&str>| c.map(str::trim).is_some_and(|c| !c.is_empty());
-        assert!(refuses(Some("Phemius")));
-        assert!(!refuses(Some("   ")));
-        assert!(!refuses(None));
+    fn launch_lich_takes_no_character() {
+        let f: fn() -> Result<String, String> = launch_lich;
+        let _ = f;
     }
 
     /// Serialises tests that read process-global environment variables.
@@ -1934,84 +1853,6 @@ mod tests {
              [stormfront, wizard, avalon, saga] - genie is registered with \
              capabilities only and no gui_selectable metadata, so it can never \
              appear in the GUI selector"
-        );
-    }
-
-    /// The deadlock this exists to surface, asserted on the message rather
-    /// than described in a comment: no saved character *and* no usable GUI
-    /// login has to read differently from no saved character alone, because
-    /// the second is a normal first run and the first is a dead end.
-    #[test]
-    fn no_characters_and_no_usable_gui_reads_differently_from_no_characters() {
-        // The note-selection logic, extracted to the shape lich_status uses.
-        let note = |characters_empty: bool, gui_usable: bool| -> &'static str {
-            if characters_empty && !gui_usable {
-                "deadlock"
-            } else if characters_empty {
-                "ordinary first run"
-            } else {
-                "ready"
-            }
-        };
-
-        assert_eq!(note(true, false), "deadlock");
-        assert_eq!(note(true, true), "ordinary first run");
-        assert_eq!(
-            note(false, false),
-            "ready",
-            "a saved character makes the GUI moot"
-        );
-    }
-
-    /// The whole point of the narrow parse, asserted rather than described.
-    ///
-    /// `entry.yaml` holds the account password beside the character names. This
-    /// test writes a realistic one and checks two things: that the names come
-    /// out, and that nothing resembling the password does. The second assertion
-    /// is the one that matters, and it is the reason this reads lines rather
-    /// than deserializing the file.
-    #[test]
-    fn reads_names_and_never_the_password() {
-        let dir = crate::test_support::scratch_dir("lich-entry");
-
-        let secret = "hunter2-do-not-leak";
-        std::fs::write(
-            dir.join("entry.yaml"),
-            format!(
-                "---\nencryption_mode: plaintext\naccounts:\n  DANCOCKRELL:\n    password: {secret}\n    characters:\n    - char_name: Phemius\n      game_code: DR\n      frontend: genie\n    - char_name: \"Dan the Bold\"\n      game_code: DR\n"
-            ),
-        )
-        .unwrap();
-
-        let names = saved_characters(dir.path()).expect("file is readable");
-        assert_eq!(names, vec!["Phemius", "Dan the Bold"]);
-
-        // Not "the password is not in position 0". Nothing anywhere in the
-        // output may contain it, however the file is laid out.
-        assert!(
-            !names.iter().any(|n| n.contains(secret)),
-            "a password reached the character list"
-        );
-    }
-
-    /// Absent is not empty. A missing file has to be distinguishable from a
-    /// file with no characters in it, because the caller renders them
-    /// differently and one of the two sends a returning player back through
-    /// first-time setup.
-    #[test]
-    fn missing_file_is_unknown_not_empty() {
-        let dir = crate::test_support::scratch_dir("lich-missing");
-
-        assert!(
-            saved_characters(dir.path()).is_none(),
-            "no file must not read as no characters"
-        );
-
-        std::fs::write(dir.join("entry.yaml"), "---\naccounts: {}\n").unwrap();
-        assert_eq!(
-            saved_characters(dir.path()),
-            Some(vec![]),
-            "an empty file is an answer"
         );
     }
 
