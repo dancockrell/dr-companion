@@ -979,12 +979,19 @@ const pkg = JSON.parse(read('package.json'))
   // control silently went to zero - it went red, which is the point of
   // having it: a control that had quietly become a second one-site symbol
   // would have passed while proving nothing. `openPanelWindow(` is the
-  // replacement, called from the dashboard and from the app controls.
-  const twoCallers = hits('openPanelWindow(').filter((f) => f !== 'src/lib/panelWindows.ts')
+  // replacement.
+  //
+  // "More than one", not "exactly two". The property this control needs is
+  // that the counter is not stuck at 0-or-1, and pinning it to a number made
+  // it a second, accidental assertion about how many places open a panel
+  // window - which went red the day the icon bar became one of them, saying
+  // nothing about the counter. A control that fails for reasons unconnected
+  // to what it controls is a control people learn to edit rather than read.
+  const manyCallers = hits('openPanelWindow(').filter((f) => f !== 'src/lib/panelWindows.ts')
   ok(
-    'control: the same counter reports two call sites when there are two',
-    twoCallers.length === 2,
-    twoCallers.join(', ') || 'found none'
+    'control: the same counter reports more than one call site when there is more than one',
+    manyCallers.length > 1,
+    `${manyCallers.length}: ${manyCallers.join(', ') || 'found none'}`
   )
 }
 

@@ -7,10 +7,8 @@ import { BattleColumn } from './components/room/BattleColumn.tsx'
 import { GameChatColumn } from './components/room/GameChatColumn.tsx'
 import { Splitter } from './components/layout/Splitter.tsx'
 import { TopBar } from './components/layout/TopBar.tsx'
-import { TaskFlowPanel } from './components/dashboard/TaskFlowPanel.tsx'
 import { StatsPanel } from './components/shared/StatsPanel.tsx'
 import { RiskBar } from './components/shared/RiskBar.tsx'
-import { ActionsPanel } from './components/shared/ActionsPanel.tsx'
 import { AiWorkerPanel } from './components/shared/AiWorkerPanel.tsx'
 import { AppControls } from './components/layout/AppControls.tsx'
 import { SafetyFooter } from './components/layout/SafetyFooter.tsx'
@@ -34,11 +32,8 @@ import {
   pixelsForSizeShare,
   sizeShareForPixels,
   storedSizeShare,
-  frameFits,
-  SIDE_LEFT_W,
-  SIDE_RIGHT_W,
-  BOARD_MIN_W,
-  CONSOLE_H,
+  ROOM_MIN,
+  DASH_MIN,
   TOPBAR_H,
 } from './lib/columns.ts'
 import { windowView } from './lib/windowView.ts'
@@ -55,6 +50,18 @@ import { writeText } from './lib/storage.ts'
 import { taskPinActiveId, taskPinLanguage } from './lib/quickSwitch.ts'
 import { StorageWarning } from './components/shared/StorageWarning.tsx'
 import { LazySurface } from './components/shared/LazySurface.tsx'
+import { IconBar } from './components/layout/IconBar.tsx'
+import { panelTitle } from './components/dashboard/panels.tsx'
+import { closePanelWindow, openPanelWindow } from './lib/panelWindows.ts'
+import {
+  readScenePaneState,
+  writeScenePaneState,
+  sizeBucket,
+  railWant,
+  SCENE_RAIL_W,
+  COMBAT_GROWTH,
+  type ScenePaneState,
+} from './lib/scenePane.ts'
 
 const SetupWizard = lazy(() => import('./components/first-run/SetupWizard.tsx').then((module) => ({ default: module.SetupWizard })))
 
@@ -73,43 +80,31 @@ const SetupWizard = lazy(() => import('./components/first-run/SetupWizard.tsx').
  */
 
 /*
- * The three widths of the approved frame's workspace row.
+ * One stored width, because there are two columns.
  *
- * `docs/mockups/dr-companion-isometric-mvp.html` is
- * `228px | minmax(620px, 1fr) | 250px`: character side, board slot, context
- * side. Those are this app's three columns now, and they are the same three
- * `fitColumns` has always resolved - see the mapping written out at the
- * `fitColumns` call below, which is the one place that knows it.
- * So the frame is the existing arithmetic with the mockup's numbers as its
- * defaults, not a second layout engine beside it: the squeeze banner, the
- * floors, "Reset widths" and the share-not-pixels persistence all keep
- * working, and the rails stay draggable rather than becoming three hard
- * numbers a player cannot argue with.
+ * Dan, 9 September 2026, after his first live session: "it's not best to put
+ * the screen in the middle ... put it in the right corner and have a bottom
+ * bar of icons for various functions and then on the left you have room for
+ * your text heavy windows." So the workspace is the text on the left and one
+ * rail on the right, with a single divider between them, and a single divider
+ * has one number behind it.
  *
- * Every key is bumped, because each slot now holds different content at a
- * different size and a stored share is just a number. A v2 "room" share of
- * 0.34 meant a third of the window for map-plus-transcript; read as the new
- * left rail it would be a 460px column of vitals. That is exactly the "old
- * data under a new meaning" failure - silent, plausible, and wrong - so the
- * bump makes every existing install fall back to the mockup's defaults once,
- * the same way RIGHT_RAIL_KEY's own earlier rename already handled a
- * meaning-change to this family of settings.
+ * The three keys that stood here (`drc.left-rail-width.v1`,
+ * `drc.board-slot-width.v1`, `drc.right-rail-width.v1`) described three
+ * columns that no longer exist. They are not reinterpreted as this one: a
+ * stored share of 0.13 meant "the character rail is 13% of the window", and
+ * read as the new rail that is a 260px column where the pane needs 380. That
+ * is the "old data under a new meaning" trap, so the key is new and every
+ * install falls back to the default once.
  */
-const LEFT_RAIL_KEY = 'drc.left-rail-width.v1'
-const BOARD_KEY = 'drc.board-slot-width.v1'
-/** The context side. Two renames back this was `drc.dash-width.v1`, the
- * dashboard column; then the Experience strip. It is the mockup's right rail
- * now - alerts, actions and the AI worker - and the Experience strip has
- * moved to the console row's own right cell, so the old name would describe
- * neither the slot nor its contents. */
-const RIGHT_RAIL_KEY = 'drc.right-rail-width.v1'
+const RAIL_KEY = 'drc.scene-rail-width.v1'
+
 /*
  * `drc.map-height.v4` and `drc.map-height.v1` used to be read here: how the
  * board slot divided between the map above and the battle picture below.
- * Nothing divides it now - the map is gone and the board slot is the battle
- * picture - so both keys are unread rather than reinterpreted. Reading a
- * stored map height as anything else is the "old data under a new meaning"
- * trap; `stripRetiredKeys` in `src/lib/layout.ts` deletes them instead.
+ * Nothing divides it now, and there is no board slot at all; both keys are
+ * unread rather than reinterpreted, and `stripRetiredKeys` in
+ * `src/lib/layout.ts` deletes them.
  */
 
 /**
@@ -298,33 +293,18 @@ function AppViews() {
   }, [setupComplete, requestIntent])
 
   /**
-   * The columns are shares of the window, not fixed pixel widths - see
-   * `readShare`/`writeShare` above for why. Three real preferences now
-   * (Room, Battle, Experience) - any width nobody asked for still goes to
-   * Room by default (see fitColumns), so a wide window opens filled rather
-   * than with a blank margin, but Room is no longer *only* ever a leftover.
+   * The rail is a share of the window, not a fixed pixel width - see
+   * `readShare`/`writeShare` above for why. One preference now, because there
+   * is one divider: the text region takes whatever the rail leaves, which is
+   * exactly `fitColumns`' "room" slot and exactly what `ROOM_MIN` was written
+   * to protect ("it holds the game text, the command input and the channel
+   * tabs, the parts that make this a client rather than a dashboard").
    *
-   * `window.innerWidth` stands in for `hostW` only until the real
-   * measurement below lands on the next layout pass - close enough for one
-   * frame, and self-correcting the moment `hostW` is real.
+   * `window.innerWidth` stands in for `hostW` only until the real measurement
+   * below lands on the next layout pass.
    */
-  const [leftRailShare, setRoomShare] = useState<number>(() =>
-    readShare(LEFT_RAIL_KEY, window.innerWidth, SIDE_LEFT_W)
-  )
-
-  const [boardShare, setBattleShare] = useState<number>(() =>
-    readShare(BOARD_KEY, window.innerWidth, BOARD_MIN_W)
-  )
-
-  /** Experience, all the way to the right - see ExperienceStrip.tsx. A
-   * single fixed column (MindstateBoard no longer reflows into two or three)
-   * needs exactly enough width for its longest row and nothing more - 120,
-   * measured against the actual rendered text ("Twohanded Edged" plus a
-   * two-digit mindstate number, the longest real combination) rather than
-   * guessed, with the scrollbar hidden (ExperienceStrip's own `no-scrollbar`)
-   * so it never eats into that measurement. */
-  const [rightRailShare, setRightRailShare] = useState<number>(() =>
-    readShare(RIGHT_RAIL_KEY, window.innerWidth, SIDE_RIGHT_W)
+  const [railShare, setRailShare] = useState<number>(() =>
+    readShare(RAIL_KEY, window.innerWidth, SCENE_RAIL_W)
   )
 
   /**
@@ -350,162 +330,148 @@ function AppViews() {
   // Re-resolving them against the measured host on every render means a
   // running window keeps the player's proportions while it is resized.
   const widthReference = hostW || window.innerWidth
-  const leftRailW = pixelsForSizeShare(leftRailShare, widthReference, MIN_PX)
-  const boardW = pixelsForSizeShare(boardShare, widthReference, MIN_PX)
-  const rightRailW = pixelsForSizeShare(rightRailShare, widthReference, MIN_PX)
+  const railW = pixelsForSizeShare(railShare, widthReference, MIN_PX)
 
-  const setLeftRailW = (px: number) => {
+  const setRailW = (px: number) => {
     const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
-    setRoomShare(share)
-    writeShare(LEFT_RAIL_KEY, share)
+    setRailShare(share)
+    writeShare(RAIL_KEY, share)
   }
-  const setBoardW = (px: number) => {
-    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
-    setBattleShare(share)
-    writeShare(BOARD_KEY, share)
-  }
-  const setRightRailW = (px: number) => {
-    const share = sizeShareForPixels(Math.max(MIN_PX, Math.round(px)), widthReference)
-    setRightRailShare(share)
-    writeShare(RIGHT_RAIL_KEY, share)
-  }
-  const character = useAppStore((s) => s.character)
-  const battleActive = character?.situation.includes('in_combat') ?? false
-  const leftRailWantVisible = leftRailW
-  /* In combat the board becomes the primary surface and the rails pay for it
-   * - `fitColumns` squeezes them toward their floors to fund the growth. A
-   * display-time request only: the stored widths are untouched and return
-   * the instant combat ends. */
-  const boardWantVisible = combatBattleWant(boardW, hostW, battleActive)
 
   /*
-   * `fitColumns`/`pickReset` (lib/columns.ts) still speak of "room", "map"
-   * and "dash". They were named for a dashboard this app has not had for a
-   * long time, and the arithmetic never depended on which physical column
-   * played which part - which is exactly why the approved frame could be
-   * built on it rather than beside it. The mapping now:
+   * The scene pane's three states, remembered per size of window.
    *
-   *   room  -> the board slot in the middle (BOARD_MIN_W and up)
-   *   map   -> the left rail, the character side (SIDE_LEFT_W)
-   *   dash  -> the right rail, the context side (SIDE_RIGHT_W)
-   *
-   * The board takes `room`'s part rather than `map`'s, which is the reverse
-   * of what the names suggest and is the point. `room` is the slot that
-   * absorbs width nobody claimed - "any width nobody asked for still goes
-   * here by default", per the module's own header - and on this frame the
-   * column that should grow into a wide window is the board. The rails are
-   * 228 and 250 because that is what their content needs; a 431px column of
-   * vitals on a large monitor is not a feature.
-   *
-   * That number is measured rather than imagined. With the mapping the other
-   * way round, the left rail came out **431px at 1366x768** instead of 228,
-   * because it was sitting in `room`'s slot being handed the surplus. Turning
-   * the mapping around fixed it without touching `columns.ts` at all, which
-   * is the argument for having built the frame on this module rather than
-   * beside it.
-   *
-   * Three peer columns with floors, a fair squeeze when they do not fit, and
-   * a "Reset widths" escape - all of which the frame needs and none of which
-   * had to be rewritten to get it. Only this call site knows the mapping;
-   * the module neither knows nor cares.
+   * See `scenePane.ts` for why one stored answer for every size is one answer
+   * that is wrong somewhere.
    */
+  const paneW = Math.round(hostW || window.innerWidth)
+  const paneH = Math.round(hostH || window.innerHeight)
+  const [scene, setSceneState] = useState<ScenePaneState>(() =>
+    readScenePaneState(window.innerWidth, window.innerHeight)
+  )
+  // The bucket, not the pixels: re-reading on every pixel of a drag would
+  // fight the player's own choice mid-resize. This fires only when the window
+  // crosses into a different class of size, which is exactly when a different
+  // stored answer applies.
+  const bucket = sizeBucket(paneW, paneH)
+  const lastBucket = useRef(bucket)
+  useEffect(() => {
+    if (lastBucket.current === bucket) return
+    lastBucket.current = bucket
+    setSceneState(readScenePaneState(paneW, paneH))
+  }, [bucket, paneW, paneH])
 
-  /**
-   * Which rails the window is too narrow to draw at all - D2's `frameFits`,
-   * doing the job it was added for. Decided before `fitColumns` runs,
-   * because a rail that is not drawn must not be given a width either.
+  const changeScene = (next: ScenePaneState) => {
+    setSceneState(next)
+    writeScenePaneState(paneW, paneH, next)
+    // `popped` is the panel-window machinery, not a second implementation of
+    // pop-out. Closing on the way out matters as much as opening on the way
+    // in: a window left open while the pane says `hidden` is two answers to
+    // "where is the scene".
+    if (next === 'popped') void openPanelWindow('board', panelTitle('board'))
+    else void closePanelWindow('board')
+  }
+
+  const character = useAppStore((s) => s.character)
+  const battleActive = character?.situation.includes('in_combat') ?? false
+
+  /*
+   * What the rail asks for.
    *
-   * The mockup answers this question with `body { min-width: 1120px;
-   * overflow: hidden }`, which is the one thing from it this client must not
-   * copy: clipping is precisely the failure `columns.ts` exists to prevent,
-   * and a control off the edge with no scrollbar to reach it by is not a
-   * small layout problem, it is a button nobody can press. Dropping a rail
-   * is the honest version of the same adaptation - the player loses a panel
-   * and can see that they have, instead of losing a control silently.
+   * `railWant` applies the display-time ceiling for the two states that do not
+   * put the pane in the corner - the stored width is never rewritten, so
+   * bringing the pane back restores the width the player dragged.
+   *
+   * `combatBattleWant` then grows it during a fight, for the reason it was
+   * written: a dedicated battlespace that stays at its out-of-combat width
+   * while eighteen actors are live defeats the point. Capped at `COMBAT_GROWTH`
+   * of what the pane already asked for rather than at that function's own 49%
+   * of the window - see the constant for the measurement that made the cap
+   * necessary.
    */
-  const frame = frameFits(hostW || window.innerWidth, hostH || window.innerHeight)
-  const showLeftRail = !frame.mustCollapse.includes('left')
-  const showRightRail = !frame.mustCollapse.includes('right')
+  const railAsked = railWant(scene, railW)
+  const railWantVisible =
+    scene === 'minimap'
+      ? Math.min(combatBattleWant(railAsked, hostW, battleActive), Math.round(railAsked * COMBAT_GROWTH))
+      : railAsked
 
+  /*
+   * Is there room for a rail at all?
+   *
+   * Derived from the two floors that actually decide it rather than from
+   * `frameFits`, whose answer is about a three-column frame with a 620px board
+   * in the middle - a frame this app no longer draws. Asking it here would
+   * collapse the rail on a 1000px window that comfortably fits 380px of text
+   * and a 120px rail.
+   *
+   * Below this the rail is not drawn at all rather than drawn too small: a
+   * column of vitals under its own floor hides controls behind a hover-only
+   * scrollbar, and the icon bar can open every one of them in a window
+   * instead.
+   */
+  const showRail = (hostW || window.innerWidth) >= ROOM_MIN + DASH_MIN + SPLIT_W
+
+  /*
+   * Two columns through the same arithmetic, using its two-column mode.
+   *
+   * `mapDocked: false` is not a workaround - it is the case `columns.ts`
+   * documents as "the map is not on screen to be blamed for anything": one
+   * divider, two columns, which is what this frame is. The mapping:
+   *
+   *   room  -> the text region on the left. It is `room` because `room` is the
+   *            slot that absorbs width nobody claimed, and because `ROOM_MIN`
+   *            is already the floor written for exactly this content.
+   *   dash  -> the right rail: the scene pane in the corner, then the vitals.
+   *   map   -> nothing. There is no third column.
+   *
+   * Only the rail is given an explicit width; the text region is `flex-1` and
+   * takes what is left, which is the same number by construction and cannot
+   * round a pixel past the row.
+   */
   const fit = fitColumns({
     hostW,
-    roomWant: boardWantVisible,
-    mapWant: leftRailWantVisible,
-    dashWant: rightRailW,
-    mapDocked: showLeftRail,
+    roomWant: 0,
+    mapWant: 0,
+    dashWant: railWantVisible,
+    mapDocked: false,
     splitW: SPLIT_W,
-    // The rails do not have an "empty" width. `dashEmpty`/`MAP_EMPTY_WANT`
-    // exist so a column with nothing in it stops holding a player's stored
-    // width hostage; these two hold vitals and context cards, which are the
-    // same size whether or not there is a character to put in them.
+    // The rail holds vitals and risk whatever the pane is doing, so it is
+    // never "empty" in the sense `dashEmpty` means.
     dashEmpty: false,
-    // Cap each rail's growth at the width it actually asked for, so the
-    // surplus-sharing in fitColumns has nothing to give them and every spare
-    // pixel reaches the board. Without this the left rail takes half of any
-    // unclaimed width, which is the 431px above.
-    mapGrowthMax: leftRailWantVisible,
-    dashGrowthMax: rightRailW,
+    // Cap its growth at what it asked for, so every spare pixel of a wide
+    // window reaches the text rather than widening a column of vitals.
+    dashGrowthMax: railWantVisible,
   })
-  const rightRailWFit = fit.dash
-  const leftRailWFit = fit.map
-  // `fit.room` - the board's fitted width - is deliberately not read. The two
-  // rails are the only columns given an explicit width; the board is
-  // `flex-1` and takes exactly what they leave, which is the same number by
-  // construction and one that cannot round to a pixel more than the row has.
-  // Setting both would be two authorities on one width, and the loser of
-  // that argument is a horizontal scrollbar.
+  const railWFit = fit.dash
 
-  /* The same slot mapping as the `fitColumns` call above - room is the board,
-   * map is the left rail, dash is the right rail. Written out twice would be
-   * two mappings to keep in step, so if you change one, change both; they are
-   * adjacent for exactly that reason. */
   const resetWidths = () => {
     const plan = pickReset({
       hostW,
-      mapDocked: showLeftRail,
-      roomWant: boardW,
-      mapWant: leftRailW,
-      dashWant: rightRailW,
+      mapDocked: false,
+      roomWant: ROOM_MIN,
+      mapWant: 0,
+      dashWant: railW,
       splitW: SPLIT_W,
     })
-    if (plan.room !== null) setBoardW(plan.room)
-    if (plan.map !== null) setLeftRailW(plan.map)
-    if (plan.dash !== null) setRightRailW(plan.dash)
+    // `pickReset`'s two-column branch answers about `dash` and nothing else,
+    // which is the only column with a stored width here. Its default is the
+    // rail's own, not `DEFAULT_DASH_W`: that constant is 250, the width of a
+    // context column that no longer exists.
+    if (plan.dash !== null) setRailW(SCENE_RAIL_W)
   }
 
   /** Small enough to keep a column grabbable, and no opinion beyond that. */
   const atLeastVisible = (px: number) => Math.max(MIN_PX, px)
 
   /**
-   * Two dividers, three columns. Each divider sets the width of the column
-   * on its *near* side directly, the same "distance from an edge" shape
-   * either way: the first measures the left rail from the left edge, the
-   * second measures the right rail from the right edge, and the board slot -
-   * the one column with a divider on both sides - takes whatever
-   * `fitColumns` leaves it.
+   * One divider, measured from the right edge - the same "distance from an
+   * edge" shape the two dividers had, with the one that is gone removed
+   * rather than left pointing at a column that is not there.
    */
-  const moveLeftRailEdge = (share: number) => setLeftRailW(atLeastVisible(hostW * share))
-  const moveRightRailEdge = (share: number) =>
-    setRightRailW(atLeastVisible(hostW * (1 - share)))
+  const moveRailEdge = (share: number) => setRailW(atLeastVisible(hostW * (1 - share)))
 
-  /*
-   * The workspace and the console row are the same track list in the mockup,
-   * and they are the same two numbers here: `leftRailWFit` and
-   * `rightRailWFit`, fitted once above. The workspace puts a `Splitter`
-   * between its columns so the rails can be dragged; the console row does
-   * not, because dragging it would be a second, independent way to set one
-   * width. Two renderings, one source - the alternative is two track lists
-   * that agree today and disagree the first time somebody drags anything.
-   *
-   * Note what is deliberately *not* copied from the mockup: its middle
-   * column is `minmax(620px, 1fr)`, and a hard 620px floor here would push
-   * the total past a narrow window and put the right rail off the edge -
-   * the clipping bug again, wearing a track list. `fitColumns` guarantees
-   * the board its share and `frameFits` has already decided whether both
-   * rails can be afforded, so the floor lives in the arithmetic rather than
-   * being asserted twice in two places that can drift.
-   */
   const railStyle = (px: number) => ({ width: Math.round(px) })
+
 
   if (v.kind === 'panel') {
     const label = `${v.id} panel window`
@@ -542,8 +508,8 @@ function AppViews() {
       {setupComplete && fit.squeezed && (
         <div className="flex shrink-0 items-center gap-2 border-b border-border bg-surface-raised px-2 py-1 text-xs text-ink-faint">
           <span>
-            Not enough width for the stored column sizes — the side rails are
-            being scaled down to keep the board usable.
+            Not enough width for the stored rail size - it is being scaled down
+            to keep the game text readable.
           </span>
           <button
             type="button"
@@ -556,8 +522,12 @@ function AppViews() {
       )}
 
       {/*
-        The workspace row: the mockup's `228px | minmax(620px,1fr) | 250px`.
-        Character side, board slot, context side.
+        The workspace: the text on the left, the rail on the right.
+
+        The transcript used to be a 224px strip along the bottom - 17.9% of the
+        window at Dan's own size - while the room picture in the middle held
+        38.8% (`docs/verification/layout-2026-09-09.md`). That is the wrong way
+        round for a MUD, and it is what "its really hard to run" was about.
       */}
       <main ref={hostRef} className="flex min-h-0 flex-1 overflow-hidden">
         {!setupComplete ? (
@@ -566,85 +536,110 @@ function AppViews() {
               <SetupWizard />
             </LazySurface>
           </div>
-        ) : !character ? (
-          /* Nothing else here has anything real to show without a
-           * character either - map, board and context are all readings of a
-           * live character, not independent tools. */
-          <WaitingForCharacter />
         ) : (
           <>
-            {showLeftRail && (
-              <div
-                className="flex min-w-0 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border p-1"
-                style={railStyle(leftRailWFit)}
-                aria-label="Character side"
-              >
-                <PanelBoundary label="Vitals">
-                  <StatsPanel dense />
-                </PanelBoundary>
-                <PanelBoundary label="Risk">
-                  <RiskBar />
-                </PanelBoundary>
-              </div>
-            )}
-
-            {showLeftRail && (
-              <Splitter
-                label="Resize the character side and the board"
-                value={hostW > 0 ? leftRailWFit / hostW : 0.17}
-                onChange={moveLeftRailEdge}
-                min={0}
-                max={1}
-              />
-            )}
-
             {/*
-              The board slot. D0 chose a separate Godot window for 1.0, so
-              until that window is up this holds the battle picture and
-              nothing else. The zone map used to sit above it behind a
-              draggable divider; the map is gone (`docs/NO-3D.md`) and Godot
-              will own world and route presentation, so the slot is one
-              surface again rather than a split with one half missing.
+              The text. The scrollback, the channel tabs and the command line,
+              in the width a wall of game text needs - see GameChatColumn.
+
+              **Not gated on `character`**, and that is #523's fix carried into
+              this frame rather than quietly undone by it. `GameChatColumn`
+              owns `GameConnectionBar`, which is the app's only Attach control -
+              the control that *creates* the connection everything else here is
+              a reading of. Gating it on `character` puts it inside the state it
+              exists to establish, and that was measured on the clean VM on 9
+              September 2026: two established connections to the game port, real
+              text on the socket, and the app showing "Nothing is connected yet"
+              with no way back.
+
+              The old frame kept the transcript safe by putting it in a console
+              row outside `main`. This frame has no console row - the transcript
+              *is* the workspace - so the gate has to move rather than be
+              inherited, and it moves to the rail, which is genuinely a reading
+              of a live character.
             */}
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Board">
-              <div className="min-h-0 flex-1 overflow-hidden">
-                <PanelBoundary label="Battle">
-                  <BattleColumn />
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Text">
+              {!character && (
+                /* The call to action, above the transcript rather than instead
+                 * of it. It says what to do next; the bar below it is what does
+                 * it. Capped and scrollable so a short window cannot push the
+                 * command line off the screen - issue #418's rule, applied to
+                 * the one screen that now shows both at once. */
+                <div className="max-h-[45%] min-h-0 shrink-0 overflow-y-auto border-b border-border">
+                  <WaitingForCharacter />
+                </div>
+              )}
+              <div className="min-h-0 flex-1">
+                <PanelBoundary label="Game and chat">
+                  <GameChatColumn />
                 </PanelBoundary>
               </div>
             </div>
 
-            {showRightRail && (
+            {showRail && character && (
               <Splitter
-                label="Resize the board and the context side"
-                value={hostW > 0 ? 1 - rightRailWFit / hostW : 0.85}
-                onChange={moveRightRailEdge}
+                label="Resize the game text and the right rail"
+                value={hostW > 0 ? 1 - railWFit / hostW : 0.8}
+                onChange={moveRailEdge}
                 min={0}
                 max={1}
               />
             )}
 
             {/*
-              The context side: what you consult rather than what you watch.
-              `AiWorkerPanel` lives here now, not in Settings. It reports what
-              the background worker is doing, and a status display that only
-              exists while a settings sheet is open reports it to nobody -
-              see its own header. It *moved*: Settings no longer mounts it,
-              because one component with two mounts is two panels pretending
-              to be one, and they drift.
+              The right rail. The scene pane is the first thing in it, so it
+              sits in the top right corner of the workspace - which is where
+              Dan asked for it - and the things you watch continuously sit
+              underneath.
+
+              The pane is only mounted in `minimap`. In `popped` it is in a
+              window of its own and this says so rather than drawing a second
+              copy; in `hidden` it is not drawn at all and the ceiling in
+              `railWant` gives the width back to the text.
             */}
-            {showRightRail && (
+            {showRail && character && (
               <div
-                className="flex min-w-0 shrink-0 flex-col gap-1 overflow-y-auto border-l border-border p-1"
-                style={railStyle(rightRailWFit)}
+                className="flex min-w-0 shrink-0 flex-col gap-1 overflow-hidden border-l border-border p-1"
+                style={railStyle(railWFit)}
                 aria-label="Context side"
               >
-                <PanelBoundary label="Actions">
-                  <ActionsPanel dense />
-                </PanelBoundary>
-                <PanelBoundary label="Local AI worker">
-                  <AiWorkerPanel />
-                </PanelBoundary>
+                {scene === 'minimap' && (
+                  <div className="flex min-h-0 flex-[3] flex-col overflow-hidden" aria-label="Scene pane">
+                    <PanelBoundary label="Scene">
+                      <BattleColumn />
+                    </PanelBoundary>
+                  </div>
+                )}
+                {scene === 'popped' && (
+                  <p className="shrink-0 rounded border border-border bg-surface-raised p-2 text-xs text-ink-muted">
+                    The scene is open in its own window. Press the scene button
+                    on the bottom bar to bring it back into this corner.
+                  </p>
+                )}
+                <div className="flex min-h-0 flex-[2] flex-col gap-1 overflow-y-auto">
+                  <PanelBoundary label="Vitals">
+                    <StatsPanel dense />
+                  </PanelBoundary>
+                  <PanelBoundary label="Risk">
+                    <RiskBar />
+                  </PanelBoundary>
+                  {/* Experience, all the way to the right, which is where Dan
+                      put it and where it stays. It is the rail's own filler:
+                      whatever height the pane and the vitals leave is a longer
+                      strip of skills, which is the one panel here that is
+                      genuinely better for being taller. */}
+                  <div className="min-h-24 flex-1">
+                    <PanelBoundary label="Experience">
+                      <ExperienceStrip skills={character?.skills ?? []} />
+                    </PanelBoundary>
+                  </div>
+                  {/* Not moved to the icon bar: a background worker whose
+                      status only exists while something is open reports it to
+                      nobody, which is the exact reason it left Settings. */}
+                  <PanelBoundary label="Local AI worker">
+                    <AiWorkerPanel />
+                  </PanelBoundary>
+                </div>
               </div>
             )}
           </>
@@ -652,79 +647,12 @@ function AppViews() {
       </main>
 
       {/*
-        The console row: the mockup's third `.app` row, `224px` tall and
-        spanning the width, tracked `228px | 1fr | 250px` to line up with the
-        workspace above it. Context actions, the transcript, the recent-state
-        strip.
-
-        The transcript is here rather than in the board slot, and that is a
-        decision worth naming because D0(a) can be read as putting it in the
-        slot: it lives in exactly one place, and the mockup's own console row
-        is built around it (`.transcript` is `30px | 1fr | 38px`, a heading, a
-        scroll, and a command line). Two mounts of the transcript would be a
-        fork whichever slot won.
+        The bottom bar of icons. Everything that used to hold a fixed slice of
+        the window and no longer does is reachable from here - moved, not
+        deleted. See IconBar.tsx and panelBar.ts, which names the two panels
+        deliberately left off it and why.
       */}
-      {/*
-        Not gated on `character`, and that is the fix for #523 rather than a
-        relaxation of a rule.
-
-        `GameChatColumn` owns `GameConnectionBar`, which is the app's only
-        Attach control - the control that *creates* the connection the rest of
-        this window is a reading of. Gating it on `character` put it inside the
-        state it exists to establish. Measured on the clean VM on 9 September
-        2026: two established connections to the game port, the socket holding
-        real text, and the app showing "Nothing is connected yet" with no way
-        back, because leaving the demo cleared `character` and unmounted the
-        bar.
-
-        The rails above stay gated, and the comment there is still right: map,
-        board and context are readings of a live character and have nothing to
-        show without one. A transcript and a command line are not - they are
-        the client, and they work the moment a socket is open. So the gate
-        moved to the thing it was actually true of instead of being deleted.
-      */}
-      {setupComplete && (
-        <div
-          className="flex shrink-0 overflow-hidden border-t border-border bg-surface-raised"
-          style={{ height: CONSOLE_H }}
-          aria-label="Console"
-        >
-          {showLeftRail && character && (
-            <div
-              className="min-w-0 shrink-0 overflow-hidden border-r border-border"
-              style={railStyle(leftRailWFit + SPLIT_W)}
-            >
-              <PanelBoundary label="Functions and scripts">
-                <TaskFlowPanel title="Functions & scripts" dense />
-              </PanelBoundary>
-            </div>
-          )}
-
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <PanelBoundary label="Game and chat">
-              <GameChatColumn />
-            </PanelBoundary>
-          </div>
-
-          {/* No PanelBoundary chrome around the strip - see
-              ExperienceStrip.tsx: "we don't need borders and padding." A
-              crash inside it is still worth catching, so the boundary stays,
-              just without Box's frame around it. */}
-          {/* Both side cells are readings of a character; the middle one is
-              the client. Same distinction as the block comment above, applied
-              inside the row rather than to the whole of it. */}
-          {showRightRail && character && (
-            <div
-              className="min-w-0 shrink-0 overflow-hidden border-l border-border"
-              style={railStyle(rightRailWFit + SPLIT_W)}
-            >
-              <PanelBoundary label="Experience">
-                <ExperienceStrip skills={character?.skills ?? []} />
-              </PanelBoundary>
-            </div>
-          )}
-        </div>
-      )}
+      {setupComplete && character && <IconBar scene={scene} onSceneChange={changeScene} />}
 
       {setupComplete && <GameActionNotice />}
       {setupComplete && <Console />}

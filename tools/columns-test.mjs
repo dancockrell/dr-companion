@@ -85,16 +85,35 @@ console.log('-- proportional persistence remains proportional during live resize
   // The list is spelled out rather than derived on purpose. It is a
   // manifest: a fourth draggable dimension added as a raw pixel count would
   // be invisible to a check that only looked at the dimensions it found.
+  //
+  // It is one entry long since the play-first frame (9 Sep 2026). The
+  // workspace is the text and one rail with a single divider between them, so
+  // there is one draggable dimension; the text takes what the rail leaves and
+  // is never given a width of its own, which is what stops two authorities
+  // arguing over one number. `leftRailShare` and `boardShare` are gone with
+  // the columns they measured.
   ok(
     'App keeps every adjustable dimension as live share state',
-    ['leftRailShare', 'boardShare', 'rightRailShare'].every((name) =>
-      appSource.includes(`const [${name}, set`),
-    ),
+    ['railShare'].every((name) => appSource.includes(`const [${name}, set`)),
   )
   ok(
     'App resolves live shares against the current host dimensions',
-    appSource.includes('pixelsForSizeShare(leftRailShare, widthReference') &&
-      appSource.includes('pixelsForSizeShare(rightRailShare, widthReference'),
+    appSource.includes('pixelsForSizeShare(railShare, widthReference'),
+  )
+  // The other half of the manifest, and the half that catches a regression
+  // rather than a rename: no *preference* is held as a raw pixel count.
+  // Without this the list above is satisfied by adding a share and a pixel
+  // preference beside it, and the pixel one would win on the first drag.
+  //
+  // `hostW`/`hostH` are deliberately not caught. They are pixels and must be:
+  // they are the measurement a share is resolved against, not a stored
+  // preference, and a check that forbade them would be forbidding the thing
+  // that makes shares work.
+  const pixelPreferences = (appSource.match(/const \[\w*(?:Width|Px)\d*, set\w+\] = useState/g) ?? [])
+  ok(
+    'and holds no preference as a raw pixel count',
+    pixelPreferences.length === 0,
+    pixelPreferences.join(', ') || 'none, and hostW/hostH are measurements rather than preferences',
   )
 }
 

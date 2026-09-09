@@ -124,6 +124,23 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
     dataNeeded: ['scriptCatalog', 'scriptStates', 'quickSwitchPins', 'bridgeConnected'],
     requiresLiveCharacter: false,
   },
+  board: {
+    purpose:
+      'The visual pane - the room picture with everyone in it drawn on the board, the combat controls, the room description and what is on the floor. It is the pane that sits in the top right corner in minimap mode and opens in a window of its own when popped out; see scenePane.ts for the three states and App.tsx for the corner it sits in.',
+    dataNeeded: [
+      'character (room fields: roomCreatures/roomAllies/roomPlayers/roomItems/roomCombatants)',
+      'mapZone',
+      'mapHere',
+      'bridgeConnected',
+    ],
+    requiresLiveCharacter: true,
+  },
+  tasks: {
+    purpose:
+      'Tasks and scripts as one icon grid - every Python, TypeScript and Ruby entry a player can start, what is running now, and the pinned hotbar. Works with no live character: browsing and editing scripts offline is a real use, and only starting one needs the command lane.',
+    dataNeeded: ['scriptCatalog', 'scriptStates', 'quickSwitchPins', 'bridgeConnected'],
+    requiresLiveCharacter: false,
+  },
   game: {
     purpose: 'The room, the game text and the command line, as one panel - the MUD itself. In the single-viewer architecture this is the one window that keeps most of the screen (see this file\'s own header comment); everything else here is a smaller companion to it.',
     dataNeeded: ['gameLines() (see gameLink.ts)', 'character', 'mapZone', 'mapHere'],

@@ -34,12 +34,17 @@ check(
   /aria-valuemin/.test(splitterSource) && /aria-valuemax/.test(splitterSource) && /aria-valuetext/.test(splitterSource),
   true
 )
-// Two, not three: the third was 'Resize the map and the battle picture', the
-// board slot's horizontal divider, and the map is gone (docs/NO-3D.md). Both
-// numbers are asserted rather than only the distinctness, so a separator
-// that silently stopped being rendered fails here instead of quietly
-// shrinking the population this check runs against.
-check('every app separator has a distinct contextual name', [labels.length, new Set(labels).size], [2, 2])
+// One, not two, not three. The third was 'Resize the map and the battle
+// picture', the board slot's horizontal divider, which went with the map
+// (docs/NO-3D.md); the second was the divider between the character rail and
+// the board slot, and it went with the play-first frame (9 Sep 2026), whose
+// workspace is the text and one rail with a single divider between them.
+//
+// Both numbers are asserted rather than only the distinctness, so a separator
+// that silently stopped being rendered fails here instead of quietly shrinking
+// the population this check runs against - which is the whole reason the count
+// is written down and updated deliberately each time rather than derived.
+check('every app separator has a distinct contextual name', [labels.length, new Set(labels).size], [1, 1])
 check(
   'keyboard contract handles both limits without page scrolling',
   /'Home', 'End'/.test(splitterSource) && /e\.preventDefault\(\)/.test(splitterSource),

@@ -399,6 +399,7 @@ PRs per lane, squash-merged.
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | Q | Q2 | `lane-q/q2-highlights` | `C:\Users\Admin\dev\wt-q2` | 2026-09-06 |
 | S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
+| O | O1-O5 | `feat/play-first-layout` | `C:\Users\Admin\dev\wt-layout` | 2026-09-09 |
 
 **Lanes R, W, X, Y and Z are new on 9 September 2026, unheld, and are the
 first player-facing work in this plan** — see section 6b and
@@ -3376,6 +3377,75 @@ is the write side, and nothing else.
   depends-on: Z2
   do: read a real profile, write it back unchanged, and diff. A round-trip that reorders keys or drops a comment is a data-loss bug wearing a formatting costume. Then close the loop the read side opened: show, per setting, **which file's value won**, because `DOMAIN.md:1141-1145` identifies a later file silently overriding an earlier one as the mechanism behind the config failures that present as script bugs.
   verify: the round-trip is byte-identical on an unchanged profile; a setting defined in two files shows both and marks the winner.
+### Lane O - The play-first frame (Dan's first live session)
+
+Dan, 9 September 2026, after his first live session, in two messages:
+
+> its really hard to run. the godot screen should include the map and the
+> ability to easily put it into mini map mode or pop it out into a big map,
+> nice interface. we had a lot of the map built although we definitely update
+> what we were doing before. I'm not sure about all the menus but the game
+> screen needs to be quite large so that I can actually play the game as mud.
+
+> it's not best to put the screen in the middle... put it in the right corner
+> and have a bottom bar of icons for various functions and then on the left you
+> have room for your text heavy windows.
+
+**Why this is a new lane and not more of Lane D.** Lane D built the approved
+mockup (`docs/mockups/dr-companion-isometric-mvp.html`) and finished on 9
+September; this is the first report from somebody playing on it, and it says
+that arrangement is wrong for a MUD. A row added to a finished lane would read
+as unfinished work in it. The frame is built on `columns.ts` exactly as Lane
+D's was - two columns through the same arithmetic, in its own documented
+two-column mode - so this is not a second layout engine beside that one.
+
+- [x] **O1  Measure what each region actually gets** (~30)
+  commit: (this PR) verified: 2026-09-09 minutes: 45
+  touches: new:tools/layout-regions.mjs, src/components/shared/StatsPanel.tsx, new:docs/verification/layout-2026-09-09.md
+  depends-on: none
+  do: drive the app with the mock bridge through the browser harness at 1997x935, 1180x820 and 1366x768 and record, per region, the pixel area and the share of the window, with a screenshot per size. Three states per region - measured, hidden, absent - so a region a build does not have cannot read as one rendered at zero size.
+  verify: the numbers, in `docs/verification/layout-2026-09-09.md`.
+  done: at Dan's own window the game text held **17.9%** of the screen in a 223px strip along the bottom while the room picture in the middle held **38.8%**. 20.3% against 33.4% at 1180x820, and 21.7% against 30.7% at 1366x768.
+
+- [x] **O2  The frame: text left, scene pane in the right corner, icons along the bottom** (~90)
+  commit: (this PR) verified: 2026-09-09 minutes: 210
+  touches: src/App.tsx, new:src/lib/scenePane.ts, new:src/lib/panelBar.ts, new:src/components/layout/IconBar.tsx, src/components/dashboard/panels.tsx, src/lib/layout.ts, src/lib/panelDataContracts.ts, tools/columns-test.mjs, tools/splitter-range-test.mjs, tools/battlespace-test.mjs, tools/doc-claims-test.mjs, tools/build-player-data-doc.mjs, docs/PLAYER_DATA.md
+  depends-on: O1
+  do: the workspace becomes the text region on the left and one rail on the right, with a single divider between them; the scene pane is the first thing in that rail, so it sits in the top right corner; every function that no longer holds a fixed slice of the window moves to a bottom bar of icons rather than being deleted. Two new panel ids - `board` for the pane and `tasks` for the tasks-and-scripts grid - so the pop-out uses the panel-window machinery that already exists rather than a second implementation of it.
+  verify: the after table in `docs/verification/layout-2026-09-09.md`; `npx tsc -b`; `npm run gate`.
+  done: the text region went from 17.9% to **52.9%** of the window at 1997x935, 20.3% to 49.7% at 1180x820 and 21.7% to 48.1% at 1366x768, and holds about 74% of the window's width at all three. The scene pane's right edge sits 4px from the window's right edge at every size that has one.
+  note: the bar's names come from `PANEL_TITLES` and its descriptions from `PANEL_DATA_CONTRACTS[id].purpose`. `panelBar.ts` adds an icon and an order and nothing else - a third table of names and sentences would be wrong within a month and would look identical while being wrong.
+
+- [x] **O3  The pane's three states, remembered per size of window** (~45)
+  commit: (this PR) verified: 2026-09-09 minutes: 60
+  touches: O2>src/lib/scenePane.ts, new:tools/scene-pane-test.mjs, package.json, tools/test-suites.json
+  depends-on: O2
+  do: `minimap`, `popped` and `hidden`, with one cycling control on the bar that names the state it will move to. `popped` opens the `board` panel window; the corner then says where the pane went rather than drawing a second copy. The state is stored per class of window size, because it is a different decision on a 1997px monitor and at the app's 720px minimum, and one stored answer makes one of them wrong.
+  verify: `npm run test:scene-pane` - 21 checks.
+  sabotage: `sizeBucket` returning one bucket for every size, so the per-size persistence check goes red. Run under O4.
+
+- [x] **O4  Assert the frame at every supported size, and break it on purpose** (~60)
+  commit: (this PR) verified: 2026-09-09 minutes: 90
+  touches: new:tools/play-first-layout-test.mjs, new:tools/play-first-layout-break-check.mjs, package.json, tools/test-suites.json
+  depends-on: O2, O3
+  do: a browser-driven suite over five window sizes, the smallest read out of `src-tauri/src/window_size.rs` rather than typed, asserting the text's share of the width against a floor, the command line inside the viewport and clickable, the pane in the right corner, every bar icon named, described and reachable, every panel either on the bar or named as deliberately off it, and the three states cycling and persisting. Then a break-check that damages each property and asserts which checks go red and that nothing else does.
+  verify: `npm run test:play-first-layout` - 54 checks; `npm run test:play-first-layout-break` - 5 sabotages, control first.
+  done: the third sabotage reddened one check where two were expected, because the bar's button count was compared against `PANEL_BAR_ORDER` and both move together - dropping a panel from the order satisfied that comparison perfectly while making the panel unreachable. The suite now also compares the rendered bar against the panel manifest, and the sabotage reddens both. Asserting only that something went red would have missed it.
+
+- [x] **O5  Readability of a wall of game text** (~25)
+  commit: (this PR) verified: 2026-09-09 minutes: 40
+  touches: src/components/game/StreamTabs.tsx, src/components/game/GameCommandBar.tsx
+  depends-on: O2
+  do: the scrollback sticks to the bottom while it is at the bottom and offers a way back when it is not; the command line keeps focus after a send.
+  verify: characters per line at each size, recorded in `docs/verification/layout-2026-09-09.md`.
+  done: a Latest pill appears in the scroll box only while scrolled up, so it is never furniture, and changing channel counts as being at the bottom again. The command line now regains focus after a send that worked - pressing Enter left focus in the box by itself, pressing Send did not, and the next thing typed went nowhere. Type is 16px on a 24px line height; 216, 147 and 127 characters per line at the three sizes, which is left as a question rather than fixed.
+
+**Left as questions for Dan**, with the evidence, in
+`docs/verification/layout-2026-09-09.md`: 216 characters per line at 1997x935;
+whether the `game` panel still earns a bar slot now that the main window is
+nearly the same thing; whether the twelve macros of the Actions panel deserve
+to be permanently visible; and whether the AI worker's status should stay in
+the rail.
 
 ---
 

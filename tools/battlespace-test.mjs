@@ -30,6 +30,7 @@ const handsRow = readFileSync(new URL('../src/components/shared/HandsRow.tsx', i
 const gearNotice = readFileSync(new URL('../src/components/shared/GearNotice.tsx', import.meta.url), 'utf8')
 const situationBanner = readFileSync(new URL('../src/components/layout/SituationBanner.tsx', import.meta.url), 'utf8')
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+const safetyFooter = readFileSync(new URL('../src/components/layout/SafetyFooter.tsx', import.meta.url), 'utf8')
 const armorLoadout = readFileSync(new URL('../src/lib/armorLoadout.ts', import.meta.url), 'utf8')
 const portrait = readFileSync(new URL('../src/components/shared/Portrait.tsx', import.meta.url), 'utf8')
 const mockBridge = readFileSync(new URL('../src/bridge/mockBridge.ts', import.meta.url), 'utf8')
@@ -51,14 +52,27 @@ check('crowded rooms summarize people without replacing the clickable floor rail
 check('inventory is permanently visible beside the room description', /aria-label="Inventory"/.test(battle) && /<InventoryPanel/.test(battle))
 check('combat controls use the complete grouped macro catalog', /MACROS\.filter/.test(actions) && /'combat'/.test(actions) && /'goods'/.test(actions) && /'magic'/.test(actions))
 check('every combat variation is a directly wired compact icon button', /macro\.variations\.map/.test(actions) && /onClick=\{\(\) => run\(variation\.commands\)\}/.test(actions) && /h-9 w-9/.test(actions))
-// The property is that the transcript and the scripts pane are BOTH always on
-// screen - never tabbed, never switched - so a running workflow can never hide
-// the game text a player is supervising it by. D4 moved where that is
-// arranged: it used to be a two-column grid inside GameChatColumn, and it is
-// now the console row in App.tsx, whose left cell holds the scripts pane and
-// whose middle holds the transcript. Same guarantee, one level out, so the
-// check follows it rather than being deleted along with the grid it named.
-check('game and taskflows are permanently both on screen, never switched', /title="Functions & scripts"/.test(app) && /<TaskFlowPanel/.test(app) && /<GameChatColumn/.test(app) && /aria-label="Console"/.test(app) && /<StreamTabs/.test(chat) && /<GameCommandBar/.test(chat) && !/paneMode/.test(app) && !/paneMode/.test(chat))
+// The property is that a running workflow can never hide the game text a
+// player is supervising it by. This check has followed that property through
+// three arrangements and its name has been rewritten with it, because a name
+// that describes the mechanism goes green for a regression and red for a
+// rename (CLAUDE.md section 1).
+//
+// It said "game and taskflows are permanently both on screen, never switched",
+// which was how the guarantee was met when the two shared a grid inside
+// GameChatColumn, and then when they were two cells of the console row. The
+// play-first frame (9 Sep 2026) meets it a different and stronger way: the
+// transcript has a region of the workspace that nothing else can occupy, and
+// the tasks-and-scripts grid is not in the workspace at all - it opens in a
+// window of its own from the bottom bar. So a workflow pane cannot cover the
+// game text, because it is not in the same window.
+//
+// What that move must not cost is the other half: being able to see what is
+// running, and stop it, without opening anything. `SafetyFooter` is mounted
+// unconditionally in App and is by its own header "the only place" stop, pause
+// and resume live, carrying the running scripts by name - so that half is
+// asserted here rather than assumed.
+check('a running workflow cannot hide the game text, and what is running is still visible without opening anything', /aria-label="Text"/.test(app) && /<GameChatColumn/.test(app) && /<StreamTabs/.test(chat) && /<GameCommandBar/.test(chat) && !/paneMode/.test(app) && !/paneMode/.test(chat) && /<SafetyFooter \/>/.test(app) && /runningScripts/.test(safetyFooter) && /scriptStates/.test(safetyFooter))
 check('the functions title and global catalog controls share one toolbar', /title\?: string/.test(taskflows) && /h-10 shrink-0 items-center/.test(taskflows) && /Filter tasks and scripts/.test(taskflows) && !/A filter across everything/.test(taskflows))
 check('the game title and channel filters share one toolbar', /heading=\{<>/.test(chat) && /heading\?: ReactNode/.test(readFileSync(new URL('../src/components/game/StreamTabs.tsx', import.meta.url), 'utf8')) && !/h-10 shrink-0 items-center.*Game/.test(chat))
 check('inventory title, search, and load share one toolbar', /flex min-w-0 items-center gap-2 text-xs/.test(inventory) && /shrink-0 \$\{pressureColor\}/.test(inventory))
@@ -97,14 +111,18 @@ check('connection-unavailable actions are honestly disabled in their canonical d
 check('existing command hotbar pins remain removable and executable after launcher deduplication', /kind: 'command'/.test(quickSwitch) && !/kind: 'command', actionKey: entry\.actionKey/.test(taskflows) && /Remove .* from the hotbar/.test(hotbar) && /togglePin\(slot\.pin\)/.test(hotbar))
 check('hotbar commands keep their exact icon, color, tooltip, and macro execution path', /actionIcon\(pin\.actionKey\)/.test(hotbar) && /actionAccent\(pin\.actionKey\)/.test(hotbar) && /variation\.commands\.join/.test(hotbar) && /macro\.run\(variation\.commands\)/.test(hotbar))
 check('room title, hands and statuses own a dedicated line above the art', /aria-label="Battle room and status"/.test(battle) && /<BattleStatus/.test(battle) && /framed=\{false\}/.test(battle) && !/absolute inset-x-0 top-0 z-30 flex/.test(scene))
-// Unchanged property, changed mechanism. Combat still hands width to the
-// primary play surface and still does it as a display-time request that never
-// rewrites a stored width - the surface is now the board slot rather than a
-// Battle column, and `combatRoomWant` is gone (columns.ts carries a note
-// where it was: the frame has no "left workspace" for it to cap). What must
-// stay true is that the growth is computed at render time from the live
-// combat flag and that nothing calls a setter for it.
-check('combat pressure yields width to the board without erasing saved preferences', /combatBattleWant\(boardW, hostW, battleActive\)/.test(app) && /roomWant: boardWantVisible/.test(app) && /mapGrowthMax: leftRailWantVisible/.test(app) && /dashGrowthMax: rightRailW/.test(app) && /dashGrowthMax/.test(readFileSync(new URL('../src/lib/columns.ts', import.meta.url), 'utf8')) && !/combatRoomWant/.test(app))
+// Unchanged property, changed mechanism, for the third time - and the name is
+// the part that has stayed right through all three. Combat still hands width
+// to the primary play surface and still does it as a display-time request that
+// never rewrites a stored width. The surface was a Battle column, then the
+// board slot, and since the play-first frame (9 Sep 2026) it is the corner
+// scene pane in the right rail: `railAsked` is what the player stored,
+// `railWantVisible` is what combat asks for at render time, and `COMBAT_GROWTH`
+// bounds it so a fight cannot take the transcript back down to the share it
+// held before that frame. What must stay true is that the growth is computed
+// at render time from the live combat flag and that nothing calls a setter for
+// it - so this also asserts there is no `setRailW` on that path.
+check('combat pressure yields width to the primary play surface without erasing saved preferences', /combatBattleWant\(railAsked, hostW, battleActive\)/.test(app) && /const railAsked = railWant\(scene, railW\)/.test(app) && /Math\.round\(railAsked \* COMBAT_GROWTH\)/.test(app) && /dashGrowthMax: railWantVisible/.test(app) && /dashGrowthMax/.test(readFileSync(new URL('../src/lib/columns.ts', import.meta.url), 'utf8')) && /export const COMBAT_GROWTH/.test(readFileSync(new URL('../src/lib/scenePane.ts', import.meta.url), 'utf8')) && !/combatRoomWant/.test(app) && !/setRailW\(railWantVisible/.test(app))
 check('the urgent combat banner is one line and does not repeat its primary state', /titleFlags/.test(situationBanner) && /filter\(\(f\) => !titleFlags\.has\(f\)\)/.test(situationBanner) && /items-baseline/.test(situationBanner))
 check('the room header suppresses duplicate combat and non-tactical race/guild identity', /<StatusBoard hideInCombat/.test(battleStatus) && /hideInCombat && r\.flag === 'in_combat'/.test(statusBoard) && /character\.hands/.test(handsRow) && !/character\.race/.test(handsRow) && !/character\.guild/.test(handsRow) && !/character\.circle/.test(handsRow))
 check('tested equipment conflicts are mounted beside the live hands and announced without claiming an all-clear', /<GearNotice/.test(battleStatus) && /role="status"/.test(gearNotice) && /aria-live="polite"/.test(gearNotice) && /if \(!conflicts\.length \|\| !hands \|\| !worn\) return null/.test(gearNotice))

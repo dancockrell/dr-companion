@@ -44,8 +44,8 @@ password in a settings file, obfuscated or not, is a plaintext password with a
 decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
-33 keys, owned by 25 files, found by scanning
-315 source files.
+32 keys, owned by 26 files, found by scanning
+318 source files.
 
 ## Files you asked for
 
@@ -79,9 +79,7 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.ai-share-sources.v1` | Game channels whose private messages you have chosen to let a local model read. Empty unless you set it: whispers, thoughts and group chat are excluded from every prompt by default. | `src/lib/aiIngest.ts` |
 | `drc.armor-loadouts.v1` | A character's corrections to the derived armour coverage, which the live inventory feed cannot supply. | `src/lib/armorLoadout.ts` |
 | `drc.attach-port.v2` | The last port the player typed into the game connection bar. A number, not JSON. | `src/components/game/GameConnectionBar.tsx` |
-| `drc.board-slot-width.v1` | How wide the middle board slot is, as a fraction of the window. Replaces `drc.battle-width.v3`: the slot holds the map and the battle picture together now, so the key was bumped rather than reused under a new meaning. | `src/App.tsx` |
 | `drc.layout.v1` | Panel order and rectangles, one entry per UI mode: the real keys are `drc.layout.v1.<mode>`. Merged against the current defaults on read, so a panel added later still appears. | `src/lib/layout.ts` |
-| `drc.left-rail-width.v1` | How wide the character side is, as a fraction of the window. Replaces `drc.room-width.v2`, which measured a much wider column holding the map and the transcript. | `src/App.tsx` |
 | `drc.macros.v1` | Which variation each macro slot runs. | `src/lib/useMacroChoice.ts` |
 | `drc.middle-panels-hidden.v1` | Which boxes in the dashboard middle column the player has switched off, on top of whichever set the mode already shows. | `src/lib/panelVisibility.ts` |
 | `drc.nudge.v1` | Visit counts behind the "you keep coming back here, pin it?" nudge, per profile. | `src/lib/pinNudge.ts` |
@@ -97,7 +95,8 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.player-marker.v1` | The icon and colour of the player marker on the map. | `src/lib/playerMarker.ts` |
 | `drc.portrait.v1` | The portrait chosen for each character. | `src/lib/portraits.ts` |
 | `drc.quickswitch.v3` | What is pinned to the Quick Switch bar and in what order: tasks (with their language), commands and raw scripts. | `src/lib/quickSwitch.ts` |
-| `drc.right-rail-width.v1` | How wide the context side is, as a fraction of the window. Replaces `drc.experience-width.v2`; the experience strip moved to the console row and this rail holds alerts, actions and the AI worker. | `src/App.tsx` |
+| `drc.scene-pane.v1` | Whether the scene pane is in the corner, in a window of its own, or hidden - one answer per class of window size, because it is a different decision on a 1997px monitor and on a 720px minimum window. See src/lib/scenePane.ts. | `src/lib/scenePane.ts` |
+| `drc.scene-rail-width.v1` | How wide the right rail is, as a fraction of the window. One key because the play-first frame has one divider: the text takes whatever the rail leaves. Replaces `drc.left-rail-width.v1`, `drc.board-slot-width.v1` and `drc.right-rail-width.v1`, which described three columns that no longer exist - bumped rather than reused, because a share that meant "13% for the character rail" read as this one would give the scene pane a quarter of the width it needs. | `src/App.tsx` |
 | `drc.scene.v1` | Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. Bounded: 1,048,576 characters in total, 4,096 for any one room and 64 placed primitives in one cell, checked on every write and on every import (`SCENE_LIMITS` in `src/lib/sceneOverrides.ts`). An import past the total is refused room by room, naming each - unbounded, this one key could take the whole origin to its quota and every other key on this list would start failing to save. | `src/lib/sceneOverrides.ts` |
 | `drc.script-icons.v1` | Icon overrides for scripts, one entry per script rather than one per profile. | `src/lib/scriptIconOverrides.ts` |
 | `drc.show-gagged-lines.v1` | Whether the game pane draws lines a gag is hiding, marked as hidden. A per-listener display preference rather than part of the gag rule, so looking at what a gag hides cannot change a config the player might share. The lines are never removed from the buffer; this only decides whether they are drawn. | `src/lib/useGameLines.ts` |

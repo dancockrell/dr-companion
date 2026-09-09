@@ -47,6 +47,18 @@ export type PanelId =
   // Rendered as a fixed column in the normal layout; it becomes a panel in
   // freeform, where there are no columns to put it in.
   | 'game'
+  // The visual pane - the room picture, who is in it, the description and
+  // what is on the floor. It is what sits in the top right corner in
+  // `minimap`, and it is what `popped` opens in a window of its own, which is
+  // why it needs an id at all: the pop-out uses the panel-window machinery
+  // rather than a second implementation of the same thing. Deliberately not
+  // in any mode's default order, like `scene` and `config` - `scenePane.ts`
+  // decides where it is, not the dock.
+  | 'board'
+  // Tasks and scripts: the icon grid that used to occupy the console row's
+  // left cell. It had no id while it had a fixed home; the bottom bar opens
+  // it, and the bar opens panels.
+  | 'tasks'
 
 export interface PanelState {
   /** Collapsed to its title bar. */
