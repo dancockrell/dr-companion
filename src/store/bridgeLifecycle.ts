@@ -1,6 +1,6 @@
 import { bridge } from '../bridge/index.ts'
 import type { AppState } from '../types'
-import type { RealBridgeStatus } from '../bridge/realBridge.ts'
+import type { ConnectIntent, RealBridgeStatus } from '../bridge/realBridge.ts'
 import { storeBridgeStatus } from './bridgeStatus.ts'
 import { FRESH, nextStaleSince } from './staleMark.ts'
 import type { BridgeServerMessage } from '../bridge/types'
@@ -32,7 +32,14 @@ export function applyLiveStatus(
   status: RealBridgeStatus,
   set: StoreSet,
   get: StoreGet,
-  now: number = Date.now()
+  now: number = Date.now(),
+  /**
+   * Override for the transport's own `everConnected`. Only the dev-only
+   * `simulateBridgeStatus` seam passes it - see `AppState.simulateBridgeStatus`
+   * - because a browser harness's real transport has never opened a socket, so
+   * without it `reconnecting` and `gave-up` are states no fixture can render.
+   */
+  everConnected?: boolean
 ): void {
   const mapped = storeBridgeStatus(status)
   const state = get()
@@ -40,6 +47,10 @@ export function applyLiveStatus(
     ...mapped,
     bridgeAttempt: bridge.getLiveAttempt(),
     bridgeMaxAttempts: bridge.getLiveMaxAttempts(),
+    // `??` and not `||`: `false` is a legitimate override, and `||` would
+    // silently fall through to the transport for exactly the case a harness
+    // uses to render the never-connected state.
+    bridgeEverConnected: everConnected ?? bridge.getLiveEverConnected(),
     bridgeStaleSince: nextStaleSince({
       status: mapped.bridgeStatus,
       hasData: Boolean(state.character) || state.scriptStates.length > 0,
@@ -67,6 +78,10 @@ export function setBridgeMode(
     bridgeConnected: false,
     bridgeStatus: 'disconnected',
     bridgeAttempt: 0,
+    // Cleared with the rest. `bridge.disconnect()` above has already cleared
+    // it on the transport; this is the store agreeing rather than a second
+    // opinion, and issue #506 is what the two disagreeing looks like.
+    bridgeEverConnected: false,
     bridgeAuth: 'unknown',
     bridgeAuthNote: '',
     bridgeIntents: null,
@@ -86,10 +101,20 @@ export function setBridgeMode(
   get().addLog(mode === 'mock' ? 'Switched to mock bridge' : 'Switched to live Lich bridge')
 }
 
+/**
+ * `intent` says whether a failed attempt should run the reconnect ladder.
+ *
+ * The default is `'probe'`, which is the honest answer for every call made
+ * because a window opened: nobody knows a Lich is there, and dialling eight
+ * times over two minutes at a port that has never answered is what produced a
+ * permanent "reconnecting" alarm on the sign-in screen (#532). Pass
+ * `'expect-lich'` from the places that have just made a Lich exist.
+ */
 export function connectBridge(
   set: StoreSet,
   get: StoreGet,
-  handleMessage: (message: BridgeServerMessage, set: StoreSet, get: StoreGet) => void
+  handleMessage: (message: BridgeServerMessage, set: StoreSet, get: StoreGet) => void,
+  intent: ConnectIntent = 'probe'
 ): void {
   unsubscribeMessages?.()
   unsubscribeMessages = bridge.onMessage((message) => handleMessage(message, set, get))
@@ -110,7 +135,7 @@ export function connectBridge(
     })
   }
 
-  bridge.connect()
+  bridge.connect(intent)
   // A reused live transport may already be open and will not emit a second
   // connected event, so read its actual state after connect.
   if (live) {
@@ -134,6 +159,7 @@ export function disconnectBridge(set: StoreSet): void {
     bridgeConnected: false,
     bridgeStatus: 'disconnected',
     bridgeAttempt: 0,
+    bridgeEverConnected: false,
     character: null,
     characterAt: 0,
     bridgeStaleSince: FRESH,

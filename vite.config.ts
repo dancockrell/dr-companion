@@ -109,6 +109,33 @@ export default defineConfig({
         // not live modules. Windows can hold them locked while they are cut,
         // which otherwise kills the preview watcher with EBUSY.
         path.resolve(root, 'data/art/map-stamp-sources') + '/**',
+        /*
+         * Logs and capture files written into the project root while the dev
+         * server is up. Measured, not guessed (9 September 2026, issue #532).
+         *
+         * A session recorder was appending to `lane-live-capture/events.jsonl`
+         * and `lane-live-capture/tauri-dev.log` inside the watched root, and
+         * every append was a change to a watched file, so Vite issued a
+         * full-reload. `Page.frameNavigated` over CDP against the running app:
+         * `reason=reload`, same URL, **every 2 to 6 seconds**, indefinitely.
+         *
+         * That is not a cosmetic annoyance. A reload destroys the document, so
+         * every timer in it dies and every mount effect runs again - which for
+         * the bridge means the reconnect run restarts at attempt zero forever
+         * and can never reach its own bound. Sampled over 40 seconds, the
+         * footer never got past `1/8`. It is the second half of why Dan's
+         * build sat amber "indefinitely" rather than settling after two
+         * minutes: the ladder was honest about being bounded and was simply
+         * never allowed to finish.
+         *
+         * Named as suffixes rather than as one directory on purpose. The
+         * directory is a lane's scratch name and the next one will pick a
+         * different one; a log or a capture file anywhere in the root is never
+         * a live module, and this file's own history is two fixes that were
+         * right about the churn and wrong about the scope.
+         */
+        path.resolve(root, '**/*.log'),
+        path.resolve(root, '**/*.jsonl'),
       ],
     },
   },

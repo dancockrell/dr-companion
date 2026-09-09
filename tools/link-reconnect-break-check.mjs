@@ -64,9 +64,18 @@ const TS = 'src/bridge/realBridge.ts'
  */
 const BAR = 'src/components/game/GameCommandBar.tsx'
 const STALE = 'src/store/staleMark.ts'
+/**
+ * And the footer, added with issue #532.
+ *
+ * The bridge's half of the same defect the command bar had: a component
+ * holding its own reading of a transport status. Its census can fail in the
+ * direction that reads as clean, so the violation goes back on purpose - and
+ * the violation is the literal expression that was shipped.
+ */
+const FOOTER = 'src/components/layout/SafetyFooter.tsx'
 
 const subjects = {}
-for (const path of [RUST, TS, BAR, STALE]) {
+for (const path of [RUST, TS, BAR, STALE, FOOTER]) {
   const original = readFileSync(path)
   const text = original.toString('utf8')
   subjects[path] = {
@@ -324,7 +333,112 @@ const CASES = [
       'each reconnecting state names its own attempt and the bound',
       'the run gave up, so there is something to retry from',
       'and starts from a fresh budget rather than at the bound',
+      /*
+       * Added with issue #532, and measured the same way the rest were.
+       *
+       * These are the never-connected suite's own view of the same damage: an
+       * expected Lich also never stops, its chip counts past its own bound
+       * (33/8 was the reading), and the end state stays amber instead of going
+       * red. A grown list here is the honest outcome of adding checks over the
+       * same mechanism, and leaving it short would have made this case's
+       * "nothing it has no business touching" fail forever.
+       */
+      'the expected-Lich run is still dialling after',
+      'an expected Lich gets exactly the bound, then stops',
+      'and the number the UI reads agrees with the number of dials that happened',
+      'and the end state says it gave up',
+      'a give-up with no prior connection still reads as a give-up',
+      'the expected-Lich run gives up exactly once',
+      'the chip counts 1/8 up to 8/8',
+      'and then it stops, in a state that says so',
+      'which is the one bridge state that earns a red chip',
+      'nothing is left scheduled once it has given up',
+      'and no further socket is opened',
     ],
+  },
+  {
+    name: 'the ladder runs before there has ever been anything to connect to',
+    subject: TS,
+    why:
+      'this is issue #532 itself. With the probe arm gone, the first failed ' +
+      'dial of the session schedules a retry, so the app spends eight ' +
+      'attempts over two minutes on a port that has never answered and cannot ' +
+      '— there is no Lich before somebody signs in — and the footer calls the ' +
+      'whole run a reconnect of a connection that never existed',
+    from: "        if (this.intent === 'probe' && !this.everConnected) {",
+    to: '        if (false) {',
+    /*
+     * Measured, not predicted, per this file's own rule. Twelve checks, and
+     * the shape of the list is the point: the damage is one branch and it
+     * reaches the transport's state, the chip's phase, the chip's words, the
+     * schedule, and the detach case. That is what a defect with a wide blast
+     * radius looks like from the test side, and it is why the old build could
+     * be wrong in so many ways at once from one missing arm.
+     */
+    expect: [
+      'a probe that finds nothing stops, quietly',
+      'and the chip says exactly that',
+      'the not-connected chip is in plain words',
+      'a connection that never existed is never reported as reconnecting',
+      'and no retry is scheduled: there is no ladder before there is a Lich',
+      'there were no timers to fire',
+      'and running the clock out opens nothing',
+      'the state after the clock runs out is unchanged',
+      'the quiet stop names what it looked at',
+      'and what to do about it',
+      'a probe after a detach is still a single attempt',
+      'and schedules no ladder: the detach reset the intent as well as the counter',
+    ],
+  },
+  {
+    name: 'the ladder re-arms itself after giving up',
+    subject: TS,
+    why:
+      'the bound becomes decorative: the run reaches it, says it gave up, and ' +
+      'immediately starts again from attempt one, so the app is dialling ' +
+      'forever under a state that says it has stopped. This is the shape the ' +
+      'running build was in for a different reason (a reload loop restarting ' +
+      'the document every few seconds), and the only thing that would have ' +
+      'told either of them apart from a healthy bounded run is a check that ' +
+      'the run actually ends',
+    from: '          this.shouldReconnect = false\n          this.setStatus(\n            \'gave-up\',',
+    to: '          this.reconnectAttempts = 0\n          this.setStatus(\n            \'gave-up\',',
+    /*
+     * Only two checks, and that is the finding rather than a disappointment.
+     *
+     * The run still reaches `gave-up`, so everything asserting that the bound
+     * is spent stays green. What breaks is the *number*: it is back at zero by
+     * the time anyone reads it, so the app says "gave up after 0 attempts".
+     * These two are the only checks in the suite that would have noticed, and
+     * a bound announced with the wrong count is most of the way to a bound
+     * that is not enforced at all.
+     */
+    expect: [
+      'the give-up reason names the attempt count',
+      'and the number the UI reads agrees with the number of dials that happened',
+    ],
+  },
+  {
+    name: 'the footer keeps its own reading of the bridge status',
+    subject: FOOTER,
+    why:
+      'the exact expression this issue came from. A component comparing the ' +
+      'raw status to a literal folds `connecting` in with `reconnecting`, ' +
+      'which is what put an amber "Bridge reconnecting" over a screen asking ' +
+      'the player to sign in. The census must catch it whether or not the ' +
+      'component also imports the phase - it did import it, and was still wrong',
+    from: '  const bridgePhaseName = bridgePhase(bridgeReading)',
+    to: "  const bridgePhaseName = bridgeStatus === 'reconnecting' ? 'x' : bridgePhase(bridgeReading)",
+    /*
+     * One check, and it is the one that had to exist.
+     *
+     * The census-by-import stays green here, because the component does still
+     * import `bridgePhase` - it just also keeps a second opinion beside it,
+     * which is exactly the state the real bug was in. Only the raw-compare
+     * matcher sees this. Two checks over one population, catching different
+     * halves of the same rule; either alone would pass this sabotage.
+     */
+    expect: ['no component compares the raw bridge status to a literal'],
   },
   {
     name: 'the bridge reports a reconnect as a plain disconnect',
@@ -339,6 +453,11 @@ const CASES = [
       'every retry published a reconnecting state',
       'each reconnecting state names its own attempt and the bound',
       'a reconnect is never reported as a plain disconnect',
+      // Added with #532: with `reconnecting` gone, a Lich that is merely still
+      // booting after sign-in reads as one that was never there, and the chip
+      // tells the player to sign in again instead of to wait.
+      'a Lich that is still booting gets re-dialled rather than given up on',
+      'and the player is told it is connecting, not reconnecting',
     ],
   },
   {
@@ -401,13 +520,13 @@ const CASES = [
 // separate cases on one subject because each is restored and re-hashed on its
 // own, and a damaged file left behind is the one outcome worse than no
 // negative test at all.
-const RUNNERS = { [RUST]: runRust, [TS]: runNode, [BAR]: runNode, [STALE]: runNode }
+const RUNNERS = { [RUST]: runRust, [TS]: runNode, [BAR]: runNode, [STALE]: runNode, [FOOTER]: runNode }
 // Floors on what a green baseline must actually have executed. Well below the
 // real counts, so they never need touching and still catch a subject that
 // silently ran nothing.
-const FLOORS = { [RUST]: 15, [TS]: 40, [BAR]: 40, [STALE]: 40 }
+const FLOORS = { [RUST]: 15, [TS]: 40, [BAR]: 40, [STALE]: 40, [FOOTER]: 40 }
 
-const SUBJECTS = [RUST, TS, BAR, STALE]
+const SUBJECTS = [RUST, TS, BAR, STALE, FOOTER]
 
 console.log('== every subject is green before any damage ==')
 for (const path of SUBJECTS) {

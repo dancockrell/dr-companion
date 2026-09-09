@@ -25,6 +25,7 @@ import { CommandPalette } from './components/shared/CommandPalette.tsx'
 import { LichClosePrompt } from './components/shared/LichClosePrompt.tsx'
 import { usePresentationBridgePublisher } from './lib/usePresentationBridgePublisher.ts'
 import { subscribePresentationIntents } from './lib/presentationIntents.ts'
+import { onLichStarted } from './lib/lichStarted.ts'
 import { useAiWorkerHost } from './lib/aiWorkerHost.ts'
 import {
   combatBattleWant,
@@ -217,8 +218,33 @@ function AppViews() {
    * never mount.
    */
   useEffect(() => {
-    connectBridge()
+    // One attempt, not a ladder. Nobody knows a Lich is there at this point -
+    // before sign-in there is not one - so this is a probe for one already
+    // running, and its failure is the quiet not-connected state. Dialling
+    // eight times over two minutes at an empty port is what put a permanent
+    // amber "Bridge reconnecting" over the sign-in screen (#532).
+    connectBridge('probe')
   }, [connectBridge])
+
+  /*
+   * And the ladder, when a Lich actually exists.
+   *
+   * Sign-in or the launcher has just started one, and Lich binds its port a
+   * few seconds later, so this connect is the one that genuinely needs
+   * re-dials. Subscribed at the root for the same reason the connect above is:
+   * a panel that may never mount is not where this can live.
+   *
+   * Main window only. Every window shares this module's channel, but the
+   * bridge is per-window and an aux window reconnecting on somebody else's
+   * sign-in would dial a port it is not the one waiting for.
+   */
+  useEffect(() => {
+    if (v.kind !== 'app') return
+    return onLichStarted((lich) => {
+      useAppStore.getState().addLog(`Lich started (${lich.via}). Connecting to it.`)
+      connectBridge('expect-lich')
+    })
+  }, [v.kind, connectBridge])
 
   const requestIntent = useAppStore((s) => s.requestIntent)
 

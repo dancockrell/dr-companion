@@ -51,6 +51,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, ExternalLink } from 'lucide-react'
 import { isTauri, invokeTauri } from '../../lib/tauri.ts'
+import { notifyLichStarted } from '../../lib/lichStarted.ts'
 import { bridgeCommand } from '../../lib/frontends.ts'
 
 interface LichStatus {
@@ -157,6 +158,11 @@ export function LichLauncher() {
     setHealth(null)
     try {
       setSaid((await invokeTauri('launch_lich')) as string)
+      // The other route to a running Lich, and it announces on the same
+      // channel as sign-in so the bridge has one thing to listen to rather
+      // than two (#532). No port: this command does not return one, and
+      // inventing 11024 here is what `lichAttachOffer` exists to have stopped.
+      notifyLichStarted({ port: null, via: 'launcher' })
     } catch (e) {
       setFailed(String(e))
     } finally {

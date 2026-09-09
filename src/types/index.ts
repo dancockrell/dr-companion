@@ -18,6 +18,7 @@ import type {
 import type { Trail } from '../lib/trail'
 import type { QuickSwitchPin } from '../lib/quickSwitch'
 import type { PauseLatchMode } from '../lib/bridgeModeSelect'
+import type { ConnectIntent } from '../bridge/realBridge'
 
 export type { SkillState }
 export type { CharacterProfile }
@@ -672,6 +673,20 @@ export interface AppState {
   /** The bound, carried from the transport so the bar can say "3 of 8". */
   bridgeMaxAttempts: number
   /**
+   * Whether a bridge socket has ever opened this session, cleared by a detach
+   * or a mode switch.
+   *
+   * The bit that separates "never connected" from "reconnecting", and it is
+   * held here because no component can work it out: `disconnected` is what a
+   * fresh app, a failed first probe and a deliberate detach all look like, and
+   * `connecting` is the first dial of a session as well as a re-dial in the
+   * middle of a run. Reading `connecting` as "dropped and dialling again" is
+   * exactly what put a permanent amber alarm on the sign-in screen (#532).
+   *
+   * Read it through `bridgePhase.ts`, never directly - see that module.
+   */
+  bridgeEverConnected: boolean
+  /**
    * When the bridge stopped feeding this store, or 0 while it still is.
    *
    * Everything on the bridge's status payload - `character`, its vitals,
@@ -748,7 +763,13 @@ export interface AppState {
   setConsoleOpen: (v: boolean) => void
   clearRunaway: () => void
   setFrontend: (id: string) => void
-  connectBridge: () => void
+  /**
+   * Attach the bridge. `intent` defaults to `'probe'`: one attempt, whose
+   * failure is the quiet not-connected state. Pass `'expect-lich'` only from
+   * a place that has just made a Lich exist, which is what earns a ladder.
+   * See `ConnectIntent` in `src/bridge/realBridge.ts` and issue #532.
+   */
+  connectBridge: (intent?: ConnectIntent) => void
   disconnectBridge: () => void
   setBridgeMode: (m: 'mock' | 'live') => void
   /**
@@ -769,7 +790,24 @@ export interface AppState {
    * layer deliberately does not depend on the transport layer, and 'mock' is
    * the one member of this union that no transport can ever report.
    */
-  simulateBridgeStatus: (status: Exclude<BridgeTransportStatus, 'mock'>) => void
+  /**
+   * `everConnected` overrides what the live transport would be asked (#532).
+   *
+   * Needed because the phase a player reads is a function of the status *and*
+   * of whether a socket has ever opened, and in a browser-driven harness the
+   * real transport has never opened one - so without this, simulating
+   * `reconnecting` renders as `connecting`, and `reconnecting` and `gave-up`
+   * become states the fixture cannot reach. That is precisely the trap the
+   * comment above is about, one field further in: the seam was added for the
+   * status and the phase then grew a second input it did not cover.
+   *
+   * Omitted, the transport is asked, which is what every non-harness caller
+   * wants and keeps this from being a second source of truth.
+   */
+  simulateBridgeStatus: (
+    status: Exclude<BridgeTransportStatus, 'mock'>,
+    everConnected?: boolean
+  ) => void
   /** args carries a macro's literal commands; named intents build their own. */
   requestIntent: (
     intent: IntentName | `travel:${string}`,

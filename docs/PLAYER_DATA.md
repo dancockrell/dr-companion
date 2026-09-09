@@ -37,7 +37,7 @@ decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
 33 keys, owned by 25 files, found by scanning
-306 source files.
+308 source files.
 
 ## Files you asked for
 

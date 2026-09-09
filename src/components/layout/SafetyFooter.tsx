@@ -52,6 +52,7 @@ import {
   isAutomationPaused,
 } from '../../lib/flowStop.ts'
 import { pauseStatus } from '../../lib/pauseStatus.ts'
+import { bridgeChip, bridgePhase } from '../../lib/bridgePhase.ts'
 import {
   gameState,
   linkPhase,
@@ -85,6 +86,7 @@ export function SafetyFooter() {
   const bridgeStatus = useAppStore((s) => s.bridgeStatus)
   const bridgeAttempt = useAppStore((s) => s.bridgeAttempt)
   const bridgeMaxAttempts = useAppStore((s) => s.bridgeMaxAttempts)
+  const bridgeEverConnected = useAppStore((s) => s.bridgeEverConnected)
   const bridgeAuth = useAppStore((s) => s.bridgeAuth)
   const bridgeAuthNote = useAppStore((s) => s.bridgeAuthNote)
   const bridgeIntents = useAppStore((s) => s.bridgeIntents)
@@ -162,6 +164,26 @@ export function SafetyFooter() {
     bridgeConnected,
     bridgePauseLatched: character?.pauseLatched,
   })
+
+  /*
+   * The bridge, read through `bridgePhase.ts` and nowhere else (#532).
+   *
+   * This component used to decide for itself what the transport status meant,
+   * and folded `connecting` in with `reconnecting` - so the first dial of the
+   * session, before any Lich existed, was announced as a dropped connection
+   * being recovered. One reading, in one module, is the same answer PR #514
+   * gave the game socket with `linkPhase`, and `bridge-phase-test.mjs` derives
+   * the consumer list from the tree so a second reading fails rather than
+   * merely disagreeing.
+   */
+  const bridgeReading = {
+    status: bridgeStatus,
+    attempt: bridgeAttempt,
+    maxAttempts: bridgeMaxAttempts,
+    everConnected: bridgeEverConnected,
+  }
+  const bridgePhaseName = bridgePhase(bridgeReading)
+  const bridgeChipView = bridgeChip(bridgeReading)
 
   /**
    * The game socket's own state, read straight from `gameLink` rather than
@@ -347,26 +369,32 @@ export function SafetyFooter() {
           * wait, versus go and start it in Lich. The attempt count is what
           * separates them, and before this it existed only inside a log line
           * that no component rendered. */}
-        {!bridgeConnected &&
-          (bridgeStatus === 'reconnecting' || bridgeStatus === 'connecting' ? (
-            <span
-              className="shrink-0 rounded border border-warn/40 bg-warn/15 px-1.5 py-0.5 font-semibold tabular-nums text-warn"
-              title="The bridge dropped and is dialling again. Nothing reaches Lich until it is back; stop scripts in Lich itself if this is urgent."
-            >
-              Bridge reconnecting{bridgeAttempt > 0 ? ` ${bridgeAttempt}/${bridgeMaxAttempts}` : ''}
-            </span>
-          ) : (
-            <span
-              className="shrink-0 rounded border border-danger/40 bg-danger/15 px-1.5 py-0.5 font-semibold text-danger"
-              title={
-                bridgeStatus === 'gave-up'
-                  ? `Stopped dialling after ${bridgeAttempt} attempts. Start companion_bridge in Lich, then reconnect from Setup.`
-                  : 'Nothing reaches Lich while the bridge is down. Stop scripts in Lich itself.'
-              }
-            >
-              {bridgeStatus === 'gave-up' ? `Bridge gave up (${bridgeAttempt})` : 'Bridge down'}
-            </span>
-          ))}
+        {bridgeChipView.label && (
+          <span
+            /* The phase itself, beside the words, exactly as the pause chip
+               carries its cell. A check that reads only the text cannot tell a
+               relabelled state from a wrong one, and `bridge-state-shots.mjs`
+               reads both. Derived from the same call that picks the words and
+               the colour, so it cannot name a state this chip is not
+               rendering. */
+            data-bridge-phase={bridgePhaseName}
+            className={cn(
+              'shrink-0 rounded border px-1.5 py-0.5 font-semibold tabular-nums',
+              bridgeChipView.tone === 'warn'
+                ? 'border-warn/40 bg-warn/15 text-warn'
+                : bridgeChipView.tone === 'danger'
+                  ? 'border-danger/40 bg-danger/15 text-danger'
+                  : /* quiet. Not-connected before anybody has signed in is not
+                       a fault, and it had been painted amber - an alarm about
+                       a connection that had never existed, sitting under a
+                       screen inviting the player to sign in (#532). */
+                    'border-border bg-surface-overlay text-ink-muted'
+            )}
+            title={bridgeChipView.title}
+          >
+            {bridgeChipView.label}
+          </span>
+        )}
 
         {/* The game socket, which is a different transport from the bridge and
           * drops independently of it. It had no badge here at all: a dropped
