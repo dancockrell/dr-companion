@@ -46,7 +46,12 @@ using System.Runtime.InteropServices;
 public class DrcWin {
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
-  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint x, uint y, uint d, IntPtr e);
+  // dwData is signed. A wheel-DOWN tick is -120, and declaring this `uint`
+  // made every downward scroll throw "Cannot convert value -120 to type
+  // System.UInt32" rather than scroll. Scrolling UP passes +120 and worked,
+  // which is why the wrong type survived: the only half anybody had used was
+  // the half that cannot show the bug.
+  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint x, uint y, int d, IntPtr e);
   [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr p);
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowTextW(IntPtr h, StringBuilder s, int n);
@@ -87,7 +92,7 @@ if ($ScrollTicks -ne 0) {
   $step = 120
   if ($ScrollTicks -lt 0) { $step = -120 }
   for ($i = 0; $i -lt [Math]::Abs($ScrollTicks); $i++) {
-    [DrcWin]::mouse_event(0x0800, 0, 0, [uint32]$step, [IntPtr]::Zero)  # WHEEL
+    [DrcWin]::mouse_event(0x0800, 0, 0, [int]$step, [IntPtr]::Zero)  # WHEEL
     Start-Sleep -Milliseconds 90
   }
   Write-Output ("SCROLL ticks={0} at x={1} y={2}" -f $ScrollTicks, $ScrollX, $ScrollY)
