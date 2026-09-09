@@ -61,11 +61,11 @@ are then fetched by your browser, not by this app.
 
 ### `github.com`
 
-**Contacted by the app.** Release assets - the Ruby4Lich5 and Genie downloads the setup wizard installs.
+**Contacted by the app.** Release assets - the Ruby4Lich5 and Genie downloads the setup wizard installs, and, since 9 September 2026, DR Companion's own update manifest and installer.
 
-- **What is sent:** Nothing about the player. A download of a public file.
-- **Where in the code:** `src-tauri/src/setup/downloads.rs`, whose allowlist is `elanthia-online` and `GenieClient` only.
-- Also where the bug-report button and several help links point, which the player's own browser opens rather than this app.
+- **What is sent:** Nothing about the player. A download of a public file. The update check sends the version this copy is running, because that is the question it is asking; it sends no identifier, no character name, no account and no game text.
+- **Where in the code:** `src-tauri/src/setup/downloads.rs`, whose allowlist is `elanthia-online` and `GenieClient` only; and the updater plugin, whose one endpoint is `plugins.updater.endpoints` in `src-tauri/tauri.conf.json` and is this repository's own releases page.
+- The updater is not a background service. It asks once at launch and again only when the player presses Check for updates; it downloads nothing until they press Download and installs nothing until they press Install. It contacts one URL, `releases/latest/download/latest.json`, and then whichever installer that file names. Also where the bug-report button and several help links point, which the player's own browser opens rather than this app.
 
 ### `objects.githubusercontent.com`
 
@@ -128,7 +128,7 @@ same list and are checked in the same two directions, so a socket cannot be
 described here without existing in the code, or exist in the code without
 being described here.
 
-The scan currently matches 71 lines across 343 source
+The scan currently matches 72 lines across 348 source
 files, plus 1 declared non-URL endpoint line(s), and
 finds 9 hosts, which is the number of sections above. It cannot
 tell a request from a link - both are an `https://` in a file - so that

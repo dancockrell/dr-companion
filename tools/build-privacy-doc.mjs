@@ -244,10 +244,10 @@ const DESTINATIONS = [
   {
     host: 'github.com',
     contacted: true,
-    what: 'Release assets - the Ruby4Lich5 and Genie downloads the setup wizard installs.',
-    sends: 'Nothing about the player. A download of a public file.',
-    where: '`src-tauri/src/setup/downloads.rs`, whose allowlist is `elanthia-online` and `GenieClient` only.',
-    note: 'Also where the bug-report button and several help links point, which the player\'s own browser opens rather than this app.',
+    what: "Release assets - the Ruby4Lich5 and Genie downloads the setup wizard installs, and, since 9 September 2026, DR Companion's own update manifest and installer.",
+    sends: 'Nothing about the player. A download of a public file. The update check sends the version this copy is running, because that is the question it is asking; it sends no identifier, no character name, no account and no game text.',
+    where: "`src-tauri/src/setup/downloads.rs`, whose allowlist is `elanthia-online` and `GenieClient` only; and the updater plugin, whose one endpoint is `plugins.updater.endpoints` in `src-tauri/tauri.conf.json` and is this repository's own releases page.",
+    note: "The updater is not a background service. It asks once at launch and again only when the player presses Check for updates; it downloads nothing until they press Download and installs nothing until they press Install. It contacts one URL, `releases/latest/download/latest.json`, and then whichever installer that file names. Also where the bug-report button and several help links point, which the player's own browser opens rather than this app.",
   },
   {
     host: 'objects.githubusercontent.com',

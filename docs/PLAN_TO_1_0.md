@@ -652,10 +652,15 @@ passes.
   and one script proposal reach review with provenance; scanner tests green.
 - **Gate 5 — Public quality:** I1–I11, J complete, F5–F8.
   Check: token test strict (allowlist empty); #175/#176/#179 closed.
-- **Gate 6 — Release:** F9–F12. Check: `npm run gate` green on the tagged
-  commit, then a locally built `v1.0.0-beta.1` installer — its sha256 recorded
-  by hand, because nothing prints it for you any more — installs, runs and
-  uninstalls on the clean VM, recorded.
+- **Gate 6 — Release:** F9–F12, F15–F17. Check: `npm run gate` green on the
+  tagged commit, then a locally built `v1.0.0-beta.1` installer — its sha256
+  recorded by hand, because nothing prints it for you any more — installs, runs
+  and uninstalls on the clean VM, recorded. The release must carry **both**
+  assets (`-setup.exe` and `latest.json`) and
+  `npm run release:verify -- --expect-update-manifest` must be green on the
+  build they came from; and F17 must have recorded one real update applied over
+  a running install, because every other check in this gate runs against files
+  in a directory on this machine.
 - **Gate 7 — 1.0:** F13–F14; two consecutive beta weeks with no data-loss
   report; zero open ship-blockers; the seven bars of section 5 each recorded.
 
@@ -1318,6 +1323,7 @@ whether it is embedded, docked or a separate window is D0.
   depends-on: F3
   do: the app already fetches Ruby4Lich5 from GitHub releases (`tools/vendor-fetch.mjs`, `setup.rs`). Reuse for a "newer version available" link (no auto-install) or rely on the page. Recommend the link. Section 10.
   verify: "Decided:" line.
+  superseded-in-substance: 9 Sep 2026 by Dan's "we need to build an updater, right?", delivered as **F16**. Kept `[x]` rather than `[-]` because the increment was a *decision* and it genuinely ran; `[-]` asserts every file the increment owned is absent, and `docs/RELEASE.md` is very much still here. The decision it recorded no longer holds — §2.2 of that file carries both the old text and the new one, so the change is legible rather than silent.
 
 - [x] **F5  Privacy statement** (≈20)
   commit: (this PR) verified: 2026-09-05 minutes: 45
@@ -1391,6 +1397,31 @@ whether it is embedded, docked or a separate window is D0.
   do: as F9 (local build, digest recorded by hand); release notes name the seven
   bars of section 5 with the recording of each.
   verify: release page links seven records.
+
+- [x] **F15  One version, five files** (≈15)
+  commit: (this PR) verified: 2026-09-09 minutes: 40
+  touches: tools/set-version.mjs, src/lib/versions.ts, src/components/layout/SettingsSheet.tsx, new:tools/version-drift-break-check.mjs, package.json, tools/test-suites.json
+  depends-on: F2
+  do: F2 checked four files. `src/lib/versions.ts` was the fifth and was not in the check.
+  result: **it was already wrong.** `APP_VERSION` read `0.1.0` against four files at `0.1.1`, and it is the copy a *player* sees — the About line in Settings, `appVersion` in every bug report (`ReportDialog.tsx`), and the version handshake the app sends the bridge (`bridgeMessageHandler.ts`). So `set-version.mjs`'s own header ("the first person to report a bug reports the wrong version") was a live description of this constant rather than a hypothetical about the installer's name, and the check was agreeing across the four files it happened to know about. A sixth copy was found in the same pass: `SettingsSheet.tsx` printed `DR Companion 0.1.1` as typed text, which would have drifted next; it renders `{APP_VERSION}` now, so there is nothing left to keep in sync there.
+  verify: `node tools/set-version.mjs --check` → `OK all 5 files declare 0.1.1`.
+  sabotage: `node tools/version-drift-break-check.mjs`, 10 checks. Each of the five files is bumped to `999.0.0` **in a temp replica** and the check must exit 1 naming that file; plus a case that renames `APP_VERSION` so the reader cannot find it, which must be `could not read a version` rather than four files agreeing; plus five files agreeing on `0.1` which is not a semver. The tree is never written to. Two of the bump cases were green on the first run and should not have been: a plain `text.replace('0.1.1', …)` hits the first occurrence, which in `Cargo.lock` is a dependency's version and in `versions.ts` is a number quoted in a doc comment — the sabotage landed and never reached the anchor the reader reads. It writes through `set-version.mjs`'s own writer now, so the damage is guaranteed to be where the check looks.
+
+- [x] **F16  The application updater** (≈90)
+  commit: (this PR) verified: 2026-09-09 minutes: 200
+  touches: new:src/lib/updater.ts, new:src/lib/updaterWiring.ts, new:src/components/layout/UpdateSection.tsx, new:src/components/layout/UpdateBanner.tsx, new:src-tauri/src/updater.rs, new:tools/updater-test.mjs, new:tools/updater-break-check.mjs, new:tools/build-update-manifest.mjs, new:tools/update-manifest-test.mjs, new:tools/no-private-key-test.mjs, src-tauri/src/lib.rs, src-tauri/tauri.conf.json, src-tauri/capabilities/default.json, src-tauri/Cargo.toml, tools/verify-release-bundle.mjs, tools/release-flags-test.mjs, docs/RELEASE.md, THIRD_PARTY.md
+  depends-on: F15
+  do: Dan, 9 Sep 2026, superseding F4: *"we need to build an updater, right?"* `tauri-plugin-updater` 2.11.0 + `@tauri-apps/plugin-updater` 2.11.0, static-format `latest.json` served as a GitHub release asset from the `latest` alias, minisign signature verified before anything runs.
+  result: the plugin's API was read out of the installed package and crate rather than recalled — `check() → Update|null`, `download(onEvent)`, `install()`, `close()`, and `get_urls` searching `{os}-{arch}-{installer}` then `{os}-{arch}`, so the manifest key is `windows-x86_64`. The rules a player cares about live in `src/lib/updater.ts`, which imports nothing and is therefore drivable under plain node: checking never downloads, downloading never installs, `downloadAndInstall` is called nowhere, "later" defers that version for the session and the launch check honours it, and installing during a live game session refuses until the player has been shown that it closes the app and drops their character. Ten states, all rendered, all with a sentence. `updater_configured` (Rust) reads the `pubkey` out of the running binary's own config so a build with no key says *"this build has no update channel"* and refuses to check, rather than offering an update it could never verify — three states, not two, the same shape `verify-release-bundle.mjs` uses for the viewer. THIRD_PARTY.md regenerates at 341 crates.
+  verify: `npm run test:updater` → `34 checked, 0 failed`; `npm run test:update-manifest` → `14 checked, 0 failed`; `npm run test:no-private-key` → `8 checked, 0 failed`; `npm run gate`.
+  sabotage: `npm run test:updater-break`, six cases on temp copies, each declaring **which** checks must go red: unhonour "later" at launch (1), install at the end of `download` (4), remove the live-session gate (4), download during a check (2), forget the deferred version (2), drop the `whatToDo` sentence (1). A positive control runs the unmodified copy first, and the file is compared byte-for-byte at the end. Two cases were wrong on the first run in the informative direction — the injected call threw out of an `await` the suite does not guard, so the run died partway through having already printed exactly the expected FAIL lines, and only the `ran >= 20` floor separated a caught sabotage from a crashed suite. `test:no-private-key` plants a key of its own in `tools/fixtures/` and asserts the grep finds it and nothing else before claiming the tree is clean; its markers are assembled from halves so the checker does not match its own source, because the obvious fix for that — excluding the checker from the scan — is a hole exactly the size of the checker.
+  pitfalls: the private key is **not generated and not in this repository**, deliberately, and `"pubkey": ""` is committed. `docs/RELEASE.md` §2.4 carries the reasoning and the one command. What this increment does *not* establish is F17. Two things caught themselves along the way and are worth having written down. `test:no-private-key`'s first red was **its own filename**: the pattern matched any path containing `private-key`, and the moment the file was staged it became tracked and flagged itself — a rule that fires on prose about keys fires on `docs/RELEASE.md` §2.4 too, and a check that cries wolf inside a release ritual is one somebody learns to skip. It matches key *filenames* now (`.key`, `.pfx`, `.p12`, `id_ed25519`), with a matcher control asserting four names it must catch and four it must leave alone. And `test:updater`'s first run reported nine of ten states reached: `checking` exists only between the call and its resolution, so sampling return values could never see it, and the suite subscribes for that one.
+
+- [ ] **F17  The updater, end to end, on the VM** (≈60 + waiting)
+  touches: none
+  depends-on: F16, F9
+  do: everything in F16 was verified against a manifest and an installer in a directory on this machine. Nothing in it proves a *running copy* reaches GitHub's `latest` alias, downloads, verifies and installs over itself. Build two versions an hour apart; install the older on the clean VM from the `clean` snapshot; publish the newer with both assets; press Check for updates in Settings and then Install. Separately: press Later with a character in the game and confirm the app does not close, and that nothing re-offers it.
+  verify: a record in `docs/verification/updater-e2e-<date>.md` carrying the two versions, both sha256 digests, the manifest as published, and a screenshot of the app reporting the *new* version after the restart. Restore the snapshot at the end.
 
 - [ ] **F14  Announce** (≈15)
   touches: none
@@ -3515,6 +3546,12 @@ the decision; a later session may reopen one by writing why here.
   revisit at 1.0. *Decided:* **unsigned for beta**, 5 Sep 2026.
 - **F4 — update check.** Recommend a "newer version available" link via the
   existing GitHub-releases fetch; no auto-install. *Decided:* **the link**, 5 Sep 2026.
+  ***Superseded*** 9 Sep 2026 by Dan, in as many words — *"we need to build an
+  updater, right?"* — and delivered as F16. The half of the 5 September
+  reasoning that mattered survives intact and is now enforced in code rather
+  than by not having the feature: nothing installs without an explicit press,
+  "later" actually waits, and an install during a live game session needs a
+  confirmation that says it will drop the character. See `docs/RELEASE.md` §2.2.
 - **Shortest path.** Recommend shipping beta.1 with viewer and AI disabled
   (Gates 0→1→2→6). *Decided:* **yes**, 5 Sep 2026.
 - **G5 — claim vocabulary.** Recommend adopting the handoff PDF's §28 schema

@@ -129,6 +129,18 @@ ok('the correctly spelled flag is not rejected as unknown', !/unknown flag/.test
 const vNone = run(VERIFY, [])
 ok('no flags at all is not rejected as unknown', !/unknown flag/.test(vNone.out))
 
+// The updater's manifest flag, added 9 Sep 2026, and it carries the same risk
+// as the viewer one for the same reason: `--expct-update-manifest` read as
+// "no manifest expected" would let a release ship an installer with no
+// `latest.json`, which is a release that updates nobody and looks entirely
+// normal on the release page.
+const mTypo = run(VERIFY, ['--expct-update-manifest'])
+ok('a misspelled --expect-update-manifest exits non-zero', mTypo.code === 1)
+ok('...and says which token was wrong', mTypo.out.includes('--expct-update-manifest'))
+ok('...and calls it an unknown flag', /unknown flag/.test(mTypo.out))
+const mReal = run(VERIFY, ['--expect-update-manifest'])
+ok('the correctly spelled manifest flag is not rejected as unknown', !/unknown flag/.test(mReal.out))
+
 // The floor. Well below what this file contains, so it never needs touching,
 // and high enough that a truncated or half-executed run reports itself rather
 // than passing for free.

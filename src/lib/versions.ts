@@ -36,7 +36,53 @@
  */
 export const EXPECTED_BRIDGE_VERSION = '0.14.0'
 
-export const APP_VERSION = '0.1.0'
+/**
+ * Two version axes, one source each. Written down 9 Sep 2026 because two lanes
+ * were about to answer the same question from different constants.
+ *
+ * `EXPECTED_BRIDGE_VERSION` above is the **bridge** axis: which
+ * `companion_bridge.lic` this build ships and expects. Anything that decides
+ * whether the installed bridge is stale — the version card, and the on-launch
+ * install that makes a three-versions-old script impossible — must read this
+ * constant rather than a literal of its own.
+ * `tools/bridge-version-drift-test.mjs` holds it against the `.lic` this repo
+ * ships, and a second copy of the number would be outside that check.
+ *
+ * `APP_VERSION` below is the **application** axis: this build's own version,
+ * kept identical across `package.json`, `src-tauri/tauri.conf.json`,
+ * `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` and this file by
+ * `tools/set-version.mjs`, and published by the updater
+ * (`tools/build-update-manifest.mjs` takes the manifest's version from
+ * `package.json`, which is the same number).
+ *
+ * They are deliberately not the same number and never will be: the bridge is a
+ * Ruby script with its own release history. What they share is the rule — one
+ * declaration, and a check that fails the build when a copy drifts from it.
+ */
+
+/**
+ * This build's own version.
+ *
+ * It was `0.1.0` while `package.json`, `tauri.conf.json`, `Cargo.toml` and
+ * `Cargo.lock` all said `0.1.1`, and nothing noticed. `tools/set-version.mjs`
+ * knew about four files and this was the fifth, so every bug report filed from
+ * this build named a version that had not been built for two releases - the
+ * exact failure that script's own header describes ("the first person to
+ * report a bug reports the wrong version"), happening in the one file it did
+ * not read.
+ *
+ * It is a literal rather than an import of `package.json` or a Vite `define`
+ * for the same reason `EXPECTED_BRIDGE_VERSION` above is: this module is
+ * imported by node test harnesses that run with no bundler and no JSON import
+ * assertion. So the agreement is enforced instead of derived, by the same
+ * script that writes the other four - `node tools/set-version.mjs --check`
+ * reads this declaration and fails naming this file when it drifts.
+ *
+ * Anything that shows a version to a player reads this constant. Settings used
+ * to print `DR Companion 0.1.1` as typed text, which is a sixth copy and would
+ * have drifted next.
+ */
+export const APP_VERSION = '0.1.1'
 
 export interface VersionState {
   app: string

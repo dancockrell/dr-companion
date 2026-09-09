@@ -40,6 +40,7 @@ The viewer is not installed by default and the client runs without it.
 | Package | Version | Licence |
 |---|---|---|
 | `@tauri-apps/api` | 2.11.1 | Apache-2.0 OR MIT |
+| `@tauri-apps/plugin-updater` | 2.11.0 | MIT OR Apache-2.0 |
 | `clsx` | 2.1.1 | MIT |
 | `js-yaml` | 5.4.1 | MIT |
 | `lucide-react` | 1.40.0 | ISC |
@@ -68,16 +69,16 @@ bundler, the type system and the CSS toolchain all contribute to what ships.
 
 ## Rust crates
 
-328 crates reach the shipped Windows binary, resolved for
+341 crates reach the shipped Windows binary, resolved for
 `x86_64-pc-windows-msvc`. `src-tauri/Cargo.lock` lists more than this: it carries
 every platform's crates, including the GTK and Android ones this app has never
 built, and naming those here would claim to ship software it does not.
 
 | Licence | Crates |
 |---|---:|
-| MIT OR Apache-2.0 | 160 |
-| MIT | 63 |
-| Apache-2.0 OR MIT | 32 |
+| MIT OR Apache-2.0 | 169 |
+| MIT | 65 |
+| Apache-2.0 OR MIT | 34 |
 | Unicode-3.0 | 18 |
 | MIT/Apache-2.0 | 12 |
 | Unlicense OR MIT | 8 |
@@ -247,6 +248,7 @@ built, and naming those here would claim to ship software it does not.
 | `markup5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
 | `mime` | 0.3.17 | MIT OR Apache-2.0 |
+| `minisign-verify` | 0.2.5 | MIT |
 | `miniz_oxide` | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
 | `mio` | 1.2.2 | MIT |
 | `muda` | 0.19.3 | Apache-2.0 OR MIT |
@@ -286,11 +288,13 @@ built, and naming those here would claim to ship software it does not.
 | `regex-automata` | 0.4.18 | MIT OR Apache-2.0 |
 | `regex-syntax` | 0.8.11 | MIT OR Apache-2.0 |
 | `reqwest` | 0.12.28 | MIT OR Apache-2.0 |
+| `reqwest` | 0.13.4 | MIT OR Apache-2.0 |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | `rustc_version` | 0.4.1 | MIT OR Apache-2.0 |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
 | `rustls` | 0.23.43 | Apache-2.0 OR ISC OR MIT |
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
+| `rustls-platform-verifier` | 0.7.0 | MIT OR Apache-2.0 |
 | `rustls-webpki` | 0.103.15 | ISC |
 | `ryu` | 1.0.23 | Apache-2.0 OR BSL-1.0 |
 | `same-file` | 1.0.6 | Unlicense/MIT |
@@ -340,10 +344,13 @@ built, and naming those here would claim to ship software it does not.
 | `tauri-build` | 2.6.3 | Apache-2.0 OR MIT |
 | `tauri-codegen` | 2.6.3 | Apache-2.0 OR MIT |
 | `tauri-macros` | 2.6.3 | Apache-2.0 OR MIT |
+| `tauri-plugin` | 2.6.3 | Apache-2.0 OR MIT |
+| `tauri-plugin-updater` | 2.11.0 | Apache-2.0 OR MIT |
 | `tauri-runtime` | 2.11.3 | Apache-2.0 OR MIT |
 | `tauri-runtime-wry` | 2.11.4 | Apache-2.0 OR MIT |
 | `tauri-utils` | 2.9.3 | Apache-2.0 OR MIT |
 | `tauri-winres` | 0.3.6 | MIT |
+| `tempfile` | 3.27.0 | MIT OR Apache-2.0 |
 | `tendril` | 0.5.1 | MIT OR Apache-2.0 |
 | `thiserror` | 1.0.69 | MIT OR Apache-2.0 |
 | `thiserror` | 2.0.20 | MIT OR Apache-2.0 |
@@ -403,6 +410,7 @@ built, and naming those here would claim to ship software it does not.
 | `window-vibrancy` | 0.6.0 | Apache-2.0 OR MIT |
 | `windows` | 0.61.3 | MIT OR Apache-2.0 |
 | `windows_x86_64_msvc` | 0.52.6 | MIT OR Apache-2.0 |
+| `windows_x86_64_msvc` | 0.53.1 | MIT OR Apache-2.0 |
 | `windows-collections` | 0.2.0 | MIT OR Apache-2.0 |
 | `windows-core` | 0.61.2 | MIT OR Apache-2.0 |
 | `windows-future` | 0.2.1 | MIT OR Apache-2.0 |
@@ -412,11 +420,16 @@ built, and naming those here would claim to ship software it does not.
 | `windows-link` | 0.2.1 | MIT OR Apache-2.0 |
 | `windows-native-keyring-store` | 1.1.0 | MIT OR Apache-2.0 |
 | `windows-numerics` | 0.2.0 | MIT OR Apache-2.0 |
+| `windows-registry` | 0.6.1 | MIT OR Apache-2.0 |
 | `windows-result` | 0.3.4 | MIT OR Apache-2.0 |
+| `windows-result` | 0.4.1 | MIT OR Apache-2.0 |
 | `windows-strings` | 0.4.2 | MIT OR Apache-2.0 |
+| `windows-strings` | 0.5.1 | MIT OR Apache-2.0 |
 | `windows-sys` | 0.59.0 | MIT OR Apache-2.0 |
+| `windows-sys` | 0.60.2 | MIT OR Apache-2.0 |
 | `windows-sys` | 0.61.2 | MIT OR Apache-2.0 |
 | `windows-targets` | 0.52.6 | MIT OR Apache-2.0 |
+| `windows-targets` | 0.53.5 | MIT OR Apache-2.0 |
 | `windows-threading` | 0.1.0 | MIT OR Apache-2.0 |
 | `windows-version` | 0.1.7 | MIT OR Apache-2.0 |
 | `winnow` | 0.7.15 | MIT |
@@ -432,6 +445,7 @@ built, and naming those here would claim to ship software it does not.
 | `zerotrie` | 0.2.5 | Unicode-3.0 |
 | `zerovec` | 0.11.8 | Unicode-3.0 |
 | `zerovec-derive` | 0.11.6 | Unicode-3.0 |
+| `zip` | 4.6.1 | MIT |
 | `zip` | 8.6.0 | MIT |
 | `zlib-rs` | 0.6.7 | Zlib |
 | `zmij` | 1.0.23 | MIT |

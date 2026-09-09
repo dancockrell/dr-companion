@@ -4,6 +4,8 @@ import { sessionSource } from '../../lib/sessionSource.ts'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { useBridgeModeSync } from '../../lib/bridgeModeSync.ts'
 import { DemoBanner } from './DemoBanner.tsx'
+import { UpdateBanner } from './UpdateBanner.tsx'
+import { OPEN_SETTINGS_EVENT } from './AppControls.tsx'
 
 /**
  * The frame every window of this app is rendered inside.
@@ -72,6 +74,14 @@ export function WindowShell({ aux = false, children }: { aux?: boolean; children
   return (
     <div className="flex h-full w-full flex-col bg-surface">
       {setupComplete && source === 'demo' && <DemoBanner compact={aux} />}
+      {/* Main window only. A pop-out panel has no Settings sheet to send the
+          player to, and three windows each announcing the same update is
+          three interruptions for one piece of news. */}
+      {!aux && (
+        <UpdateBanner
+          onOpenSettings={() => window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT))}
+        />
+      )}
       {/* `relative` on purpose: `AppControls` pins the status dot and the
           window buttons with `absolute right-1 top-1`, and with no positioned
           ancestor those anchored to the viewport - so with the banner above

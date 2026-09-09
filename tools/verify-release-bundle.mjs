@@ -16,7 +16,7 @@
  *
  *     node tools/verify-release-bundle.mjs
  */
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { readFlags } from './cli-flags.mjs'
 
@@ -44,10 +44,28 @@ const buildDir = resolve(root, 'src-tauri', 'target', 'release')
  * rather than a silent "no viewer expected" - the one reading under which this
  * check passes a release that is missing the thing it exists to require.
  */
-const expectViewer = readFlags({
+/**
+ * `--expect-update-manifest` is the same three-state discipline pointed at the
+ * updater, added 9 September 2026 with the updater itself.
+ *
+ * A release that carries an installer and no `latest.json` updates nobody: the
+ * endpoint 404s, every running copy reports "could not check for updates", and
+ * the release page looks completely normal. A release whose manifest describes
+ * a *different* build is worse — it offers an update, downloads 217 MB, and
+ * fails verification or reinstalls the same version forever.
+ *
+ * Neither is visible in the bundle directory, so it has to be asked for. The
+ * default states the absence rather than passing over it, exactly as the viewer
+ * does below, because a build with no manifest is a legitimate thing to make (a
+ * dry run, a build for the VM) and must not be confused with a release that
+ * tried to carry one and failed.
+ */
+const flags = readFlags({
   name: 'verify-release-bundle',
-  boolean: ['--expect-viewer'],
-})['--expect-viewer']
+  boolean: ['--expect-viewer', '--expect-update-manifest'],
+})
+const expectViewer = flags['--expect-viewer']
+const expectManifest = flags['--expect-update-manifest']
 
 /** Basenames that must be somewhere under the release output. */
 const REQUIRED = [
@@ -115,6 +133,58 @@ if (failed > 0) {
   process.exit(1)
 }
 console.log(`\nAll ${REQUIRED.length} required resources are staged in the release build.`)
+
+// ── The update manifest ─────────────────────────────────────────────────────
+//
+// `checkManifest` is imported rather than restated. The same comparison runs
+// when the manifest is written (`build-update-manifest.mjs` reads its own
+// output back) and again here at the end of a release run, and two copies of
+// it would drift - which for this particular comparison means one of them
+// quietly stopping short of the check that catches a version mismatch.
+{
+  const { MANIFEST_PATH, checkManifest, declaredVersion, inspectRelease } = await import(
+    './build-update-manifest.mjs'
+  )
+  const version = declaredVersion()
+  const release = inspectRelease()
+
+  if (!expectManifest) {
+    console.log(
+      existsSync(MANIFEST_PATH)
+        ? `Note: an update manifest is present at ${MANIFEST_PATH} even though this run did not require one.`
+        : 'This build carries NO update manifest. Published as-is, it updates nobody: running copies would ask the endpoint and get a 404.'
+    )
+  } else if (!release.ok) {
+    console.error(`FAIL the update manifest was required but the build cannot be described: ${release.why}`)
+    process.exit(1)
+  } else if (!existsSync(MANIFEST_PATH)) {
+    console.error(`FAIL no update manifest at ${MANIFEST_PATH}`)
+    console.error('     needed because: --expect-update-manifest was passed. Run `npm run release:manifest`.')
+    process.exit(1)
+  } else {
+    let manifest
+    try {
+      manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'))
+    } catch (e) {
+      console.error(`FAIL the update manifest at ${MANIFEST_PATH} is not valid JSON: ${e.message}`)
+      process.exit(1)
+    }
+    const results = checkManifest(manifest, release, version)
+    let manifestFailed = 0
+    for (const [label, condition] of results) {
+      console.log(`${condition ? 'OK  ' : 'FAIL'} ${label}`)
+      if (!condition) manifestFailed++
+    }
+    console.log(`\n${results.length} manifest checks ran, ${manifestFailed} failed.`)
+    if (manifestFailed > 0) {
+      console.error(
+        'The manifest does not describe this installer. Publishing both would ship an update ' +
+          'that cannot install, or one that reinstalls the same version forever.'
+      )
+      process.exit(1)
+    }
+  }
+}
 
 // Said out loud either way. An installer without a viewer is a supported
 // build, and the one thing it must never do is look like an installer with

@@ -1,7 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Core webview permissions. DR Companion's own commands (detection, bridge install, always-on-top) are app commands and are not granted here; no plugin is given shell, filesystem or network access.",
+  "description": "Core webview permissions, plus the updater plugin. DR Companion's own commands (detection, bridge install, always-on-top) are app commands and are not granted here; apart from the updater, no plugin is given shell, filesystem or network access. `updater:default` grants check, download, install and downloadAndInstall - the plugin has no finer split, so the restraint has to be in the app: src/lib/updater.ts never calls downloadAndInstall, never installs without an explicit press, and never installs during a live game session without a confirmation.",
   "windows": ["main", "panel-*"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "updater:default"
+  ]
 }
