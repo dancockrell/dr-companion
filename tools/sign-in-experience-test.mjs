@@ -45,7 +45,6 @@ import { join } from 'node:path'
 
 let failed = 0
 let checked = 0
-let unchecked = 0
 const ok = (name, cond, detail = '') => {
   checked++
   if (!cond) failed++
@@ -56,11 +55,6 @@ const ok = (name, cond, detail = '') => {
   // which reads as a sabotage that was not caught.
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(66)}  ${detail}`)
 }
-const notChecked = (name, why) => {
-  unchecked++
-  console.log(`NOT CHECKED ${name.padEnd(58)}${why}`)
-}
-
 const read = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 
 // --------------------------------------------------------------------------
@@ -606,12 +600,37 @@ const safeScreen = (state, character = 'Phemius') => {
     /\b[a-z][a-z0-9]*_[a-z0-9_]+\b/.test('lich_already_running happened') &&
       /\bgenie\b/i.test('set up Genie first'),
   )
-  // A lane working the same screen (`wt-lichcard`, fix/lich-card-player-words)
-  // is building the general form of this check over every user-facing string in
-  // the app. When it lands, this one should import it rather than keep a second
-  // copy - two matchers for one property will disagree.
-  if (!readdirSync('tools').includes('player-words-test.mjs')) {
-    notChecked('the app-wide player-words check', 'wt-lichcard has not landed it yet; this suite checks the sign-in strings only')
+  /*
+   * Why this suite keeps a matcher of its own, when an app-wide one now exists.
+   *
+   * `tools/ui-jargon-test.mjs` landed from another lane (#528, #530) while this
+   * branch was being built, and it is the better check: it derives its name set
+   * from `generate_handler!` rather than typing one, so a command added tomorrow
+   * is covered without anybody remembering. Two matchers for one property is a
+   * fork, and this one should be deleted the day the other can see these
+   * strings.
+   *
+   * It cannot see them yet, and that was measured rather than assumed: with
+   * `lich_login_characters` planted in a heading in `signInStates.ts`, that
+   * suite stayed green (11 checks, 0 failures). Its walk takes `.tsx` files, and
+   * the sign-in's words moved into a `.ts` module - which is exactly the way a
+   * string escapes a component-shaped scan.
+   *
+   * So the reason is a check rather than a comment. The day that walk grows to
+   * read `.ts` files, this goes red and tells whoever is here to delete the
+   * duplicate above.
+   */
+  ok('the app-wide jargon check exists (control)', readdirSync('tools').includes('ui-jargon-test.mjs'))
+  {
+    const jargon = read('tools/ui-jargon-test.mjs')
+    const tsxOnly = /entry\.name\)\) files\.push/.test(jargon) && /\/\\.tsx\$\/\.test\(entry\.name\)/.test(jargon)
+    ok(
+      'and still cannot see a .ts module, which is why the check above is not a fork',
+      tsxOnly,
+      tsxOnly
+        ? 'its walk is .tsx only'
+        : 'its walk has grown - re-measure, and if it now covers signInStates.ts, DELETE the matcher above',
+    )
   }
 }
 
@@ -640,13 +659,16 @@ const safeScreen = (state, character = 'Phemius') => {
   )
 }
 
-console.log(`\n${checked} checked, ${failed} failed${unchecked ? `, ${unchecked} not checked` : ''}`)
+console.log(`\n${checked} checked, ${failed} failed`)
 // A floor against a constant, not against the list this run happened to build.
 if (checked < 45) {
   console.log('REFUSING TO REPORT A RESULT: too few checks ran for a pass to mean anything.')
-  process.exit(2)
+  process.exitCode = 2
+} else {
+  // `process.exitCode`, not `process.exit()` - see the note at the end of
+  // `tools/lich-lifetime-test.mjs`, which this branch had to fix for exactly
+  // this reason: tearing the loop down on Windows can abort on a libuv
+  // assertion *after* every check has printed as passed, and the runner reads
+  // the status rather than the output.
+  process.exitCode = failed > 0 ? 1 : 0
 }
-if (failed === 0 && unchecked > 0) {
-  console.log(`no failures, but ${unchecked} not checked`)
-}
-process.exit(failed > 0 ? 1 : 0)

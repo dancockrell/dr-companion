@@ -64,7 +64,7 @@ early. It is not the gate.
 This is checked rather than promised. `npm run gate` records the base it ran
 against (`git merge-base HEAD origin/main`), fetches at the end, and compares:
 
-- base **is** `origin/main` → `gate ok: 13 of 13 stages ran (base <sha>)`,
+- base **is** `origin/main` → `gate ok: 14 of 14 stages ran (base <sha>)`,
   exit 0. This is the one you may merge on.
 - base **is not** `origin/main` → `gate ok (base <sha>) — origin/main is now
   <sha>, re-run after rebasing`, **exit 3**. Nothing failed; every stage that
@@ -91,10 +91,10 @@ The three branches are runnable on purpose rather than waited for:
 The last line must read
 
 ```
-gate ok: 13 of 13 stages ran
+gate ok: 14 of 14 stages ran
 ```
 
-followed by the base it was a statement about. Both halves of the count matter. `13` is asserted against `EXPECTED_STAGES` in
+followed by the base it was a statement about. Both halves of the count matter. `14` is asserted against `EXPECTED_STAGES` in
 `tools/gate.mjs` rather than against the list it came from, so a stage list
 trimmed by an edit fails instead of printing a smaller number calmly. If your
 change adds or removes a stage, change `EXPECTED_STAGES`, this page and
