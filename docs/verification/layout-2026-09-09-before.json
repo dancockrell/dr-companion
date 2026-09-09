@@ -1,0 +1,524 @@
+[
+  {
+    "size": "1997x935",
+    "regions": {
+      "window": {
+        "w": 1997,
+        "h": 935,
+        "area": 1867195
+      },
+      "rows": [
+        {
+          "name": "game text",
+          "sel": "[aria-label=\"Game workspace\"]",
+          "state": "measured",
+          "w": 1499,
+          "h": 223,
+          "x": 238,
+          "y": 603,
+          "area": 334277,
+          "share": 0.179
+        },
+        {
+          "name": "command line",
+          "sel": "input[aria-label=\"Game command\"]",
+          "state": "measured",
+          "w": 1413,
+          "h": 26,
+          "x": 249,
+          "y": 788,
+          "area": 36738,
+          "share": 0.0197
+        },
+        {
+          "name": "room art",
+          "sel": "[aria-label=\"Battle workspace\"]",
+          "state": "measured",
+          "w": 1499,
+          "h": 483,
+          "x": 238,
+          "y": 119,
+          "area": 724017,
+          "share": 0.3878
+        },
+        {
+          "name": "scene pane",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "text region",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "icon bar",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "board slot",
+          "sel": "[aria-label=\"Board\"]",
+          "state": "measured",
+          "w": 1499,
+          "h": 483,
+          "x": 238,
+          "y": 119,
+          "area": 724017,
+          "share": 0.3878
+        },
+        {
+          "name": "console row",
+          "sel": "[aria-label=\"Console\"]",
+          "state": "measured",
+          "w": 1997,
+          "h": 224,
+          "x": 0,
+          "y": 602,
+          "area": 447328,
+          "share": 0.2396
+        },
+        {
+          "name": "left rail",
+          "sel": "[aria-label=\"Character side\"]",
+          "state": "measured",
+          "w": 230,
+          "h": 483,
+          "x": 0,
+          "y": 119,
+          "area": 111090,
+          "share": 0.0595
+        },
+        {
+          "name": "right rail",
+          "sel": "[aria-label=\"Context side\"]",
+          "state": "measured",
+          "w": 252,
+          "h": 483,
+          "x": 1745,
+          "y": 119,
+          "area": 121716,
+          "share": 0.0652
+        },
+        {
+          "name": "action grid",
+          "sel": "[aria-label=\"Functions and scripts\"]",
+          "state": "measured",
+          "w": 237,
+          "h": 177,
+          "x": 0,
+          "y": 649,
+          "area": 41949,
+          "share": 0.0225
+        },
+        {
+          "name": "vitals",
+          "sel": "[aria-label=\"Vitals\"]",
+          "state": "measured",
+          "w": 221,
+          "h": 174,
+          "x": 4,
+          "y": 123,
+          "area": 38454,
+          "share": 0.0206
+        },
+        {
+          "name": "experience",
+          "sel": "[aria-label=\"Experience and learning progress\"]",
+          "state": "measured",
+          "w": 259,
+          "h": 223,
+          "x": 1738,
+          "y": 603,
+          "area": 57757,
+          "share": 0.0309
+        },
+        {
+          "name": "top bar",
+          "sel": "header[aria-label=\"Character and location\"]",
+          "state": "measured",
+          "w": 1997,
+          "h": 48,
+          "x": 0,
+          "y": 71,
+          "area": 95856,
+          "share": 0.0513
+        }
+      ]
+    },
+    "cpl": {
+      "state": "measured",
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "advance": 6.9,
+      "boxWidth": 1499,
+      "charsPerLine": 217
+    }
+  },
+  {
+    "size": "1180x820",
+    "regions": {
+      "window": {
+        "w": 1180,
+        "h": 820,
+        "area": 967600
+      },
+      "rows": [
+        {
+          "name": "game text",
+          "sel": "[aria-label=\"Game workspace\"]",
+          "state": "measured",
+          "w": 879,
+          "h": 223,
+          "x": 144,
+          "y": 488,
+          "area": 196017,
+          "share": 0.2026
+        },
+        {
+          "name": "command line",
+          "sel": "input[aria-label=\"Game command\"]",
+          "state": "measured",
+          "w": 793,
+          "h": 26,
+          "x": 155,
+          "y": 673,
+          "area": 20618,
+          "share": 0.0213
+        },
+        {
+          "name": "room art",
+          "sel": "[aria-label=\"Battle workspace\"]",
+          "state": "measured",
+          "w": 879,
+          "h": 368,
+          "x": 144,
+          "y": 119,
+          "area": 323472,
+          "share": 0.3343
+        },
+        {
+          "name": "scene pane",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "text region",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "icon bar",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "board slot",
+          "sel": "[aria-label=\"Board\"]",
+          "state": "measured",
+          "w": 879,
+          "h": 368,
+          "x": 144,
+          "y": 119,
+          "area": 323472,
+          "share": 0.3343
+        },
+        {
+          "name": "console row",
+          "sel": "[aria-label=\"Console\"]",
+          "state": "measured",
+          "w": 1180,
+          "h": 224,
+          "x": 0,
+          "y": 487,
+          "area": 264320,
+          "share": 0.2732
+        },
+        {
+          "name": "left rail",
+          "sel": "[aria-label=\"Character side\"]",
+          "state": "measured",
+          "w": 136,
+          "h": 368,
+          "x": 0,
+          "y": 119,
+          "area": 50048,
+          "share": 0.0517
+        },
+        {
+          "name": "right rail",
+          "sel": "[aria-label=\"Context side\"]",
+          "state": "measured",
+          "w": 149,
+          "h": 368,
+          "x": 1031,
+          "y": 119,
+          "area": 54832,
+          "share": 0.0567
+        },
+        {
+          "name": "action grid",
+          "sel": "[aria-label=\"Functions and scripts\"]",
+          "state": "measured",
+          "w": 143,
+          "h": 177,
+          "x": 0,
+          "y": 534,
+          "area": 25311,
+          "share": 0.0262
+        },
+        {
+          "name": "vitals",
+          "sel": "[aria-label=\"Vitals\"]",
+          "state": "measured",
+          "w": 127,
+          "h": 190,
+          "x": 4,
+          "y": 123,
+          "area": 24130,
+          "share": 0.0249
+        },
+        {
+          "name": "experience",
+          "sel": "[aria-label=\"Experience and learning progress\"]",
+          "state": "measured",
+          "w": 156,
+          "h": 223,
+          "x": 1024,
+          "y": 488,
+          "area": 34788,
+          "share": 0.036
+        },
+        {
+          "name": "top bar",
+          "sel": "header[aria-label=\"Character and location\"]",
+          "state": "measured",
+          "w": 1180,
+          "h": 48,
+          "x": 0,
+          "y": 71,
+          "area": 56640,
+          "share": 0.0585
+        }
+      ]
+    },
+    "cpl": {
+      "state": "measured",
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "advance": 6.9,
+      "boxWidth": 879,
+      "charsPerLine": 127
+    }
+  },
+  {
+    "size": "1366x768",
+    "regions": {
+      "window": {
+        "w": 1366,
+        "h": 768,
+        "area": 1049088
+      },
+      "rows": [
+        {
+          "name": "game text",
+          "sel": "[aria-label=\"Game workspace\"]",
+          "state": "measured",
+          "w": 1020,
+          "h": 223,
+          "x": 165,
+          "y": 436,
+          "area": 227460,
+          "share": 0.2168
+        },
+        {
+          "name": "command line",
+          "sel": "input[aria-label=\"Game command\"]",
+          "state": "measured",
+          "w": 934,
+          "h": 26,
+          "x": 176,
+          "y": 621,
+          "area": 24284,
+          "share": 0.0231
+        },
+        {
+          "name": "room art",
+          "sel": "[aria-label=\"Battle workspace\"]",
+          "state": "measured",
+          "w": 1020,
+          "h": 316,
+          "x": 165,
+          "y": 119,
+          "area": 322320,
+          "share": 0.3072
+        },
+        {
+          "name": "scene pane",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "text region",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "icon bar",
+          "sel": null,
+          "state": "absent",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "area": 0,
+          "share": 0
+        },
+        {
+          "name": "board slot",
+          "sel": "[aria-label=\"Board\"]",
+          "state": "measured",
+          "w": 1020,
+          "h": 316,
+          "x": 165,
+          "y": 119,
+          "area": 322320,
+          "share": 0.3072
+        },
+        {
+          "name": "console row",
+          "sel": "[aria-label=\"Console\"]",
+          "state": "measured",
+          "w": 1366,
+          "h": 224,
+          "x": 0,
+          "y": 435,
+          "area": 305984,
+          "share": 0.2917
+        },
+        {
+          "name": "left rail",
+          "sel": "[aria-label=\"Character side\"]",
+          "state": "measured",
+          "w": 157,
+          "h": 316,
+          "x": 0,
+          "y": 119,
+          "area": 49612,
+          "share": 0.0473
+        },
+        {
+          "name": "right rail",
+          "sel": "[aria-label=\"Context side\"]",
+          "state": "measured",
+          "w": 173,
+          "h": 316,
+          "x": 1193,
+          "y": 119,
+          "area": 54668,
+          "share": 0.0521
+        },
+        {
+          "name": "action grid",
+          "sel": "[aria-label=\"Functions and scripts\"]",
+          "state": "measured",
+          "w": 164,
+          "h": 177,
+          "x": 0,
+          "y": 482,
+          "area": 29028,
+          "share": 0.0277
+        },
+        {
+          "name": "vitals",
+          "sel": "[aria-label=\"Vitals\"]",
+          "state": "measured",
+          "w": 138,
+          "h": 174,
+          "x": 4,
+          "y": 123,
+          "area": 24012,
+          "share": 0.0229
+        },
+        {
+          "name": "experience",
+          "sel": "[aria-label=\"Experience and learning progress\"]",
+          "state": "measured",
+          "w": 180,
+          "h": 223,
+          "x": 1186,
+          "y": 436,
+          "area": 40140,
+          "share": 0.0383
+        },
+        {
+          "name": "top bar",
+          "sel": "header[aria-label=\"Character and location\"]",
+          "state": "measured",
+          "w": 1366,
+          "h": 48,
+          "x": 0,
+          "y": 71,
+          "area": 65568,
+          "share": 0.0625
+        }
+      ]
+    },
+    "cpl": {
+      "state": "measured",
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "advance": 6.9,
+      "boxWidth": 1020,
+      "charsPerLine": 147
+    }
+  }
+]

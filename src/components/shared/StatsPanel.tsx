@@ -52,7 +52,11 @@ export function StatsPanel({ dense = false }: { dense?: boolean }) {
   }
 
   return (
-    <div className={`flex flex-col ${dense ? 'gap-1.5' : 'gap-2'}`}>
+    /* Named, so the layout measurement (`tools/layout-regions.mjs`) can ask
+     * how much of the window the vitals actually hold rather than measuring
+     * the rail that contains them and something else. An attribute only:
+     * nothing here renders differently for it. */
+    <div aria-label="Vitals" className={`flex flex-col ${dense ? 'gap-1.5' : 'gap-2'}`}>
       {/* TDPs first and biggest — the number that actually gates a training
        * decision, not just one more stat in the grid below. */}
       <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-1.5">
