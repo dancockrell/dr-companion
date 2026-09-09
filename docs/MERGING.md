@@ -20,15 +20,18 @@ git fetch origin
 git worktree add /c/Users/Admin/dev/wt-<id> -b <type>/<id>-<slug> origin/main
 cmd //c "mklink /J C:\\Users\\Admin\\dev\\wt-<id>\\node_modules C:\\Users\\Admin\\dev\\dr-companion\\node_modules"
 
-# 2. The gate. Redirect and read $? — a pipe reports the last command's status,
-#    so `npm run gate | tail` is always a success.
+# 2. Rebase FIRST, on whatever landed while you were working.
 cd /c/Users/Admin/dev/wt-<id>
+git fetch origin && git rebase origin/main
+
+# 3. The gate, AFTER the rebase. Redirect and read $? — a pipe reports the last
+#    command's status, so `npm run gate | tail` is always a success.
 DRC_TEST_PORT=<your port> npm run gate > /tmp/gate.log 2>&1; echo "gate exit: $?"
 tail -20 /tmp/gate.log
 
-# 3. Rebase on whatever landed while you were working, then run the gate again
-#    if the rebase moved anything you did not write.
-git fetch origin && git rebase origin/main
+#    If `main` moved while the gate was running, exit 3 says so. Rebase and
+#    run it again. `node tools/gate.mjs --currency` asks the same question in
+#    a second, without re-running anything.
 
 # 4. Commit and push. Stage by path: the index is shared between worktrees.
 git commit -m "<type>(<area>): <what and why>" -- <the paths you touched>
@@ -40,6 +43,49 @@ gh pr create --fill
 gh pr merge <n> --squash --delete-branch
 ```
 
+## Gate after the rebase, not before
+
+**The gate runs after the final rebase. Every time, not when the rebase looks
+like it moved something.**
+
+A branch's green gate is a statement about the tree it was cut from, and nothing
+else. A check somebody added on another branch in the meantime is invisible to
+it: your run never executed that check, so it cannot have passed it. That is not
+a hypothetical — it is how PR #513 reintroduced the exact class #512 had just
+fixed, and how PR #517 merged green while leaving the Rust build red, having
+been gated before the deletion's consequences reached it.
+
+The old rule here was "run the gate again if the rebase moved anything you did
+not write". That is a judgement call, made at the moment somebody is most
+impatient, about a question they cannot answer from the rebase output. The
+branch-point gate is a courtesy to yourself — it catches your own mistakes
+early. It is not the gate.
+
+This is checked rather than promised. `npm run gate` records the base it ran
+against (`git merge-base HEAD origin/main`), fetches at the end, and compares:
+
+- base **is** `origin/main` → `gate ok: 12 of 12 stages ran (base <sha>)`,
+  exit 0. This is the one you may merge on.
+- base **is not** `origin/main` → `gate ok (base <sha>) — origin/main is now
+  <sha>, re-run after rebasing`, **exit 3**. Nothing failed; every stage that
+  ran is honestly green. The gate is refusing to call itself current, which is
+  a different thing from calling itself red.
+- git could not answer → it says so and does not claim to be current. A gate
+  that cannot check must not pretend it checked, and must not block a merge
+  over its own blindness either.
+
+It writes the same facts to a small JSON artefact under `%TEMP%`, keyed by this
+checkout's path — the summary names it — so "what was that green run about?"
+has an answer after the scrollback is gone.
+
+```bash
+node tools/gate.mjs --currency   # the verdict alone, no stages, ~1 second
+```
+
+The three branches are runnable on purpose rather than waited for:
+`DRC_GATE_BASE=<an old sha>` forces stale, `DRC_GATE_GIT=nope` forces unknown,
+`DRC_GATE_NO_FETCH=1` compares without touching the network.
+
 ## What "the gate passed" means
 
 The last line must read
@@ -48,7 +94,7 @@ The last line must read
 gate ok: 12 of 12 stages ran
 ```
 
-Both halves matter. `12` is asserted against `EXPECTED_STAGES` in
+followed by the base it was a statement about. Both halves of the count matter. `12` is asserted against `EXPECTED_STAGES` in
 `tools/gate.mjs` rather than against the list it came from, so a stage list
 trimmed by an edit fails instead of printing a smaller number calmly. If your
 change adds or removes a stage, change `EXPECTED_STAGES`, this page and
@@ -60,15 +106,19 @@ turns the gate red rather than quietly misinforming the next merger.
 knowingly does not cover, each with its reason. Read that list rather than
 assuming what ran.
 
-Three outcomes, and only the first is a merge:
+Four outcomes, and only the first is a merge:
 
-- **`gate ok`** — every stage ran and passed.
-- **`gate NOT PASSED`** — something failed, or a stage could not run. *A stage
-  that could not run is not a stage that passed*: a missing `cargo` means the
-  Rust half was not checked, and merging on "the parts I have installed passed"
-  is exactly what a CI runner used to make impossible.
-- **`no failures — but N thing(s) went unchecked`** — a suite declined a rule.
-  Nothing failed, so this does not block a merge; read the skip and decide.
+- **`gate ok`** (exit 0) — every stage ran and passed, over the current
+  `origin/main`.
+- **`gate NOT PASSED`** (exit 1) — something failed, or a stage could not run.
+  *A stage that could not run is not a stage that passed*: a missing `cargo`
+  means the Rust half was not checked, and merging on "the parts I have
+  installed passed" is exactly what a CI runner used to make impossible.
+- **`gate ok (base …) — origin/main is now …`** (exit 3) — nothing failed, and
+  the result is out of date. Rebase and run it again. See the section above.
+- **`no failures — but N thing(s) went unchecked`** (exit 0) — a suite declined
+  a rule. Nothing failed, so this does not block a merge; read the skip and
+  decide.
 
 `--only=<stage>` re-runs one stage after a fix. Its summary says plainly that a
 partial run is not the gate, and it is not a substitute for a full one before

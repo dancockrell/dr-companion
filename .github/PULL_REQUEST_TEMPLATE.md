@@ -12,12 +12,15 @@ Full ritual: docs/MERGING.md
 
 ## Verification
 
-- [ ] `npm run gate` was run on this branch, after the last commit on it, and
-      its final line read **`gate ok: 12 of 12 stages ran`**. Paste it below.
-      (`node tools/gate.mjs --list` prints the stages. A `--only=` run is not
-      the gate and says so.)
-- [ ] Rebased on `origin/main`, and if the rebase moved anything I did not
-      write, the gate was run again afterwards.
+- [ ] Rebased on `origin/main` **first**, then `npm run gate` was run on this
+      branch after the last commit on it, and its final line read
+      **`gate ok: 12 of 12 stages ran`** with the base it was about.
+      Paste it below. (`node tools/gate.mjs --list` prints the stages. A
+      `--only=` run is not the gate and says so.)
+- [ ] The gate did not end on exit 3 — `gate ok (base …) — origin/main is now
+      …`. That means `main` moved while it ran and the green is about a tree
+      nobody is merging into. `node tools/gate.mjs --currency` re-asks in a
+      second.
 - [ ] Anything skipped or NOT RUN is named below with its reason. *A stage that
       could not run is not a stage that passed.*
 

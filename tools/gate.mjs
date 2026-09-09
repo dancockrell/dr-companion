@@ -74,7 +74,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 // Imported, not copied. Two lists of where a Godot binary might live would
@@ -104,6 +104,15 @@ const cargoManifest = resolve(root, 'src-tauri', 'Cargo.toml')
  * merge is possible.
  */
 const cargo = process.env.DRC_GATE_CARGO || 'cargo'
+
+/**
+ * Git, on the same reasoning as `DRC_GATE_CARGO`, for the currency check below.
+ *
+ *   DRC_GATE_GIT=definitely-not-a-binary npm run gate -- --only=types
+ *       -> "could not check whether origin/main moved". The third state: not a
+ *          claim that this gate is current, and not a failure either.
+ */
+const git = process.env.DRC_GATE_GIT || 'git'
 
 /**
  * The Godot stage's two seams, on the same reasoning as `DRC_GATE_CARGO`: both
@@ -388,6 +397,86 @@ const partialNote =
   process.env.DRC_GATE_PARTIAL_FILE ||
   join(tmpdir(), `drc-gate-partial-${createHash('sha1').update(root).digest('hex').slice(0, 12)}.json`)
 
+/* ------------------------------------------------------------------ currency
+ *
+ * A branch's green gate is a statement about the tree it was cut from, and
+ * nothing else. A check added on another branch in the meantime is invisible to
+ * it — which is exactly how PR #513 reintroduced the class #512 had just fixed,
+ * and how #517 merged green and left the Rust build red. With no CI, the only
+ * thing between `main` and a broken tree is whether the person merging re-ran a
+ * ten-minute command *after* the final rebase, and "run it again if the rebase
+ * moved anything you did not write" is a judgement call made at the moment
+ * somebody is most impatient.
+ *
+ * So the gate records the base it ran against and says, at the end, whether
+ * that is still where `origin/main` is. Three states, never two:
+ *
+ *   current  — the base is `origin/main`. `gate ok: N of N stages ran`.
+ *   stale    — `origin/main` has moved. `gate ok (base X) — origin/main is now
+ *              Y, re-run after rebasing`, exit 3. Not a failure: everything
+ *              that ran, passed. It is a refusal to call the result current.
+ *   unknown  — git did not answer (no binary, no remote, no network). Printed
+ *              as such, exit unchanged. A gate that cannot check must not
+ *              claim to have checked, and must not block a merge over its own
+ *              blindness either.
+ *
+ * The base is `git merge-base HEAD origin/main`: the commit this branch is
+ * built on. On `main` itself, and on a branch cut from an unmoved `main`, that
+ * *is* `origin/main` and the run is current.
+ *
+ * Seams, so both interesting branches can be run on purpose:
+ *   DRC_GATE_BASE=<sha>   pretend the run was based on that commit -> stale
+ *   DRC_GATE_GIT=<none>   git does not resolve -> unknown
+ *   DRC_GATE_NO_FETCH=1   do not touch the network; compare against the ref as
+ *                         it stands, which is what an offline machine has
+ */
+const baseNote =
+  process.env.DRC_GATE_BASE_FILE ||
+  join(tmpdir(), `drc-gate-base-${createHash('sha1').update(root).digest('hex').slice(0, 12)}.json`)
+
+/** Run a git command and return its trimmed stdout, or null. Never through a
+ * pipe: `cmd | tail` reports tail's status (CLAUDE.md 1). */
+function gitSay(...args) {
+  const r = spawnSync(git, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  if (r.status !== 0 || typeof r.stdout !== 'string') return null
+  const out = r.stdout.trim()
+  return out.length ? out : null
+}
+
+const short = (sha) => (sha ? sha.slice(0, 8) : '?')
+
+/** The commit this branch is built on, read before any stage runs so it
+ * describes the tree they are measured against. */
+const head = gitSay('rev-parse', 'HEAD')
+const base = process.env.DRC_GATE_BASE || gitSay('merge-base', 'HEAD', 'origin/main')
+
+/**
+ * Is a run based on `base` still a statement about `origin/main`?
+ *
+ * The fetch is deliberately late — at the end of a run, or the moment
+ * `--currency` is asked — because what matters is where `origin/main` is *now*,
+ * when somebody is about to merge, not where it was when the run began.
+ */
+function currency() {
+  if (!base) return { state: 'unknown', why: `${git} could not name this branch's merge-base with origin/main` }
+  if (!process.env.DRC_GATE_NO_FETCH) {
+    const r = spawnSync(git, ['fetch', 'origin', '--quiet'], { cwd: root, stdio: 'ignore' })
+    if (r.status !== 0) {
+      // Not fatal. The ref on disk is still worth comparing, and an offline
+      // machine must not be told its gate means nothing. But say so: "I
+      // compared against a ref I could not refresh" is a weaker claim than
+      // "origin/main has not moved", and collapsing the two is the whole
+      // defect this file is about.
+      const stale = gitSay('rev-parse', 'origin/main')
+      if (!stale) return { state: 'unknown', why: `${git} fetch failed and origin/main does not resolve` }
+      return { state: stale === base ? 'current' : 'stale', remote: stale, unfetched: true }
+    }
+  }
+  const remote = gitSay('rev-parse', 'origin/main')
+  if (!remote) return { state: 'unknown', why: 'origin/main does not resolve here' }
+  return { state: remote === base ? 'current' : 'stale', remote }
+}
+
 // The stage list itself, asserted before anything reads or runs it — including
 // `--list`, which is a claim about what this gate is and must not be able to
 // print a shorter one calmly. See EXPECTED_STAGES.
@@ -405,6 +494,38 @@ const argv = process.argv.slice(2)
 if (argv.includes('--list')) {
   for (const s of STAGES) console.log(`${s.name.padEnd(12)} ${s.cmd} ${s.args.join(' ')}`)
   for (const [n, c, why] of NOT_COVERED) console.log(`${n.padEnd(12)} (not covered) ${c} - ${why}`)
+  process.exit(0)
+}
+
+/**
+ * `--currency`: the currency verdict on its own, running no stages.
+ *
+ * It exists so the three branches can be exercised deliberately in a second
+ * rather than by paying for a ten-minute sweep three times — a branch nobody
+ * can run on purpose is a branch nobody can prove they fixed. It is also the
+ * cheap question a merger actually has: *did `main` move since I gated?*
+ *
+ *   node tools/gate.mjs --currency                       -> current, exit 0
+ *   DRC_GATE_BASE=<an old sha> node tools/gate.mjs --currency  -> stale, exit 3
+ *   DRC_GATE_GIT=nope node tools/gate.mjs --currency      -> unknown, exit 0
+ *
+ * The exit codes are the gate's own, so the two agree by construction.
+ */
+if (argv.includes('--currency')) {
+  const now = currency()
+  if (now.state === 'unknown') {
+    console.log(`gate: could not check whether origin/main moved (${now.why}).`)
+    console.log('gate: this is not a claim that anything is current, and it is not a failure either.')
+    process.exit(0)
+  }
+  if (now.state === 'stale') {
+    console.log(`gate ok (base ${short(base)}) — origin/main is now ${short(now.remote)}, re-run after rebasing`)
+    process.exit(3)
+  }
+  console.log(
+    `gate: base ${short(base)} is origin/main` +
+      (now.unfetched ? ', compared against a ref this run could not refresh' : '')
+  )
   process.exit(0)
 }
 
@@ -449,6 +570,8 @@ try {
 } catch {
   // A note that cannot be cleared is read below and reported as unknown.
 }
+
+if (base) console.log(`gate: base ${short(base)}${process.env.DRC_GATE_BASE ? ' (DRC_GATE_BASE)' : ''}`)
 
 const started = Date.now()
 const results = []
@@ -530,6 +653,38 @@ const total = Math.round((Date.now() - started) / 1000)
 const denom = `${ran} of ${selected.length} stages ran`
 const partial = selected.length !== STAGES.length
 
+const age = currency()
+const baseTail =
+  age.state === 'unknown'
+    ? ` — could not check whether origin/main moved (${age.why}); this gate does not claim to be current`
+    : age.unfetched
+      ? ` (base ${short(base)}, compared against an origin/main this run could not refresh)`
+      : ` (base ${short(base)})`
+
+// The artefact. Small on purpose: enough for a person or a later run to say
+// what this gate was a statement about, and nothing that would rot.
+try {
+  writeFileSync(
+    baseNote,
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        when: new Date().toISOString(),
+        root,
+        head,
+        base,
+        originMain: age.remote ?? null,
+        currency: age.state,
+        stages: { ran, of: selected.length, partial, failed: failed.map((f) => f.name), notRun: notRun.map((f) => f.name) },
+      },
+      null,
+      2,
+    ) + '\n',
+  )
+} catch (error) {
+  console.log(`gate: could not record the base at ${baseNote} (${error.message})`)
+}
+
 if (failed.length === 0 && notRun.length === 0) {
   // A skip is not a failure, and it is not something to end on "all passed"
   // over either — the same three states `run-tests.mjs` keeps, kept here so
@@ -545,16 +700,31 @@ if (failed.length === 0 && notRun.length === 0) {
     console.log(`gate: run \`npm run gate\` with no arguments before merging.`)
     process.exit(0)
   }
+  // A full run that passed, over a base `origin/main` has since left behind, is
+  // its own state and its own exit code. Nothing failed — every stage that ran
+  // is honestly green — but the tree it was green *about* is no longer the one
+  // being merged into, and printing `gate ok` over that is the sentence #517
+  // was merged on.
+  if (!partial && age.state === 'stale') {
+    console.log(`\ngate ok (base ${short(base)}) — origin/main is now ${short(age.remote)}, re-run after rebasing`)
+    if (skipTail) console.log(`gate: and ${skipTail}.`)
+    console.log(`gate: ${denom} in ${total}s and nothing failed; this is not a red, it is out of date.`)
+    console.log(`gate: \`git fetch origin && git rebase origin/main\`, then run the gate again.`)
+    console.log(`gate: recorded at ${baseNote}`)
+    process.exit(3)
+  }
   if (skipTail) {
-    console.log(`\ngate: ${denom} in ${total}s, no failures — but ${skipTail}.`)
+    console.log(`\ngate: ${denom} in ${total}s, no failures — but ${skipTail}.${baseTail}`)
     console.log('gate: nothing failed, so this does not block a merge; read the skip above and decide.')
+    console.log(`gate: recorded at ${baseNote}`)
     process.exit(0)
   }
-  console.log(`\ngate ok: ${denom} in ${total}s. This is the pre-merge gate; there is no CI.`)
+  console.log(`\ngate ok: ${denom} in ${total}s.${baseTail} This is the pre-merge gate; there is no CI.`)
+  console.log(`gate: recorded at ${baseNote}`)
   process.exit(0)
 }
 
-console.log(`\ngate NOT PASSED: ${denom} in ${total}s`)
+console.log(`\ngate NOT PASSED: ${denom} in ${total}s${baseTail}`)
 if (failed.length > 0) console.log(`  failed:  ${failed.map((f) => f.name).join(', ')}`)
 if (notRun.length > 0) {
   console.log(`  not run: ${notRun.map((f) => `${f.name} (${f.why})`).join(', ')}`)

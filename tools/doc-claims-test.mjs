@@ -391,6 +391,84 @@ const pkg = JSON.parse(read('package.json'))
     ok('both name the command that prints it', read('docs/MERGING.md').includes('npm run gate') && read('.github/PULL_REQUEST_TEMPLATE.md').includes('npm run gate'))
   }
 
+  /*
+   * V6: gate after the rebase, and the page says so because the gate does it.
+   *
+   * The rule used to be "run the gate again if the rebase moved anything you
+   * did not write" — a judgement call at the moment somebody is most impatient,
+   * about a question the rebase output does not answer. It is unconditional
+   * now, and the gate enforces it by refusing to call a run current when
+   * `origin/main` has moved past the base it recorded.
+   *
+   * Every claim below is re-derived from `tools/gate.mjs`, never asserted about
+   * it. A page describing a refusal the code does not implement is the exact
+   * defect this suite exists for, and it would read as reassurance.
+   */
+  const merging = read('docs/MERGING.md')
+  const prTemplate = read('.github/PULL_REQUEST_TEMPLATE.md')
+  ok(
+    'tools/gate.mjs records the base it ran against',
+    /merge-base/.test(gateSource) && /DRC_GATE_BASE\b/.test(gateSource),
+    'git merge-base HEAD origin/main, overridable with DRC_GATE_BASE',
+  )
+  ok(
+    'and refuses to call a stale run current, as its own distinct exit',
+    /origin\/main is now/.test(gateSource) && /process\.exit\(3\)/.test(gateSource),
+    'exit 3, "gate ok (base …) — origin/main is now …"',
+  )
+  /*
+   * Run rather than grepped, and this one earned the distinction the hard way:
+   * the first version tested `/--currency/.test(gateSource)`, which the flag's
+   * own docstring satisfies. Deleting the `argv.includes('--currency')` dispatch
+   * left the check green — a grep matching prose about a feature rather than the
+   * feature. `DRC_GATE_NO_FETCH=1` so this asserts the dispatch, not the network.
+   */
+  let currencyRun
+  try {
+    // `--only=nonesuch` is a fuse, not a request. If the `--currency` dispatch
+    // is intact it exits first and this argument is never parsed; if it has been
+    // removed, the unknown-stage refusal exits 2 in milliseconds. Without it,
+    // deleting the dispatch makes this suite fall through and run the entire
+    // twelve-stage gate — which is what happened the first time, and a test that
+    // can start a ten-minute build by accident is its own defect.
+    const out = execFileSync(process.execPath, ['tools/gate.mjs', '--currency', '--only=nonesuch'], {
+      encoding: 'utf8',
+      env: { ...process.env, DRC_GATE_NO_FETCH: '1' },
+    })
+    currencyRun = { code: 0, out }
+  } catch (error) {
+    currencyRun = { code: error.status, out: `${error.stdout ?? ''}${error.stderr ?? ''}` }
+  }
+  ok(
+    'and the verdict is askable on its own, so all three branches can be run',
+    // 0 current, 3 stale, 0 unknown. 1 or 2 means it fell through to the stage
+    // machinery, which is what an absent dispatch does.
+    (currencyRun.code === 0 || currencyRun.code === 3) &&
+      /base [0-9a-f]{8}|could not check whether origin\/main moved/.test(currencyRun.out),
+    `node tools/gate.mjs --currency → exit ${currencyRun.code}: ${currencyRun.out.trim().split('\n')[0] ?? '(no output)'}`,
+  )
+  ok(
+    'docs/MERGING.md makes the post-rebase gate unconditional',
+    /[Gg]ate after the rebase, not before/.test(merging),
+    'the old "run it again if the rebase moved anything you did not write" was a judgement call',
+  )
+  ok(
+    'and quotes the refusal the gate actually prints',
+    merging.includes('origin/main is now') && merging.includes('--currency'),
+  )
+  ok(
+    'and the PR template asks about it, since that is what a merger reads',
+    prTemplate.includes('exit 3') && /[Rr]ebased on `origin\/main` \*\*first\*\*/.test(prTemplate),
+  )
+  // The negative control on the pair above. Both are `includes` over a long
+  // document, which is satisfied by almost anything; without this, a check that
+  // matched every string would read identically to one that found the sentence.
+  ok(
+    'control: the same reads do not find a sentence that is not there',
+    !merging.includes('zzz-not-in-the-merge-ritual') && !prTemplate.includes('zzz-not-in-the-template'),
+    'negative control',
+  )
+
   // And the documents that used to send a reader to CI now send them here.
   // A protocol whose pre-merge step names a check nobody runs is worse than
   // one with no step in it, because it reads as covered.
