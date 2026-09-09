@@ -308,6 +308,66 @@ const LIVE_TAGS = [
   ["<indicator id='IconSTANDING' visible='n'/>", 60],
 ]
 
+/**
+ * The five events an end-to-end run has to see and the replay above never
+ * produces, appended only when asked for.
+ *
+ *   node tools/fake-lich.mjs --tagged --e2e
+ *
+ * Opt-in rather than added to `CAPTURED_TAGGED`, on purpose. Three suites read
+ * that array's output byte for byte (`tools/link-test.mjs`,
+ * `tools/stream-test.mjs`, `tools/stream-state-test.mjs`), so widening it
+ * would change what they are asserting about while claiming to add coverage
+ * elsewhere. A flag adds a session those suites never ask for and leaves the
+ * one they do ask for untouched.
+ *
+ * # Where each shape comes from
+ *
+ * Not invented, and not typed from memory - this file's own header says why
+ * that would be worse than having no fixture. Each line is either captured
+ * text already in this file's corpus or a tag shape read out of the one
+ * implementation that consumes it:
+ *
+ *   - **roundtime.** `<roundTime value='<epoch>'/>` and the text form
+ *     `Roundtime: 5 sec.` are both named, with their semantics, in
+ *     `src-tauri/src/command_gate.rs` (`roundtime_until_ms`, and its own
+ *     tests at :1048-:1078 use these exact strings). The value is an absolute
+ *     epoch **second**, not a duration, so it is computed at send time rather
+ *     than written as a constant that would be in the past by the time
+ *     anybody ran this.
+ *   - **combat.** `<pushStream id='combat'/>` wrapping an attack line. The
+ *     attack text is the one already in `CAPTURED` above.
+ *   - **whisper.** `<pushStream id='whispers'/>`. That id is one of the seven
+ *     `src/lib/gameStream.ts:51` names as the game's own labels, and
+ *     `src/lib/aiIngest.ts:67` maps it to `private-comms`.
+ *   - **script.** Lich writes its own script output to the main window with
+ *     no stream wrapper; the `[scriptname]` prefix is Lich's, not the game's.
+ *   - **prompt.** Closes the exchange, as every other block here does.
+ *
+ * `<roundTime>` is a function rather than a string because of the epoch: see
+ * above. Everything else is a literal.
+ */
+const E2E_TAGS = () => [
+  // The room as *structure* rather than as text. The plain replay above prints
+  // "[The Crossing, Firulf Vista]" and a room header panel cannot read that:
+  // `src/lib/gameStream.ts:544` takes the title from `<streamWindow id='main'
+  // subtitle=…>` and commits `roomPresentation` only when a `<component
+  // id='room desc'>` closes. Both tag shapes and the subtitle's own
+  // " - [Title] (uid)" form are read out of that file's own handling.
+  ['<streamWindow id=\'main\' subtitle=" - [The Crossing, Firulf Vista]"/>', 80],
+  ["<component id='room desc'>A steep vista overlooking the river, the stone stairway climbing away to the north.</component>", 200],
+  ["<pushStream id='combat'/>A kobold guard swings a scimitar at you!<popStream/>", 400],
+  ['You parry the attack with your cocobolo txistu.', 300],
+  [`<roundTime value='${Math.floor(Date.now() / 1000) + 3}'/>`, 60],
+  ['Roundtime: 3 sec.', 300],
+  ["<pushStream id='whispers'/>Wipsy whispers to you, &quot;meet me at the gate&quot;<popStream/>", 500],
+  ['[go2]: heading for the Crossing gate', 400],
+  ['<prompt time="1757100000">&gt;</prompt>', 60],
+]
+
+/** Opt in to the block above. */
+const E2E = process.argv.includes('--e2e')
+
 /** What the game says back to a command, for the few worth answering. */
 const REPLIES = {
   look: [
@@ -376,7 +436,14 @@ const server = createServer((socket) => {
       // Structured tags interleaved with the text, which is how they arrive.
       // Appended rather than woven in at a fixed point so the text replay
       // stays byte-identical to what was captured.
-      const script = TAGGED ? [...CAPTURED_TAGGED, ...LIVE_TAGS] : CAPTURED
+      // Rebuilt each pass rather than hoisted: E2E_TAGS computes an absolute
+      // epoch for the roundtime, and a value captured once would be in the
+      // past on the second pass - which reads as "no hold" rather than as an
+      // error, the exact failure `roundtime_until_ms` refuses a small value to
+      // avoid.
+      const script = TAGGED
+        ? [...CAPTURED_TAGGED, ...LIVE_TAGS, ...(E2E ? E2E_TAGS() : [])]
+        : CAPTURED
       for (const [rawLine, gap] of script) {
         if (!alive) return
         // Lich strips the stream wrappers for a frontend without the
@@ -431,6 +498,7 @@ server.listen(PORT, '127.0.0.1', () => {
   console.error(
     `this is a fixture of captured DragonRealms text, not a game` +
       ` (${TAGGED ? 'tagged stream' : 'plain text'}${SPLIT ? ', split across reads' : ''}` +
+      `${E2E ? ', with the end-to-end block' : ''}` +
       `, frontend ${FRONTEND}` +
       `${CAPS.streams ? '' : ' - NO streams capability, channel labels are stripped'})`
   )

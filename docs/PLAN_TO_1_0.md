@@ -564,10 +564,24 @@ passes.
 - **Gate 1 — Text client stands alone:** D0–D6, E5–E9, C4–C6, C8, A7–A12,
   N1–N7, Q1–Q6 (N8 too: Dan gave that yes on 6 Sep 2026 — §10's **N-b** — and N8 is `[x]`).
   Check: `grep -c "kind === 'map'" src/App.tsx` → `0`; kill-switch suite (E5)
-  green; a full play session recorded with viewer and AI absent, **signed in
-  from this app with no other game client installed or running**;
+  green; `npm run test:mud-client-e2e` and `npm run test:mud-client-e2e-break`
+  green — one run that signs in, attaches to a stand-in Lich, plays, drops,
+  reconnects and round-trips a configuration, with nothing in the play chain's
+  import closure able to reach the viewer, a denominator on every step and its
+  skips named
+  (`docs/verification/mud-client-e2e-2026-09-09.md`); a full play session
+  recorded with viewer and AI absent, **signed in from this app with no other
+  game client installed or running**;
   `git grep -ic genie -- src/components src-tauri/src/lich.rs src/lib/frontends.ts`
   → `0`.
+
+  The harness and the recording are both in that list on purpose, and neither
+  replaces the other. A recording proves the session happened once and cannot
+  notice the day a change breaks it; the harness runs on every commit and
+  cannot reach the installer, a real account or a real Lich. The four things it
+  reports NOT CHECKED are Rust, and each names the `cargo test` that settles
+  it, which is the honest shape of "stands alone" from a suite that does not
+  build the backend.
 
   Lane Q belongs in this gate for the same reason Lane N does, and it is the
   same sentence that puts it there. "Stands alone" is a claim about what the
