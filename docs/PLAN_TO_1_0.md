@@ -347,6 +347,11 @@ disagree eventually, and then both are wrong.
 | **V** | Backend continuation and repo hygiene | per increment; `break-check-tree.mjs`, `credentials.rs`, `lich.rs`, `doc-claims-test.mjs`, `docs/MERGING.md` | none |
 | **N** | Lich-native login and frontend (no Genie) | new `src-tauri/src/eaccess.rs`, new `src-tauri/src/sal.rs`, `lich.rs`, `LichLauncher.tsx`, `WaitingForCharacter.tsx`, `tools/build-privacy-doc.mjs` | none |
 | **Q** | Player config: the client's own macros, aliases, highlights, substitutes, gags, variables, presets | new `src/lib/playerConfig.ts`, new `src/lib/playerConfigImport.ts`, new `src/lib/lineRules.ts`, new `src/components/config/`, `useHighlights.ts`, `useAliases.ts`, `keybindings.ts`, `useGameLines.ts` | N6 |
+| **R** | The nine activity intents (from [GAP-2026-09-09.md](GAP-2026-09-09.md)) | `lich-scripts/companion_bridge.lic`, `src/bridge/mockBridge.ts`, `docs/BRIDGE_CONTRACT.md`, new `tools/activity-intent-contract-test.mjs` | none (R0 first) |
+| **W** | The facts a fighting player reads back — stance, containers, prep, encumbrance, roster, rezz | `src/types/index.ts`, `lich-scripts/companion_bridge.lic`, `src/lib/gameStream.ts`, new `roomRoster.ts` + `spellCycle.ts` | none (W0 first) |
+| **X** | The town loop — money, shops, repair, banking | new `src/lib/townLoop.ts`, new `WealthPanel.tsx`, `lich-scripts/companion_bridge.lic` | none (X0 first) |
+| **Y** | Tasks and bounties | new `docs/BOUNTIES.md`, new `src/lib/tasks.ts`, new `TaskPanel.tsx` | none (Y0 is research) |
+| **Z** | dr-scripts settings as forms | new `src/lib/drScriptsSchema.ts` + `drScriptsWrite.ts`, new `config/DrScriptsTab.tsx`, `lich-scripts/companion_bridge.lic` | none (Z0 first) |
 
 **Conflict matrix — same file, different lanes: order, do not parallelise.**
 
@@ -368,6 +373,9 @@ disagree eventually, and then both are wrong.
 | `src/lib/aliases.ts`, `useAliases.ts`, `keybindings.ts` | Q3 | Q3 alone. `resolveKeybinding` gains one case and one optional argument; Lane D and Lane E do not edit these. |
 | `src/lib/useGameLines.ts` | Q4 | Q4 alone, and it is the *only* place substitutes and gags may be applied: `tools/gamelines-test.mjs` already fails the build if a component reads the buffer another way. |
 | `src/lib/pinsFile.ts`, `genieConfigWrite.ts`, `src-tauri/src/config_import.rs` | Q5 | Q5 alone. It deletes the Genie write path; Lane J must not add a caller to it in the meantime. |
+| `lich-scripts/companion_bridge.lic` | R0–R7, W1–W6, X1–X3, Y1, Z0, Z1 | One dispatch table, 3,351 lines. **Only one increment touching it may be `[~]` at a time, across all five lanes.** Check section 3.1 before claiming; see section 6b. |
+| `src/types/index.ts` (`CharacterStatus`) | W0, then W1–W6, X0, Y1 | W0 adds every new field in one edit and publishes it. Nobody else edits `CharacterStatus` until W0 is `[x]`. |
+| `src/lib/layout.ts`, `src/components/dashboard/panels.tsx` | X1, Y2 | Each appends one `PanelId` and one registry entry. Append, never reorder; rebase on conflict. |
 
 **Recommended concurrency, three sessions:** S1 = C0, C1, C2, C3 → A1…A8 → G.
 S2 = B1…B4 → L1…L6 → B5…B8. S3 = E1, E5–E9 → F1–F8 → E10–E12. A fourth
@@ -391,6 +399,12 @@ PRs per lane, squash-merged.
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | Q | Q2 | `lane-q/q2-highlights` | `C:\Users\Admin\dev\wt-q2` | 2026-09-06 |
 | S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
+
+**Lanes R, W, X, Y and Z are new on 9 September 2026, unheld, and are the
+first player-facing work in this plan** — see section 6b and
+[GAP-2026-09-09.md](GAP-2026-09-09.md). Take **R0** or **W0** first: they are
+the two that publish an interface everything else in their lane waits on, and
+they name disjoint files. X0, Y0 and Z0 can start beside them.
 
 **Lanes T, U and V are unheld and free to claim** (added 9 Sep 2026). Take
 T0 or T3 first — they name disjoint files and are the two that unblock the
@@ -645,8 +659,36 @@ passes.
 - **Gate 7 — 1.0:** F13–F14; two consecutive beta weeks with no data-loss
   report; zero open ship-blockers; the seven bars of section 5 each recorded.
 
+- **Gate 8 — The game is playable:** R0–R7, W0–W6, X0–X3, Y0–Y2, Z0–Z3.
+  Added 9 September 2026 from [GAP-2026-09-09.md](GAP-2026-09-09.md), which
+  measured 29 things a player does in an hour of DragonRealms against what this
+  client does when they do them: 9 full, 13 partial, 7 absent.
+  Check: `node tools/intent-drift-test.mjs` reports **34 of 35** implemented
+  (`burgle` deferred, R8); `node tools/gap-survey-probe.mjs` shows no capability
+  with a non-zero send column and three zeros beside it — the shape that
+  finding was, a client that can type the command and cannot read the answer;
+  and a recorded session in `docs/verification/` in which one character fights,
+  tends, trains, travels, sells and turns in a task **without the player typing
+  a command this app could have offered**.
+
+  It is a separate gate rather than an extension of Gate 1 on purpose. Gate 1
+  is "text client stands alone", which is a claim about what the client needs
+  *beside* it — Genie, another frontend, a second window — and it is 34/35
+  true. This gate is a claim about what the client can *do*, and folding the
+  two together would have turned a nearly-green gate red and hidden the
+  distinction between them. It also sits after Gate 7 in numbering and before
+  it in nothing: the shortest honest path to a shippable product is unchanged,
+  and this gate is what makes the shipped thing worth using rather than what
+  makes it shippable.
+
+  **This gate cannot go green from a fixture.** Every increment in it is about
+  reading what a live DragonRealms character is doing, and N7 — a real sign-in,
+  Dan's, still `[!]` — is upstream of the recording above.
+
 **Shortest honest path to a shippable product:** Gates 0 → 1 → 2 → 6 → 7 with
-the viewer and AI shipped disabled. Gates 3–5 can follow the first release.
+the viewer and AI shipped disabled. Gates 3–5 can follow the first release, and
+so can Gate 8 — but Gate 8 is the one a player would notice, so shipping before
+it means shipping a client that is excellent at everything except playing.
 
 ---
 
@@ -2985,6 +3027,326 @@ The items that are not about Godot and are not finished.
 
 ---
 
+---
+
+## 6b. The player-facing lanes (R, W, X, Y, Z)
+
+Added 9 September 2026 from [GAP-2026-09-09.md](GAP-2026-09-09.md), which
+measured 29 things a DragonRealms player does in an hour against what this
+client does when they do them: **9 full, 13 partial, 7 absent**. Read that page
+before claiming anything here; every increment below cites the row it closes.
+
+**Why these five lanes exist at all.** Before this, every lane in section 6 was
+infrastructure, a presentation contract, release engineering or hygiene. That
+was correct while the client was being built. It means, on 9 Sep, that
+*nothing in the plan was about playing the game* — and the nine unimplemented
+activity intents, recorded as a known gap in `NEXT-50.md:48` on 2 September,
+had no owner a week later.
+
+**What these lanes must not do.** The survey's section 1 lists what is already
+good, and the two that constrain this work hardest:
+
+- **The outbound command lane** (`src-tauri/src/command_gate.rs`) is the one
+  ordered path for every command this app emits, with priority, roundtime
+  pacing, typeahead and coalescing, and Pause and Stop reach all of it. No
+  increment below opens a second path. New capability **submits to the lane**.
+- **`DOMAIN.md:305-321`, `:348` and `:1154-1165`: do not rebuild the data or
+  the automation.** `C:\Ruby4Lich5\Lich5\scripts\data` holds 30 YAML files and
+  47,721 lines covering exactly the domains this client lacks — recipes,
+  spells, hunting grounds, towns, herbs, picking. The community maintains them
+  and the player already has them on disk. Where an activity is added, the
+  bridge **starts a dr-scripts script and reports what it is doing**, the way
+  `map_walk` already starts `;go2` rather than reimplementing movement.
+
+**Sequence.** R and W first: they are what a player meets in the first ten
+minutes. X, Y and Z are parallel to each other and to R/W after their own `0`
+increment, because each publishes its interface before anything consumes it.
+
+**Published interfaces, so the lanes need not talk.**
+
+| Lane | Publishes | Enforced by |
+|---|---|---|
+| R | one row per activity intent in `docs/BRIDGE_CONTRACT.md`: args, progress shape, refusal shape | `tools/intent-drift-test.mjs` already fails the build when `IntentName`, the bridge's `HANDLERS` and the mock disagree |
+| W | new `CharacterStatus` fields in `src/types/index.ts`, added in W0 before any consumer | `tsc -b`, plus W0's own check that every new field has a reader |
+| X | `new:src/lib/townLoop.ts` — the money and shop types | X0 |
+| Y | `new:src/lib/tasks.ts` — the task and bounty types | Y0 |
+| Z | `new:src/lib/drScriptsSchema.ts` — the settings schema, derived from the installed `base.yaml` and never invented | Z0 |
+
+**Conflict rule for this whole section.** All five lanes reach
+`lich-scripts/companion_bridge.lic` — R0–R7, W1–W6, X1–X3, Y1, Z0 and Z1.
+That file is 3,351 lines and one dispatch table; two sessions in it at once
+will conflict on `HANDLERS`. **Only one increment that touches it may be `[~]`
+at a time, across all five lanes** — check section 3.1 before claiming. The
+`0` increments (R0 aside, which writes the contract the others fill in) are
+where the parallelism is: W0, X0 and Y0 name disjoint files and can all run at
+once, and each publishes what its own lane then waits on.
+
+---
+
+### Lane R — The nine activity intents: make the buttons the client already shows do something
+
+Gap rows 10, 13, 14, 16, 17, 20, 27. The client declares 35 intents and the
+bridge implements 26; the nine missing ones are, without exception, the
+*activities* — `start_combat`, `burgle`, `travel`, `escape_heal`, `go_healer`,
+`town_run`, `start_training`, `loot`, `buffs`. `isIntentImplemented` disables
+their controls honestly, which is right and is why this is a gap rather than a
+bug, but a greyed Fight button and a missing Fight button are the same thing to
+a player.
+
+Every one of these is a thin adapter over a dr-scripts script the player
+already has. None of them is a reimplementation, and an increment here whose
+`do:` starts writing combat logic in Ruby has gone wrong.
+
+- [ ] **R0  Publish the activity-intent contract before any handler exists** (≈60)
+  touches: docs/BRIDGE_CONTRACT.md, lich-scripts/companion_bridge.lic, tools/intent-drift-test.mjs, new:tools/activity-intent-contract-test.mjs
+  depends-on: none
+  do: the nine intents have never had a written shape, which is why eight of them are "specified" in `NEXT-50.md` as prose and none is buildable from it. Write one contract covering all nine: the args each takes, the **progress** messages it emits while running (an activity takes minutes, so a request/response shape is wrong for it), the **refusal** shape when the character cannot do it right now, and how Stop and Pause reach it — they must, and `SAFETY_INTENTS` in `src/store/bridgePolicy.ts` is why. State plainly that an activity handler's job is to start a named dr-scripts script and report, and name the script for each of the nine. `burgle` gets a contract row saying it is deferred to R8 and why, rather than being left out.
+  verify: `node tools/activity-intent-contract-test.mjs` reads `docs/BRIDGE_CONTRACT.md` and the bridge and asserts that every intent the contract describes is either in `HANDLERS` or listed as deferred, and that every deferred one names its blocker. Print N of N — the number of contract rows parsed and the number matched — so a parser that matched nothing reports itself rather than certifying agreement.
+  sabotage: delete one contract row → the check names the intent that lost its row; add a tenth row for an intent `IntentName` does not declare → red. Restore, md5 either side.
+  done-when: a session can implement any of R1–R7 without asking what the payload looks like.
+
+- [ ] **R1  `buffs`** (≈70)
+  touches: lich-scripts/companion_bridge.lic, lich-scripts/test/protocol_harness.rb, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R0
+  do: first because `NEXT-50.md:441-447` (#42) nominates it — read-mostly, so the blast radius of getting it wrong is small. Start the player's own buff script; report which buffs are up as progress. Do not invent a spell list: gap row 20 records that nothing in this repo knows DR's spells, and `LIVE-STATE.md:281` records the same decision being taken deliberately for Bard songs.
+  verify: `node tools/intent-drift-test.mjs` shows 27 implemented, and the mock's unimplemented set drops to 8 in the same commit or the drift test fails — which is the point of it.
+  sabotage: remove the handler from `HANDLERS` and confirm the UI control greys out rather than sending into nothing.
+
+- [ ] **R2  `loot`** (≈60)
+  touches: lich-scripts/companion_bridge.lic, src/components/shared/InventoryPanel.tsx, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R0
+  do: the Loot control is already in `InventoryPanel.tsx` and already gated on `isIntentImplemented(bridgeIntents, 'loot')`, so this is the bridge half only. `NEXT-50.md:449-456` (#43) is the specification.
+  verify: with the handler present the control enables and a real loot pass reports what it picked up; with it absent the control is disabled and says why.
+
+- [ ] **R3  `travel`** (≈90)
+  touches: lich-scripts/companion_bridge.lic, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R0
+  do: `map_walk` already exists and already starts `;go2` rather than pathfinding itself — copy that shape exactly; `DOMAIN.md:1059-1060` is the argument for it ("A companion that drives `;go2` inherits every fix anyone makes to it"). What `travel` adds over `map_walk` is a *named destination* rather than a room id, and the two hard parts are both recorded: `DOMAIN.md:694-696`, arrival must be **checked** after the move completes and never inferred; and `:96-101`, an expired passport strands a character, so passport state is runtime state the bridge must report before a leg is attempted.
+  verify: a walk to a destination the character cannot reach fails naming the reason, rather than reporting arrival.
+  pitfalls: `LIVE-STATE.md:320` — on the one live run Lich had no map database at all, so every map intent answered nothing. Establish that first or this increment measures the wrong thing.
+
+- [ ] **R4  `escape_heal` and `go_healer`** (≈80)
+  touches: lich-scripts/companion_bridge.lic, src/components/layout/SituationBanner.tsx, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R3
+  do: `NEXT-50.md:475-482` (#46) specifies both. Two constraints from the domain, both of which have burned somebody already: `DOMAIN.md:669` and `:829` — **the threshold that decides "go heal" belongs to the player and must be visible**, not buried; two separate players hit this confusion in two separate channels, which `DOMAIN.md:826` calls a design problem rather than user error. And `:481-485` — a player picks a **home healer** and explicitly rejects proximity, so a preferred heal city wins by default and `map_nearest` is the fallback, not the rule.
+  verify: no "healed" result appears before live health confirms it; a failure leaves a stated recovery action.
+
+- [ ] **R5  `town_run`** (≈90)
+  touches: lich-scripts/companion_bridge.lic, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R3, X1
+  do: `NEXT-50.md:467-473` (#45). Depends on X1 as well as R3 because a town run that cannot read the character's money cannot report what it did: `DOMAIN.md:313` — "selling gems and skins, banking, money exchange between provinces, repair... and pawning".
+  verify: inventory and currency failures stop honestly rather than reporting a completed run.
+
+- [ ] **R6  `start_training`** (≈70)
+  touches: lich-scripts/companion_bridge.lic, src/components/shared/TrainingPanel.tsx, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R0
+  do: `NEXT-50.md:484-492` (#47) covers this and `start_combat`. The domain correction matters more than the plumbing: `DOMAIN.md:57` — "'Start Training' is currently a destination picker. It should be answering 'what is absorbing right now'." The client already holds per-skill `{ranks, mindstate}`, so the answer is computable; this increment is what acts on it.
+  verify: a skill at Mind Lock is never the recommendation, and the panel says which skill it chose and why.
+
+- [ ] **R7  `start_combat`** (≈90)
+  touches: lich-scripts/companion_bridge.lic, src/components/room/BattleColumn.tsx, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
+  depends-on: R0, W1
+  do: last of the implementable eight, because it is the one that can get a character killed. Depends on W1 because starting a fight without being able to read the stance back is the shape of bug this survey exists to find. Starts the player's own `combat-trainer` with their own YAML; reports the hunting ground, the target and the retreat condition as progress.
+  verify: Stop reaches it within one command; Pause holds it; both proved against a running script, not a mock.
+  pitfalls: `DOMAIN.md:753-756` — on Prime and Platinum the script must be monitored, and that obligation is the player's. This control makes attending easy; it does not argue about AFK.
+
+- [!] **R8  `burgle`** (≈unknown)
+  blocked-on: a product decision only Dan can make — see section 10
+  touches: docs/BRIDGE_CONTRACT.md
+  depends-on: R0
+  do: nothing until the decision. `NEXT-50.md:495` calls it "the sole acknowledged unspecced intent" and states the rule that applies meanwhile: keeping an enabled or promised button without a safe definition violates the product's truth rule. It is currently disabled honestly, which is the correct holding state.
+
+---
+
+### Lane W — The facts a fighting player reads back
+
+Gap rows 12, 15, 17, 18, 19, 20, 25. The pattern this lane closes is one thing
+said seven ways: **the client can type the command and cannot read the
+answer.** `node tools/gap-survey-probe.mjs` prints it as rows where the send
+column is non-zero and every other column is zero.
+
+W0 publishes every field first, in one edit, so W1–W6 can run in parallel
+against a settled type.
+
+- [ ] **W0  Publish the fields before anything consumes them** (≈50)
+  touches: src/types/index.ts, docs/BRIDGE_CONTRACT.md, src/lib/panelDataContracts.ts
+  depends-on: none
+  do: add `stance`, container `used`/`capacity`, the prepared-spell block, numeric encumbrance and the rezz-sickness timer to `CharacterStatus`, each documented with **what absence means** — the distinction `skillsReady` already draws and that `src/types/stream.ts` is built around. Update `PANEL_DATA_CONTRACTS` in the same edit, because that file is the answer to "what does this window need" and a field nobody records there is a field the wrapper cannot honestly promise Godot.
+  verify: a check that every field added here is named by at least one entry in `PANEL_DATA_CONTRACTS` and read by at least one component before its lane closes — the "grep the consuming side" rule, made mechanical.
+  sabotage: add a field nothing reads → the check names it.
+
+- [ ] **W1  Stance, read back** (≈50)
+  touches: lich-scripts/companion_bridge.lic, src/data/macros.ts, src/components/shared/RiskBar.tsx, src/types/index.ts
+  depends-on: W0
+  do: gap row 15, and the cleanest instance of the whole pattern. `src/data/macros.ts:58-66` sends `stance defensive|guarded|offensive`; `grep -c '\bstance\b' lich-scripts/companion_bridge.lic` is **0**; and DragonRealms does not send `pbarStance` on the XML stream, which `src/types/stream.ts` states from Lich's own source. So the client changes a combat-critical setting and can never say what it is. Read it in the bridge and show it where the risk readout already is — `panelDataContracts.ts` already *claims* the risk panel shows stance, which today it cannot.
+  verify: change stance from the macro bar and watch the readout follow, against a live or replayed session; then change it by typing the command directly and confirm it still follows — a readout that only updates when *this client* sent the command is reading its own echo, not the game.
+  sabotage: that second case is the sabotage. Do it before believing the first.
+
+- [ ] **W2  Container capacity is hardcoded zero** (≈60)
+  touches: lich-scripts/companion_bridge.lic, src/components/shared/InventoryPanel.tsx, src/types/index.ts
+  depends-on: W0
+  do: `lich-scripts/companion_bridge.lic:796` emits `{'name' => c, 'used' => 0, 'capacity' => 0}` for every worn container. The fields exist, cross the socket, and are a constant — a value that looks like an answer and is a placeholder, which is worse than the absence. `NEXT-50.md:394-400` (#37): "Capacity and location matter more than a long alphabetical list."
+  verify: a full bag and an empty bag read differently. That sentence is the whole check and it is one the current code cannot pass.
+
+- [ ] **W3  The prepared spell, and the dead `spell` field** (≈70)
+  touches: src/types/stream.ts, src/lib/gameStream.ts, lich-scripts/companion_bridge.lic, new:src/lib/spellCycle.ts
+  depends-on: W0
+  do: two things that must be decided together. (1) `StreamCharacterState.spell` is declared in `src/types/stream.ts`, is **never written by the parser and never read by anything** (`grep -n spell src/lib/gameStream.ts` finds only a comment, control `compass` → 9; `WIRING-AUDIT.md:174` independently lists the tag as still absent). **Wiring it and deleting it look identical on screen and are opposite fixes** — decide which, say so in the commit, and do not delete it merely because deleting is cheaper. (2) Gap row 20: nothing tracks prep state or mana cost, so a caster's most frequent action has no readout at all. Do not invent a spell catalogue; read what the game and `base-spells.yaml` say.
+  verify: preparing a spell, holding it, and releasing it are three distinguishable states in the readout, and an unknown spell is shown as unknown rather than as none.
+
+- [ ] **W4  Encumbrance as numbers** (≈45)
+  touches: lich-scripts/companion_bridge.lic, src/types/index.ts, src/components/shared/InventoryPanel.tsx
+  depends-on: W0, W2
+  do: `encumbrance` arrives as a string. `DOMAIN.md:142` gives the real shape — 100 items free-to-play, 75 before junk-room warnings, 300/250 with the inventory upgrade, and slot limits of body 10, over shoulder 2, finger 2, belt 2 — and `:210-212` explains why it is not cosmetic: burden and armour reduce effective Athletics, which is what decides whether a shortcut kills you.
+  verify: the readout answers "can I pick this up", which a word cannot.
+
+- [ ] **W5  One roster, not two** (≈80)
+  touches: src/lib/gameStream.ts, src/types/stream.ts, lich-scripts/companion_bridge.lic, new:src/lib/roomRoster.ts
+  depends-on: W0
+  do: gap row 12. Creatures reach the client twice and are reconciled nowhere: the bridge sends `roomCreatures`/`roomCombatants`, while the stream's bold half of `<component id='room objs'>` is **deliberately unimplemented** pending a live `crtrStatus` capture (`src/types/stream.ts`, `WIRING-AUDIT.md:172`). That was the right call and it has not been revisited since the capture became possible. Either implement the pairing with the count gate the type already describes, or state in the type that the bridge is the single source and the stream half will never be parsed — but not both, and not silence.
+  verify: a room with creatures and loot in it produces one roster with every entry attributable to a source; the counts from the two sources are compared and a mismatch is reported rather than merged.
+  pitfalls: `DOMAIN.md:703-708` — creature names carry trailing state suffixes ("being webbed") that break any command built from them; strip them before use. `:715-718` — a two-sentence combat message can arrive on one line, so `^`-anchored patterns miss.
+
+- [ ] **W6  Rezz sickness, and favors as a pre-hunt check** (≈55)
+  touches: lich-scripts/companion_bridge.lic, src/components/shared/StatsPanel.tsx, src/components/shared/RiskBar.tsx, src/types/index.ts
+  depends-on: W0
+  do: gap row 25. `favors` already arrives and renders. What is missing is the question a player actually asks: `DOMAIN.md:518-524` — "*can I afford to die right now?*" — which wants the number **before** the hunt, not on a stats page. And `:244-247`: there is a timed rezz-sickness state after dying during which you should not fight, the combat script has a dedicated mode that waits it out, and this client has `dead` and `dying` flags with no concept of the recovery period.
+  verify: the pre-hunt readout says a number and what it means; the recovery timer counts down and the fight controls say why they are refusing while it runs.
+
+---
+
+### Lane X — The town half of the session loop: money, shops, repair, banking
+
+Gap rows 26 and 27, both **ABSENT**, and together the largest missing block in
+the client. `grep -c '\bcoins\?\b\|\bsilver\b\|\bwealth\b' lich-scripts/companion_bridge.lic`
+is **0** against a control of `favors` → 2. `src/data/macros.ts:139` types
+`wealth` and the answer lands in the text pane, which is what the game already
+did before this client existed.
+
+`DOMAIN.md:313` is the scope: "selling gems and skins, banking, money exchange
+between provinces, repair (including magic repair kits and crafting tool
+repair), and pawning." `DOMAIN.md:358-359` names the Lich APIs to drive rather
+than reimplement — `DRCM` for money, `DRCI` for inventory, `DRCT` for travel.
+
+- [ ] **X0  Publish the money and shop types** (≈50)
+  touches: new:src/lib/townLoop.ts, docs/BRIDGE_CONTRACT.md, src/types/index.ts
+  depends-on: none
+  do: denominations first, because a wrong one is a silent factor of ten: `DOMAIN.md:148` — 1 platinum = 10 gold = 100 silver = 1,000 bronze = 10,000 copper. Model coins on hand and coins banked as different things per province, because cross-province exchange is a real step in the loop. Nothing here reads a shop database, because there is not one: measured, `data/elanthipedia/` has 11 files covering items, weapons, armour, creatures and materials, and **nothing about merchants**.
+  verify: a round-trip test over every denomination boundary, and one deliberately wrong conversion that must fail.
+
+- [ ] **X1  Wealth: what you have, and where** (≈60)
+  touches: lich-scripts/companion_bridge.lic, new:src/components/shared/WealthPanel.tsx, src/lib/panelDataContracts.ts, src/lib/layout.ts, src/components/dashboard/panels.tsx
+  depends-on: X0
+  also-edits: src/lib/townLoop.ts, which X0 creates. The audit checks plain paths for existence, so a file an earlier increment has not made yet cannot be listed above; it is named here instead of being lost.
+  do: read coins on hand and banked through `DRCM`. `DOMAIN.md:590` names bank headroom as one of the four numbers that decide whether to risk something, beside favors, Athletics against the next obstacle and passport expiry — so this belongs beside W6, not in a separate financial screen.
+  verify: the number matches what `wealth` prints in the game pane, checked against the text rather than against the code that produced both.
+
+- [ ] **X2  Selling, pawning and repair** (≈90)
+  touches: lich-scripts/companion_bridge.lic
+  also-edits: src/lib/townLoop.ts (X0) and src/components/shared/WealthPanel.tsx (X1), neither of which exists yet.
+  depends-on: X1
+  do: drive `sell-loot`, `pawn-items` and `repair`, which the player already has; report what was sold and for how much. Do not build a merchant database — the town knowledge lives in `base-town.yaml` (1,640 lines) on the player's own disk.
+  verify: a sale the game refuses is reported as a refusal, with the reason, and never as a completed sale with zero coins.
+
+- [ ] **X3  Banking and cross-province exchange** (≈70)
+  touches: lich-scripts/companion_bridge.lic
+  also-edits: src/lib/townLoop.ts (X0) and src/components/shared/WealthPanel.tsx (X1), neither of which exists yet.
+  depends-on: X1
+  do: the last third of the town run, and the one with a trap in it — money does not move between provinces for free, and a planner that assumes it does will strand a character with the wrong currency in the wrong place.
+  verify: an exchange states its rate and its fee before it happens.
+
+---
+
+### Lane Y — Tasks and bounties
+
+Gap row 28, **ABSENT**, and the finding that makes this lane different from
+the rest: it is absent from the *design corpus* as well as from the code.
+Twelve design documents mention bounties **once**, as a stream label
+(`WIRING-AUDIT.md:97`). `DOMAIN.md:305-321`'s account of "the real session
+loop" does not mention them at all. Meanwhile the player's own Lich install
+ships `taskmaster`, `task-forage`, `trade`, `favor` and eleven more scripts
+about nothing else.
+
+So Y0 is research, and it is not optional. Building a bounty panel from
+guesswork would be the invented-data defect this repository has already been
+burned by twice (`NEXT-50.md:32` on portraits, `LIVE-STATE.md:281` on Bard
+songs).
+
+- [ ] **Y0  Establish what a task actually is, from sources** (≈70)
+  touches: new:docs/BOUNTIES.md, docs/DOMAIN.md
+  depends-on: none
+  do: from Elanthipedia and from the vendored Lich scripts (read, never run), write down: who gives tasks, what kinds exist, how one is accepted, how progress is reported in the game text, how one is turned in, and what a failure looks like. Cite each claim. **Where a fact is not established, say so and leave it out** — `DOMAIN.md` earns its authority by marking its own invented numbers as invented (`:133`), and this page must do the same.
+  verify: every claim carries its source; the page states what it could not establish.
+  done-when: a session can build Y1 without inventing a mechanic.
+
+- [ ] **Y1  Publish the task types and read the current one** (≈70)
+  touches: new:src/lib/tasks.ts, lich-scripts/companion_bridge.lic, docs/BRIDGE_CONTRACT.md, src/types/index.ts
+  depends-on: Y0
+  do: read the character's current task and its progress. The `bounty` stream label already exists in `StreamTabs`' vocabulary, so the reading half may already be arriving unlooked-at — check that before writing a parser, and say which it was.
+  verify: no current task and an unread current task are distinguishable states, never one empty box.
+
+- [ ] **Y2  The task panel** (≈70)
+  touches: new:src/components/shared/TaskPanel.tsx, src/lib/layout.ts, src/components/dashboard/panels.tsx, src/lib/panelDataContracts.ts
+  also-edits: src/lib/tasks.ts, which Y1 creates.
+  depends-on: Y1
+  do: what the task is, how far along it is, where to turn it in, and one control to accept the next one. `DESIGN-BIBLE.md:179-181` is the admission test — what question does this answer at the moment the player glances at it — and the answer here is "am I done yet".
+  verify: the panel is honest with no task, with a task the client cannot parse, and with the bridge offline; all three, not just the happy one.
+
+---
+
+### Lane Z — dr-scripts settings as forms, not YAML
+
+Gap row 24, and `DOMAIN.md:1154`'s own answer to what this project is for:
+
+> So the highest-value thing this project can do is not to build another
+> automation suite. It is to be the interface to the one that already exists
+> and works.
+
+The wall is measured, not asserted. To use dr-scripts, its own help page asks
+a newcomer to read five YAML guides, install VS Code with the Red Hat YAML
+plugin, hand-write a character setup file against a 94 KB `base.yaml` they
+must not edit, and validate it in an online parser (`DOMAIN.md:1109-1145`).
+Files load in a fixed order and **the last one wins**, which is the mechanism
+behind most "I changed the setting and nothing happened" reports.
+
+**Half of this is already built and shipped.** `lich-scripts/companion_bridge.lic:1094`
+(`module Yaml`) walks the profile directories, computes the load order, parses
+each file, counts and names the settings, and on a syntax error reports the
+**line and column** — the one fact people currently paste into online parsers
+to discover. `src/components/shared/SettingsFilesPanel.tsx` shows it. This lane
+is the write side, and nothing else.
+
+- [ ] **Z0  The schema, derived and never invented** (≈90)
+  touches: new:src/lib/drScriptsSchema.ts, lich-scripts/companion_bridge.lic, lich-scripts/test/yaml_test.rb
+  depends-on: none
+  do: `DOMAIN.md:1150-1153` — "the settings are structured, typed data. A herb entry is a record with `name`, `size`, `stackable`, `room`, `price`, `quantity`. A form produces that correctly every time; a person counting spaces does not." Derive the schema **from the installed `base.yaml` on the player's own disk**, at runtime, rather than committing a copy of somebody else's file: a committed schema is a fork of a file its authors keep changing, and it will drift silently. Anchors, aliases and merge keys (`<<: *`) are in scope and are the hard part; anchors do not cross files, which the derivation must respect.
+  verify: derive against the installed `base.yaml` and report how many settings were found, with a floor — a derivation that finds nothing must fail, not produce an empty form.
+  sabotage: point it at a `base.yaml` with a broken anchor and confirm it reports the line rather than producing a schema missing one branch.
+
+- [ ] **Z1  The write side, which must never touch `base.yaml`** (≈90)
+  touches: new:src/lib/drScriptsWrite.ts, lich-scripts/companion_bridge.lic
+  also-edits: src/lib/drScriptsSchema.ts, which Z0 creates.
+  depends-on: Z0
+  do: write only `<Character>-setup.yaml` and `<Character>-<Arg>.yaml`, never `base.yaml`, which dr-scripts' own documentation says must not be edited. Back up before every write and verify the backup by hash. **This writes into a shared install target outside any git repository** — the same class of file two sessions collided over on 6 Sep, per `CLAUDE.md` section 4 — so re-read immediately before writing rather than from an earlier measurement, and never assume the copy on disk is the one this client last wrote.
+  verify: `;validate` accepts every file this produces. That is the game's own checker and it is the only verification that means anything here.
+  sabotage: write a file with a deliberately wrong indent and confirm `;validate` rejects it — a writer that cannot produce a rejection has not been shown to produce an acceptance.
+
+- [ ] **Z2  Forms for the settings people actually change** (≈120)
+  touches: new:src/components/config/DrScriptsTab.tsx, src/components/config/PlayerConfigPanel.tsx
+  also-edits: src/lib/drScriptsSchema.ts (Z0) and src/lib/drScriptsWrite.ts (Z1).
+  depends-on: Z1
+  do: not all of it. Pick the settings the community's own help traffic is about — safe room, hunting ground, weapon and armour choices, herbs and remedies, containers — and leave the rest to the existing read-only view, which already names every setting it found. Lands beside the client's own config editors, because a player should not have to learn that some of their settings live in one place and some in another.
+  verify: change a setting in the form, run `;validate`, and confirm the running script picks it up — three steps, and the third is the one that proves it.
+
+- [ ] **Z3  Round-trip, and the load-order answer** (≈70)
+  touches: src/components/shared/SettingsFilesPanel.tsx, lich-scripts/test/yaml_test.rb
+  also-edits: src/lib/drScriptsWrite.ts, which Z1 creates.
+  depends-on: Z2
+  do: read a real profile, write it back unchanged, and diff. A round-trip that reorders keys or drops a comment is a data-loss bug wearing a formatting costume. Then close the loop the read side opened: show, per setting, **which file's value won**, because `DOMAIN.md:1141-1145` identifies a later file silently overriding an earlier one as the mechanism behind the config failures that present as script bugs.
+  verify: the round-trip is byte-identical on an unchanged profile; a setting defined in two files shows both and marks the winner.
+
+---
+
 ## 7. Dependency graph
 
 ```
@@ -3059,6 +3421,18 @@ all of the open ones: "i don't actually have any opinions on the decisions so
 use your best judgement." Each below therefore records the recommendation as
 the decision; a later session may reopen one by writing why here.
 
+- **R-a — `burgle`.** The one activity intent with no specification, and the
+  only one that is a product question rather than an engineering one:
+  the client's own catalogue entry (`src/data/scriptCatalog.ts:351`, filed
+  under "Risk & Consequence") says being caught means jail — a fine and lost
+  time — or maiming in a clan house, and carries `verified: false`, meaning
+  even that was inferred from the script's name rather than read from its
+  source. `NEXT-50.md:495` calls it "the sole acknowledged unspecced intent" and
+  states the rule that applies until it is answered — an enabled or promised
+  button with no safe definition violates the product's truth rule. Recommend:
+  **leave it declared and disabled**, which is what the client does today and
+  is honest, and revisit only if a player asks for it. R8 is `[!]` on this
+  line. *Undecided as of 9 Sep 2026.*
 - **D0 — board slot.** Recommend (a): separate Godot window for 1.0; the slot
   shows the transcript and a compact viewer host card; the slot contract is
   written so docking (b) is a later increment. *Decided:* **(a), separate Godot window for 1.0**, 5 Sep 2026.

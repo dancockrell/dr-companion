@@ -419,7 +419,7 @@ export function parseGates(text, knownIds = []) {
 // left the self-test green because its fixture shrank with it.
 //
 // Real counts at the time of writing: 8 gates, 103 members.
-const MIN_GATES = 8
+const MIN_GATES = 9
 const MIN_GATE_MEMBERS = 2
 const MIN_GATE_MEMBERS_TOTAL = 80
 
