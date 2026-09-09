@@ -1,5 +1,5 @@
 /**
- * One version, four files.
+ * One version, five files.
  *
  *     node tools/set-version.mjs 0.2.0     set it everywhere
  *     node tools/set-version.mjs --check   fail if the files disagree
@@ -27,6 +27,20 @@ const PACKAGE = 'package.json'
 const TAURI_CONF = 'src-tauri/tauri.conf.json'
 const CARGO_TOML = 'src-tauri/Cargo.toml'
 const CARGO_LOCK = 'src-tauri/Cargo.lock'
+/**
+ * The fifth file, added 9 Sep 2026, and it was already wrong when it was
+ * added: `APP_VERSION` read `0.1.0` against four files at `0.1.1`.
+ *
+ * This is the one a *player* sees. `src/components/layout/SettingsSheet.tsx`
+ * renders it, `src/components/layout/ReportDialog.tsx` puts it in every bug
+ * report, and `src/store/bridgeMessageHandler.ts` sends it to the bridge - so
+ * the header above ("the first person to report a bug reports the wrong
+ * version") was not a hypothetical about the installer's name, it was a live
+ * description of this constant. A script that checks four files and misses the
+ * fifth is a check that reports agreement across the files it happens to know,
+ * which is the failure this whole file exists to prevent, one level up.
+ */
+const VERSIONS_TS = 'src/lib/versions.ts'
 
 /** The crate whose version in Cargo.lock is this app's own. */
 const CRATE = 'dr-companion'
@@ -49,6 +63,12 @@ function readVersions() {
     return typeof value === 'string' ? value : null
   }
 
+  const versionsTs = readFileSync(VERSIONS_TS, 'utf8')
+  // Anchored on the declaration, not on any `'0.1.1'` in the file: the doc
+  // comments around it quote old version numbers, and a looser pattern would
+  // read one of those and report a disagreement that is only prose.
+  const tsMatch = /^export const APP_VERSION = '([^']+)'/m.exec(versionsTs)
+
   const cargoToml = readFileSync(CARGO_TOML, 'utf8')
   const tomlMatch = /^\[package\][\s\S]*?^version = "([^"]+)"/m.exec(cargoToml)
 
@@ -60,6 +80,7 @@ function readVersions() {
     [TAURI_CONF]: json(TAURI_CONF),
     [CARGO_TOML]: tomlMatch ? tomlMatch[1] : null,
     [CARGO_LOCK]: lockMatch ? lockMatch[1] : null,
+    [VERSIONS_TS]: tsMatch ? tsMatch[1] : null,
   }
 }
 
@@ -95,6 +116,12 @@ function writeVersion(version) {
   writeFileSync(
     CARGO_TOML,
     replaceOnce(toml, /^\[package\][\s\S]*?^version = "([^"]+)"/gm, version, CARGO_TOML)
+  )
+
+  const versions = readFileSync(VERSIONS_TS, 'utf8')
+  writeFileSync(
+    VERSIONS_TS,
+    replaceOnce(versions, /^export const APP_VERSION = '([^']+)'/gm, version, VERSIONS_TS)
   )
 
   const lock = readFileSync(CARGO_LOCK, 'utf8')

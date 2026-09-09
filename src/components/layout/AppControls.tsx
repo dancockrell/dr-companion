@@ -1,10 +1,11 @@
-import { lazy, useState } from 'react'
+import { lazy, useEffect, useState } from 'react'
 import { Pin, PinOff, Circle, Settings, SlidersHorizontal } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri.ts'
 import { cn } from '../../lib/cn.ts'
 import { LazySurface } from '../shared/LazySurface.tsx'
 import { openPanelWindow } from '../../lib/panelWindows.ts'
+import { startLaunchUpdateCheck } from '../../lib/updaterWiring.ts'
 
 const SettingsSheet = lazy(() => import('./SettingsSheet.tsx').then((module) => ({ default: module.SettingsSheet })))
 
@@ -22,8 +23,32 @@ const SettingsSheet = lazy(() => import('./SettingsSheet.tsx').then((module) => 
  * it answers a question nothing else does — whether what you are reading is
  * live or a mock. It is deliberately the only status here.
  */
+/**
+ * Asks the main window to open the Settings sheet. Dispatched by
+ * `UpdateBanner`; the listener is in `AppControls`, which owns the sheet.
+ */
+export const OPEN_SETTINGS_EVENT = 'drc:open-settings'
+
 export function AppControls() {
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // The update banner lives in `WindowShell`, above this component and in a
+  // different subtree, and its "See what changed" has to land in the Updates
+  // section of this sheet. A window event rather than lifting `settingsOpen`
+  // into the store: the sheet is main-window-only local UI state, and hoisting
+  // it into shared state so one banner can open it would make every pop-out
+  // window carry a field about a sheet it cannot render.
+  useEffect(() => {
+    // The check on launch. Guarded inside `startLaunchUpdateCheck` so a
+    // remount does not re-ask, and mounted here because this component is
+    // main-window-only: a pop-out panel should not open its own connection to
+    // GitHub to answer a question the main window has already answered.
+    startLaunchUpdateCheck()
+
+    const open = () => setSettingsOpen(true)
+    window.addEventListener(OPEN_SETTINGS_EVENT, open)
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, open)
+  }, [])
   const alwaysOnTop = useAppStore((s) => s.alwaysOnTop)
   const setAlwaysOnTopState = useAppStore((s) => s.setAlwaysOnTop)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)

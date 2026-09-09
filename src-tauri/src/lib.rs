@@ -25,6 +25,7 @@ pub mod setup;
 pub mod sounds;
 #[cfg(test)]
 pub(crate) mod test_support;
+pub mod updater;
 pub mod viewer;
 pub mod window_size;
 
@@ -195,6 +196,17 @@ fn close_main_window(app: tauri::AppHandle) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // The application updater. Registered before the handler list because
+        // its commands are the plugin's, not this crate's; `updater:default`
+        // in `capabilities/default.json` is what actually exposes them to the
+        // webview, and without that grant the frontend's `check()` is denied.
+        //
+        // Nothing here starts a check. The plugin only acts when the frontend
+        // calls it, and `src/lib/updater.ts` is where the rules about when
+        // that may happen live - there is no timer, no background poll and no
+        // path from launch to a running installer that a person did not press
+        // twice.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             bridge_token::read_bridge_token,
             config_import::read_genie_config,
@@ -266,7 +278,8 @@ pub fn run() {
             scripts::read_script,
             scripts::write_script,
             scripts::delete_script,
-            scripts::script_template
+            scripts::script_template,
+            updater::updater_configured
         ])
         .manage(game_link::GameLink::default())
         .manage(command_gate::CommandGate::default())

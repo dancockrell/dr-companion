@@ -17,7 +17,8 @@ import { ScriptApiPanel } from '../shared/ScriptApiPanel.tsx'
 import { AiClaimsPanel } from '../shared/AiClaimsPanel.tsx'
 import { PresentationBridgePanel } from '../shared/PresentationBridgePanel.tsx'
 import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel.tsx'
-import { EXPECTED_BRIDGE_VERSION } from '../../lib/versions.ts'
+import { APP_VERSION, EXPECTED_BRIDGE_VERSION } from '../../lib/versions.ts'
+import { UpdateSection } from './UpdateSection.tsx'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale.ts'
 import { DEMO_PRESET_LIST } from '../../bridge/index.ts'
 import { loadPrefs } from '../../lib/persistence.ts'
@@ -720,11 +721,13 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             )}
           </section>
 
+          <UpdateSection />
+
           {/* Version numbers. Not a lecture: players know the rules of their
               own game, and being told them by a tool they installed is both
               patronising and useless. */}
           <section className="text-xs text-ink-faint space-y-1 pt-1 border-t border-border">
-            <p>DR Companion 0.1.1</p>
+            <p>DR Companion {APP_VERSION}</p>
             <p>Bridge script {EXPECTED_BRIDGE_VERSION}</p>
           </section>
         </div>

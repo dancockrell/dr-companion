@@ -77,6 +77,7 @@ tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 # presented DER to it byte for byte. `eaccess.rs`'s "Certificate validation"
 # section is the argument; `danger_accept_invalid_certs` appears nowhere.
 native-tls = "0.2"
+tauri-plugin-updater = "2"
 
 [target.'cfg(windows)'.dependencies]
 # One call: GetDiskFreeSpaceExW, so a multi-gigabyte music install refuses
