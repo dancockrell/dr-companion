@@ -151,6 +151,7 @@
   "test:command-history",
   "test:editor-safety",
   "test:godot-fixture-contract",
+  "test:godot-export",
   "test:nullable-coercion",
   "test:world-content",
   "test:world-content-loader",

@@ -23,19 +23,29 @@ import { join, sep as SEPARATOR } from 'node:path'
  * file being touched, and returned as a Set of forward-slash paths because that
  * is how `.gitmodules` spells them on every platform.
  *
- * Callers must assert the size before trusting a clean scan: an empty result
- * silently puts the exclusion back to scanning another repository's code, which
- * is the state this replaced. `godot/shared-assets` is a checkout of
- * `project-42-pirate-island-rpg`, and whether it happens to be initialised is
- * not a fact about this viewer.
+ * **This repository has no submodules today.** `godot/shared-assets` was a
+ * checkout of `project-42-pirate-island-rpg`; Lane V's V3 removed it and
+ * `.gitmodules` with it, because 3D is cancelled (docs/NO-3D.md) and nothing
+ * live consumed it. An empty result is therefore the correct answer now, and
+ * the instruction that used to stand here — "callers must assert the size
+ * before trusting a clean scan" — would today demand a submodule that should
+ * not exist. It went red on exactly that, which is the check doing its job.
+ *
+ * What a caller must still not do is read an empty result as evidence that the
+ * *parser* works: an absent submodule and a parser that stopped matching are
+ * the same observation. So pass `text` to run the parser against a
+ * `.gitmodules` you wrote yourself and assert what comes back.
+ * `tools/nullable-field-coercion-test.mjs` does exactly that, so the exclusion
+ * is proved live whether or not a submodule ever returns.
  */
-export const submodulePaths = () => {
+export const submodulePaths = (text = null) => {
   const found = new Set()
-  let text = ''
-  try {
-    text = readFileSync('.gitmodules', 'utf8')
-  } catch {
-    return found
+  if (text === null) {
+    try {
+      text = readFileSync('.gitmodules', 'utf8')
+    } catch {
+      return found
+    }
   }
   for (const line of text.split('\n')) {
     const match = /^\s*path\s*=\s*(.+?)\s*$/.exec(line)

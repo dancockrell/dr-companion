@@ -303,9 +303,11 @@ use. Measured: two placeholder files, four and fourteen bytes, are enough for
 all 59 to run green.
 
 `npm run worktree:init` is the one command that clears this in a new clone or
-worktree: it writes the placeholders and initialises the submodules, which are
-the two things a fresh checkout lacks and neither of which the Rust error
-mentions.
+worktree: it writes the placeholders a fresh checkout lacks, which the Rust
+error does not mention. (It also runs `git submodule update --init
+--recursive`, which does nothing today — this repository has had no submodules
+since Lane V's V3 removed `godot/shared-assets`, see docs/NO-3D.md — and is
+kept so the command stays correct if one ever returns.)
 
 So `tools/vendor-fetch.mjs --stub` writes those placeholders (`npm run
 vendor:stub`), and `--require-real` refuses them, wired into `tauri:build`
@@ -357,8 +359,6 @@ the build box has not got, and a suite nobody ever registered.
 
 Needing an environment:
 
-- `test:godot-export` - the `godot/shared-assets` submodule and a Godot 4
-  binary on PATH.
 - `test:live-chain` - the app running with the viewer attached. Not written
   yet; it arrives with increment B4.
 - `test:protocol-harness` - Ruby, and a free TCP port: it starts

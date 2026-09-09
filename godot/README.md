@@ -52,7 +52,7 @@ directory is right.
   reachable, preserve the manifest's exact move string, and are re-checked
   against the current snapshot rather than creating another map window. Since
   issue #444 this list is the only *written* way out of a room in the viewer:
-  the exit chevrons and the route-line mesh were deleted, and travel is a
+  the exit chevrons and the route line were deleted, and travel is a
   click on a tile, a click on one of these words, or a hotkey.
 - `scripts/world_inspector.gd` — one collapsible current-room inspector with a
   compact live player strip plus every confirmed occupant and ground item. It
@@ -123,10 +123,11 @@ node tools/godot-tests.mjs
 
 ## Windows export
 
-The checked-in `Windows Desktop` preset produces one embedded-PCK executable;
-the three reviewed runtime GLBs are included explicitly because they are loaded
-by path rather than through a scene dependency. Build it with a Godot 4.3+
-editor and matching export templates:
+The checked-in `Windows Desktop` preset produces one embedded-PCK executable.
+Its `include_filter` is empty and must stay that way: it used to name three
+model files from the removed shared-assets submodule, and `npm run
+test:godot-export` now fails if anything from outside `godot/` reappears in it.
+Build it with a Godot 4.3+ editor and matching export templates:
 
 ```powershell
 npm run godot:export -- --godot "C:\path\to\Godot_v4.x-stable_win64_console.exe"
@@ -182,21 +183,21 @@ on purpose, so nobody mistakes this for further along than it is:
 - **No CI wiring.** The headless test command above has to be run by hand;
   it is not yet in any GitHub Actions job.
 
-## Shared reusable asset library
+## Shared reusable asset library — gone: 2026-09-09
 
-The viewer consumes the common resource library through the Git submodule at
-`godot/shared-assets`; it deliberately does not copy source models into DR
-Companion. The first foundation roles parse their exact approved GLB sources
-directly, so they do not require Godot to import the whole catalog. Initialise
-the submodule after checkout with:
+This section described a Git submodule at `godot/shared-assets`, a review
+ledger at `assets/shared_asset_selections.json`, and an admission gate for
+model sources. All three are gone. 3D is cancelled (`../docs/NO-3D.md`), PR
+#517 deleted the ledger, and Lane V's V3 removed the submodule and
+`.gitmodules` with it, after establishing that nothing live consumed either:
+the one consumer, `tools/export-godot-viewer.mjs`, had been crashing on the
+deleted ledger ever since #517 and nothing said so.
 
-```bash
-git submodule update --init --recursive
-```
+`godot/export_presets.cfg`'s `include_filter` is empty for the same reason, and
+`npm run test:godot-export` is what keeps it that way. It runs in the full
+suite now and fails if the export starts admitting anything from outside
+`godot/`.
 
-The first review ledger is `assets/shared_asset_selections.json`. Treat it as
-an admission gate: a candidate must be checked at room and world zoom for
-scale, ground contact, silhouette, material readability, and suitability for
-its exact semantic role. Source geometry is presentation-only; map routes,
-legal exits, collision, navigation, selection, and live MUD state remain
-outside the asset pack.
+The project ships no runtime assets of its own yet. When it does they are 2D
+isometric sprites authored for this repository, not a kit consumed from
+somewhere else, and this section is where to say so.

@@ -92,21 +92,24 @@ un-drafts it, and §3 below is the list that has to be worked first.
 
 ### The world viewer is optional, and the build says which one it made
 
-The viewer's admitted runtime assets live in the `godot/shared-assets`
-submodule, which points at a **private** repository. That was the whole
-difficulty when a workflow built releases: a workflow's built-in token reaches
-only its own repository, so a run had no way to clone it, and the first real
-release run died there before building anything.
+**History, and why the flags below exist.** The viewer's runtime assets used to
+come from a `godot/shared-assets` submodule pointing at a **private**
+repository. A workflow's built-in token reaches only its own repository, so a
+run had no way to clone it, and the first real release run died there before
+building anything. That submodule is gone: 3D is cancelled
+([NO-3D.md](NO-3D.md)) and Lane V's V3 removed it after establishing that
+nothing live consumed it, so a release build no longer needs a credential for
+anything outside this repository.
 
-Locally the problem does not arise in that form — the submodule fetches with
-whatever credentials the machine already has — but the three states remain,
-because an installer without the viewer is a supported build (beta.1 ships with
-the viewer disabled):
+The three states below are unchanged by that, because what makes them three is
+that an installer without the viewer is a supported build (beta.1 ships with the
+viewer disabled). Only the reasons a viewer can be absent have narrowed: no
+Godot binary, or a plain choice not to export one.
 
 | Condition | What happens |
 |---|---|
-| The submodule is present and a viewer is exported | `release:config --require-viewer` and `release:verify --expect-viewer` both insist on it |
-| No submodule, no viewer | The installer carries no viewer and the release body says so |
+| A viewer was exported | `release:config --require-viewer` and `release:verify --expect-viewer` both insist on it |
+| No viewer was exported | The installer carries no viewer and the release body says so |
 | A viewer was asked for and is not there | The build **fails**. Shipping the smaller installer quietly is the one unacceptable outcome |
 
 Row 3 is why both scripts take a flag rather than inferring from what happens
@@ -172,7 +175,8 @@ did not ask for. A link costs one click and never surprises anybody.
 
 ### 2.3 What ships in beta.1 — **Decided: viewer and local AI both off**
 
-Gates 0 → 1 → 2 → 6 of the plan, with the 3D viewer and the local model absent.
+Gates 0 → 1 → 2 → 6 of the plan, with the Godot world viewer and the local
+model absent.
 Both are optional by construction and the client is complete without them, so
 shipping them dark trades nothing a player would notice for a much smaller
 surface to get wrong.

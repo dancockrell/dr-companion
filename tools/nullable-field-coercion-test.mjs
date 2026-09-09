@@ -234,11 +234,35 @@ ok(
 )
 
 // -- and now the tree --
+// The control comes first, and it is the only thing here that can catch a
+// broken parser. This repository has had no submodules since Lane V's V3
+// removed `godot/shared-assets` (3D is cancelled, docs/NO-3D.md), so the live
+// call returns an empty set and will until somebody adds one — and "there are
+// no submodules" and "the `path =` regexp stopped matching" are the same
+// observation from outside. Only a `.gitmodules` written here can separate
+// them. The old check asserted `size >= 1` and went red on the removal, which
+// was it working: the claim it defended had stopped being true.
+const SYNTHETIC_GITMODULES = [
+  '[submodule "godot/shared-assets"]',
+  '\tpath = godot/shared-assets',
+  '\turl = https://example.invalid/kit.git',
+  '[submodule "vendor/other"]',
+  '\tpath = vendor/other',
+  '\turl = https://example.invalid/other.git',
+].join('\n')
+const parsedControl = submodulePaths(SYNTHETIC_GITMODULES)
+ok(
+  'control: the .gitmodules parser reads both paths out of a two-submodule file',
+  parsedControl.size === 2 && parsedControl.has('godot/shared-assets') && parsedControl.has('vendor/other'),
+  `${parsedControl.size} path(s): ${[...parsedControl].join(', ') || 'none'}`,
+)
 const MODULE_PATHS = submodulePaths()
 ok(
-  'the submodule exclusion was read from .gitmodules',
-  MODULE_PATHS.size >= 1,
-  MODULE_PATHS.size ? [...MODULE_PATHS].join(', ') : 'no `path =` line parsed - the exclusion would exclude nothing',
+  'the tree declares no submodule, so the walk owns every .gd file it finds',
+  MODULE_PATHS.size === 0,
+  MODULE_PATHS.size
+    ? `${MODULE_PATHS.size} declared and excluded: ${[...MODULE_PATHS].join(', ')}`
+    : 'no .gitmodules; godot/shared-assets was removed by V3 (docs/NO-3D.md)',
 )
 
 const files = gdFilesIn(GODOT_ROOT, MODULE_PATHS)
