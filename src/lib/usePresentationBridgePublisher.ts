@@ -26,7 +26,7 @@
  *
  * # Reconnect
  *
- * docs/CLAUDE_3D_VIEWER_BRIEF.md requires "on launch, reconnect, dropped
+ * `docs/NO-3D.md` requires "on launch, reconnect, dropped
  * event, or renderer crash, request a new snapshot." A *new Godot
  * connection* already gets this for free - `presentation_bridge.rs`'s
  * `handle_client` sends whatever snapshot it's holding immediately on auth,

@@ -122,7 +122,7 @@ export interface EntitySnapshot {
    * Absent - not null-filled - when the noun names no class the appearance
    * table knows, which for a creature is nearly always: the table covers
    * weapons and armour, and "a kobold" is neither. See
-   * `docs/THREE_D_REBUILD_HANDOFF.md` section 11 for why an unrecognised noun
+   * `docs/NO-3D.md` section 11 for why an unrecognised noun
    * must resolve to nothing rather than to the nearest-looking mesh, and
    * `src/lib/appearance.ts` for the resolver.
    */

@@ -4,7 +4,7 @@ extends SceneTree
 ##   Godot_v4.7.2-stable_win64_console.exe --headless --path godot \
 ##     --script res://tests/foundation_test.gd
 ##
-## Exercises the acceptance gate from docs/CLAUDE_3D_VIEWER_BRIEF.md end to
+## Exercises the acceptance gate from `docs/NO-3D.md` end to
 ## end against the checked-in mock fixture: manifest loads, only true exits
 ## are exposed, an invalid exit is refused, a valid click produces a
 ## validated intent that updates the mock snapshot with a correctly

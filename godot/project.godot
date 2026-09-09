@@ -5,7 +5,7 @@
 ; client with explicit mock and authenticated live modes. It
 ; ships no final art — Codex owns primitives, materials, and composition
 ; recipes inside the slots this project exposes. See
-; docs/CLAUDE_3D_VIEWER_BRIEF.md and docs/THREE_D_REBUILD_HANDOFF.md at the
+; docs/NO-3D.md at the
 ; repo root for the full contract this project implements.
 
 config_version=5

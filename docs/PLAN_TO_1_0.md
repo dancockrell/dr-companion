@@ -298,7 +298,7 @@ disagree eventually, and then both are wrong.
 | **I** | Design tokens (#176, #179) | `src/components/**`, `src/index.css`, new `tools/color-token-test.mjs` | none |
 | **J** | Map audit (#175) | per finding | D5 |
 | **K** | Appearance (models for weapons/armor, glyphs) | new appearance data + `presentationBridge.ts` entity fields + Godot mapping | C7 decided, C4 |
-| **L** | Codex contract for the Crossing slice | `docs/THREE_D_REBUILD_HANDOFF.md`, `godot/mock/*`, contract tests in `tools/` | B3 |
+| **L** | Codex contract for the Crossing slice | `docs/NO-3D.md`, `godot/mock/*`, contract tests in `tools/` | B3 |
 | **N** | Lich-native login and frontend (no Genie) | new `src-tauri/src/eaccess.rs`, new `src-tauri/src/sal.rs`, `lich.rs`, `LichLauncher.tsx`, `WaitingForCharacter.tsx`, `tools/build-privacy-doc.mjs` | none |
 | **Q** | Player config: the client's own macros, aliases, highlights, substitutes, gags, variables, presets | new `src/lib/playerConfig.ts`, new `src/lib/playerConfigImport.ts`, new `src/lib/lineRules.ts`, new `src/components/config/`, `useHighlights.ts`, `useAliases.ts`, `keybindings.ts`, `useGameLines.ts` | N6 |
 
@@ -1006,7 +1006,7 @@ whether it is embedded, docked or a separate window is D0.
 
 - [!] **D6  Delete the map-window path** (≈25)
   blocked-on: its own `depends-on` — D5 has not survived a real play session. Every D5 measurement was taken against the mock bridge; there is no live Lich/DragonRealms session available to this worktree, so the dependency is unmet by construction rather than by omission. The map window is already unreachable (D3's `MAP_WINDOW_ENABLED = false`), so nothing user-visible is waiting on this: it is a deletion, and deleting on an unmet dependency buys nothing.
-  note: a second, separable problem was found while sizing this. The `do:` says to remove `'map'` from `PanelId` and `PANEL_DATA_CONTRACTS`, but that entry's own `purpose` reads "Retiring from this wrapper once Godot owns world/route presentation — kept here only as the current, still-live fallback until that migration slice lands", and that slice has not landed: D0 chose a separate Godot window for 1.0, and after D4 the map still renders in the board slot and still pops out through `?view=panel&id=map`, which is a different path from the `?view=map` window this increment is about. Removing the id would delete a live panel. Deleting `MapWindow.tsx` is safe and separable; removing the panel id belongs with Lane J's map audit or the Godot migration, and wants a line in section 10 first.
+  note: a second, separable problem was found while sizing this. The `do:` says to remove `'map'` from `PanelId` and `PANEL_DATA_CONTRACTS`, but that entry's own `purpose` reads "Retiring from this wrapper once Godot owns world/route presentation — kept here only as the current, still-live fallback until that migration slice lands", and that slice has not landed: D0 chose a separate Godot window for 1.0, and after D4 the map still renders in the board slot and still pops out through `?view=panel&id=map`, which is a different path from the `?view=map` window this increment is about. Removing the id would delete a live panel. Deleting `MapWindow.tsx` is safe and separable. **Removing the panel id is now cancelled outright: it was justified by the Godot 3D migration, and 3D is dead (see docs/NO-3D.md). The map panel is the world and route presentation, not a fallback awaiting replacement.**
   also: `MapWindow.tsx` is read by five tests outside this increment's `touches:` — `aux-window-boundary-test`, `battlespace-test`, `gateway-test`, `map-loading-test` and `map-state-sync-test` (the last asserts properties of "both map surfaces"). They all go red on the deletion, correctly; whoever takes D6 should expect to update them and should say so in the commit.
   touches: src/App.tsx, src/components/MapWindow.tsx, tools/mapdock-test.mjs
   depends-on: D5 survived one real play session (date in the claim)
@@ -1669,7 +1669,7 @@ whether it is embedded, docked or a separate window is D0.
 
 - [x] **J2c  The viewer inherits the terrain-variety problem, so say so** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 20
-  touches: docs/THREE_D_REBUILD_HANDOFF.md
+  touches: docs/NO-3D.md
   depends-on: J1
   do: #175's finding 5 is confirmed exactly — 27 stamp kinds in `MapStampLayer.tsx`, 22 with two images, 4 with three, 1 with four, on an 85-zone map. It is real and it is not worth fixing here: §1 of the handoff retires the player-facing 2D map, so commissioning more 2D terrain art buys repetition relief on a surface that is going away. Add a contract line under the world-presentation section: the viewer's terrain and landmark presentation is judged on visible repetition across a zone, not on having one asset per kind, and a kind with a single motif is a gap to record rather than a kind that is done. Name `MapStampLayer.tsx`'s 27 kinds as the vocabulary being handed over.
   verify: the section exists and names the measured 22/4/1 split, so the number the viewer has to beat is on the page rather than in an issue comment.
@@ -1689,7 +1689,7 @@ receives. No portraits, no images in the client.
 
 - [x] **K1  Design note, no code** (≈20)
   commit: (this PR) verified: 2026-09-05 minutes: 25
-  touches: docs/THREE_D_REBUILD_HANDOFF.md
+  touches: docs/NO-3D.md
   depends-on: C7
   do: add §11 "Appearance": the three pieces above; the id vocabulary is the registry's `selections[].id`; defaults are compiled by a tool from a noun→class table; overrides live in the client under `drc.appearance.v1`; the snapshot compiler attaches `appearance: {modelId, glyph?}` to `EntitySnapshot` and to `player`; Godot maps `modelId` → GLB through the registry and falls back to the class default, never to an invented mesh (the registry's own `forbiddenSubstitutions` rule).
   verify: the section exists and names the four owners it extends.
@@ -1711,7 +1711,7 @@ receives. No portraits, no images in the client.
 
 - [x] **K4  Godot maps `modelId`** (≈Codex; contract only here)
   commit: (this PR) verified: 2026-09-05 minutes: 15
-  touches: docs/THREE_D_REBUILD_HANDOFF.md
+  touches: docs/NO-3D.md
   depends-on: K3
   do: §11 states the field, the fallback order, and the test Godot must add (`entity_projection_test.gd`: unknown id → class default; missing field → neutral token). File the content task in the ledger for Codex.
   verify: claim filed; §11 names the test.
@@ -1739,7 +1739,7 @@ receives. No portraits, no images in the client.
 
 - [x] **L1  Name what I own** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 20
-  touches: docs/THREE_D_REBUILD_HANDOFF.md
+  touches: docs/NO-3D.md
   depends-on: B3
   do: §2 lists: snapshot/event/intent shapes and their tests; the mock fixture generator; `tools/live-chain-check.mjs`; the acceptance checklist (L4). Codex owns every `.tscn`, content `.gd`, GLB and material.
   verify: the list is in §2.
@@ -1754,14 +1754,14 @@ receives. No portraits, no images in the client.
 
 - [x] **L3  Data contract tests** (≈30)
   commit: (this PR) verified: 2026-09-05 minutes: 35
-  touches: new:tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json, docs/THREE_D_REBUILD_HANDOFF.md
+  touches: new:tools/godot-fixture-contract-test.mjs, package.json, tools/test-suites.json, docs/NO-3D.md
   depends-on: L2
   do: every exit resolves to a cell or is `targetCellId:null`; no cell has two exits with the same `move`; the current room is in `cells`. §9 maps each requirement to a test name on both sides (`godot/tests/foundation_test.gd` already exists).
   verify: suite green in the full run.
 
 - [x] **L4  Slice acceptance checklist** (≈15)
   commit: (this PR) verified: 2026-09-05 minutes: 15
-  touches: docs/THREE_D_REBUILD_HANDOFF.md
+  touches: docs/NO-3D.md
   depends-on: L1
   do: §9: Town Green North renders; every real exit clickable; click → `intent_accepted` → confirmed room change → token moves; a fabricated exit is refused; a stun flips `cannotAct` and the scene reacts; an assessed creature's confidence visibly ages. Each line has a "recorded in docs/verification/… on <date>" slot.
   verify: six lines with empty slots.
@@ -1795,7 +1795,7 @@ receives. No portraits, no images in the client.
   commit: (this PR) verified: 2026-09-06 minutes: 100
   done: Dan, 6 September 2026, verbatim: *"remove the route markers. you travel by clicking on another tile or by clicking on the words in the interface or by hotkey."* Three layers deleted, not disabled: `exit_anchor_layer.gd` (the cyan chevrons and the `Label3D` beside each non-compass exit), `route_graph_layer.gd` (the tether-coloured lines between cells), and `confirmed_route_transition.gd`, which drew nothing at all - `is_playing()` returned `false` unconditionally and `last_route()` had no consumer outside its own test. Their three scene nodes, their three tests and their `godot/README.md` entries went with them. Kept, with the consuming side named: the per-cell `ClickTarget` (this is now how a player travels), the `Current exits` word list in `world_controls.gd`, and the current-room cue, which is not a marker - the `PlayerSelf` token and its range bands are projected into the confirmed room by `entity_projection_layer.gd`, the camera is focused on it, and `world_inspector.gd` names it in text. `boardAnchor` stays in the manifest and the compiler: it fed the chevron placement, and it is also read and nulled by `aiJobProducers.ts::validateTetherCandidate`, which is a live consumer in another lane with its own tests and its own plan increment.
   note: the tile click now travels rather than nearly travelling. It walked a neighbour already; a click on the room you are standing in emitted an intent, and a click on any further room emitted `focus-room`, which reached the frontend and was dropped there. The first sends nothing now, and the second became `travel-to-room` - a destination and no route, because this client computes none: the frontend turns it into the bridge's own `map_walk`, which starts Lich's `go2`. The Rust variant was renamed rather than added beside the old one, and a test asserts the superseded `focus-room` wire kind is now *rejected*, so a stale viewer fails loudly instead of clicking into silence. The words and the hotkeys both already existed and neither was tested: `ExitButtons.tsx` was rendering the parsed compass exits as buttons, and `keybindings.ts` was binding all eleven numpad moves. Rebasing onto B9 then found the words were on the wrong lane: they sent through `useMacroRunner`, so a click went out as a `run_macro` bridge intent, *beside* the outbound command lane rather than through it - unordered against a script's walk loop, unpaced against the roundtime, and out of Stop's reach. They now call `requestGameAction(..., 'ui-action')` like every other UI control. The macro in-flight gate went with them, deliberately: refusing a second press while the first is outstanding is right for a five-command attack macro and wrong for a direction, and the lane already coalesces duplicate movement and holds against the roundtime the game reports. `canSendMacro` still supplies the disabled state and its wording, minus `inFlight`. The hotkeys needed nothing: `App.tsx` had already labelled the keybinding hook `'keybind'`, and the tile click is a bridge intent rather than a game command, so it names no source.
-  touches: godot/scripts/world_root.gd, godot/scripts/intent_sender.gd, godot/scripts/bridge_client.gd, godot/scenes/WorldRoot.tscn, godot/README.md, new:godot/tests/tile_travel_test.gd, src-tauri/src/presentation_bridge.rs, src/lib/presentationBridge.ts, src/lib/presentationIntents.ts, new:src/lib/roomExits.ts, src/components/room/ExitButtons.tsx, src/lib/panelDataContracts.ts, new:tools/exit-controls-test.mjs, tools/presentation-intents-test.mjs, tools/keybindings-test.mjs, package.json, tools/test-suites.json, docs/CLAUDE_3D_VIEWER_BRIEF.md, docs/THREE_D_REBUILD_HANDOFF.md, docs/PLAYER_DATA.md, docs/PRIVACY.md, new:docs/verification/route-markers-removed-2026-09-06.md
+  touches: godot/scripts/world_root.gd, godot/scripts/intent_sender.gd, godot/scripts/bridge_client.gd, godot/scenes/WorldRoot.tscn, godot/README.md, new:godot/tests/tile_travel_test.gd, src-tauri/src/presentation_bridge.rs, src/lib/presentationBridge.ts, src/lib/presentationIntents.ts, new:src/lib/roomExits.ts, src/components/room/ExitButtons.tsx, src/lib/panelDataContracts.ts, new:tools/exit-controls-test.mjs, tools/presentation-intents-test.mjs, tools/keybindings-test.mjs, package.json, tools/test-suites.json, docs/NO-3D.md, docs/PLAYER_DATA.md, docs/PRIVACY.md, new:docs/verification/route-markers-removed-2026-09-06.md
   depends-on: L7
   do: delete the marker layers and their tests; make a tile click travel; cover all three travel paths with tests.
   verify: `node tools/godot-tests.mjs` 16 of 16 scripts / 271 checks measured at the branch point `db0cab4e`, 14 of 14 / 269 measured here after rebasing onto `7eafd42e`, which added checks of its own elsewhere. The delta from *this* change is the only part both numbers agree on: −24 (three deleted scripts) +19 (`tile_travel_test.gd`); `node tools/plan-audit.mjs` plan ok; `npx tsc -b` and `npm run lint` clean; `node tools/run-tests.mjs` no failures, 160 suites, 6002 checks, and 1 thing unchecked in 1 suite - `test:godot-fixture-contract`'s live-snapshot comparison, which predates this increment and is not a pass (measured after rebasing onto `3d19088f`; the totals move because other lanes are landing, and the second unchecked item this branch reported an hour earlier, `test:ai-script-repair`'s Ruby containment fixtures, was closed by H9 rather than by anything here; the +1 suite from this branch is `test:exit-controls`) (`test:exit-controls` is new; `docs/PLAYER_DATA.md` and `docs/PRIVACY.md` were regenerated because `src/lib/roomExits.ts` moved their scanned-file counts by one); `cargo test --lib presentation` 15 passed. Captures either side of the change in `docs/verification/route-markers-removed-2026-09-06-{before,after}.png`, of the same room through the same rig.

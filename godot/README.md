@@ -1,6 +1,6 @@
 # DR Companion — Fixed-Isometric World Viewer
 
-Implements slice 0 ("Viewer contract") of `docs/THREE_D_REBUILD_HANDOFF.md`.
+Implements slice 0 ("Viewer contract"). The 3D rebuild this served is cancelled: see `docs/NO-3D.md`.
 The foundation was contributed through PR #267 and is now maintained by Codex
 as part of the same DR Companion game: Godot viewer, 3D content registration,
 and asset acquisition all have one current owner. This is the foundation only

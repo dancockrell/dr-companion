@@ -1,7 +1,7 @@
 /**
  * What mesh, if any, an item should be rendered as.
  *
- * `docs/THREE_D_REBUILD_HANDOFF.md` section 11 is the contract. The short
+ * `docs/NO-3D.md` section 11 is the contract. The short
  * version: appearance is data the snapshot carries and Godot renders, resolved
  * `override ?? default ?? nothing`, and "nothing" is a real and common answer
  * that must never be filled in with the nearest-looking mesh.

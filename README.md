@@ -8,9 +8,9 @@ The project started as a companion panel. That description is now obsolete; the 
 
 ## Current direction and documentation authority
 
-The visual direction is a fixed-view, orthographic isometric RTS-style board over the authoritative MUD graph. Rooms and region groupings appear as nodes; typed tethers represent real transitions. Reusable isometric tile and structure kits supply the scenery. Actors are rigged from the start, with animation deferred until the static board and live-state projection are proven.
+The visual direction is a fixed-view isometric board over the authoritative MUD graph, drawn as 2D sprite art. Rooms and region groupings appear as nodes; typed tethers represent real transitions. Isometric tile and structure sprites supply the scenery. Animation is deferred until the static board and live-state projection are proven.
 
-Start with [the world-board strategy](docs/THREE_D_WORLD_STRATEGY.md) for the design contract, [the implementation handoff](docs/THREE_D_REBUILD_HANDOFF.md) for integration boundaries, and [the working plan to 1.0](docs/PLAN_TO_1_0.md) for tracked implementation and acceptance gates. The board presents confirmed game state; it does not simulate DragonRealms outcomes.
+Start with [the working plan to 1.0](docs/PLAN_TO_1_0.md) for tracked implementation and acceptance gates. The board presents confirmed game state; it does not simulate DragonRealms outcomes. The former 3D world-board strategy and its implementation handoff are cancelled: see [docs/NO-3D.md](docs/NO-3D.md).
 
 This is the current target, not a claim that every board feature has shipped. Older panel, separate-map, and battlespace documents are labeled where their product direction has been superseded. Preserve their useful implementation and regression evidence without treating them as current design authority.
 

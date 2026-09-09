@@ -3,7 +3,7 @@
  * should hold in an entity's hand or put on its body.
  *
  * A generator rather than a hand-written table, for the reason
- * docs/THREE_D_REBUILD_HANDOFF.md section 11 gives: the class vocabularies
+ * `docs/NO-3D.md` section 11 gives: the class vocabularies
  * already exist and are already tested, so a second hand-maintained copy of
  * either would be free to drift from the one the rest of the app uses.
  *

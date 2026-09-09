@@ -8,12 +8,11 @@
   "updated_at": "2026-09-05T06:33:48.961985+00:00",
   "paths": [
     "README.md",
-    "docs/THREE_D_WORLD_STRATEGY.md",
+    "docs/NO-3D.md",
     "docs/DESIGN.md",
     "docs/DESIGN-BIBLE.md",
     "docs/BATTLESPACE-V3-DESIGN.md",
-    "docs/SCENE_ART.md",
-    "docs/THREE_D_REBUILD_HANDOFF.md"
+    "docs/SCENE_ART.md"
   ],
   "symbols": [],
   "coordination": {

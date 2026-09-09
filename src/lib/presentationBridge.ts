@@ -2,7 +2,7 @@
  * Compiles this app's own live room state into the `WorldSnapshot` shape
  * `src-tauri/src/presentation_bridge.rs` and the Godot viewer's
  * `world_manifest_loader.gd`/`bridge_client.gd` already agree on (see
- * `docs/THREE_D_REBUILD_HANDOFF.md` section 4), and publishes it to Rust
+ * `docs/NO-3D.md` section 4), and publishes it to Rust
  * whenever any viewer-relevant live fact or zone topology changes.
  *
  * This file is the one place that turns "what this app already knows" into

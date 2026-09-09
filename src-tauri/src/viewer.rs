@@ -29,7 +29,7 @@
 //!
 //! # The app has to stay usable when the viewer is absent
 //!
-//! `docs/THREE_D_REBUILD_HANDOFF.md` makes it an acceptance rule: "client
+//! `docs/NO-3D.md` makes it an acceptance rule: "client
 //! remains usable if Godot is absent/crashed". So every path here reports
 //! rather than throws, "not installed" is an ordinary answer rather than an
 //! error, and nothing in the app's startup depends on any of it.

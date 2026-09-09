@@ -11,7 +11,7 @@ extends Node
 ## the transport, not this validation boundary.
 ##
 ## `protocol = 1` and every message shape below match
-## docs/THREE_D_REBUILD_HANDOFF.md section 4 exactly. A field this file adds
+## `docs/NO-3D.md` section 4 exactly. A field this file adds
 ## that is not in that doc is a bug, not an extension.
 
 signal snapshot_updated(snapshot: Dictionary)

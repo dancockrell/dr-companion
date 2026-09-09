@@ -1,6 +1,6 @@
 # The Crossing slice acceptance checklist — 5 September 2026
 
-The six lines of `docs/THREE_D_REBUILD_HANDOFF.md` §9, run against the viewer
+The six lines of `docs/NO-3D.md` §9, run against the viewer
 as it stands. Two are recorded. Four are not, and this file says what was tried
 for each rather than leaving them blank, because the next person should not
 have to rediscover which instruments do not work here.
