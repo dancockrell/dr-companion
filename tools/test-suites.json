@@ -131,6 +131,8 @@
   "test:server",
   "test:live",
   "test:viewer-absent",
+  "test:mud-client-e2e",
+  "test:mud-client-e2e-break",
   "test:release-flags",
   "test:map",
   "test:map-walk",

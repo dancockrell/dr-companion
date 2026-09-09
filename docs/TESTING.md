@@ -224,3 +224,37 @@ checks nine properties of the exchange, and stops the process it started.
 It stays outside `tools/test-suites.json` because it needs Ruby and a free TCP
 port, so the build box cannot be relied on to run it — `npm run test:needs-env`
 is the list of suites in that position and why each is there.
+
+## Playing the whole thing without a game, and without Godot
+
+```bash
+npm run test:mud-client-e2e         # about two seconds; also in npm run test:all
+npm run test:mud-client-e2e-break   # proves the run above can go red
+```
+
+One run that signs in through the scripted EAccess, attaches to
+`tools/fake-lich.mjs` over a real loopback socket, plays a session (room,
+exits, vitals, occupants, channels, a highlight, a gag, an alias, a macro dry
+run then a real fire, Pause, Stop), watches the socket drop and come back, and
+round-trips the player configuration — with the viewer absent throughout.
+
+Every step prints OK, FAIL, or NOT CHECKED with the command that would settle
+it. Four things are NOT CHECKED because they are Rust and nothing here builds
+it; each names its `cargo test`. Read those rather than the total.
+
+The break-check runs three seams (`DRC_E2E_SABOTAGE=bypass-lane`,
+`early-drop`, `no-godot-lie`) and asserts that each reddens its own steps and
+no others. It runs the unsabotaged harness first and refuses to interpret
+anything until that is green.
+
+The pictures are separate, because they need a dev server and a browser and no
+registered suite here does:
+
+```bash
+npm run dev -- --port 5183 --strictPort false
+node tools/mud-client-e2e-shots.mjs http://127.0.0.1:5183/
+```
+
+Kill that dev server by the pid holding the port when you are done. The record
+of one full run is `docs/verification/mud-client-e2e-2026-09-09.md`; where it
+and these commands disagree, the commands are right.
