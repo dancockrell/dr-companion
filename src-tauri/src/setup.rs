@@ -1889,6 +1889,16 @@ pub fn run_installer(path: String) -> Result<(), String> {
 /// an arbitrary file somewhere.
 #[tauri::command]
 pub fn install_bridge_script(app: AppHandle) -> Result<String, String> {
+    copy_bridge_to_lich(&bundled_bridge_path(&app)?)
+}
+
+/// Where this build's own copy of the bridge script is.
+///
+/// One resolver, used by the Setup button and by the launch-time refresh
+/// below, so there is a single answer to "which file is ours". The path is
+/// resolved in Rust rather than passed from the web view: the frontend cannot
+/// ask us to copy an arbitrary file somewhere.
+fn bundled_bridge_path(app: &AppHandle) -> Result<PathBuf, String> {
     use tauri::Manager;
 
     let src = app
@@ -1906,7 +1916,28 @@ pub fn install_bridge_script(app: AppHandle) -> Result<String, String> {
         ));
     }
 
-    copy_bridge_to_lich(&src)
+    Ok(src)
+}
+
+/// The bundled script's path, remembered at startup.
+///
+/// The launch path has no `AppHandle` anywhere near it and should not grow
+/// one: threading Tauri's runtime type through `launch_lich` links the
+/// webview into the unit-test binary, which then refuses to start at all.
+/// Resolving once, where the handle already exists, keeps `lich.rs` free of
+/// it - and follows what this crate already does with `SPAWNED_LICH`.
+static BUNDLED_BRIDGE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+/// Record where the bundled bridge script is. Called once from the Tauri
+/// `setup` hook. Failing here is not fatal: the refresh below reports it as
+/// "could not check" and the launch continues.
+pub fn remember_bundled_bridge(app: &AppHandle) {
+    match bundled_bridge_path(app) {
+        Ok(p) => {
+            let _ = BUNDLED_BRIDGE.set(p);
+        }
+        Err(e) => eprintln!("setup: {e}"),
+    }
 }
 
 /// The `scripts` folder of the Lich the setup screen says it is using.
@@ -1936,6 +1967,134 @@ pub fn copy_bridge_to_lich(src: &Path) -> Result<String, String> {
     let dest = target_dir.join("companion_bridge.lic");
     std::fs::copy(src, &dest).map_err(|e| e.to_string())?;
     Ok(pretty_path(&dest))
+}
+
+// ------------------------------------------------ refreshing before launch --
+//
+// Why this exists, measured rather than reasoned.
+//
+// On 9 Sep 2026, the first real sign-in of a live character, the app launched
+// Lich with `--start-scripts=companion_bridge` and the bridge that came up
+// announced itself as v0.11.0 against an app shipping v0.14.0. The script in
+// `C:\Ruby4Lich5\Lich5\scripts` was dated 29 Aug, three versions behind, and
+// nothing in the launch path had ever looked at it: `install_bridge_script`
+// had exactly one caller, a button in the first-run wizard, and the wizard
+// skips itself once a machine is working. So a player who set the app up in
+// August and updated it in September launches an August bridge for ever, and
+// the only thing that says so is a sentence written into a log tab they are
+// not looking at.
+//
+// The launch path is the honest place for it. Telling Lich to start a script
+// while declining to check which script that is, is the app asserting
+// something it did not verify - and the failure it produces is the worst
+// shape there is, because everything works well enough to look fine. Base
+// stats were simply absent from the panel, the mismatch reached nobody, and
+// the app's own advice ("Reinstall it from Setup") named a screen the player
+// could not see.
+//
+// This never blocks a launch. A player signing in wants to be in the game,
+// and a bridge that could not be refreshed is still usually a working bridge -
+// so every failure here is reported and stepped over, never raised.
+
+/// What a launch-time bridge refresh did.
+///
+/// Three states rather than two, for the reason the rest of this file keeps
+/// insisting on: "it was already current" and "I could not tell" are
+/// different facts, and only one of them is reassuring. Folding the second
+/// into the first is what makes a stale script indistinguishable from a
+/// fresh one at the only moment it could still be fixed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum BridgeRefresh {
+    /// The installed copy was absent or differed, and has been replaced.
+    Updated {
+        dest: String,
+        /// What the replaced copy declared, when it declared anything. A
+        /// label for a human, never a verdict - see `declared_bridge_version`.
+        replaced_version: Option<String>,
+    },
+    /// The installed copy is the one this build ships.
+    AlreadyCurrent,
+    /// Something could not be read or written. Not a reason to refuse a
+    /// launch, and not evidence the script is fine either.
+    CouldNotCheck { why: String },
+}
+
+/// Does the installed copy need replacing?
+///
+/// `None` means no file at all, which needs a copy for a different reason
+/// than a file that differs - but the answer is the same, so one function
+/// answers it. Split out from [`refresh_bridge_script`] because this is the
+/// part with a decision in it, and it is the part a test can reach without a
+/// Tauri app, a Lich install, or a bundled resource.
+pub(crate) fn bridge_refresh_needed(installed: Option<&[u8]>, bundled: &[u8]) -> bool {
+    match installed {
+        None => true,
+        Some(current) => !compare_bridge(current, bundled),
+    }
+}
+
+/// Put this build's bridge script into Lich's scripts folder if what is there
+/// is not already it.
+///
+/// Called on both routes to a launched Lich, immediately before Lich is told
+/// to start `companion_bridge`. Reuses `copy_bridge_to_lich` rather than
+/// copying the file a second way, so there is one implementation of "install
+/// the bridge" and this is only a decision about whether to run it.
+pub fn refresh_bridge_script() -> BridgeRefresh {
+    let Some(src) = BUNDLED_BRIDGE.get() else {
+        return BridgeRefresh::CouldNotCheck {
+            why: "the bundled bridge script was not found at startup".into(),
+        };
+    };
+
+    let bundled = match std::fs::read(src) {
+        Ok(b) => b,
+        Err(e) => {
+            return BridgeRefresh::CouldNotCheck {
+                why: format!("could not read the bundled bridge script: {e}"),
+            }
+        }
+    };
+
+    let Some(target_dir) = bridge_target_dir() else {
+        return BridgeRefresh::CouldNotCheck {
+            why: "could not find Lich's scripts folder".into(),
+        };
+    };
+
+    let dest = target_dir.join("companion_bridge.lic");
+    // Absent and unreadable are not the same thing. An absent file is a
+    // refresh we can do; an unreadable one is a question we cannot answer,
+    // and overwriting on the strength of it would be guessing.
+    let installed = match std::fs::read(&dest) {
+        Ok(b) => Some(b),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => {
+            return BridgeRefresh::CouldNotCheck {
+                why: format!("could not read the installed bridge script: {e}"),
+            }
+        }
+    };
+
+    if !bridge_refresh_needed(installed.as_deref(), &bundled) {
+        return BridgeRefresh::AlreadyCurrent;
+    }
+
+    let replaced_version = installed
+        .as_deref()
+        .and_then(|b| std::str::from_utf8(b).ok())
+        .and_then(declared_bridge_version);
+
+    match copy_bridge_to_lich(src) {
+        Ok(dest) => BridgeRefresh::Updated {
+            dest,
+            replaced_version,
+        },
+        Err(why) => BridgeRefresh::CouldNotCheck {
+            why: format!("could not install the bridge script: {why}"),
+        },
+    }
 }
 
 // -------------------------------------------------------- bridge staleness --
@@ -2152,6 +2311,65 @@ mod vendor_tests {
 #[cfg(test)]
 mod bridge_staleness_tests {
     use super::*;
+
+    /// The live case, 9 Sep 2026: an August script and a September app.
+    ///
+    /// The installed copy declared v0.11.0 and the build shipped v0.14.0, and
+    /// the launch path started the August one because nothing asked. This is
+    /// the question that had no asker.
+    #[test]
+    fn a_stale_installed_script_needs_refreshing() {
+        let installed = b"BRIDGE_VERSION = '0.11.0'\nrespond 'old'\n";
+        let bundled = b"BRIDGE_VERSION = '0.14.0'\nrespond 'new'\nstats!\n";
+
+        assert!(
+            bridge_refresh_needed(Some(installed), bundled),
+            "an older script in Lich's folder must be replaced before Lich starts it"
+        );
+    }
+
+    /// No file at all is a refresh too, and for a different reason - there is
+    /// nothing to compare, and `--start-scripts=companion_bridge` would find
+    /// nothing to run.
+    #[test]
+    fn an_absent_script_needs_installing() {
+        assert!(
+            bridge_refresh_needed(None, b"BRIDGE_VERSION = '0.14.0'\n"),
+            "a missing script must be installed, not skipped"
+        );
+    }
+
+    /// The arm that stops this rewriting a correct file on every single
+    /// launch. Without it the check is a copy, and a copy is not a check:
+    /// it would report success identically whether or not it had anything
+    /// to do, which is the failure this file's own section note is about.
+    #[test]
+    fn a_current_script_is_left_alone() {
+        let script = b"BRIDGE_VERSION = '0.14.0'\nrespond 'hello'\n";
+
+        assert!(
+            !bridge_refresh_needed(Some(script), script),
+            "an already-current script must not be rewritten"
+        );
+    }
+
+    /// And the refresh decision inherits the CRLF normalisation rather than
+    /// re-deriving it, so a Windows checkout does not trigger a pointless
+    /// copy on every launch for ever.
+    ///
+    /// This is the one that would go red first if somebody "simplified"
+    /// `bridge_refresh_needed` into a raw byte comparison.
+    #[test]
+    fn line_endings_alone_do_not_trigger_a_refresh() {
+        let lf = b"BRIDGE_VERSION = '0.14.0'\nrespond 'hello'\n";
+        let crlf = b"BRIDGE_VERSION = '0.14.0'\r\nrespond 'hello'\r\n";
+
+        assert_ne!(lf.len(), crlf.len(), "test premise: the byte counts differ");
+        assert!(
+            !bridge_refresh_needed(Some(lf), crlf),
+            "the same script written on two platforms must not copy on every launch"
+        );
+    }
 
     /// The case this whole check exists for, and it is not hypothetical.
     ///

@@ -75,7 +75,47 @@ use std::process::Command;
 use crate::credentials::Secret;
 use crate::eaccess;
 use crate::login_error::{LoginCode, LoginFailure};
-use crate::setup::{detect_ruby, pretty_path, rank_lich_installs};
+use crate::setup::{
+    detect_ruby, pretty_path, rank_lich_installs, refresh_bridge_script, BridgeRefresh,
+};
+
+/// Make sure the bridge script Lich is about to start is this build's.
+///
+/// Both routes to a launched Lich call this immediately before spawning,
+/// because both pass `--start-scripts=companion_bridge` and neither had any
+/// idea what that name resolved to on disk.
+///
+/// Measured, 9 Sep 2026, on the first real sign-in: the script in Lich's
+/// folder was v0.11.0 dated 29 Aug against an app shipping v0.14.0, because
+/// the only thing that had ever installed it was a first-run wizard button
+/// and the wizard skips itself once a machine works. The app started the
+/// August script and then wrote a sentence about the mismatch into a log tab
+/// the player was not looking at.
+///
+/// Never returns an error, and takes no `AppHandle` on purpose - see
+/// `BUNDLED_BRIDGE` in `setup.rs`. A launch that could not refresh the bridge
+/// is still a launch worth doing; refusing to sign a player in because a file
+/// copy failed is a worse client than a stale bridge.
+fn refresh_bridge_before_launch() {
+    match refresh_bridge_script() {
+        BridgeRefresh::Updated {
+            dest,
+            replaced_version,
+        } => match replaced_version {
+            Some(was) => eprintln!(
+                "lich: the installed bridge script was v{was} and is not the copy this build ships; replaced it at {dest}"
+            ),
+            None => eprintln!("lich: installed this build's bridge script at {dest}"),
+        },
+        BridgeRefresh::AlreadyCurrent => {}
+        // Said out loud rather than swallowed: this is the arm where the app
+        // is about to start a script it could not identify, and silence here
+        // is what made the 9 Sep 2026 sign-in unexplainable.
+        BridgeRefresh::CouldNotCheck { why } => eprintln!(
+            "lich: could not check the installed bridge script ({why}); starting whatever is there"
+        ),
+    }
+}
 
 /// The port Lich is asked to open with `--headless`, and the port the app's
 /// own TCP client (`game_link.rs`) and its "Attach" button both default to.
@@ -1157,6 +1197,11 @@ fn launch_lich_using(
     launcher: &str,
     fields: &[(String, String)],
 ) -> Result<LaunchOutcome, String> {
+    // Before the spawn, not after: Lich reads the script off disk when it
+    // starts it, so a refresh landing a moment later takes effect next
+    // session rather than this one.
+    refresh_bridge_before_launch();
+
     // Anything a previous run left behind goes now, before a new one is
     // written. This is the backstop for the case no in-process timer can
     // cover: an app that was killed between writing the file and attaching.
@@ -1522,6 +1567,10 @@ fn protocol_failure(
 /// no error.
 #[tauri::command]
 pub fn launch_lich() -> Result<String, String> {
+    // The other route to a running Lich, and it passes the same
+    // `--start-scripts=companion_bridge`, so it needs the same guarantee.
+    refresh_bridge_before_launch();
+
     // The blocking form: this is already off the UI thread (its own command
     // is async) and calling the command wrapper here would need an await for
     // no benefit.
