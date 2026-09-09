@@ -13,14 +13,14 @@
  * in the window it was popped out into* than in the main window, and it can
  * only tell those apart by asking which document it is in.
  *
- * `MapPanel` is the case that found it. `usePanelWindows()` reports which
- * panels have windows of their own, and it reports that honestly to **every**
- * webview of the process - including the popped-out window itself. So the map
- * window asked "is the map popped out?", correctly heard "yes", and rendered
- * the placeholder that exists to tell you the map is somewhere else. Measured
- * on the packaged app: `?view=panel&id=map` showed `MAP · Dan the Bold /
- * Bring it back / Open in its own window, where it is big enough to watch` -
- * the note about the window, inside that very window, with no map in it.
+ * The panel that found it was the map, which is gone (`docs/NO-3D.md`, 9 Sep
+ * 2026). The case it found is not: `usePanelWindows()` reports which panels
+ * have windows of their own, and it reports that honestly to **every** webview
+ * of the process - including the popped-out window itself. A panel asking "am
+ * I popped out?" correctly hears "yes" inside its own window, and would render
+ * the placeholder that exists to say the panel is somewhere else. Only the
+ * document knows which window it is, so `isOwnPanelWindow` below is the
+ * question to ask.
  *
  * The fix belongs here rather than in a second copy of the query parsing,
  * which is why `App.tsx` now imports this instead of holding its own.
@@ -28,17 +28,19 @@
 import type { PanelId } from './layout'
 
 /**
- * The map window (`?view=map`) is behind a flag - see `MAP_WINDOW_ENABLED` in
- * `App.tsx` for the whole story. Nothing in `src/` opens that route, so the
- * flag lives with the branch it gates and this parser does not know about it;
- * a `?view=map` document is reported as such and `App.tsx` decides.
+ * There is no map window.
+ *
+ * `?view=map` used to be its own top-level window; it was flagged off in D3
+ * and deleted in D6 (`docs/NO-3D.md`: the map is gone, and the room-graph data
+ * is retained so Godot can own world and route presentation). A `?view=map`
+ * document is now an ordinary app window, which is what the flag already made
+ * it - this removes the branch rather than changing what a player sees.
  */
-export type WindowView = { kind: 'map' } | { kind: 'panel'; id: PanelId } | { kind: 'app' }
+export type WindowView = { kind: 'panel'; id: PanelId } | { kind: 'app' }
 
 export function windowView(search?: string): WindowView {
   if (search === undefined && typeof window === 'undefined') return { kind: 'app' }
   const q = new URLSearchParams(search ?? window.location.search)
-  if (q.get('view') === 'map') return { kind: 'map' }
   if (q.get('view') === 'panel') {
     const id = q.get('id')
     if (id) return { kind: 'panel', id: id as PanelId }

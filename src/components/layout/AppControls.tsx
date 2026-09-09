@@ -1,8 +1,7 @@
 import { lazy, useState } from 'react'
-import { Pin, PinOff, Circle, Settings, SlidersHorizontal, Map as MapIcon } from 'lucide-react'
+import { Pin, PinOff, Circle, Settings, SlidersHorizontal } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
 import { setAlwaysOnTop, isTauri } from '../../lib/tauri.ts'
-import { useMapDock, setMapDock } from '../../lib/mapDock.ts'
 import { cn } from '../../lib/cn.ts'
 import { LazySurface } from '../shared/LazySurface.tsx'
 import { openPanelWindow } from '../../lib/panelWindows.ts'
@@ -15,7 +14,7 @@ const SettingsSheet = lazy(() => import('./SettingsSheet.tsx').then((module) => 
  * This replaces a full-width bar that carried the app's own name, the
  * character's name, their instance, their location and their activity. Every
  * one of those was already somewhere better: the name titles the character
- * box, the location is what the map is drawing, and the activity belongs with
+ * box, the location is on the top bar, and the activity belongs with
  * the actions that change it. The bar was left restating them across the top
  * of the window.
  *
@@ -31,7 +30,6 @@ export function AppControls() {
   const bridgeMode = useAppStore((s) => s.bridgeMode)
   const character = useAppStore((s) => s.character)
   const setupComplete = useAppStore((s) => s.setupComplete)
-  const mapDock = useMapDock()
 
   const live = setupComplete && bridgeConnected && character?.connected === true
 
@@ -47,7 +45,6 @@ export function AppControls() {
    * today and drift the first time somebody rewords a toggle, and a label
    * that disagrees with its own tooltip is worse than either alone.
    */
-  const mapLabel = mapDock.docked ? 'Hide the map column' : 'Show the map column'
   const configLabel = 'Player config: highlights, aliases, macros'
   const pinLabel =
     (alwaysOnTop ? 'Unpin' : 'Always on top') +
@@ -78,27 +75,6 @@ export function AppControls() {
             {live ? (bridgeMode === 'mock' ? 'Mock' : 'Live') : bridgeMode === 'live' ? '…' : 'Idle'}
           </span>
         )}
-
-        {/* The map's way home.
-         *
-         * Popping the map into its own window hides its column, and the only
-         * control offering it back used to live inside the panel that had just
-         * gone. That is a one-way door dressed up as a toggle. Here it is
-         * always on screen, and it is the same setting either way: the column
-         * comes back at the width it was, because the width is remembered
-         * separately from whether it is showing. */}
-        <button
-          type="button"
-          title={mapLabel}
-          aria-label={mapLabel}
-          className={cn(
-            'pointer-events-auto rounded p-1 text-ink-faint hover:text-ink',
-            mapDock.docked && 'text-accent'
-          )}
-          onClick={() => setMapDock({ docked: !mapDock.docked })}
-        >
-          <MapIcon className="h-3.5 w-3.5" />
-        </button>
 
         <button
           type="button"

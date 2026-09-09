@@ -1,11 +1,11 @@
 /**
  * Where the panels are and how big, remembered per mode.
  *
- * Everyone plays differently. A crafter wants inventory open and the map
- * small; someone hunting wants the map big and watched, because they know
- * which rooms break a script. Rather than guess an order and defend it, the
- * panels move and resize, and the arrangement is theirs — in freeform, via
- * `FreeCanvas`, which is the only thing that reads `order`/`rects` today.
+ * Everyone plays differently. A crafter wants inventory open and their
+ * training visible; someone hunting wants the battle picture big. Rather than
+ * guess an order and defend it, the panels move and resize, and the
+ * arrangement is theirs — in freeform, via `FreeCanvas`, which is the only
+ * thing that reads `order`/`rects` today.
  *
  * **Not true of the default dashboard.** This used to say Basic and Power
  * are "different arrangements of the same panels, not the same arrangement
@@ -21,11 +21,10 @@
 import type { UiMode } from '../types'
 import { DECKS, type Deck, type Tier } from './cards.ts'
 import type { Rect } from './freeLayout'
-import { dockOf, type Dock } from './dock.ts'
+import { dockOf, without, type Dock } from './dock.ts'
 import { readJSON, writeJSON } from './storage.ts'
 
 export type PanelId =
-  | 'map'
   | 'vitals'
   | 'actions'
   | 'training'
@@ -69,21 +68,6 @@ export type DeckPref = 'auto' | Tier
 export interface Layout {
   order: PanelId[]
   panels: Partial<Record<PanelId, PanelState>>
-  /**
-   * The map gets its own plane rather than a slot in the panel stack.
-   *
-   * It is not a widget you consult, it is a surface you watch — players know
-   * which rooms break scripts and keep it in view while doing something else.
-   * A panel in a scrolling column cannot do that: it is always competing for
-   * vertical space with whatever is above it, and it loses.
-   *
-   * So above `MAP_PLANE_AT` the map takes a column of its own and the panels
-   * stack beside it. Below that width there is not room for two planes and it
-   * falls back to being a panel, which is why it stays in `order`.
-   */
-  mapPlane: boolean
-  /** Fraction of the width the map plane takes, 0.25 to 0.75. */
-  mapSplit: number
   /** Per-deck density, pinned by the player. Auto unless they said otherwise. */
   decks: Record<Deck, DeckPref>
   /**
@@ -116,46 +100,87 @@ function autoDecks(): Record<Deck, DeckPref> {
  * Defaults per mode.
  *
  * The `order` arrays below are real and genuinely differ — Basic leads with
- * `map`, Power with `room` — but see the header comment above: the default
- * dashboard doesn't read `order` for arrangement, so this difference is
- * currently only visible in freeform (`FreeCanvas`) and in which panels
+ * `vitals`, Power puts `room` second — but see the header comment above: the
+ * default dashboard doesn't read `order` for arrangement, so this difference
+ * is currently only visible in freeform (`FreeCanvas`) and in which panels
  * `Dashboard.tsx` treats as docked. `panels.height` and each panel's own
  * `dense` behavior are what a player actually sees differ between modes
  * today.
+ *
+ * `map` used to lead the Basic order and sit fifth in Power. It is gone
+ * (`docs/NO-3D.md`, 9 Sep 2026); `RETIRED_PANEL_IDS` below is what a layout
+ * saved before that is measured against.
  */
 const DEFAULTS: Record<UiMode, Layout> = {
   basic: {
-    order: ['vitals', 'map', 'room', 'mindstate', 'actions', 'training', 'inventory', 'launcher', 'risk', 'stats', 'scripts', 'game'],
-    panels: { map: { height: 200 } },
-    mapPlane: true,
-    mapSplit: 0.38,
+    order: ['vitals', 'room', 'mindstate', 'actions', 'training', 'inventory', 'launcher', 'risk', 'stats', 'scripts', 'game'],
+    panels: {},
     decks: autoDecks(),
     rects: {},
     freeform: false,
   },
   power: {
-    order: ['vitals', 'room', 'mindstate', 'actions', 'map', 'risk', 'stats', 'training', 'inventory', 'launcher', 'scripts', 'game'],
-    panels: { map: { height: 260 } },
-    mapPlane: true,
-    mapSplit: 0.38,
+    order: ['vitals', 'room', 'mindstate', 'actions', 'risk', 'stats', 'training', 'inventory', 'launcher', 'scripts', 'game'],
+    panels: {},
     decks: autoDecks(),
     rects: {},
     freeform: false,
   },
 }
 
-/** Below this there is not room for two planes side by side. */
-export const MAP_PLANE_AT = 680
-
 const KEY = 'drc.layout.v1'
+
+/**
+ * Panel ids that existed once and do not now.
+ *
+ * A list rather than a version bump, because a bump throws away the player's
+ * whole arrangement to remove one entry from it — every column width, every
+ * pop-out, every deck they pinned — and that is a much larger change than the
+ * one being made. This removes exactly what is gone and leaves the rest as
+ * they left it.
+ *
+ * It is also a *manifest*: `loadLayout` already dropped unknown ids from
+ * `order` by filtering against the defaults, so nothing about `order` needed
+ * this. What that filter cannot do is tell "an id that is gone" from "an id
+ * this build does not have yet", and it never reached `panels`, `rects` or
+ * the persisted `dock` at all — so a saved layout kept rendering a `map` tab
+ * in its dock with no panel behind it. Naming the retired ids is what lets
+ * those three be cleaned instead of merged forward.
+ */
+export const RETIRED_PANEL_IDS = ['map'] as const
+
+/**
+ * Storage keys that were read by something now deleted.
+ *
+ * `drc.map.v1` was the map's dock/zoom (`mapDock.ts`); the two map-height keys
+ * were how the board slot divided between the map and the battle picture
+ * (`App.tsx`). Nothing reads any of them. They are deleted rather than left in
+ * place because a stored number whose meaning has gone is the "old data under
+ * a new meaning" trap waiting for whoever reuses the key next.
+ */
+const RETIRED_STORAGE_KEYS = ['drc.map.v1', 'drc.map-height.v4', 'drc.map-height.v1']
+
+/** Deletes {@link RETIRED_STORAGE_KEYS}. Returns how many it removed. */
+export function stripRetiredKeys(): number {
+  let removed = 0
+  for (const key of RETIRED_STORAGE_KEYS) {
+    try {
+      if (localStorage.getItem(key) === null) continue
+      localStorage.removeItem(key)
+      removed++
+    } catch {
+      // Storage can throw outright (private mode, blocked site data). A
+      // preference we could not delete is not worth failing a load over.
+    }
+  }
+  return removed
+}
 
 export function defaultLayout(mode: UiMode): Layout {
   const d = DEFAULTS[mode] ?? DEFAULTS.basic
   return {
     order: [...d.order],
     panels: { ...d.panels },
-    mapPlane: d.mapPlane,
-    mapSplit: d.mapSplit,
     decks: { ...d.decks },
     rects: { ...d.rects },
     freeform: d.freeform,
@@ -163,10 +188,16 @@ export function defaultLayout(mode: UiMode): Layout {
   }
 }
 
-/** Keeps either plane from being dragged down to nothing. */
-export function clampSplit(v: unknown): number {
-  const n = typeof v === 'number' && Number.isFinite(v) ? v : 0.5
-  return Math.min(0.75, Math.max(0.25, n))
+/** Drop the retired ids from a `Record<PanelId, …>` read back out of storage. */
+function withoutRetired<T>(
+  stored: Partial<Record<PanelId, T>> | undefined
+): Partial<Record<PanelId, T>> {
+  const out: Partial<Record<PanelId, T>> = {}
+  for (const [id, value] of Object.entries(stored ?? {})) {
+    if ((RETIRED_PANEL_IDS as readonly string[]).includes(id)) continue
+    out[id as PanelId] = value as T
+  }
+  return out
 }
 
 export function loadLayout(mode: UiMode): Layout {
@@ -183,26 +214,22 @@ export function loadLayout(mode: UiMode): Layout {
   const d = defaultLayout(mode)
   return {
     order: [...kept, ...missing],
-    panels: { ...d.panels, ...(parsed.panels ?? {}) },
-    mapPlane: parsed.mapPlane ?? d.mapPlane,
-    mapSplit: clampSplit(parsed.mapSplit ?? d.mapSplit),
+    panels: { ...d.panels, ...withoutRetired(parsed.panels) },
     // Merged rather than trusted, same as the panels: a deck added later
     // must not be missing for anyone who already saved a layout.
     decks: { ...d.decks, ...(parsed.decks ?? {}) },
-    rects: parsed.rects ?? {},
+    rects: withoutRetired<Rect>(parsed.rects),
     freeform: parsed.freeform ?? false,
     // Rebuilt from the panel order when absent, so an old saved layout picks
-    // up docking without the player losing their arrangement.
-    dock: parsed.dock ?? dockOf([...kept, ...missing]),
+    // up docking without the player losing their arrangement. When it *is*
+    // present it still has to be cleaned: `dock.ts`'s `without` exists for
+    // exactly this ("the map moved out of the stack ... a stored one has to be
+    // cleaned") and until now had no caller, so a stored dock kept listing a
+    // panel that no longer renders.
+    dock: parsed.dock
+      ? without(parsed.dock, RETIRED_PANEL_IDS)
+      : dockOf([...kept, ...missing]),
   }
-}
-
-export function setMapPlane(layout: Layout, on: boolean): Layout {
-  return { ...layout, mapPlane: on }
-}
-
-export function setMapSplit(layout: Layout, split: number): Layout {
-  return { ...layout, mapSplit: clampSplit(split) }
 }
 
 /**

@@ -75,20 +75,26 @@ console.log('-- proportional persistence remains proportional during live resize
 
   const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
   // The names changed in D4 when the three columns became the approved
-  // frame's left rail, board slot and right rail. The property these two
-  // assert did not: every dimension a player can drag is held as a share of
-  // the window rather than a pixel count, and resolved against the measured
+  // frame's left rail, board slot and right rail, and `mapHShare` left the
+  // list in D6 when the map went (docs/NO-3D.md) and took the board slot's
+  // horizontal divider with it. The property these two assert did not
+  // change: every dimension a player can drag is held as a share of the
+  // window rather than a pixel count, and is resolved against the measured
   // host on every render.
+  //
+  // The list is spelled out rather than derived on purpose. It is a
+  // manifest: a fourth draggable dimension added as a raw pixel count would
+  // be invisible to a check that only looked at the dimensions it found.
   ok(
     'App keeps every adjustable dimension as live share state',
-    ['leftRailShare', 'boardShare', 'rightRailShare', 'mapHShare'].every((name) =>
+    ['leftRailShare', 'boardShare', 'rightRailShare'].every((name) =>
       appSource.includes(`const [${name}, set`),
     ),
   )
   ok(
     'App resolves live shares against the current host dimensions',
     appSource.includes('pixelsForSizeShare(leftRailShare, widthReference') &&
-      appSource.includes('pixelsForSizeShare(mapHShare, heightReference'),
+      appSource.includes('pixelsForSizeShare(rightRailShare, widthReference'),
   )
 }
 

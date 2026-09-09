@@ -36,8 +36,8 @@ password in a settings file, obfuscated or not, is a plaintext password with a
 decoding step (`docs/LICH_NATIVE_LOGIN.md` §5.2). The code is
 `src-tauri/src/credential_store.rs`.
 
-37 keys, owned by 27 files, found by scanning
-331 source files.
+33 keys, owned by 25 files, found by scanning
+306 source files.
 
 ## Files you asked for
 
@@ -75,9 +75,6 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.layout.v1` | Panel order and rectangles, one entry per UI mode: the real keys are `drc.layout.v1.<mode>`. Merged against the current defaults on read, so a panel added later still appears. | `src/lib/layout.ts` |
 | `drc.left-rail-width.v1` | How wide the character side is, as a fraction of the window. Replaces `drc.room-width.v2`, which measured a much wider column holding the map and the transcript. | `src/App.tsx` |
 | `drc.macros.v1` | Which variation each macro slot runs. | `src/lib/useMacroChoice.ts` |
-| `drc.map-height.v1` | Superseded by `drc.map-height.v4`. Read once, to migrate a genuine v1 customisation; never written. | `src/App.tsx` |
-| `drc.map-height.v4` | How the board slot divides between the map above and the battle picture below, as a fraction of the window. `.v4` because v3 measured the map against the game transcript, which now lives in the console row. | `src/App.tsx` |
-| `drc.map.v1` | Where the map is docked, how wide, and how far it is zoomed. A property of this window rather than of a character, so it does not follow a profile. | `src/lib/mapDock.ts` |
 | `drc.middle-panels-hidden.v1` | Which boxes in the dashboard middle column the player has switched off, on top of whichever set the mode already shows. | `src/lib/panelVisibility.ts` |
 | `drc.nudge.v1` | Visit counts behind the "you keep coming back here, pin it?" nudge, per profile. | `src/lib/pinNudge.ts` |
 | `drc.off-highlight-classes.v1` | Highlight classes the player has switched off, kept out of the shared highlight file so a shared set is not edited by toggling one. | `src/lib/offClasses.ts` |
@@ -96,7 +93,25 @@ install.** It still reads one, once, if you import a config from it.
 | `drc.scene.v1` | Corrections the player made in the scene editor: for a room id, which ground kind, block kind, landmark, backdrop image and placed scenery they chose instead of what the batch derived. Room ids, kind names and image paths only; no game text and nothing about the character. Bounded: 1,048,576 characters in total, 4,096 for any one room and 64 placed primitives in one cell, checked on every write and on every import (`SCENE_LIMITS` in `src/lib/sceneOverrides.ts`). An import past the total is refused room by room, naming each - unbounded, this one key could take the whole origin to its quota and every other key on this list would start failing to save. | `src/lib/sceneOverrides.ts` |
 | `drc.script-icons.v1` | Icon overrides for scripts, one entry per script rather than one per profile. | `src/lib/scriptIconOverrides.ts` |
 | `drc.show-gagged-lines.v1` | Whether the game pane draws lines a gag is hiding, marked as hidden. A per-listener display preference rather than part of the gag rule, so looking at what a gag hides cannot change a config the player might share. The lines are never removed from the buffer; this only decides whether they are drawn. | `src/lib/useGameLines.ts` |
-| `drc.watched-rooms.v1` | Rooms the player is watching, per profile. | `src/lib/watchedRooms.ts` |
+
+### Three keys this app used to write, and now deletes
+
+`drc.map.v1`, `drc.map-height.v4` and `drc.map-height.v1` held where the map
+was docked, how far it was zoomed, and how the board slot divided between the
+map and the battle picture. The map is gone (`docs/NO-3D.md`) and nothing
+reads them.
+
+They are not merely unread. `stripRetiredKeys()` in `src/lib/layout.ts`
+removes them on the next start, and `src/lib/layout.ts` also drops `map` out
+of a saved layout's panels, placements and dock. Two reasons, and the second
+is the one that matters to you: a number left in storage under a name whose
+meaning has gone is a number the next version can read wrongly, and this page
+should be able to say that what it lists is what is actually there.
+
+This section is written by hand in `tools/build-player-data-doc.mjs`, not
+derived, because a key nothing writes cannot be found by scanning for writes.
+Where it and the table above disagree, the table is right: it is generated
+from the source on every build and this paragraph is not.
 
 ## When a write fails
 
@@ -134,7 +149,7 @@ of the retry set rather than reappearing every time the player presses Retry.
 
 **Reads never fail.** `readJSON` returns the caller's fallback on anything at
 all - absent key, private mode, corrupt JSON - so a damaged entry costs one
-setting rather than a start-up crash. 4 call sites read
+setting rather than a start-up crash. 3 call sites read
 `localStorage` directly instead, all of them for values stored as plain
 numbers rather than JSON.
 

@@ -167,9 +167,15 @@ export function dockOf(panels: PanelId[], axis: Axis = 'row'): Dock {
  * into its own drawer, but a layout saved before that still lists it, so it
  * rendered in the drawer and as a tab at the same time. Filtering the panel
  * list only fixes a dock being built fresh; a stored one has to be cleaned.
+ *
+ * `drop` is `readonly string[]` rather than `PanelId[]`, and that is the
+ * point: the caller is `loadLayout` cleaning a *stored* dock, and an id that
+ * has been retired is by construction no longer a `PanelId`. Typing this
+ * parameter as the live union would make the one thing it exists for
+ * impossible to express.
  */
-export function without(dock: Dock, drop: PanelId[]): Dock {
-  const gone = new Set(drop)
+export function without(dock: Dock, drop: readonly string[]): Dock {
+  const gone = new Set<string>(drop)
   const regions = dock.regions
     .map((r) => {
       const panels = r.panels.filter((p) => !gone.has(p))

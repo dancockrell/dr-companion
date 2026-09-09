@@ -9,7 +9,6 @@
 import type { ReactNode } from 'react'
 import type { PanelId } from '../../lib/layout'
 import { ActionsPanel } from '../shared/ActionsPanel.tsx'
-import { MapPanel } from '../shared/MapPanel.tsx'
 import { RoomColumn } from '../room/RoomColumn.tsx'
 import { TrainingPanel } from '../shared/TrainingPanel.tsx'
 import { MindstateBoard } from '../shared/MindstateBoard.tsx'
@@ -28,7 +27,6 @@ import type { DeckPref } from '../../lib/layout'
 
 export const PANEL_TITLES: Record<PanelId, string> = {
   actions: 'Actions',
-  map: 'Map',
   training: 'Training',
   inventory: 'Inventory',
   risk: 'Risk',
@@ -65,7 +63,6 @@ type Render = (dense: boolean, filled: boolean, ctx?: PanelContext) => ReactNode
 
 export const PANEL_CONTENT: Record<PanelId, Render> = {
   actions: (dense) => <ActionsPanel dense={dense} />,
-  map: (_dense, filled) => <MapPanel plane={filled} />,
   // The whole right-hand column - room scene, game text, command line -
   // as one panel. Not decomposed into several: those pieces are useless
   // apart, and splitting them would be a layout decision dressed as a

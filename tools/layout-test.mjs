@@ -97,12 +97,85 @@ unsubscribe()
 console.log('\n-- a layout saved before decks existed still loads --')
 store.set(
   'drc.layout.v1.basic',
-  JSON.stringify({ order: ['map', 'vitals'], panels: {}, mapPlane: true, mapSplit: 0.5 })
+  JSON.stringify({ order: ['stats', 'vitals'], panels: {}, mapPlane: true, mapSplit: 0.5 })
 )
 const old = m.loadLayout('basic')
 check('decks filled in', Object.values(old.decks), ['auto', 'auto', 'auto'])
-check('their order is kept first', old.order.slice(0, 2), ['map', 'vitals'])
+check('their order is kept first', old.order.slice(0, 2), ['stats', 'vitals'])
 check('missing panels appended', old.order.length, m.defaultLayout('basic').order.length)
+
+/*
+ * A layout saved while the map still existed.
+ *
+ * This is why `RETIRED_PANEL_IDS` is a list rather than a version bump: the
+ * player keeps their arrangement and loses only the panel that is gone. Four
+ * places had to be cleaned and only the first was already handled - `order`
+ * fell out of the existing filter against the defaults, while `panels`,
+ * `rects` and the persisted `dock` each kept a `map` key, and the dock went on
+ * rendering a tab with nothing behind it.
+ *
+ * The fixture is deliberately a populated layout, not a bare one: a stranded
+ * player is one who had arranged things, and a migration that only works on an
+ * empty layout is the case nobody has.
+ */
+console.log('\n-- a layout saved while the map existed loses the map and nothing else --')
+store.set(
+  'drc.layout.v1.power',
+  JSON.stringify({
+    order: ['map', 'vitals', 'stats'],
+    panels: { map: { height: 260 }, stats: { height: 140 } },
+    rects: { map: { x: 10, y: 10, w: 400, h: 300 }, stats: { x: 0, y: 0, w: 200, h: 100 } },
+    freeform: true,
+    dock: {
+      axis: 'row',
+      regions: [
+        { id: 'left', size: 0.5, panels: ['map'], active: 'map' },
+        { id: 'right', size: 0.5, panels: ['map', 'stats'], active: 'map' },
+      ],
+    },
+  })
+)
+const migrated = m.loadLayout('power')
+check('order has no map', migrated.order.includes('map'), false)
+check('the order they arranged survives', migrated.order.slice(0, 2), ['vitals', 'stats'])
+check('panels has no map key', Object.keys(migrated.panels).includes('map'), false)
+check('their other panel size survives', migrated.panels.stats, { height: 140 })
+check('rects has no map key', Object.keys(migrated.rects).includes('map'), false)
+check('their other placement survives', migrated.rects.stats, { x: 0, y: 0, w: 200, h: 100 })
+check('freeform survives', migrated.freeform, true)
+check(
+  'the stored dock keeps no map tab',
+  migrated.dock.regions.flatMap((r) => r.panels).includes('map'),
+  false
+)
+check(
+  'a region that held only the map is dissolved, not left empty',
+  migrated.dock.regions.map((r) => r.id),
+  ['right']
+)
+check(
+  'and a region whose active tab was the map picks a surviving one',
+  migrated.dock.regions[0].active,
+  'stats'
+)
+
+/*
+ * The keys whose reader was deleted. Asserted both ways on purpose: that the
+ * retired ones go, *and* that a similarly named key stays. A "migration" that
+ * cleared everything starting `drc.map` would pass the first half of this and
+ * take an unrelated preference with it.
+ */
+console.log('\n-- retired storage keys are deleted, and only those --')
+store.set('drc.map.v1', '{"docked":true}')
+store.set('drc.map-height.v4', '0.58')
+store.set('drc.map-height.v1', '480')
+store.set('drc.mapkeep.v1', 'not a retired key')
+check('three removed', m.stripRetiredKeys(), 3)
+check('drc.map.v1 gone', store.has('drc.map.v1'), false)
+check('drc.map-height.v4 gone', store.has('drc.map-height.v4'), false)
+check('drc.map-height.v1 gone', store.has('drc.map-height.v1'), false)
+check('a similarly named key is untouched', store.get('drc.mapkeep.v1'), 'not a retired key')
+check('a second run removes nothing', m.stripRetiredKeys(), 0)
 
 console.log('\n-- junk in storage falls back rather than throwing --')
 store.set('drc.layout.v1.power', '{not json')

@@ -52,22 +52,24 @@ if (gate.isCurrent(newer)) visible.push('newer')
 if (gate.isCurrent(older)) visible.push('older')
 check('a late older zone cannot replace the newer request', visible.join(',') === 'newer')
 
-console.log('\n-- both map surfaces expose truthful loading states --')
+console.log('\n-- the surviving place search still tells the truth about loading --')
+/*
+ * The map surfaces this section used to check are gone (docs/NO-3D.md), and
+ * with them `useZoneBrowsing`, `ZoneLoadNotice`, `MapPanel` and `MapWindow`.
+ * `PlaceSearch` is not: `ScenePanel` renders it, so the loading and error
+ * states it was given still reach a player and are still worth asserting.
+ *
+ * The checks naming a deleted file were deleted rather than loosened. A
+ * source check against a file that no longer exists cannot fail for the
+ * right reason - it throws before it asserts anything, which reads as a
+ * broken suite rather than as a missing feature.
+ */
 const placeIndex = readFileSync('src/lib/placeIndex.ts', 'utf8')
 const placeSearch = readFileSync('src/components/shared/PlaceSearch.tsx', 'utf8')
-const browsing = readFileSync('src/lib/useZoneBrowsing.ts', 'utf8')
-const notice = readFileSync('src/components/shared/ZoneLoadNotice.tsx', 'utf8')
-const panel = readFileSync('src/components/shared/MapPanel.tsx', 'utf8')
-const window = readFileSync('src/components/MapWindow.tsx', 'utf8')
 
 check('a missing place index is a failure, not a valid empty world', /if \(!load\) throw new Error/.test(placeIndex))
 check('place search distinguishes loading, ready, and error states', /'idle' \| 'loading' \| 'ready' \| 'error'/.test(placeSearch))
 check('place search failure keeps the query and offers Retry', /Couldn’t load map data/.test(placeSearch) && />\s*Retry\s*</.test(placeSearch))
-check('zone loads cover open, browse, Back, and Reset', ["'open'", "'browse'", "'back'", "'reset'"].every((operation) => browsing.includes(operation)))
-check('failed transitions retain an actionable retry descriptor', browsing.includes('retryLoad.current = { ...status, apply }'))
-check('zone failures identify the requested map without blanking the old one', notice.includes('Couldn’t load {error.name}') && notice.includes('current map is still here'))
-check('docked and popped-out maps render the shared status', panel.includes('<ZoneLoadNotice') && window.includes('<ZoneLoadNotice'))
-check('Retry is a named, keyboard-reachable button', notice.includes('type="button"') && notice.includes('aria-label={`Retry loading ${error.name}`}'))
 
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or

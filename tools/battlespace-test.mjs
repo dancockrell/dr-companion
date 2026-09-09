@@ -21,7 +21,6 @@ const paperdoll = readFileSync(new URL('../src/components/shared/Paperdoll.tsx',
 const actionVisuals = readFileSync(new URL('../src/lib/battleActionVisuals.ts', import.meta.url), 'utf8')
 const hotbar = readFileSync(new URL('../src/components/layout/QuickSwitchBar.tsx', import.meta.url), 'utf8')
 const quickSwitch = readFileSync(new URL('../src/lib/quickSwitch.ts', import.meta.url), 'utf8')
-const map = readFileSync(new URL('../src/components/shared/MapPanel.tsx', import.meta.url), 'utf8')
 const grokScenes = readFileSync(new URL('../src/data/grokRoomScenes.ts', import.meta.url), 'utf8')
 const armorManager = readFileSync(new URL('../src/components/shared/ArmorManager.tsx', import.meta.url), 'utf8')
 const battleStatus = readFileSync(new URL('../src/components/room/BattleStatus.tsx', import.meta.url), 'utf8')
@@ -29,11 +28,6 @@ const classicRoom = readFileSync(new URL('../src/components/room/ClassicRoomText
 const statusBoard = readFileSync(new URL('../src/components/shared/StatusBoard.tsx', import.meta.url), 'utf8')
 const handsRow = readFileSync(new URL('../src/components/shared/HandsRow.tsx', import.meta.url), 'utf8')
 const gearNotice = readFileSync(new URL('../src/components/shared/GearNotice.tsx', import.meta.url), 'utf8')
-const pinPalette = readFileSync(new URL('../src/components/shared/PinPalette.tsx', import.meta.url), 'utf8')
-const mapPinBar = readFileSync(new URL('../src/components/shared/MapPinBar.tsx', import.meta.url), 'utf8')
-const quickTravel = readFileSync(new URL('../src/components/shared/QuickTravel.tsx', import.meta.url), 'utf8')
-const mapToolRail = readFileSync(new URL('../src/components/shared/MapToolRail.tsx', import.meta.url), 'utf8')
-const mapWindow = readFileSync(new URL('../src/components/MapWindow.tsx', import.meta.url), 'utf8')
 const situationBanner = readFileSync(new URL('../src/components/layout/SituationBanner.tsx', import.meta.url), 'utf8')
 const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
 const armorLoadout = readFileSync(new URL('../src/lib/armorLoadout.ts', import.meta.url), 'utf8')
@@ -102,7 +96,6 @@ check('the focused functions launcher keeps semantic script icons, colors and fi
 check('connection-unavailable actions are honestly disabled in their canonical deck', /disabled=\{!canSend\}/.test(actions) && /reason &&/.test(actions))
 check('existing command hotbar pins remain removable and executable after launcher deduplication', /kind: 'command'/.test(quickSwitch) && !/kind: 'command', actionKey: entry\.actionKey/.test(taskflows) && /Remove .* from the hotbar/.test(hotbar) && /togglePin\(slot\.pin\)/.test(hotbar))
 check('hotbar commands keep their exact icon, color, tooltip, and macro execution path', /actionIcon\(pin\.actionKey\)/.test(hotbar) && /actionAccent\(pin\.actionKey\)/.test(hotbar) && /variation\.commands\.join/.test(hotbar) && /macro\.run\(variation\.commands\)/.test(hotbar))
-check('map title, character, search and controls share one compact header line', /search=\{<PlaceSearch/.test(map) && /<header className="flex min-w-0 items-start gap-2"/.test(map) && !/gives is a place on the map/.test(map))
 check('room title, hands and statuses own a dedicated line above the art', /aria-label="Battle room and status"/.test(battle) && /<BattleStatus/.test(battle) && /framed=\{false\}/.test(battle) && !/absolute inset-x-0 top-0 z-30 flex/.test(scene))
 // Unchanged property, changed mechanism. Combat still hands width to the
 // primary play surface and still does it as a display-time request that never
@@ -115,9 +108,6 @@ check('combat pressure yields width to the board without erasing saved preferenc
 check('the urgent combat banner is one line and does not repeat its primary state', /titleFlags/.test(situationBanner) && /filter\(\(f\) => !titleFlags\.has\(f\)\)/.test(situationBanner) && /items-baseline/.test(situationBanner))
 check('the room header suppresses duplicate combat and non-tactical race/guild identity', /<StatusBoard hideInCombat/.test(battleStatus) && /hideInCombat && r\.flag === 'in_combat'/.test(statusBoard) && /character\.hands/.test(handsRow) && !/character\.race/.test(handsRow) && !/character\.guild/.test(handsRow) && !/character\.circle/.test(handsRow))
 check('tested equipment conflicts are mounted beside the live hands and announced without claiming an all-clear', /<GearNotice/.test(battleStatus) && /role="status"/.test(gearNotice) && /aria-live="polite"/.test(gearNotice) && /if \(!conflicts\.length \|\| !hands \|\| !worn\) return null/.test(gearNotice))
-check('map operations and symbols form one grab-scrollable two-row game-control rail', /grid-flow-col grid-rows-2/.test(mapToolRail) && /drag\.onPointerMove/.test(mapToolRail) && /<PinPalette/.test(mapToolRail) && /game-icon-button/.test(pinPalette) && /h-9 w-9/.test(pinPalette) && /game-icon-button/.test(mapPinBar) && /game-icon-button/.test(quickTravel) && !/Compass/.test(quickTravel))
-check('saved-pin travel and edit remain visible to keyboard and touch', !/opacity-0/.test(mapPinBar) && /focus-visible:ring-2/.test(mapPinBar) && /aria-controls="saved-pins-list"/.test(mapPinBar))
-check('docked and popped-out maps share the exact same tool rail assembly', /<MapToolRail/.test(map) && /<MapToolRail/.test(mapWindow) && !/<MapPinBar/.test(map) && !/<MapPinBar/.test(mapWindow))
 check('radar cards, rails and corner tools scale together with the viewer', /useMeasuredSize/.test(radar) && /boardHeight/.test(radar) && /viewerScale/.test(radar) && /width=\{railWidth\}/.test(radar) && /scale=\{viewerScale\}/.test(radar) && /--radar-rail/.test(radar) && /--armor-width/.test(radar))
 check('radar gutters use measured compact, standard and wide bands with readable portraits', /STANDARD_MIN_PX = 680/.test(radar) && /WIDE_MIN_PX = 900/.test(radar) && /stripBasePx = wide \? 56 : standard \? 48 : 40/.test(radar) && /Math\.max\(40, Math\.round\(stripBasePx/.test(radar))
 check('radar avoids looping attention motion and every actor has a visible keyboard focus', !/animate-pulse/.test(radar) && /focus-visible:ring-2/.test(radar) && /motion-reduce:transition-none/.test(battle))
@@ -147,7 +137,7 @@ console.log('')
 const total = passes + failures
 // Far below the real count (81) on purpose: a tripwire for a truncated or
 // half-loaded run, not a regression test on the number of cases.
-const MIN_EXPECTED = 54
+const MIN_EXPECTED = 50
 if (total < MIN_EXPECTED) {
   console.error(`FAILED: only ${total} checks ran, expected at least ${MIN_EXPECTED}`)
   process.exit(1)

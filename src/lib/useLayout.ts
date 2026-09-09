@@ -15,8 +15,6 @@ import {
   reorderPanel,
   setPanel,
   defaultLayout,
-  setMapPlane,
-  setMapSplit,
   cycleDeckPref,
   setPanelRect,
   clearPanelRects,
@@ -71,19 +69,6 @@ export function useLayout(mode: UiMode) {
 
   const reset = useCallback(() => commit(defaultLayout(mode)), [commit, mode])
 
-  const setPlane = useCallback(
-    (on: boolean) => commit(setMapPlane(layout, on)),
-    [commit, layout]
-  )
-
-  // Not committed on every mouse move: a drag fires continuously, and writing
-  // localStorage per pixel is both wasteful and enough to make the drag stutter.
-  // The caller keeps the live value and calls this once on release.
-  const setSplit = useCallback(
-    (split: number) => commit(setMapSplit(layout, split)),
-    [commit, layout]
-  )
-
   const cycleDeck = useCallback(
     (deck: Deck) => commit(cycleDeckPref(layout, deck)),
     [commit, layout]
@@ -109,8 +94,6 @@ export function useLayout(mode: UiMode) {
     reorder,
     update,
     reset,
-    setPlane,
-    setSplit,
     cycleDeck,
     place,
     unplace,

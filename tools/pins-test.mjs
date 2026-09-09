@@ -200,7 +200,9 @@ console.log('-- one source for what a bank looks like --')
   const consumers = [
     'src/lib/mapPins.ts',
     'src/lib/mapLandmarks.ts',
-    'src/components/shared/QuickTravel.tsx',
+    // `QuickTravel.tsx` was the third reader and died with the map
+    // (docs/NO-3D.md). Two consumers is still two chances to type 'gold'
+    // in one of them, which is what this guard is for.
   ]
   const table = readFileSync('src/lib/mapPlaceColors.ts', 'utf8')
   const categories = [...table.matchAll(/^ {2}(\w+): '(\w+)'/gm)].map(([, key]) => key)
@@ -294,16 +296,14 @@ console.log('-- one source for what a bank looks like --')
   ok('two saved pins read as plural', savedPinsLabel(2) === '2 saved pins', savedPinsLabel(2))
   ok('eleven saved pins read as plural', savedPinsLabel(11) === '11 saved pins', savedPinsLabel(11))
 
-  // The label is only worth testing here if the control actually says it.
-  // Left as source inspection deliberately: MapPinBar is a component this
-  // suite has no renderer for, so this asserts the wiring and the DOM proof
-  // is in the increment's own verify line.
-  const bar = readFileSync('src/components/shared/MapPinBar.tsx', 'utf8')
-  ok(
-    'MapPinBar announces the count through savedPinsLabel',
-    /savedPinsLabel\(pins\.length\)/.test(bar) && !/saved \$\{/.test(bar) && !/saved pins`/.test(bar),
-    'no second copy of the wording in the component'
-  )
+  // A source check on `MapPinBar.tsx` stood here, asserting the control
+  // announced the count through `savedPinsLabel` rather than assembling the
+  // wording itself. That component is gone with the map (docs/NO-3D.md).
+  //
+  // `savedPinsLabel` is not gone, and the four assertions above are the ones
+  // worth keeping: pins are still written by Lich scripts through
+  // `bridgeMessageHandler.ts` and by `AiClaimsPanel.tsx`, so the grammar
+  // still has to be right for whatever presents them next.
 }
 
 ok('enough was checked for a pass to mean something', checked >= 26, `${checked} assertions`)

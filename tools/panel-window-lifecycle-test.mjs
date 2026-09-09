@@ -91,14 +91,22 @@ off()
 
 const rust = readFileSync('src-tauri/src/lib.rs', 'utf8')
 ok('native open, closing, and destroyed paths emit lifecycle events', ['"open"', '"closing"', '"closed"', 'WindowEvent::Destroyed'].every((needle) => rust.includes(needle)))
+/*
+ * Four checks here read `MapPanel.tsx` as the worked example of a panel
+ * that pops out: its icon, its use of the authoritative registry, the
+ * absence of the old polling loop, and its retry control. The map is gone
+ * (docs/NO-3D.md), so they are asserted against `Dashboard.tsx` alone.
+ *
+ * Losing the second file costs something real and it is named here rather
+ * than quietly dropped: these were two independent readers agreeing, and
+ * they are now one. `PANEL_CONTENT` has eleven other entries and none of
+ * them owns a pop-out button of its own today; when one does, put it back
+ * in this list.
+ */
 const dashboard = readFileSync('src/components/dashboard/Dashboard.tsx', 'utf8')
-const mapPanel = readFileSync('src/components/shared/MapPanel.tsx', 'utf8')
-ok('map pop-out uses an in-app window icon rather than an external-link icon',
-  /<AppWindow aria-hidden="true"/.test(mapPanel) &&
-  !/ExternalLink/.test(mapPanel))
-ok('dashboard and map consume the same authoritative registry', [dashboard, mapPanel].every((source) => source.includes('usePanelWindows()')))
-ok('the old two-second polling registry is gone', !`${dashboard}${mapPanel}`.includes('setInterval('))
-ok('open and close errors have visible retry controls', dashboard.includes('windowErrors.map') && mapPanel.includes('windowFailure'))
+ok('the dashboard consumes the authoritative registry', dashboard.includes('usePanelWindows()'))
+ok('the old two-second polling registry is gone', !dashboard.includes('setInterval('))
+ok('open and close errors have visible retry controls', dashboard.includes('windowErrors.map'))
 
 console.log('')
 const total = pass + fail

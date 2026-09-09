@@ -113,10 +113,10 @@ export function DashboardLayout({
 }: {
   dense: boolean
   /** Tear a box into its own window, for a second monitor or a wide desk. */
-  onPopOut?: (id: 'map' | 'room' | 'mindstate') => void
+  onPopOut?: (id: 'room' | 'mindstate') => void
 }) {
 
-  const popper = (id: 'map' | 'room' | 'mindstate') =>
+  const popper = (id: 'room' | 'mindstate') =>
     onPopOut ? (
       <button
         type="button"

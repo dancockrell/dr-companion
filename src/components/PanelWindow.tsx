@@ -47,9 +47,45 @@ export function PanelWindow({ id }: { id: PanelId }) {
   const render = Object.hasOwn(PANEL_CONTENT, id) ? PANEL_CONTENT[id] : undefined
 
   if (!render) {
+    /*
+     * Named, and not a dead end (#518).
+     *
+     * The sentence on its own was honest and useless: one line on an empty
+     * surface, no control, no way back, and no way to tell a typo from a
+     * panel that has since been removed. `map` made that a route a real
+     * player takes rather than a hypothetical one - it led every saved
+     * layout and every pop-out of it points here now.
+     *
+     * So: say which ids exist, and offer the app. The list is read from
+     * `PANEL_CONTENT`, the same object the lookup above failed against, so it
+     * cannot name a panel this window could not render or omit one it could.
+     */
+    const ids = Object.keys(PANEL_CONTENT).sort()
     return (
-      <div className="h-full w-full bg-surface text-ink p-4 text-sm">
-        No panel called {id}.
+      <div className="flex h-full w-full flex-col gap-3 bg-surface p-4 text-sm text-ink">
+        <p>
+          No panel called <span className="font-medium">{id}</span>.
+        </p>
+        <p className="text-ink-muted">
+          {ids.length} panels can be opened in a window of their own:{' '}
+          {ids.join(', ')}.
+        </p>
+        <p className="text-ink-faint text-xs">
+          The map used to be one of them. It is gone, and Godot will own world
+          and route presentation instead — see docs/NO-3D.md. A window or saved
+          layout still pointing at it lands here.
+        </p>
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.search = ''
+            }}
+            className="rounded border border-border px-2 py-1 text-ink-muted hover:bg-surface-overlay hover:text-ink"
+          >
+            Open the app in this window
+          </button>
+        </div>
       </div>
     )
   }
