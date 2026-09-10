@@ -77,6 +77,12 @@ SABOTAGES = [
         {'a walk with few distinct pictures is called thin'},
     ),
     (
+        'an occupied room no longer counts as occupied',
+        'playbot/patrol.py', "if room.players and 'also here' in room.players.lower():",
+        'if False:',
+        {'a room with someone in it and an empty scene is complained about'},
+    ),
+    (
         'the safe area is emptied',
         'playbot/world.py', "'The Crossing',", "'The Crossing NOT',",
         # Just the two exploration cases. Everything else about identity -

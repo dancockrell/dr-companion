@@ -21,6 +21,7 @@ is asserted rather than assumed.
 from __future__ import annotations
 
 import random
+import re
 import sys
 
 from forge.compose import Placement, Scene
@@ -431,6 +432,60 @@ def sameness_cases(world: World) -> None:
           not any('render identically' in s for s in samey), f'got {samey}')
 
 
+def population_cases(world: World) -> None:
+    """An occupied room whose picture is empty - the live-only complaint."""
+    from .complaints import Sink
+    from .live import Session
+    from .patrol import Patrol
+
+    class Bare:
+        placements: list = []
+
+    def occupants(payload):
+        sink = Sink()
+        patrol = Patrol(world, Session.__new__(Session), sink, 'test')
+        patrol._check_population(parse_room(payload), Bare())
+        return [c.summary for c, _, _ in sink.all()]
+
+    peopled = occupants(MOVE_PAYLOAD)
+    check('a room with someone in it and an empty scene is complained about',
+          any('draws nobody' in s for s in peopled), f'got {peopled}')
+
+    # The control. Without it this case passes just as well against a check
+    # that fires on every room it is ever handed.
+    empty = occupants(MOVE_PAYLOAD.replace(
+        "<component id='room players'>Also here: Chore.</component>", ''))
+    check('an empty room produces no such complaint', empty == [], f'got {empty}')
+
+    check('the forge really has no feature for a person, which is what the '
+          'complaint asserts',
+          not _forge_mentions_a_person_kind(),
+          'something in forge now produces a person placement, so reword the complaint')
+
+
+def _forge_mentions_a_person_kind() -> bool:
+    """Is there any placement kind standing for a person yet?
+
+    The complaint above claims a capability is missing, and a claim about
+    somebody else's code goes stale the moment they add it - at which point
+    the bot would be filing a defect that has been fixed. This reads the
+    forge rather than remembering what it said today.
+    """
+    import pathlib
+
+    import forge
+    root = pathlib.Path(forge.__file__).parent
+    for path in root.glob('*.py'):
+        if path.name.startswith('test_'):
+            continue
+        for line in path.read_text(encoding='utf-8').splitlines():
+            if 'kind' not in line or line.lstrip().startswith('#'):
+                continue
+            if re.search(r"kind\s*=\s*['\"](person|people|crowd|figure|npc)", line):
+                return True
+    return False
+
+
 def main() -> int:
     world = World.load()
     parser_cases()
@@ -438,6 +493,7 @@ def main() -> int:
     exploration_cases(world)
     oracle_cases()
     execution_cases(world)
+    population_cases(world)
     uid_cases()
     retreat_cases(world)
     sameness_cases(world)

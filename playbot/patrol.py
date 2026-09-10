@@ -283,6 +283,48 @@ class Patrol:
 
         if scene and room.objects:
             _check_objects(room, scene, self.sink, self.mission)
+        if scene:
+            self._check_population(room, scene)
+
+    def _check_population(self, room, scene) -> None:
+        """The room has people standing in it and the picture is deserted.
+
+        This is the one thing on the walk that only a live bot could ever
+        find, and it is not a placement going wrong - it is a capability the
+        forge does not have. `forge.extract` knows about people only to rule
+        them out: it carries a list of crowd words so that "a stream of
+        customers" is not mistaken for water. Nothing anywhere produces a
+        feature for the customers themselves.
+
+        The stored description cannot show this, because it is written once
+        and says who is *usually* somewhere, never who is there now. So the
+        offline pass over all 18,950 rooms could run forever without
+        suggesting it, and a player walking into the market at a busy hour
+        sees an empty hall.
+
+        Filed as `thin` rather than `wrong` on purpose, and it is worth being
+        straight about which half is which. That a scene of an occupied room
+        contains no occupant is a fact and this counts it. Whether that scene
+        *should* draw them - as figures, as a crowd, as nothing at all because
+        the client will layer sprites over the top later - is a design call
+        with a defensible answer either way, and not something a rule gets to
+        make. The number is the contribution here; the decision is not.
+        """
+        here = []
+        if room.players and 'also here' in room.players.lower():
+            here.append(room.players.strip())
+        if not here:
+            return
+        kinds = {p.kind for p in scene.placements}
+        self.sink.file(Complaint(
+            severity='thin', subject='scene',
+            summary='the room has people standing in it and the scene draws nobody',
+            room_id=None, room_title=room.title, mission=self.mission,
+            expected='some feature standing for the people the game just listed',
+            observed=f'{"; ".join(here)[:120]} - scene kinds: '
+                     f'{", ".join(sorted(kinds)) or "none"}',
+            evidence={'no_person_kind_exists_in_forge': True},
+        ))
 
     # -- the walk --------------------------------------------------------
 
