@@ -90,12 +90,19 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
   },
   inventory: {
     purpose: 'Worn and carried items, container contents, weight/burden - what the character is holding right now.',
-    dataNeeded: ['character.inventory', 'bridgeIntents'],
+    dataNeeded: ['character.inventory', 'character.encumbrance', 'character.carriedItemCount', 'bridgeIntents'],
     requiresLiveCharacter: true,
   },
   risk: {
     purpose: "A compact readout of the character's current danger state (wounds, poison, bleeding, stance) - the same facts VitalCluster/StatusBoard already surface, condensed.",
-    dataNeeded: ['character.vitals', 'character.situation'],
+    dataNeeded: [
+      'character.vitals',
+      'character.situation',
+      'character.stance',
+      'character.preparedSpell',
+      'character.rezzSicknessSeconds',
+      'character.favors',
+    ],
     requiresLiveCharacter: true,
   },
   stats: {

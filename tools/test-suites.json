@@ -17,6 +17,7 @@
   "test:plan",
   "test:plan-self",
   "test:panel-data-contracts",
+  "test:character-status-fields",
   "test:tauri-command-callers",
   "test:ui-jargon",
   "test:dev-jank",

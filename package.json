@@ -93,6 +93,7 @@
     "test:plan": "node tools/plan-audit.mjs",
     "test:plan-self": "node tools/plan-audit.mjs --self-test",
     "test:panel-data-contracts": "node tools/panel-data-contracts-test.mjs",
+    "test:character-status-fields": "node tools/character-status-fields-test.mjs",
     "test:tauri-command-callers": "node tools/tauri-command-callers-test.mjs",
     "test:ui-jargon": "node tools/ui-jargon-test.mjs",
     "test:dev-jank": "node tools/dev-jank-test.mjs",

@@ -3214,7 +3214,8 @@ column is non-zero and every other column is zero.
 W0 publishes every field first, in one edit, so W1–W6 can run in parallel
 against a settled type.
 
-- [ ] **W0  Publish the fields before anything consumes them** (≈50)
+- [x] **W0  Publish the fields before anything consumes them** (≈50)
+  commit: (this PR) verified: 2026-09-10 minutes: 90
   touches: src/types/index.ts, docs/BRIDGE_CONTRACT.md, src/lib/panelDataContracts.ts
   depends-on: none
   do: add `stance`, container `used`/`capacity`, the prepared-spell block, numeric encumbrance and the rezz-sickness timer to `CharacterStatus`, each documented with **what absence means** — the distinction `skillsReady` already draws and that `src/types/stream.ts` is built around. Update `PANEL_DATA_CONTRACTS` in the same edit, because that file is the answer to "what does this window need" and a field nobody records there is a field the wrapper cannot honestly promise Godot.
