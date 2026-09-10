@@ -352,7 +352,22 @@ class Patrol:
 
         stuck = 0
         for step in range(steps):
-            if not room.usable:
+            if room.usable:
+                # Reset, and this line is the whole bug. `stuck` counted every
+                # unreadable room the walk ever met and never came back down,
+                # so the guard below fired on the fourth such room in the
+                # entire session rather than the fourth in a row - while its
+                # own message said "in a row". Both live walks this cycle
+                # ended on it: the first after 360 of 800 steps, the second
+                # after 136, each with exactly four unreadable rooms filed
+                # and hundreds of perfectly readable ones in between.
+                #
+                # A partial room block is normal and recoverable - a look
+                # fixes it, and the walk above did exactly that and carried
+                # on. What the guard is for is a session that has stopped
+                # making sense, and only a consecutive run means that.
+                stuck = 0
+            else:
                 self.file('wrong', 'bot',
                           'the game sent something the room parser could not read',
                           room_title=room.title,

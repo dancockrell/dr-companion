@@ -517,6 +517,91 @@ def sameness_cases(world: World) -> None:
           not any('render identically' in s for s in samey), f'got {samey}')
 
 
+class _ScriptedSession:
+    """A session that hands `Patrol.run` a prepared sequence of rooms."""
+
+    def __init__(self, rooms):
+        self.rooms = list(rooms)
+        self.governor = self.refusals = None
+        self.asked = 0
+
+    def _next(self):
+        from .live import Turn
+        room = self.rooms.pop(0) if self.rooms else _unreadable()
+        self.asked += 1
+        return room, Turn(command='x', raw='<prompt/>', latency=0.1, sent=True)
+
+    def look(self, timeout=8.0):
+        return self._next()
+
+    def walk(self, _movement, timeout=12.0):
+        return self._next()
+
+    def ask(self, _command, timeout=8.0):
+        return self._next()
+
+
+def _readable(world: World):
+    from .live import LiveRoom
+    record = world.match_uid(10031)
+    return LiveRoom(uid=10031, title=(record.get('title') or ['x'])[0],
+                    description=(record.get('description') or ['x'])[0],
+                    exits=['north'])
+
+
+def _unreadable():
+    from .live import LiveRoom
+    return LiveRoom(uid=None, title='somewhere', description=None)
+
+
+def stuck_cases(world: World) -> None:
+    """The guard that ended both live walks of this cycle, 440 steps early.
+
+    `stuck` counted every unreadable room a walk ever met and never came back
+    down, so it fired on the fourth in the *session* while its message said
+    "in a row". Nothing could see it from inside: the walk stopped, said a
+    sentence that sounded like a reason, and reported everything it had found
+    up to that point as a completed run.
+    """
+    from .complaints import Sink
+    from .patrol import Patrol
+
+    def walk(rooms, steps=14):
+        patrol = Patrol(world, _ScriptedSession(rooms), Sink(), 'test')
+        patrol.pace = lambda: None
+        patrol.run(steps)
+        return patrol.stopped_because
+
+    # The shape matters. `run` already recovers from one unreadable arrival by
+    # looking, so a single unreadable room never reaches the top of the loop.
+    # Two in succession do: the walk lands unreadable, the recovery look is
+    # unreadable too, and the next pass through the loop is where `stuck`
+    # moves. So (readable, unreadable, unreadable) repeated puts exactly one
+    # increment between two readable rooms - six of them, well past the
+    # threshold of four, with a reset available each time.
+    #
+    # An earlier fixture here alternated one-for-one and failed against the
+    # fix, because it simply ran out of rooms and the scripted session then
+    # returned unreadable ones forever - four in a row, stopping the walk for
+    # the right reason at the wrong time. The fixture was wrong, not the code.
+    scattered = [_readable(world)] + [_unreadable(), _unreadable(),
+                                      _readable(world)] * 8
+    stopped = walk(scattered, steps=20)
+    check('four unreadable rooms scattered through a walk do not stop it',
+          stopped != 'four unreadable rooms in a row', f'stopped: {stopped!r}')
+
+    # No readable room at the front, deliberately. With one, the walk has to
+    # reach `_choose` and pick a move before it can meet an unreadable room,
+    # so this case would also depend on the map graph - and it did: emptying
+    # the safe area reddened it, because the walk then stopped for a different
+    # reason entirely. Starting unreadable means the guard is the only thing
+    # under test, which is what the case is named after.
+    consecutive = [_unreadable() for _ in range(12)]
+    stopped = walk(consecutive, steps=20)
+    check('four unreadable rooms in a row still stop the walk',
+          stopped == 'four unreadable rooms in a row', f'stopped: {stopped!r}')
+
+
 def population_cases(world: World) -> None:
     """An occupied room whose picture is empty - the live-only complaint."""
     from .complaints import Sink
@@ -580,6 +665,7 @@ def main() -> int:
     execution_cases(world)
     population_cases(world)
     exit_cases()
+    stuck_cases(world)
     uid_cases()
     retreat_cases(world)
     sameness_cases(world)

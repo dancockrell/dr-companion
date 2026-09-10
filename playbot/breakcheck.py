@@ -91,6 +91,12 @@ SABOTAGES = [
          'and a look after a refused move still knows where it is'},
     ),
     (
+        'the unreadable-room counter stops being reset, as it never was',
+        'playbot/patrol.py',
+        '            if room.usable:', '            if False:',
+        {'four unreadable rooms scattered through a walk do not stop it'},
+    ),
+    (
         'duplicate exits are no longer collapsed',
         'playbot/live.py', 'room.exits = list(dict.fromkeys(room.exits))', 'pass',
         {'duplicate compass directions are collapsed'},
