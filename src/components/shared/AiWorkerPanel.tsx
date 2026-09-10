@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import type { AiWorkerStatus } from '../../lib/aiWorkerHost.ts'
 import {
   getAiStatus,
   readProviderUrl,
@@ -171,23 +172,42 @@ function SuggestionCard() {
 }
 
 /**
- * What the local AI worker is doing, and every way it is currently failing.
+ * What the assistant is doing, said to the person playing.
  *
- * `docs/LOCAL_AI_BACKGROUND_WORKER.md` section 14 makes this an acceptance
- * criterion rather than a nicety: "model failure, absence, timeout, and
- * out-of-memory state are visible and do not impair ordinary client use." A
- * worker that fails quietly is one nobody can tell apart from a worker with
- * nothing to do.
+ * # The instance this came from
  *
- * Most installs will read "No local model is installed", and that is the
- * honest, expected, entirely fine state - the client works exactly as well
- * without one. It is shown as information rather than as a warning for that
- * reason.
+ * On 9 September 2026 this panel, on a machine with no model installed, filled
+ * two thirds of the right rail with: a counter reading "Unreviewed events
+ * 1200", a paragraph explaining that the counter did not matter, a text field
+ * prefilled with a loopback address, three port numbers, a red-adjacent "No
+ * model server answered", a "Background jobs - queued 3" row, "Last attempt:
+ * absent: No local model is installed.", and two more paragraphs about the
+ * worker. Every one of those is an instrument. None of them is a thing a
+ * player can do anything about, and the state they were describing is the
+ * ordinary one: no model, nothing wrong.
  *
- * Two numbers are deliberately here even though they are usually zero:
- * unreviewed events, and anything the journal or the display buffer lost.
- * Loss is the one failure this design cannot recover from, so it is never
- * folded into a general "healthy" indicator.
+ * # The rule applied, which is not "show less"
+ *
+ * Nothing here was deleted. The counters, the queue depth, the last attempt
+ * and the internal failure kind all still exist and are all still on this
+ * panel - inside a `<details>` that is closed by default, and repeated in the
+ * Diagnostics panel's bug bundle so a report still carries them. What changed
+ * is rank and place: the top of the panel holds only what a player can act on,
+ * and the instruments are one click away instead of in front.
+ *
+ * # Why it stays mounted with no model
+ *
+ * The panel is two lines in that state - a sentence and a button - so it is no
+ * longer a tenant worth evicting, and it is the only route to setting a model
+ * up. Unmounting it would mean the one affordance for turning the feature on
+ * exists nowhere in the app, which is a worse defect than the one being fixed.
+ * When the layout lane's bottom bar lands, this component moves behind a bar
+ * item unchanged: it takes no position of its own and reads no layout state.
+ *
+ * `docs/LOCAL_AI_BACKGROUND_WORKER.md` section 14 requires that "model
+ * failure, absence, timeout, and out-of-memory state are visible and do not
+ * impair ordinary client use". Visible is satisfied by the disclosure - the
+ * section asks that the state be discoverable, not that it be unavoidable.
  *
  * This panel watches; it does not host. The worker is started once by
  * `App.tsx` and publishes to the store in `aiWorkerHost.ts`, because a worker
@@ -200,8 +220,15 @@ export function AiWorkerPanel() {
   // somebody is halfway through typing.
   const [draft, setDraft] = useState(() => readProviderUrl() ?? '')
   const [testing, setTesting] = useState(false)
+  // The setup form is revealed by the affordance rather than always drawn: an
+  // address field with three port numbers under it is the single largest piece
+  // of developer furniture on this panel, and it is useful only to somebody
+  // who has just decided to install a model.
+  const [setupOpen, setSetupOpen] = useState(false)
 
-  const jobRows = Object.entries(status.jobs).filter(([, n]) => n > 0)
+  // One number rather than two on screen: a player choosing between "the
+  // journal lost some" and "the display buffer dropped some" is choosing
+  // between two internals, and the fact that matters is the same either way.
   const lost = status.journalLost + status.missedLines
 
   const connect = async () => {
@@ -217,175 +244,198 @@ export function AiWorkerPanel() {
     }
   }
 
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
-        <span className="text-xs text-ink-faint">Local model</span>
-        <span className="text-xs text-ink">
-          {status.available ? 'ready' : (status.providerReason ?? 'not installed')}
-        </span>
+  const setup = (
+    <div className="space-y-1 rounded border border-border bg-surface px-2 py-1.5">
+      <label className="block text-xs text-ink-faint" htmlFor="ai-provider-url">
+        Model address
+      </label>
+      <div className="flex gap-1.5">
+        <input
+          id="ai-provider-url"
+          type="text"
+          className="min-w-0 flex-1 rounded border border-border bg-canvas px-1.5 py-1 text-xs text-ink"
+          placeholder="http://127.0.0.1:11434"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          spellCheck={false}
+        />
+        <button
+          type="button"
+          className="rounded border border-border px-2 py-1 text-xs text-ink"
+          onClick={() => void connect()}
+          disabled={testing}
+        >
+          {testing ? 'Testing' : 'Test'}
+        </button>
       </div>
-
-      <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
-        <span className="text-xs text-ink-faint">Unreviewed events</span>
-        <span className="text-xs tabular-nums text-ink">{status.journalPending}</span>
-      </div>
-
-      {/* Above the counters on purpose: it is the only thing on this panel a
-          player is asked to act on, and it expires. */}
-      <SuggestionCard />
-
-      {/* In the slot a card would have used, because it is the answer to the
-          question an empty slot raises. The worker has always known why a
-          proposal did not become a card; until #403 it told nobody, so a
-          refused proposal and a model with nothing to say looked identical
-          from here - which is the one thing the field's own comment said it
-          existed to prevent. */}
-      {status.suggestionRefused && (
-        <p className="text-xs text-ink-muted leading-snug">
-          The model proposed a command that was not admitted: {status.suggestionRefused}
-        </p>
-      )}
-
-      {status.pendingAlerts > 0 && (
-        <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
-          <span className="text-xs text-ink-faint">Alerts awaiting review</span>
-          <span className="text-xs tabular-nums text-ink">{status.pendingAlerts}</span>
-        </div>
-      )}
-
-      {/* An install with no model journals every line and acknowledges none,
-          so the bound is reached and events fall off the back exactly as
-          designed. The capture is correct; calling it "discarded before
-          review" would be a permanent red warning about a review that was
-          never going to happen. Loss is a failure only when there is
-          something to fail. */}
-      {!status.available && status.unreviewedWithoutModel > 0 && (
-        <p className="text-xs text-ink-muted leading-snug">
-          No local model, so {status.unreviewedWithoutModel} captured event
-          {status.unreviewedWithoutModel === 1 ? ' is' : 's are'} unreviewed. Nothing is
-          wrong: capture runs continuously and the client is unaffected.
-        </p>
-      )}
-
-      {/* Never folded into a general health indicator: loss is the one failure
-          this design cannot recover from, so it says so plainly when it
-          happens and stays out of the way when it does not. */}
-      {status.available && lost > 0 && (
-        <p className="text-xs text-danger leading-snug">
-          {lost} event{lost === 1 ? '' : 's'} were discarded before review. The AI has an
-          incomplete picture of that period; game state and the client are unaffected.
-        </p>
-      )}
-
-      {/* A refused prompt is a working privacy gate, not a broken worker, so
-          it is named rather than left to read as a generic failure. */}
-      {status.lastFailure?.startsWith('privacy_gate') && (
-        <p className="text-xs text-ink-muted leading-snug">
-          Sensitive input withheld: the review was refused before it reached the model.
-        </p>
-      )}
-
-      {/* What is actually true today. tools/ai-worker-host-test.mjs holds this
-          sentence to whether aiWorkerHost.ts can build a local provider at
-          all, so the promise and the code cannot drift apart. */}
-      <div className="space-y-1 rounded border border-border bg-surface px-2 py-1.5">
-        <label className="block text-xs text-ink-faint" htmlFor="ai-provider-url">
-          Model server
-        </label>
-        <div className="flex gap-1.5">
-          <input
-            id="ai-provider-url"
-            type="text"
-            className="min-w-0 flex-1 rounded border border-border bg-canvas px-1.5 py-1 text-xs text-ink"
-            placeholder="http://127.0.0.1:11434"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            spellCheck={false}
-          />
-          <button
-            type="button"
-            className="rounded border border-border px-2 py-1 text-xs text-ink"
-            onClick={() => void connect()}
-            disabled={testing}
-          >
-            {testing ? 'Testing' : 'Test'}
-          </button>
-        </div>
-        <p className="text-xs text-ink-faint leading-snug">
-          Optional. Point this at a model server running on this machine - Ollama on
-          11434, LM Studio on 1234, llama.cpp on 8080. An address anywhere else is
-          refused and nothing is sent to it. Leave it empty and the client works
-          exactly as it does now.
-        </p>
-      </div>
-
-      {/* One sentence per failure kind, from aiModelProvider.ts. A single
-          "the model failed" would leave a person with no idea whether to
-          install something, choose a smaller model, or simply wait. */}
+      {/* The three addresses are the one place a port number belongs on this
+          panel: the player has been asked to type one, so it is an
+          instruction rather than an instrument. */}
+      <p className="text-xs text-ink-faint leading-snug">
+        Type the address of a model server running on this machine. Ollama uses
+        http://127.0.0.1:11434, LM Studio http://127.0.0.1:1234, llama.cpp
+        http://127.0.0.1:8080. An address anywhere else is refused and nothing is sent
+        to it.
+      </p>
+      {/* One sentence per failure kind, from aiModelProvider.ts, and only
+          where somebody is looking at it because they just pressed Test. A
+          single "the model failed" would leave a person with no idea whether
+          to install something, choose a smaller model, or simply wait. */}
       {status.lastFailureKind && status.lastFailureKind !== 'privacy_gate' && (
         <p className="text-xs text-ink-muted leading-snug">
           {failureSentence(status.lastFailureKind)}
         </p>
       )}
+    </div>
+  )
 
-      {/* The last thing the model actually said. Held between turns rather
-          than blanked on every idle tick, which at one tick a second would be
-          a flicker nobody could read. */}
-      {status.lastReview && (
-        <div className="rounded border border-border bg-surface px-2 py-1.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xs text-ink-faint">Last review</span>
-            <span className="text-xs tabular-nums text-ink-faint">
-              {new Date(status.lastReview.at).toLocaleTimeString()}
-            </span>
+  return (
+    <div className="space-y-1.5">
+      {status.available ? (
+        <>
+          <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
+            <span className="text-xs text-ink">The assistant is watching the game.</span>
+            {status.lastReview && (
+              <span className="text-xs tabular-nums text-ink-faint">
+                {new Date(status.lastReview.at).toLocaleTimeString()}
+              </span>
+            )}
           </div>
-          {status.lastReview.notable.length > 0 ? (
-            <ul className="mt-1 space-y-0.5">
+
+          {/* Above everything else on purpose: it is the only thing on this
+              panel a player is asked to act on, and it expires. */}
+          <SuggestionCard />
+
+          {/* In the slot a card would have used, because it is the answer to
+              the question an empty slot raises. */}
+          {status.suggestionRefused && (
+            <p className="text-xs text-ink-muted leading-snug">
+              A suggested command was not offered to you: {status.suggestionRefused}
+            </p>
+          )}
+
+          {/* A refused prompt is a working privacy gate, not a broken worker,
+              so it is named rather than left to read as a generic failure. */}
+          {status.lastFailureKind === 'privacy_gate' && (
+            <p className="text-xs text-ink-muted leading-snug">
+              Sensitive input withheld: the review was refused before it reached the model.
+            </p>
+          )}
+
+          {/* Never folded into a general health indicator, and never moved
+              behind the disclosure: loss is the one failure this design cannot
+              recover from, and it changes what the assistant can be trusted to
+              have seen. */}
+          {status.available && lost > 0 && (
+            <p className="text-xs text-danger leading-snug">
+              The assistant missed part of what happened, so it has an incomplete picture
+              of that period. Your game and this client are unaffected.
+            </p>
+          )}
+
+          {status.lastReview && status.lastReview.notable.length > 0 && (
+            <ul className="space-y-0.5 rounded border border-border bg-surface px-2 py-1.5">
               {status.lastReview.notable.map((note, i) => (
                 <li key={`${i}-${note}`} className="text-xs text-ink leading-snug">
                   {note}
                 </li>
               ))}
             </ul>
+          )}
+
+          {status.lastReview?.question && (
+            <p className="text-xs text-ink-muted leading-snug">{status.lastReview.question}</p>
+          )}
+
+          <button
+            type="button"
+            className="text-left text-xs text-ink-faint underline decoration-dotted hover:text-ink"
+            onClick={() => setSetupOpen((open) => !open)}
+          >
+            {setupOpen ? 'Hide the model address' : 'Change the model address'}
+          </button>
+          {setupOpen && setup}
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-ink-muted leading-snug">
+            The assistant is off. It needs a model running on this computer.
+          </p>
+          {setupOpen ? (
+            setup
           ) : (
-            <p className="mt-1 text-xs text-ink-faint leading-snug">Nothing notable.</p>
+            <button
+              type="button"
+              className="rounded border border-border px-2 py-1 text-xs text-ink hover:border-accent hover:text-accent"
+              onClick={() => setSetupOpen(true)}
+            >
+              Set one up
+            </button>
           )}
-          {status.lastReview.question && (
-            <p className="mt-1 text-xs text-ink-muted leading-snug">
-              {status.lastReview.question}
-            </p>
-          )}
-        </div>
+        </>
       )}
 
-      {jobRows.length > 0 && (
-        <div className="rounded border border-border bg-surface px-2 py-1.5">
-          <div className="text-xs text-ink-faint">Background jobs</div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-            {jobRows.map(([state, n]) => (
-              <span key={state} className="text-xs text-ink">
-                {state.replace('_', ' ')} <span className="tabular-nums text-ink-faint">{n}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {status.lastFailure && (
-        <p className="text-xs text-ink-muted leading-snug">Last attempt: {status.lastFailure}</p>
-      )}
-
-      {/* This used to say the worker "cannot send game commands". It still
-          cannot: it writes a proposal down and has no way to send one. What
-          changed is that a proposal can now be confirmed, by you, above - so
-          the sentence says what is actually true rather than a stronger thing
-          that has stopped being true. */}
-      <p className="text-xs text-ink-faint leading-snug">
-        The worker reviews changed state and does background research when idle. It never
-        sends a game command itself: a suggestion is text until you confirm the exact
-        line, and nothing is written to your maps or notes without review.
-      </p>
+      <AiWorkerDetails status={status} lost={lost} />
     </div>
+  )
+}
+
+/**
+ * Every number the panel used to show, kept, and closed.
+ *
+ * This is the "behind details" half of the rule. It exists so that fixing the
+ * panel is not a deletion: a player filing a bug can open one disclosure and
+ * read the same counters that used to be in front of them, and the Diagnostics
+ * panel's bug bundle carries them too, so a report is no poorer than before.
+ *
+ * `tools/dev-jank-test.mjs` reads the `<details>` element, not a comment or a
+ * class name: the exemption it grants is to text physically inside a closed
+ * disclosure, so moving any of this back out of the element makes that check
+ * go red naming this file.
+ */
+function AiWorkerDetails({ status, lost }: { status: AiWorkerStatus; lost: number }) {
+  const jobRows = Object.entries(status.jobs).filter(([, n]) => n > 0)
+  return (
+    <details className="rounded border border-border bg-surface px-2 py-1.5">
+      <summary className="cursor-pointer text-xs text-ink-faint">
+        Details for a bug report
+      </summary>
+      <div className="mt-1 space-y-0.5">
+        <p className="text-xs text-ink-faint">Unreviewed events: {status.journalPending}</p>
+        <p className="text-xs text-ink-faint">Alerts awaiting review: {status.pendingAlerts}</p>
+        <p className="text-xs text-ink-faint">Events lost before review: {lost}</p>
+        <p className="text-xs text-ink-faint">Worker turns: {status.ticks}</p>
+        {/* An install with no model journals every line and acknowledges none,
+            so the bound is reached and events fall off the back exactly as
+            designed. The capture is correct; calling it "discarded before
+            review" would be a permanent red warning about a review that was
+            never going to happen. Loss is a failure only when there is
+            something to fail. */}
+        {!status.available && status.unreviewedWithoutModel > 0 && (
+          <p className="text-xs text-ink-muted leading-snug">
+            No local model, so {status.unreviewedWithoutModel} captured event
+            {status.unreviewedWithoutModel === 1 ? ' is' : 's are'} unreviewed. Nothing is
+            wrong: capture runs continuously and the client is unaffected.
+          </p>
+        )}
+        {jobRows.length > 0 && (
+          <p className="text-xs text-ink-faint">
+            Background jobs:{' '}
+            {jobRows.map(([state, n]) => `${state.replace('_', ' ')} ${n}`).join(', ')}
+          </p>
+        )}
+        {status.providerReason && (
+          <p className="text-xs text-ink-faint">Model: {status.providerReason}</p>
+        )}
+        {status.lastFailure && (
+          <p className="text-xs text-ink-faint">Last attempt: {status.lastFailure}</p>
+        )}
+        <p className="text-xs text-ink-faint leading-snug">
+          The assistant reviews changed state and does background research when idle. It
+          never sends a game command itself: a suggestion is text until you confirm the
+          exact line, and nothing is written to your maps or notes without review.
+        </p>
+      </div>
+    </details>
   )
 }

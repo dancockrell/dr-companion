@@ -183,10 +183,16 @@ export function bridgeChip(r: BridgeReading): BridgeChip {
       }
     case 'reconnecting':
       return {
-        label: `Lich reconnecting ${r.attempt}/${r.maxAttempts}`,
+        // The attempt count is in the title, not on the chip (9 Sep 2026).
+        // It is kept - which rung of the ladder this is on is exactly what a
+        // maintainer wants, and `link-reconnect-test.mjs` reads the ladder
+        // through the title so the progression is still asserted rung by
+        // rung - but "3/8" on a badge in permanent chrome is a retry counter
+        // in front of somebody trying to play, and it changes every few
+        // seconds. The chip says the fact; the hover says the number.
+        label: 'Lich reconnecting',
         tone: 'warn',
-        title:
-          'The link to Lich dropped and the app is dialling again. Nothing reaches the game until it is back. Stop your scripts in Lich itself if this is urgent.',
+        title: `The link to Lich dropped and the app is dialling again. Nothing reaches the game until it is back. Stop your scripts in Lich itself if this is urgent. Attempt ${r.attempt} of ${r.maxAttempts}.`,
       }
     case 'gave-up':
       return {

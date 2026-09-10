@@ -320,6 +320,18 @@ const STAGES = [
     args: [resolve(root, 'tools', 'sign-in-experience-break-check.mjs')],
   },
   {
+    // The sibling of the stage above, and here for the same reasons: it edits
+    // tracked source, runs no compiler between its edits, restores every file
+    // and verifies the restore by md5 and through `watchTree`. A few seconds.
+    // A gate stage rather than a test-suites entry because a harness that
+    // damages tracked source must not be one of several things
+    // `run-tests.mjs` runs at once while other sessions build this tree.
+    name: 'break-dev-jank',
+    shell: false,
+    cmd: process.execPath,
+    args: [resolve(root, 'tools', 'dev-jank-break-check.mjs')],
+  },
+  {
     // The same crate in the configuration that ships (#488). `rust-tests` above
     // is a debug build, so `cfg!(debug_assertions)` is true throughout it and
     // the release half of #464's two knob tests never executes: removing the
@@ -406,7 +418,7 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 15
+const EXPECTED_STAGES = 16
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */

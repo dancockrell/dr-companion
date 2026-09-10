@@ -269,7 +269,7 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
           * used one yet - all still in the tooltip, just not on the row. */}
         {streams.length === 0 && (
           <span
-            title="No game channels yet. Channels appear as the game uses them. If none ever appear, the bridge may be identifying as a frontend without the streams capability - see docs/ENGINE.md."
+            title="No game channels yet. They appear as the game uses them. If none ever appear, check that the bridge is up to date."
             aria-label="No game channels yet"
           >
             <Info className="h-3 w-3 shrink-0 text-ink-faint" />

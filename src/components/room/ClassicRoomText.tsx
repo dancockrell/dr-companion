@@ -81,10 +81,17 @@ export function ClassicRoomText({
         {(title || room != null) && (
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
             {title && <p className="min-w-0 font-semibold text-warn">[{title}]</p>}
+            {/* The two ids are mapper and game internals: useful in a bug
+              * report, meaningless beside a room description a player is
+              * reading. They keep their exact values and move into the title,
+              * which is one hover rather than permanent furniture next to the
+              * room name (9 Sep 2026). */}
             {room != null && (
-              <span className="shrink-0 text-ink-faint">
-                Lich room {room}
-                {uid != null ? `, game uid ${uid}` : ''}
+              <span
+                className="shrink-0 text-ink-faint"
+                title={`Room ${room}${uid != null ? `, game id ${uid}` : ''}`}
+              >
+                #{room}
               </span>
             )}
           </div>

@@ -14,7 +14,7 @@ Full ritual: docs/MERGING.md
 
 - [ ] Rebased on `origin/main` **first**, then `npm run gate` was run on this
       branch after the last commit on it, and its final line read
-      **`gate ok: 15 of 15 stages ran`** with the base it was about.
+      **`gate ok: 16 of 16 stages ran`** with the base it was about.
       Paste it below. (`node tools/gate.mjs --list` prints the stages. A
       `--only=` run is not the gate and says so.)
 - [ ] The gate did not end on exit 3 — `gate ok (base …) — origin/main is now
