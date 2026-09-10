@@ -121,14 +121,15 @@ planned ones — the client's activity buttons — get their own contract,
 | `list_scripts`, `start_script` | launch any installed script by name |
 | `buffs` | R1, 10 Sep 2026 — starts the player's own `buff.lic`; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 | `loot` | R2, 10 Sep 2026 — sends the game's own `loot <type>` verb; see [Activity intents (Lane R)](#activity-intents-lane-r) |
+| `travel` | R3, 10 Sep 2026 — starts `go2` against a named destination; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 
-**Planned, not yet implemented** — seven of the nine activity intents from
+**Planned, not yet implemented** — six of the nine activity intents from
 [GAP-2026-09-09.md](GAP-2026-09-09.md), tracked as Lane R (`docs/PLAN_TO_1_0.md`
-§6b): `go_healer`, `town_run`, `start_training`, `travel`,
-`escape_heal`, `start_combat`, `burgle`. `buffs` and `loot` (above) are the
-first two of the nine to land, R1 and R2. `isIntentImplemented` in
-`src/store/bridgePolicy.ts` disables the remaining seven's controls honestly
-today. See
+§6b): `go_healer`, `town_run`, `start_training`,
+`escape_heal`, `start_combat`, `burgle`. `buffs`, `loot` and `travel` (above)
+are the first three of the nine to land, R1, R2 and R3. `isIntentImplemented`
+in `src/store/bridgePolicy.ts` disables the remaining six's controls
+honestly today. See
 [Activity intents (Lane R)](#activity-intents-lane-r) for the contract each
 one implements against, and the existing per-intent research below
 ("Activity intents batch contract") for which dr-scripts script each starts.
@@ -1243,7 +1244,7 @@ its own pre-start check before it starts the next.
 |---|---|---|
 | `buffs` | R1 | implemented |
 | `loot` | R2 | implemented |
-| `travel` | R3 | not yet implemented |
+| `travel` | R3 | implemented |
 | `escape_heal` | R4 | not yet implemented |
 | `go_healer` | R4 | not yet implemented |
 | `town_run` | R5 (depends on R3, X1) | not yet implemented |
@@ -1509,7 +1510,46 @@ caution as `go_healer`/`town_run` applies if the destination is
 instance/tier-gated (e.g. a premium-only zone) — `go2` itself does not know
 about account tiers, so refusing an out-of-reach destination is either the
 client's job (before sending the intent) or needs a check added here; **not
-resolved which, flagging rather than guessing.**
+resolved which, flagging rather than guessing.** (Still not resolved by R3,
+below — that question is about tier-gated *zones*, a different concern from
+the passport-reporting one R3 does resolve.)
+
+**Landed (R3, 10 Sep 2026):** `Intents.travel` in `companion_bridge.lic`
+follows `map_walk`'s refusal order (Stop latched, Pause latched, `go2` not
+installed, already traveling) and then `Script.start('go2', destination)`
+with the destination passed straight through — no pathfinding, no tag
+resolution, matching "nothing to compose, nothing missing" above. Two things
+this increment's `verify:`/pitfalls lines required, both handled beyond what
+`map_walk` needs:
+
+- **Arrival is checked, never inferred**
+  (`docs/DOMAIN.md:694-696`). `go2` is started and not awaited (same reason
+  as `map_walk`); a background thread (`watch_travel_arrival`) polls until
+  `go2` stops running and then compares the room Lich actually reports
+  against the destination — numeric id or `u<uid>` compared directly, a tag
+  compared against the arrived room's own tags — and logs the true outcome
+  rather than treating "the script exited" as "arrived." Bounded to 20
+  minutes so an unreachable destination does not leave a thread running
+  indefinitely. When Lich has no map loaded at all
+  (`docs/LIVE-STATE.md:320` — the one live run recorded had none), the
+  watcher reports "cannot be confirmed" rather than guessing either way in
+  either direction — the pitfall this increment was flagged to handle.
+- **Passport state is reported, not assumed** (`docs/DOMAIN.md:96-101`).
+  Nothing in the Lich API surfaces live passport validity, so there is no
+  check to run; the honest move is to say so. An F2P or unverified-tier
+  account gets a `log` warning before the leg starts, read from
+  `State.account_tier` — already published on every status as `accountTier`
+  (`src/types/index.ts`'s `CharacterStatus`), so no new field was added. It
+  is a warning, not a refusal: the bridge does not know the destination's
+  province, so blocking every F2P leg on principle would refuse plenty of
+  ordinary Zoluren travel too.
+
+The mock (`src/bridge/mockBridge.ts`) mirrors this: no real Lich to hand a
+destination to in demo mode, so it says so — replacing the old
+`planTravel`/`travelPath.ts` client-side route simulator, which reimplemented
+exactly the pathfinding this contract says never to (`docs/DOMAIN.md:1059-1060`).
+That simulator is deleted; `travelPath.ts`'s `listReachable` (a menu filter,
+not a router) survives and is unchanged.
 
 ### `loot`
 

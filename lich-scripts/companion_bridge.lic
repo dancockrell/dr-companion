@@ -1913,7 +1913,8 @@ module Companion
       'map_walk'     => 'Paused - press Resume before travelling.',
       'run_macro'    => 'Paused - press Resume before running a macro.',
       'start_script' => 'Paused - press Resume before starting a script.',
-      'buffs'        => 'Paused - press Resume before buffing.'
+      'buffs'        => 'Paused - press Resume before buffing.',
+      'travel'       => 'Paused - press Resume before travelling.'
       # loot (R2) deliberately has no line here - see its own comment above
       # `def loot`. It still calls `pause_refusal('loot')` and gets the
       # shared fallback sentence below, same as stow_all/escape/
@@ -2031,18 +2032,19 @@ module Companion
 
       # --- activity intents (Lane R, docs/PLAN_TO_1_0.md §6b) ---------------
       #
-      # buffs lands first (R1), loot second (R2) - see BRIDGE_CONTRACT.md's
-      # "Activity intents (Lane R)" contract for the args/progress/refusal
-      # shape every one of the nine follows, and its "Status of the nine"
-      # table for which increment (R1-R7) lands which, and why burgle (R8) is
-      # deferred rather than absent. travel, escape_heal, go_healer,
-      # town_run, start_training and start_combat are not here yet. Each
-      # lands as its own HANDLERS entry below this comment, in the same
-      # commit that flips its row from "not yet implemented" to
+      # buffs lands first (R1), loot second (R2), travel third (R3) - see
+      # BRIDGE_CONTRACT.md's "Activity intents (Lane R)" contract for the
+      # args/progress/refusal shape every one of the nine follows, and its
+      # "Status of the nine" table for which increment (R1-R7) lands which,
+      # and why burgle (R8) is deferred rather than absent. escape_heal,
+      # go_healer, town_run, start_training and start_combat are not here
+      # yet. Each lands as its own HANDLERS entry below this comment, in the
+      # same commit that flips its row from "not yet implemented" to
       # "implemented" - the doc and the dispatch table are not allowed to say
       # two different things about the same intent.
       'buffs' => ->(args, server) { buffs(args, server) },
       'loot' => ->(args, server) { loot(args, server) },
+      'travel' => ->(args, server) { travel(args, server) },
     }.freeze
 
     # The three-state contract this feeds (BRIDGE_CONTRACT.md): absent means
@@ -2431,6 +2433,157 @@ module Companion
       detail = line || "loot #{type} sent, no response seen"
       server.log("Loot: #{detail}", line ? 'info' : 'warn')
       [true, detail]
+    end
+
+    # `travel` (R3). What `map_walk` does for a numeric room id, this does
+    # for a *named* destination — a tag, a room id, or a `u<uid>`, the same
+    # three forms `go2` itself accepts (`docs/BRIDGE_CONTRACT.md`'s
+    # "Activity intents (Lane R)" > `travel`). Passed straight through to
+    # `go2` exactly as the batch contract researched it —
+    # `Script.start('go2', destination)` — with nothing parsed or resolved
+    # here first: resolving a tag to a room ourselves would be the
+    # pathfinding reimplementation `DOMAIN.md:1059-1060` already warns
+    # against, the same reasoning `map_walk`'s own comment gives.
+    #
+    # Two things `map_walk` does not need, because a numeric room id already
+    # in hand needs neither:
+    #
+    #   1. **Arrival is checked, never inferred** (`DOMAIN.md:694-696`: "the
+    #      same bug was reported in July, fixed, and reported again in
+    #      August, which is what happens when arrival is inferred from
+    #      control flow rather than checked"). go2 is started and not
+    #      awaited here either — blocking the socket-handling thread for a
+    #      cross-zone walk would freeze every other panel, same as
+    #      `map_walk`/`install_mapdb` — so `watch_travel_arrival` polls in
+    #      its own thread until go2 stops running and only then reports
+    #      what actually happened, never "it exited so it must have
+    #      arrived." `install_mapdb`'s own history is the warning: it used
+    #      to report "started" for a script that had already exited and
+    #      failed silently.
+    #   2. **Passport state is reported, not assumed** (`DOMAIN.md:96-101`:
+    #      "an expired passport strands you" and "passport state is runtime
+    #      state the bridge must report"). Nothing in the Lich API this
+    #      bridge reads exposes live passport validity, so there is no check
+    #      to run — the honest move is not a check this bridge cannot make,
+    #      it is telling the player plainly that it cannot be made. An F2P
+    #      (or unverified-tier) account gets a warning logged before the leg
+    #      starts, built from `State.account_tier` — already published on
+    #      every status as `accountTier`, the same source `buffs`/`loot`
+    #      already read character settings from; no new field invented.
+    #      This is a warning, not a refusal: this bridge does not know the
+    #      destination's province either, so blocking every F2P leg to guard
+    #      against a case it cannot detect would refuse plenty of ordinary
+    #      Zoluren travel along with it.
+    def travel(args, server)
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before travelling.']
+      end
+
+      if (held = pause_refusal('travel'))
+        return held
+      end
+
+      dest = (args.is_a?(Hash) ? args['destination'] : args).to_s.strip
+      return [false, 'no destination given'] if dest.empty?
+      return [false, "invalid destination '#{dest}'"] if dest.length > 60 || dest.match?(/[\r\n;\x00-\x1f]/)
+
+      return [false, 'go2 is not installed. Install the standard dr-scripts suite to travel.'] \
+        unless State.safe(false) { Script.exists?('go2') }
+
+      already_walking = State.safe([]) { Script.running }.any? do |s|
+        State.safe(nil) { s.name }.to_s.casecmp?('go2')
+      end
+      return [false, 'already traveling (go2 is running) - stop it, or wait for it to arrive, first'] if already_walking
+
+      tier = State.account_tier
+      if %w[f2p unknown].include?(tier)
+        server.log(
+          "Travelling to #{dest}: this account is #{tier == 'f2p' ? 'Free to Play' : 'of unverified subscription tier'} " \
+          'and the bridge has no live read on passport status - an expired passport can strand you crossing ' \
+          'provinces. Check your own passport before a long leg.',
+          'warn'
+        )
+      end
+
+      started = State.safe(false) { Script.start('go2', dest) }
+      return [false, 'could not start go2'] unless started
+
+      server.log("Travelling to #{dest} via go2.")
+      watch_travel_arrival(dest, server)
+
+      [true, "travelling to #{dest}"]
+    end
+
+    # Bounded so a leg that never resolves — lost connection, a door go2
+    # cannot solve, a genuinely unreachable destination — does not leave a
+    # thread parked for the rest of the session. A long cross-zone go2 walk
+    # can run several minutes; twenty is a generous ceiling past that.
+    TRAVEL_WATCH_TIMEOUT_SECONDS = 20 * 60
+    TRAVEL_WATCH_POLL_SECONDS = 2
+
+    def watch_travel_arrival(destination, server)
+      Thread.new do
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + TRAVEL_WATCH_TIMEOUT_SECONDS
+        loop do
+          running = State.safe([]) { Script.running }.any? do |s|
+            State.safe(nil) { s.name }.to_s.casecmp?('go2')
+          end
+          break unless running
+          break if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+          sleep TRAVEL_WATCH_POLL_SECONDS
+        end
+
+        report_travel_arrival(destination, server)
+      rescue StandardError => e
+        server.log("travel: could not confirm arrival at #{destination} (#{e.message}).", 'warn')
+      end
+    end
+
+    # The truthful half of watch_travel_arrival. Never says "arrived" without
+    # comparing the actual room Lich reports against the actual destination —
+    # the exact class of bug `DOMAIN.md:694-696` records recurring twice
+    # already, fixed once and then reported again a month later.
+    #
+    # `LIVE-STATE.md:320` — the one live run this repo has recorded had no
+    # map database loaded at all, and every map intent answered nothing. That
+    # case is handled explicitly below rather than left to raise: no map
+    # loaded is reported as "cannot confirm," never silently read as success.
+    def report_travel_arrival(destination, server)
+      unless MapInfo.available?
+        server.log("travel: go2 stopped; no Lich map loaded, so arrival at #{destination} cannot be confirmed.", 'warn')
+        return
+      end
+
+      room = MapInfo.current
+      unless room
+        server.log("travel: go2 stopped; Lich does not know the current room, so arrival at #{destination} cannot be confirmed.", 'warn')
+        return
+      end
+
+      here_id  = State.safe(nil) { room.id }
+      here_uid = State.safe(nil) { Array(room.uid).last }
+      tags     = State.safe([]) { room.tags.to_a.map(&:to_s) }
+
+      arrived =
+        if destination =~ /\Au(\d+)\z/i
+          here_uid.to_s == Regexp.last_match(1)
+        elsif destination.match?(/\A\d+\z/)
+          here_id.to_s == destination
+        else
+          tags.any? { |t| t.casecmp?(destination) }
+        end
+
+      if arrived
+        server.log("travel: arrived at #{destination} (room #{here_id}).")
+      else
+        title = State.safe(nil) { Array(room.title).last.to_s.gsub(/^\[|\]$/, '') }
+        server.log(
+          "travel: go2 stopped short of #{destination} - currently at room #{here_id}" \
+          "#{title.empty? ? '' : " (#{title})"}. Check the room and retry if needed.",
+          'warn'
+        )
+      end
     end
 
     def map_zone(args, server)
