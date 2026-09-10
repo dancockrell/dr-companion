@@ -1189,3 +1189,29 @@ base-first.
   which is the reference a settings GUI would be built from
 - Lich itself: scripts live in `Lich/scripts`, are invoked with `;name`, and
   `go2` is described as working "just like Genie's goto"
+
+---
+
+## 26. "Tasks and bounties" is the game's Task System, and "bounty" is a false friend
+
+Researched for Lane Y0, 10 Sep 2026. Full sourcing, quotes and the complete
+picture are [`docs/BOUNTIES.md`](BOUNTIES.md) — this section is the pointer
+and the one fact worth stating here, next to §10's admission that Companion's
+modelled session loop has no concept of this at all.
+
+DragonRealms does not have a mechanic called "bounty". What this repository
+(the plan, the gap survey, the `bounty` stream label) calls "tasks and
+bounties" is, in the game's own and Elanthipedia's terms, the **Task System**:
+NPCs (no task board) hand out one of nine task types, accepted with
+`ASK <person> FOR TASK` / `ACCEPT`, checked with the `TASK` verb, and turned
+in with `GIVE <item> TO <person>`. "Bounty" names a different, narrower thing
+in DR — the Assassins PK minigame (`ASK CLERK FOR BOUNTY` to collect payment
+for a kill) — and a search of all 236 vendored Lich scripts for "bounty"
+returns zero files, against 21 for "task" as a positive control.
+
+The client already recognises a `bounty` stream id
+(`src/lib/streamLabels.ts`), but nothing found establishes that this stream
+actually carries Task System text — the one live session this repo has
+measured found every tagged stream, `bounty` included, staying empty
+(`docs/GAP-2026-09-09.md:201`). Lane Y1 has to confirm what that stream
+carries against a live character before parsing it as the Task read path.
