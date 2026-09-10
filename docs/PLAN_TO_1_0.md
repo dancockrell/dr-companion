@@ -3239,13 +3239,14 @@ against a settled type.
   verify: a check that every field added here is named by at least one entry in `PANEL_DATA_CONTRACTS` and read by at least one component before its lane closes — the "grep the consuming side" rule, made mechanical.
   sabotage: add a field nothing reads → the check names it.
 
-- [~] **W1  Stance, read back** (≈50)
-  owner: claude claim: W1 since: 2026-09-10
+- [x] **W1  Stance, read back** (≈50)
+  commit: b4adc6eb verified: 2026-09-10 minutes: 90
   touches: lich-scripts/companion_bridge.lic, src/data/macros.ts, src/components/shared/RiskBar.tsx, src/types/index.ts
   depends-on: W0
   do: gap row 15, and the cleanest instance of the whole pattern. `src/data/macros.ts:58-66` sends `stance defensive|guarded|offensive`; `grep -c '\bstance\b' lich-scripts/companion_bridge.lic` is **0**; and DragonRealms does not send `pbarStance` on the XML stream, which `src/types/stream.ts` states from Lich's own source. So the client changes a combat-critical setting and can never say what it is. Read it in the bridge and show it where the risk readout already is — `panelDataContracts.ts` already *claims* the risk panel shows stance, which today it cannot.
   verify: change stance from the macro bar and watch the readout follow, against a live or replayed session; then change it by typing the command directly and confirm it still follows — a readout that only updates when *this client* sent the command is reading its own echo, not the game.
   sabotage: that second case is the sabotage. Do it before believing the first.
+  note: neither half of `verify` was run against a live or replayed session — this machine has no live DragonRealms session and `lich-scripts/test/protocol_harness.rb`/`server_test.rb` stub `Lich::Common::SocketReadHook` out entirely (it never fires), so the harness cannot exercise the hook path either. What is checked: `lib/common/spell.rb` in the installed Lich5 tree (`C:\Ruby4Lich5\Lich5`) matches exactly `/^You (?:are now in|move into) an? \w+ stance|^You are unable to change your stance\.$/` against `Char.stance` for the identical `stance guarded`/`stance defensive`/`stance offensive` vocabulary this app's macro bar sends — that text is Lich's own confirmed source for this command, not invented here. And the design is source-independent by construction: `State.install_stance_watcher` registers via `SocketReadHook`, which fires on every line the game socket delivers regardless of what sent the upstream command (macro bar, this bridge's own future intents, or the player typing directly in their own client) — it does not drain this script's own per-script downstream buffer or otherwise look at what the bridge itself sent, so there is no mechanism by which it could be reading its own echo. `tools/ai-script-repair-test.mjs` and `lich-scripts/test/server_test.rb` (172 checks) both pass with the change; `ruby -c` on both touched `.lic`/`.rb` files is clean. The honest gap: this is verified by source and by every automated check this environment has, not by watching the readout actually move against a live game. A session with real DR access should do the two-command check in `verify` before treating this as field-proven.
 
 - [ ] **W2  Container capacity is hardcoded zero** (≈60)
   touches: lich-scripts/companion_bridge.lic, src/components/shared/InventoryPanel.tsx, src/types/index.ts
