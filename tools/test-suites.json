@@ -53,6 +53,7 @@
   "test:music-first-run",
   "test:music-library",
   "test:aliases",
+  "test:drscripts-schema",
   "test:macro-dry-run",
   "test:player-config",
   "test:player-config-import",
