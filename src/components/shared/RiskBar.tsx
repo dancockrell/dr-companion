@@ -8,8 +8,9 @@
  *
  * See docs/DOMAIN.md sections 16 and 17.
  */
-import { HeartPulse, Users, Weight, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { HeartPulse, Users, Weight, Shield, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore.ts'
+import type { CharacterStatus } from '../../types/index.ts'
 
 function favorTone(n: number): { tone: string; note: string } {
   if (n <= 0)
@@ -19,6 +20,17 @@ function favorTone(n: number): { tone: string; note: string } {
     }
   if (n < 5) return { tone: 'text-warn', note: 'thin' }
   return { tone: 'text-good', note: 'covered' }
+}
+
+/**
+ * Same three words the macro bar's own labels use (`src/data/macros.ts`) —
+ * defensive survives, guarded compromises, offensive trades safety for
+ * speed — so the colour follows that trade rather than being arbitrary.
+ */
+function stanceTone(s: NonNullable<CharacterStatus['stance']>): string {
+  if (s === 'defensive') return 'text-good'
+  if (s === 'offensive') return 'text-warn'
+  return 'text-ink-muted'
 }
 
 export function RiskBar() {
@@ -37,6 +49,7 @@ export function RiskBar() {
    * settled versus out where a fight can start on its own.
    */
   const { isTown, isSafe } = character.location
+  const stance = character.stance
 
   // Nothing useful to say if the bridge reported none of it.
   if (
@@ -44,7 +57,8 @@ export function RiskBar() {
     others.length === 0 &&
     !enc &&
     isTown === undefined &&
-    isSafe === undefined
+    isSafe === undefined &&
+    stance === undefined
   )
     return null
 
@@ -111,6 +125,22 @@ export function RiskBar() {
             <Weight className="w-3.5 h-3.5 text-ink-faint" />
             <span className="text-ink-muted">Burden</span>
             <span className="text-ink">{enc}</span>
+          </span>
+        )}
+
+        {stance !== undefined && (
+          // Bridge-fed only, never polled - see companion_bridge.lic's
+          // State.install_stance_watcher. Absent means no `stance` command
+          // has been confirmed by the game yet this session, not that the
+          // character has none; that is why this checks undefined rather
+          // than falsiness, same as isTown/isSafe above.
+          <span
+            className="flex items-center gap-1.5"
+            title="Last confirmed by the game after a stance command — not polled, and not reset between commands"
+          >
+            <Shield className={`w-3.5 h-3.5 ${stanceTone(stance)}`} />
+            <span className="text-ink-muted">Stance</span>
+            <span className={`font-medium capitalize ${stanceTone(stance)}`}>{stance}</span>
           </span>
         )}
 

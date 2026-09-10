@@ -391,6 +391,26 @@ module Lich
       def self.in_room = []
     end
   end
+
+  module Common
+    # W1: companion_bridge.lic's stance readback (State.install_stance_watcher)
+    # registers a read-only line observer here rather than draining its own
+    # per-script downstream buffer - see that method's own comment for why.
+    # Contained the same way every other Lich call in this file is: recorded,
+    # never actually wired to a socket, because there is no socket in this
+    # process (see runner.rb).
+    module SocketReadHook
+      def self.add(name, *_args, &_block)
+        LichStub::Recorder.note!("SocketReadHook.add #{name}")
+        name
+      end
+
+      def self.remove(name)
+        LichStub::Recorder.note!("SocketReadHook.remove #{name}")
+        nil
+      end
+    end
+  end
 end
 
 module LichStub
@@ -432,7 +452,8 @@ module LichStub
       'Room' => %w[current],
       'Map' => %w[current by_genie_ref list],
       'Script' => %w[current running exists? start run kill pause unpause at_exit self_kill],
-      'Lich::DragonRealms::Creature' => %w[in_room]
+      'Lich::DragonRealms::Creature' => %w[in_room],
+      'Lich::Common::SocketReadHook' => %w[add remove]
     }.freeze
   }.freeze
 

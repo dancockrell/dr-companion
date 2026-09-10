@@ -526,6 +526,77 @@ module Companion
       @held_teaching_at = Time.now
     end
 
+    # ------------------------------------------------------------ stance --
+    #
+    # W1 (docs/PLAN_TO_1_0.md, Lane W; gap row 15). DragonRealms never puts
+    # stance on the XML stream - `pbarStance` is GemStone-only and gated out
+    # of the DR attach dump (see src/types/stream.ts's header) - so this can
+    # only ever be bridge-fed, and there is no read command for "what stance
+    # am I in", only a write command that echoes back what it did. The macro
+    # bar already sends `stance defensive|guarded|offensive`
+    # (src/data/macros.ts:58-66); this is the other half.
+    #
+    # `You are now in a <word> stance.` / `You move into a(n) <word>
+    # stance.` is not invented here - it is Lich's own confirmed text for
+    # this exact command: lib/common/spell.rb matches precisely this pattern
+    # (`/^You (?:are now in|move into) an? \w+ stance|.../`) to track
+    # `Char.stance` for spellcasting stance management, against the same
+    # `stance guarded`/`stance defensive`/`stance offensive` vocabulary DR's
+    # macro bar sends. "You are unable to change your stance." is the same
+    # source's negative case - deliberately not matched here, so a refused
+    # change leaves the last confirmed stance standing rather than clearing
+    # it to nothing.
+    #
+    # Read passively via SocketReadHook, not this script's own per-script
+    # downstream buffer - the queue Cmd.exec/DRC.bput drain while waiting on
+    # their own command's reply elsewhere in this file (check_health
+    # included). A second reader draining that same queue would race every
+    # one of those polls for the same lines and could steal the very line a
+    # poll is waiting on. SocketReadHook is read-only: it observes every
+    # line the game sends, from any source, and consumes nothing - which is
+    # also exactly what this field needs. A stance command typed directly by
+    # the player in their own client, with no relation to this bridge, goes
+    # through Lich and this hook exactly the same as one sent from the macro
+    # bar. That independence is the whole point (see BRIDGE_CONTRACT.md's
+    # acceptance check for this field) and there is no other way to get it:
+    # tagging the echo of *our own* sent command would only ever confirm the
+    # bridge can hear itself.
+    STANCE_CONFIRM = /^You (?:are now in|move into) an? (offensive|defensive|guarded) stance\b/i.freeze
+    STANCE_HOOK_NAME = 'companion_bridge_stance'
+
+    @held_stance = nil
+
+    def stance
+      @held_stance
+    end
+
+    def install_stance_watcher
+      return unless defined?(Lich::Common::SocketReadHook)
+
+      Lich::Common::SocketReadHook.add(STANCE_HOOK_NAME) do |raw|
+        begin
+          # SocketReadHook fires before XML stripping, so one call can carry
+          # more than one display line and stray tags around the sentence we
+          # want - strip both before matching. A read-only hook must never
+          # cost the player a line of real game text, so any failure here is
+          # swallowed and the original string is always handed back
+          # unchanged, matched or not.
+          raw.to_s.gsub(/<[^>]*>/, '').split(/\r\n/).each do |line|
+            m = STANCE_CONFIRM.match(line)
+            @held_stance = m[1].downcase if m
+          end
+        rescue StandardError
+          nil
+        end
+        raw
+      end
+    end
+
+    def remove_stance_watcher
+      return unless defined?(Lich::Common::SocketReadHook)
+      Lich::Common::SocketReadHook.remove(STANCE_HOOK_NAME)
+    end
+
     # DRCH::WOUND_SEVERITY is 1 ("insignificant") to 13 ("useless"); the
     # client's Severity is 0|1|2|3 and the paperdoll's tones are deliberately
     # coarse. See the bucket table in docs/BRIDGE_CONTRACT.md.
@@ -770,6 +841,17 @@ module Companion
         payload['teaching'] = t
         payload['teachingAgeSeconds'] = State.teaching_age_seconds
       end
+
+      # Bridge-fed only - see State.install_stance_watcher, above. Absent
+      # until the first confirmation line arrives this session; deliberately
+      # no null, matching CharacterStatus.stance's own absent-means-unknown
+      # contract (src/types/index.ts) - a stance command either lands and
+      # confirms, or it has not happened yet, and resending the last known
+      # value every tick (rather than blanking it) is the same contract
+      # `pauseLatched` already uses.
+      s = State.stance
+      payload['stance'] = s unless s.nil?
+
       d = degraded_fields
       payload['degraded'] = d unless d.empty?
       payload
@@ -3538,6 +3620,10 @@ module Companion
 
       Trace.sink = ->(row) { trace(row) }
 
+      # See State.install_stance_watcher, above - DR never puts stance on
+      # the XML stream, so this is the only way the bridge ever finds out.
+      State.install_stance_watcher
+
       @accept_thread = Thread.new { accept_loop }
       @push_thread   = Thread.new { push_loop }
       true
@@ -3545,6 +3631,7 @@ module Companion
 
     def stop
       @running = false
+      State.remove_stance_watcher
       @lock.synchronize do
         @clients.each do |c|
           begin
