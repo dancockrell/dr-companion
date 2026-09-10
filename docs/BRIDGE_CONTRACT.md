@@ -883,6 +883,74 @@ right names and the right `used` count for each (not `[]`, not `0`), and
 confirm the header now shows a real encumbrance word instead of a hardcoded
 "Space OK".
 
+## Lane W field specs (types published, not yet implemented)
+
+Written by W0 (`src/types/index.ts`, `src/lib/panelDataContracts.ts`), for
+whichever of W1/W3/W4/W6 implements each field on `companion_bridge.lic`'s
+side. Same status as the two sections above: a spec, not a changelog — do
+not treat any of the four below as done until the Ruby side actually sends
+the field. `PANEL_DATA_CONTRACTS['risk']`/`['inventory']` already name these
+fields as data the Risk and Inventory panels need; nothing renders them yet.
+
+### Stance readback (gap row 15, W1)
+
+`CharacterStatus.stance?: 'defensive' | 'guarded' | 'offensive'`. The macro
+bar already sends `stance defensive|guarded|offensive`
+(`src/data/macros.ts:58-66`) and nothing reads it back — `grep -c '\bstance\b'
+lich-scripts/companion_bridge.lic` is `0`, and DragonRealms never puts stance
+on the XML stream (`pbarStance` is GemStone-only; see `src/types/stream.ts`'s
+own header). So the bridge is the only place this can come from: read it off
+the game's own confirmation line after a `stance` command, and hold it in
+status state exactly the way `pauseLatched` is held, resending the last known
+value on every tick rather than blanking it between commands. **Acceptance
+check:** change stance from the macro bar and from a typed `stance
+<word>` command directly — both must move the readout, not only the first,
+or the client is reading its own echo rather than the game.
+
+### Prepared spell / cast cycle (gap row 20, W3)
+
+`CharacterStatus.preparedSpell?: PreparedSpell | null` (`{ name: string |
+null, manaCost: number | null, state: 'preparing' | 'held' | 'releasing' }`).
+Nothing tracks prep state or mana cost today. Read this from the game's own
+cast-cycle messaging (dr-scripts already parses spell names into
+`DRSpells.active_spells` for the unrelated `ActiveSpell`/`spells` roster —
+the messaging that produces prep/hold/release is a separate, earlier part of
+the same cast and is not currently captured anywhere). Send `null` for
+`name` rather than omitting the block when a state is known but the name
+could not be parsed - an unknown spell must render as unknown, never as no
+spell. **Acceptance check:** preparing, holding and releasing a spell are
+three distinguishable states in the readout.
+
+### Numeric encumbrance / carried item count (W4)
+
+`CharacterStatus.carriedItemCount?: number | null`, alongside the existing
+`encumbrance?: string` word (`DRStats.encumbrance`, unchanged, still real).
+DOMAIN.md section 4 gives the real thresholds this answers against: 100
+items free-to-play, 75 before junk-room warnings, 300/250 with the Personal
+Inventory Upgrade. Lich has no single call that returns this count directly
+as far as this spec's author searched; the nearest primitive is a count of
+`GameObj.inv` (top-level inventory), the same enumeration point the
+container-contents contract above already needs for a different reason -
+implement them together if the timing lines up, since both read the same
+underlying inventory. Do not derive a fake number from `encumbrance`'s word
+value (e.g. mapping "Somewhat Burdened" to a guessed count) - that
+reproduces the container-capacity mistake with extra steps. **Acceptance
+check:** the readout can answer "can I pick this up," which the word alone
+cannot.
+
+### Rezz sickness timer (gap row 25, W6)
+
+`CharacterStatus.rezzSicknessSeconds?: number | null`. DOMAIN.md sections 7
+and 17: there is a timed recovery window after dying during which fighting
+is a bad idea, and the combat script's own `.uber DEAD` launch mode already
+waits it out - so Lich's own tooling already has to know when this window is
+running. `situation`'s `dead`/`dying` flags say whether you are currently
+dead or dying, not whether you have already come back and are still
+recovering; this field is the third, separate fact. Send `null` once the
+window ends rather than leaving a stale `0` on screen. **Acceptance check:**
+the recovery timer counts down to `null`, and the fight controls can say why
+they are refusing to send a combat command while it is running.
+
 ## Implemented-intents contract (spec — not yet implemented, issue #30)
 
 Written by the Activities/Battle session (`downloads-ca`) for

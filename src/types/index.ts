@@ -167,6 +167,31 @@ export interface ActiveSpell {
   minutes: number
 }
 
+/**
+ * The spell currently moving through a cast, from dr-scripts' own cast-cycle
+ * messaging — see `CharacterStatus.preparedSpell` for what absence of this
+ * whole block means. This is the shape of one live cast, not the roster of
+ * spells already up (`ActiveSpell` is that).
+ */
+export interface PreparedSpell {
+  /**
+   * Spell name as the game names it. `null` when a prep/hold/release state
+   * is known to exist but the name itself could not be parsed out of the
+   * game's text — shown as "unknown", never collapsed into "no spell",
+   * which would claim something false about a cast that is actually
+   * happening.
+   */
+  name: string | null
+  /**
+   * Mana cost of this prep/hold, when the game has stated it. `null` when
+   * the state is known but the cost was not reported this time — the same
+   * "known but unstated" distinction `name` draws.
+   */
+  manaCost: number | null
+  /** Where the spell sits in its cast cycle right now. */
+  state: 'preparing' | 'held' | 'releasing'
+}
+
 /** Engagement distance, as DR's own `assess` command buckets it. */
 export type CombatRange = 'melee' | 'pole' | 'missile'
 
@@ -273,6 +298,23 @@ export interface CharacterStatus {
   favors?: number
   encumbrance?: string
   /**
+   * Total items carried, against the free-to-play/upgraded slot thresholds
+   * DOMAIN.md section 4 gives — 100 items free-to-play, 75 before
+   * junk-room warnings, 300/250 with the Personal Inventory Upgrade — the
+   * number that answers "can I pick this up," which the word in
+   * `encumbrance` above cannot. That word is DR's own qualitative summary
+   * (`DRStats.encumbrance`, e.g. "Somewhat Burdened") and stays; this is a
+   * different, numeric fact alongside it, not a replacement.
+   *
+   * Absent (the key itself missing) means an older bridge that predates
+   * this field, or one that has not implemented the count yet. `null`
+   * means the bridge asked and could not get a count this poll. Burden and
+   * armor also reduce effective Athletics (DOMAIN.md section 6), which a
+   * consumer derives from this and `stats` — this field only carries the
+   * count itself.
+   */
+  carriedItemCount?: number | null
+  /**
    * Base stats, TDPs, luck and native mana — see `CharacterStats`. Absent
    * until the first successful read or on a bridge that predates this
    * field; `null` in the payload (not a missing key) means the read was
@@ -341,6 +383,22 @@ export interface CharacterStatus {
    */
   position?: number
   /**
+   * The combat stance last confirmed for this character — `'defensive'`,
+   * `'guarded'` or `'offensive'`, the same three words the stance macro
+   * (`src/data/macros.ts`) already sends as `stance defensive|guarded|offensive`.
+   *
+   * DragonRealms does not put stance on the XML stream — `pbarStance` is
+   * GemStone-only and gated out of this game's attach dump (see
+   * `src/types/stream.ts`) — so this can only ever be bridge-fed, read back
+   * from the game's own confirmation line after a `stance` command, never
+   * polled. Absent (the key itself missing) means an older bridge that
+   * predates the field, or one that has not read a confirmation yet this
+   * session; there is deliberately no `null` state, because there is no
+   * "asked and got nothing" case distinct from "never confirmed" — a
+   * stance command either lands and confirms, or it has not happened yet.
+   */
+  stance?: 'defensive' | 'guarded' | 'offensive'
+  /**
    * Sixteen body parts, each with a wound and a scar, 0-3.
    *
    * Optional because absent is not the same as uninjured: right after login
@@ -383,10 +441,42 @@ export interface CharacterStatus {
   bleeding?: { part: BodyPart | null; rate: string }[]
   situation: SituationFlag[]
   /**
+   * Seconds remaining in the post-death recovery window, during which
+   * fighting is a bad idea — DOMAIN.md sections 7 and 17; the combat
+   * script's own `.uber DEAD` launch mode waits it out rather than fighting
+   * through it. Distinct from `situation`'s `'dead'`/`'dying'` flags: those
+   * say whether you are currently dead or in the act of dying, not whether
+   * you have already come back and are still recovering.
+   *
+   * Absent (the key itself missing) means an older bridge that predates
+   * the field, or one that has not implemented the read. `null` means the
+   * bridge confirms no recovery window is currently running. A number is
+   * seconds left, and it should count down to `null`, never linger at 0.
+   */
+  rezzSicknessSeconds?: number | null
+  /**
    * Spells up, shortest remaining first. Empty when dr-scripts is not loaded,
    * which is not the same as no spells and is why the board says which.
    */
   spells?: ActiveSpell[]
+  /**
+   * The spell currently being prepared, held, or released — the readout a
+   * caster's most frequent action has never had. See `PreparedSpell` for
+   * the shape and what its own `null` fields mean.
+   *
+   * Absent (the key itself missing) means no bridge has ever reported on
+   * this character's cast cycle — an older bridge that predates the field,
+   * or one that has not implemented it yet. `null` means the bridge is
+   * watching and confirms nothing is currently preparing, held, or
+   * releasing. Present means exactly one live cast, never a queue of them —
+   * DR only ever has one spell in flight per character.
+   *
+   * Separate from `StreamCharacterState.spell` in `src/types/stream.ts`,
+   * which is the game's own XML stream field, is GemStone-only, and is
+   * never populated for a DragonRealms client; that field's disposition
+   * (wire it, or delete it) is Lane W's W3 to settle, and is not this one.
+   */
+  preparedSpell?: PreparedSpell | null
   activity: string
   connected: boolean
   /**
@@ -507,7 +597,25 @@ export interface LogRow {
 export interface InventorySummary {
   containers: {
     name: string
+    /**
+     * How many items this container holds, from a real recursive scan.
+     * There is no "not yet known" state for this one — a container with a
+     * genuine zero items and one nobody has counted yet are both `0`,
+     * because pre-W2 bridges only ever emit the constant `0` and cannot
+     * tell the two apart either (see docs/BRIDGE_CONTRACT.md's container
+     * contents contract, issue #5). `capacity` below is where the honest
+     * "not reported" state lives instead.
+     */
     used: number
+    /**
+     * DR has no capacity concept Lich exposes for a worn container — see
+     * docs/BRIDGE_CONTRACT.md's container contents contract. `0` is the
+     * sentinel every bridge sends today and means "not reported," not "no
+     * room left"; `InventoryPanel.tsx` already only draws the used/capacity
+     * bar when this is greater than zero and shows a plain count otherwise.
+     * A future bridge that can genuinely measure capacity would send a
+     * real positive number here; nothing currently can.
+     */
     capacity: number
     /** Present after a deliberate recursive inventory scan. */
     items?: string[]
