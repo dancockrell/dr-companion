@@ -162,11 +162,11 @@ fails the build when the UI, the bridge and the mock disagree:
 
 ```
 Declared intents (types.ts):        35
-Implemented in bridge (real):       28
-True unimplemented set:              7
+Implemented in bridge (real):       29
+True unimplemented set:              6
 ```
 
-The 28 come from the `HANDLERS` hash in `companion_bridge.lic` — a runtime
+The 29 come from the `HANDLERS` hash in `companion_bridge.lic` — a runtime
 enumeration, not a hand-kept list — and the bridge reports them on `hello` as
 `implementedIntents`. Two worth starting with, because they are the smallest:
 
@@ -179,11 +179,11 @@ silently doing nothing.
 
 ## What is not implemented, so do not report it
 
-- The seven intents `tools/intent-drift-test.mjs` reports as unimplemented, which
+- The six intents `tools/intent-drift-test.mjs` reports as unimplemented, which
   at the time of writing are `burgle`, `escape_heal`, `go_healer`,
-  `start_combat`, `start_training`, `town_run` and `travel` — buffs landed
-  R1, 10 Sep 2026, loot landed R2, 10 Sep 2026. Run it rather than trusting
-  that list.
+  `start_combat`, `start_training` and `town_run` — buffs landed R1, 10 Sep
+  2026, loot landed R2, 10 Sep 2026, travel landed R3, 10 Sep 2026. Run it
+  rather than trusting that list.
 - Vault, bank and container capacities. Inventory reports containers but not
   how full they are.
 - Wound severity per body part. `check_health` reports counts, not a chart.

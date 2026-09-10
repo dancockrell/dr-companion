@@ -57,14 +57,14 @@ const WRONG_STAGE_COUNT = STAGE_COUNT === '7' ? '6' : '7'
 const CASES = [
   {
     file: 'docs/TESTING.md',
-    from: 'Implemented in bridge (real):       28',
+    from: 'Implemented in bridge (real):       29',
     to: 'Implemented in bridge (real):       2',
     expect: 'TESTING quotes the real implemented-intent count',
   },
   {
     file: 'docs/TESTING.md',
-    from: '`start_training`, `town_run` and `travel`',
-    to: '`start_training` and `town_run`',
+    from: '`start_training` and `town_run`',
+    to: '`start_training`',
     expect: 'TESTING names as many unimplemented intents as there are',
   },
   {

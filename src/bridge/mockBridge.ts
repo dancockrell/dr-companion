@@ -20,7 +20,7 @@ import {
 import { planTownRun } from '../data/townRun.ts'
 import { pickSuggestedHunt, rankHuntingGrounds, HUNTING_GROUNDS } from '../data/hunting.ts'
 import { simulateCombatLoop, describeCombatState } from '../data/combatMachine.ts'
-import { planTravel } from '../data/travelPath.ts'
+import { TRAVEL_DESTINATIONS } from '../data/travelDestinations.ts'
 import type { GuildId } from '../data/hunting'
 import { ranksOf, type SkillState, SKILLS_BY_SET, SKILL_SETS } from '../data/skills.ts'
 import { effectiveAthletics } from '../data/obstacles.ts'
@@ -71,7 +71,7 @@ const MOCK_ALL_INTENTS: string[] = [
  */
 const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
   'burgle', 'escape_heal', 'go_healer',
-  'start_combat', 'start_training', 'town_run', 'travel',
+  'start_combat', 'start_training', 'town_run',
 ]
 
 /**
@@ -1377,35 +1377,48 @@ export class MockBridge {
         break
       }
       case 'travel': {
-        const dest = (_args?.destination as string) || 'crossing'
-        const plan = planTravel({
-          destinationId: dest,
-          instance: this.character.instance,
-          accountTier: this.character.accountTier,
-          fromArea: this.character.location?.zone || this.character.location?.title,
-        })
-        this.scripts = ['travel']
-        if (plan && !plan.ok) {
+        // Mirrors the real bridge's travel handler (R3, BRIDGE_CONTRACT.md's
+        // "Activity intents (Lane R)"): the destination is passed straight
+        // through to go2 — a tag, a room id, or a `u<uid>` — and nothing is
+        // pathfound here. There is no real Lich to hand it to in demo mode,
+        // so the honest answer is to say so, the same way `map_walk`'s mock
+        // already does, rather than running the old fictitious step-by-step
+        // planner this replaced (that planner's `planTravel`/`travelPath.ts`
+        // stub reimplemented routing client-side — exactly what R3's contract
+        // says never to do; `listReachable` in ScriptLauncher.tsx still uses
+        // the destination catalogue for its menu, which is a label lookup,
+        // not pathfinding, and is untouched).
+        const dest = (typeof _args?.destination === 'string' && _args.destination.trim()) || ''
+        if (!dest) {
+          this.emit({
+            type: 'intent_ack',
+            intent,
+            ok: false,
+            detail: 'no destination given',
+          })
+          break
+        }
+        const known = TRAVEL_DESTINATIONS.find(
+          (d) => d.id === dest || d.aliases?.includes(dest)
+        )
+        const label = known?.label ?? dest
+        // Passport state is runtime state the real bridge reports, not
+        // something this demo can know either — see the real handler's own
+        // comment (DOMAIN.md:96-101). Same honest warning, built from the
+        // same already-published `accountTier`, no new field invented.
+        const tier = this.character.accountTier
+        if (tier === 'f2p' || tier === 'unknown') {
           this.emit({
             type: 'log',
-            line: `Travel blocked to ${dest}: ${plan.reasons.join('; ')}`,
+            line: `Travelling to ${label}: this account is ${tier === 'f2p' ? 'Free to Play' : 'of unverified subscription tier'} and the bridge has no live read on passport status — an expired passport can strand you crossing provinces.`,
             level: 'warn',
           })
-          this.character = { ...this.character, activity: 'Travel blocked' }
-        } else if (plan) {
-          plan.steps.forEach((s) =>
-            this.emit({ type: 'log', line: `  ${s.kind}: ${s.label}` })
-          )
-          plan.reasons.forEach((r) => this.emit({ type: 'log', line: r }))
-          this.character = {
-            ...this.character,
-            activity: `Travel → ${plan.destination.label}`,
-          }
-        } else {
-          this.emit({ type: 'log', line: `Unknown destination: ${dest}`, level: 'warn' })
-          this.character = { ...this.character, activity: 'Travel failed' }
         }
-        this.emit({ type: 'scripts', payload: [{ name: 'travel', status: 'running' }] })
+        this.emit({
+          type: 'log',
+          line: `Demo: would send go2 to ${label} — connect to Lich to actually travel.`,
+        })
+        this.character = { ...this.character, activity: `Travel → ${label}` }
         this.emitStatus()
         break
       }
