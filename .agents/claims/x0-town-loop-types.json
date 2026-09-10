@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "task_id": "x0-town-loop-types",
+  "agent": "claude-code",
+  "summary": "Publish the money and town-transaction types (denominations, per-province coin ledger, transaction/exchange shapes) that Lane X's later increments build on",
+  "status": "active",
+  "claimed_at": "2026-09-10T00:00:00Z",
+  "updated_at": "2026-09-10T00:00:00Z",
+  "paths": [
+    "src/lib/townLoop.ts",
+    "docs/BRIDGE_CONTRACT.md",
+    "src/types/index.ts",
+    "tools/townLoop-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/x0-town-loop-types.json"
+  ],
+  "symbols": [
+    "Denomination",
+    "COPPER_PER_DENOMINATION",
+    "toCopper",
+    "fromCopper",
+    "convertDenomination",
+    "Wealth",
+    "TownTransactionResult",
+    "ExchangeQuote"
+  ],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "No existing module owns money/currency types - grep for coin/wealth/silver/platinum/bronze/copper across src/lib and src/data found none. Reuses (does not fork) the existing Province type from src/data/obstacles.ts for the per-province bank ledger, and the existing account-tier bank-cap logic in src/lib/accountCapabilities.ts and src/data/townRun.ts is left untouched - this file is the coin/currency data model, not a second town-run planner. Deliberately does NOT add a field to CharacterStatus in src/types/index.ts: the conflict matrix (PLAN_TO_1_0.md section 3) locks CharacterStatus to W0 until W0 is [x], and W0 is still unclaimed/unmerged as of this claim. src/types/index.ts is touched only via a barrel re-export of the new townLoop.ts types, following the existing `export type { SkillState }` / `export type { CharacterProfile }` pattern already in that file - no CharacterStatus edit. docs/BRIDGE_CONTRACT.md gets an additive new subsection documenting the type as published-but-not-yet-wired (DRCM is the Lich API that will drive it, per docs/DOMAIN.md section 11); nothing in the existing contract sections was rewritten."
+  },
+  "completion": {
+    "commit": "",
+    "checks": []
+  }
+}

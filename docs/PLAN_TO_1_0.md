@@ -3283,7 +3283,8 @@ between provinces, repair (including magic repair kits and crafting tool
 repair), and pawning." `DOMAIN.md:358-359` names the Lich APIs to drive rather
 than reimplement — `DRCM` for money, `DRCI` for inventory, `DRCT` for travel.
 
-- [ ] **X0  Publish the money and shop types** (≈50)
+- [~] **X0  Publish the money and shop types** (≈50)
+  owner: claude claim: X0 since: 2026-09-10
   touches: new:src/lib/townLoop.ts, docs/BRIDGE_CONTRACT.md, src/types/index.ts
   depends-on: none
   do: denominations first, because a wrong one is a silent factor of ten: `DOMAIN.md:148` — 1 platinum = 10 gold = 100 silver = 1,000 bronze = 10,000 copper. Model coins on hand and coins banked as different things per province, because cross-province exchange is a real step in the loop. Nothing here reads a shop database, because there is not one: measured, `data/elanthipedia/` has 11 files covering items, weapons, armour, creatures and materials, and **nothing about merchants**.
