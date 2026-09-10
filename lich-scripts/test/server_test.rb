@@ -259,6 +259,10 @@ $gameobj_loot = []
 $gameobj_left_hand = nil
 $gameobj_right_hand = nil
 $gameobj_inv = []
+# container id => contents, exactly the shape Lich's own `GameObj.containers`
+# has. Empty by default so the existing empty-inventory cases are unchanged;
+# the populated case below fills it.
+$gameobj_containers = {}
 module GameObj
   def self.loot
     raise 'GameObj unavailable' if $gameobj_raise
@@ -282,6 +286,12 @@ module GameObj
     raise 'GameObj unavailable' if $gameobj_raise
 
     $gameobj_inv
+  end
+
+  def self.containers
+    raise 'GameObj unavailable' if $gameobj_raise
+
+    $gameobj_containers
   end
 end
 
@@ -1086,7 +1096,11 @@ begin
   $gameobj_loot = [GameObjItem.new(101, 'a rusty dagger'), GameObjItem.new(102, 'some copper kronars')]
   $gameobj_right_hand = GameObjItem.new(201, 'a serrated broadsword')
   $gameobj_left_hand = nil
-  $gameobj_inv = [GameObjItem.new(301, 'a leather cap'), GameObjItem.new(302, 'a wool cloak')]
+  $gameobj_inv = [GameObjItem.new(301, 'a leather cap'), GameObjItem.new(302, 'a wool cloak'), GameObjItem.new(303, 'a leather backpack')]
+  # Only the backpack has contents Lich knows about. The cap and the cloak are
+  # carried and uncounted, and must not appear as containers holding nothing -
+  # that indistinguishability is the bug W2 removed.
+  $gameobj_containers = { 303 => [GameObjItem.new(401, 'a steel dagger'), GameObjItem.new(402, 'some rope')] }
 
   c.send_json(type: 'get_status')
   status = c.read_until('status')
@@ -1098,8 +1112,18 @@ begin
   c.send_json(type: 'get_inventory')
   inv = c.read_until('inventory')
   ipayload = inv['payload']
-  check('worn carries the real names', ipayload['worn'] == ['a leather cap', 'a wool cloak'], ipayload['worn'].inspect)
-  check('wornCount matches', ipayload['wornCount'] == 2, ipayload['wornCount'])
+  check('worn carries the real names', ipayload['worn'] == ['a leather cap', 'a wool cloak', 'a leather backpack'], ipayload['worn'].inspect)
+  check('wornCount matches', ipayload['wornCount'] == 3, ipayload['wornCount'])
+  check(
+    'only the container Lich has contents for is reported as one',
+    ipayload['containers'].map { |c2| c2['name'] } == ['a leather backpack'],
+    ipayload['containers'].inspect
+  )
+  check(
+    'and it carries a real count, not the old constant zero',
+    ipayload['containers'].first['used'] == 2,
+    ipayload['containers'].first.inspect
+  )
   check('looseCount counts only the occupied hand', ipayload['looseCount'] == 1, ipayload['looseCount'])
 
   puts ''
@@ -1108,12 +1132,18 @@ begin
   $gameobj_right_hand = nil
   $gameobj_left_hand = nil
   $gameobj_inv = []
+  # Reset explicitly rather than relying on an empty `inv` to make the
+  # containers hash unreachable. It would pass either way today, and the day
+  # somebody enumerates containers from the hash instead of from `inv` it
+  # would pass for the wrong reason.
+  $gameobj_containers = {}
   c.send_json(type: 'get_status')
   empty_status = c.read_until('status')['payload']
   c.send_json(type: 'get_inventory')
   empty_inv = c.read_until('inventory')['payload']
   check('roomItems is really empty, not raised-and-defaulted', empty_status['roomItems'] == [], empty_status['roomItems'].inspect)
   check('worn is really empty, not raised-and-defaulted', empty_inv['worn'] == [], empty_inv['worn'].inspect)
+  check('containers is really empty too', empty_inv['containers'] == [], empty_inv['containers'].inspect)
 
   puts ''
   puts '-- what safe() hides: can the payload tell "GameObj is broken" from "nothing is here" --'
@@ -1214,7 +1244,7 @@ begin
         (dstat['degraded'] || []).sort == ['hands.left', 'hands.right', 'roomItems'],
         dstat['degraded'].inspect)
   check('and the inventory fields, with dotted paths as the payload nests them',
-        (dinv['degraded'] || []).sort == ['looseCount', 'worn', 'wornCount'],
+        (dinv['degraded'] || []).sort == ['containers', 'looseCount', 'worn', 'wornCount'],
         dinv['degraded'].inspect)
 
   # The cry-wolf condition, and the reason this is two checks and not one.

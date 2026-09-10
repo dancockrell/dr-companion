@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.14.0'
+  BRIDGE_VERSION = '0.15.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -873,11 +873,90 @@ module Companion
       end.compact
     end
 
+    # Per container, how many items it holds and a sample of their names.
+    #
+    # `used` stays authoritative for how many; `items` is capped, exactly the
+    # way `wornCount` and `worn` below are, so a truncated sample can never
+    # become a wrong total.
+    MAX_CONTAINER_ITEMS = 40
+
+    # How many containers to report at all. A pack rat with sixty pouches
+    # would otherwise put all of them on the wire on every inventory push.
+    MAX_CONTAINERS = 24
+
+    # What each carried container holds, read from Lich's own registry.
+    #
+    # What was here called `DRCI.get_worn_containers`, which does not exist -
+    # not in Lich, not in dr-scripts commons, not anywhere on a machine that
+    # has both installed. `grep -rn get_worn_containers /c/Ruby4Lich5/Lich5`
+    # finds this script and its own `.bak` and nothing else, while the same
+    # grep for `open_container?` finds the real definition in
+    # `lib/dragonrealms/commons/common-items.rb`. So it raised NoMethodError
+    # on every single tick, `safe([])` swallowed it, and the app was told the
+    # character carries no containers at all - a total feature failure wearing
+    # the clothes of an ordinary empty state. The `'used' => 0,
+    # 'capacity' => 0` beside it was never reached on a live bridge, and on
+    # the mock it was a constant that looked like a measurement.
+    #
+    # The replacement reads `GameObj.containers`, the hash Lich fills from the
+    # game's own `<inv id='...'>` blocks and commits at each prompt - see
+    # `lib/common/xmlparser.rb`'s `clearContainer`, `inv` and
+    # `commit_all_containers` handling, and `GameObj.new_inv`'s container
+    # branch in `lib/common/gameobj.rb`. It is already in memory, so this
+    # costs **no game command**: no roundtime, no message-log noise, nothing
+    # opened or closed under a player who is mid-use of it. That is the
+    # question `docs/BRIDGE_CONTRACT.md`'s container contents contract
+    # deferred the rummage-every-bag approach over, and this route does not
+    # need it answered.
+    #
+    # A container Lich holds no entry for is **left out entirely** rather than
+    # reported with a zero, and that is the whole of this increment: a bag
+    # nobody has opened and an empty bag must not read the same. Lich drops a
+    # container's contents when the game says it is closed
+    # (`xmlparser.rb`'s `is closed.` branch calls `delete_container`), so a
+    # closed bag correctly returns to unknown rather than reporting the count
+    # it had when it was last open.
+    #
+    # There is no capacity here because DragonRealms exposes none. The only
+    # numeric read in the whole dr-scripts tree is
+    # `DRCI.count_lockpick_container`, which is `APPRAISE <ring> QUICK` and is
+    # specific to lockpick rings; the only signal for an ordinary container is
+    # the failure text when a PUT does not fit ("There isn't any more room
+    # in", "even after stuffing it") - a consequence of trying, not something
+    # that can be read. `capacity` therefore stays 0, which
+    # `InventorySummary.capacity` defines as "not reported" and
+    # `InventoryPanel.tsx` already renders as a plain count with no bar.
+    def containers
+      known = safe(nil, as: 'containers') { GameObj.containers }
+      return [] unless known.is_a?(Hash)
+
+      carried = safe([], as: 'containers') { GameObj.inv.to_a }
+      return [] unless carried.is_a?(Array)
+
+      carried.map { |obj|
+        id = safe(nil) { obj.id }
+        next nil if id.nil?
+
+        # Both spellings: the XML attribute arrives as a string, and nothing
+        # promises a GameObj's own id is stored the same way.
+        contents = known[id] || known[id.to_s]
+        next nil unless contents.is_a?(Array)
+
+        names = contents.map { |item| safe(nil) { item.name } }.compact
+        {
+          'name'     => safe(nil) { obj.name } || 'container',
+          'used'     => names.size,
+          'capacity' => 0,
+          'items'    => names.first(MAX_CONTAINER_ITEMS)
+        }
+      }.compact.first(MAX_CONTAINERS)
+    end
+
     def inventory
-      containers = safe([]) do
-        DRCI.get_worn_containers.map { |c| { 'name' => c, 'used' => 0, 'capacity' => 0 } }
-      end
-      containers = [] unless containers.is_a?(Array)
+      # Before the reads below, not after them. This used to sit under the
+      # containers line, so any field that failed while building this payload
+      # had its note wiped before `degraded_fields` was asked - the reporting
+      # of a swallowed read was itself swallowed.
       reset_degraded!
       payload = {
         'containers' => containers,

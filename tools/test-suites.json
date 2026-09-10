@@ -147,6 +147,7 @@
   "test:map-walk",
   "test:pause-bridge",
   "test:map-nearest",
+  "test:containers",
   "test:verified-claim",
   "test:setup-guidance",
   "test:test-controller",
