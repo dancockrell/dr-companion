@@ -84,6 +84,27 @@ export const EXPECTED_BRIDGE_VERSION = '0.15.0'
  */
 export const APP_VERSION = '0.1.1'
 
+/*
+ * The three names below are the labels a player can actually read on screen,
+ * and they live here so the message and the buttons cannot drift (issue #539).
+ *
+ * The message used to say "Reinstall it from Setup, then start the bridge
+ * again." There is nothing in this app called Setup, and there was no way at
+ * all to restart the bridge: `SettingsSheet` renders these constants, and
+ * `tools/versions-test.mjs` fails the build if a name in the message is not a
+ * label that file puts on a control. A sentence naming a control that does not
+ * exist is the same defect as a control that does nothing, one screen over.
+ */
+
+/** The Settings heading the bridge controls live under. */
+export const SETTINGS_BRIDGE_SECTION = 'Ruby, Lich and your frontend'
+
+/** The button that opens the installer, which is what "reinstall" means here. */
+export const REINSTALL_CONTROL = 'Check what is installed'
+
+/** The button that stops the running bridge script and starts it again. */
+export const RESTART_CONTROL = 'Restart the bridge script'
+
 export interface VersionState {
   app: string
   expectedBridge: string
@@ -112,7 +133,10 @@ export function compareVersions(v: VersionState): {
       verdict: 'stale_bridge',
       message:
         `The bridge script running in Lich is v${v.actualBridge}, but this app ships ` +
-        `v${v.expectedBridge}. Reinstall it from Setup, then start the bridge again. ` +
+        `v${v.expectedBridge}. Open Settings, "${SETTINGS_BRIDGE_SECTION}", and press ` +
+        `"${REINSTALL_CONTROL}" to write the current script; then press ` +
+        `"${RESTART_CONTROL}" in the same place, because Lich is still running the ` +
+        `copy it read off disk when it started. ` +
         `Mismatched versions are the most common cause of confusing behaviour, and of ` +
         `bug reports that turn out to be already fixed.`,
     }

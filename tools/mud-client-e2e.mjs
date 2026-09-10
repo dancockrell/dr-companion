@@ -615,6 +615,51 @@ for (const wanted of ['combat', 'whispers']) {
     `channels: ${streams.join(', ')}`
   )
 }
+/*
+ * No channel offers a row with nothing in it (issue #537).
+ *
+ * Dan's first live sign-in: the `experience` chip advertised 61 lines and the
+ * pane rendered 61 rows of a single space, and `Room` showed five timestamps
+ * with no text beside them. `GameLineRow` renders a line whose text is empty
+ * as exactly `<div class="font-mono text-xs leading-snug"> </div>`, which is
+ * what was measured off the running app - so an empty line in this buffer is
+ * a blank row on screen, and this is the consuming side of that fact.
+ *
+ * Over a real socket carrying real captured DragonRealms text rather than a
+ * fixture, because the shapes that produce these are the game's own.
+ */
+const emptyRows = lines.filter((l) => l.stream && l.text.trim() === '')
+ok(
+  'no channel line renders as an empty row',
+  emptyRows.length === 0,
+  emptyRows.length
+    ? `${emptyRows.length} blank rows on: ${[...new Set(emptyRows.map((l) => l.stream))].join(', ')}`
+    : `${lines.filter((l) => l.stream).length} channel lines, all with text`
+)
+// The denominator, and it is the number that disappears if the mechanism
+// breaks: "no blank channel rows" is true of a session that received no
+// channel lines at all, which is exactly what a broken parser produces.
+ok(
+  'and there were channel lines to check',
+  lines.filter((l) => l.stream).length > 0,
+  `${lines.filter((l) => l.stream).length} channel lines`
+)
+/*
+ * A channel the game used only for state still gets a tab, and the count is
+ * what it says instead of rows. Dropping the empty lines alone would have
+ * deleted the tab with them, and a tab that vanishes asserts the game never
+ * used the channel - the inversion of what `StreamTabs`'s header promises.
+ */
+const stateOnly = gameLink.gameStateOnlyLines()
+for (const [where, n] of Object.entries(stateOnly)) {
+  if (!where) continue
+  ok(
+    `the ${where} channel is still offered though it carried only state`,
+    gameLink.gameTabs().includes(where),
+    `${n} state updates, tabs: ${gameLink.gameTabs().join(', ')}`
+  )
+}
+
 ok(
   'a script line arrives in the main window, not a channel',
   lines.some((l) => l.text.startsWith('[go2]') && !l.stream),

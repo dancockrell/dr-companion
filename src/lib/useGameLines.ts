@@ -45,6 +45,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   gameLines,
+  gameStateOnlyLines,
   gameStreams,
   gameTabs,
   gameVersion,
@@ -228,4 +229,17 @@ export function useGameTabs(): string[] {
   const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => gameTabs(), [version])
+}
+
+/**
+ * How many lines each channel carried that were state rather than text
+ * (issue #537).
+ *
+ * Subscribed like the rest: these arrive while the pane is open, and a count
+ * read once at mount would say nothing happened for the whole session.
+ */
+export function useGameStateOnly(): Readonly<Record<string, number>> {
+  const version = useSyncExternalStore(subscribeGame, gameVersion, gameVersion)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => ({ ...gameStateOnlyLines() }), [version])
 }

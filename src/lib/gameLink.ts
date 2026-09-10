@@ -547,6 +547,23 @@ export function gameDropped(): number {
 }
 
 /**
+ * How many state-only lines the parser dropped, per channel (issue #537).
+ *
+ * A different number from {@link gameDropped}, which counts scrollback that
+ * aged out of the buffer, and the two must not be conflated: this one counts
+ * lines that were never admitted because the game sent state rather than text
+ * on them — an empty `<component id='exp Athletics'></component>`, which is
+ * DragonRealms saying that skill's mindstate is clear.
+ *
+ * Read rather than accumulated here. The parser state is the owner and
+ * `resetStream()` replaces it, so a reattach starts from zero for the same
+ * reason the scrollback does.
+ */
+export function gameStateOnlyLines(): Readonly<Record<string, number>> {
+  return parser.stateOnly
+}
+
+/**
  * Vitals, status indicators, compass, spell and room contents as the game's
  * own stream last reported them - see src/types/stream.ts.
  *
@@ -765,7 +782,22 @@ export const MAIN_STREAM = ''
  * channel names and `''` is not one. `gameTabs()` is what a tab row wants.
  */
 export function gameStreams(): string[] {
-  return [...new Set(buffer.map((l) => l.stream).filter(Boolean))].sort()
+  return [
+    ...new Set([
+      ...buffer.map((l) => l.stream),
+      // A channel the game used only for state still exists (issue #537).
+      //
+      // Dropping the 61 empty experience lines fixed the rows and would have
+      // deleted the tab along with them, because this list is derived from
+      // lines in the buffer and there would no longer be any. That is the
+      // wrong half to remove: the game did use the channel, and a tab that
+      // vanishes says it did not. The rows go, the evidence stays, and
+      // `StreamTabs` says what the channel actually carried.
+      ...Object.keys(parser.stateOnly),
+    ]).values(),
+  ]
+    .filter(Boolean)
+    .sort()
 }
 
 /** Whether any main-window text has arrived. See {@link MAIN_STREAM}. */

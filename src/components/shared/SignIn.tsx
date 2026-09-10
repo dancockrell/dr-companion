@@ -201,12 +201,39 @@ export function SignIn() {
    * The one-press return depends on this. It runs once the stored-password
    * answer is in, because until then the form does not know whether there is a
    * password field to focus.
+   *
+   * # `preventScroll`, and why it is the second half of issue #418
+   *
+   * This form is at the bottom of `WaitingForCharacter`, which scrolls. A
+   * plain `focus()` asks the browser to bring the focused element into view,
+   * and the browser obliges by scrolling that container - so the app opened
+   * with `scrollTop: 180`, the heading "Nothing is connected yet." above the
+   * top edge and **"Start the demo" and "Connection help" scrolled off with
+   * it**. Measured at the app's own default window, 1180x820: the panel is
+   * 702px tall in a 287px box and the focus put it 180px down.
+   *
+   * That is #418 arriving by a different route than the one it was filed
+   * about. Reordering the panel and giving it `overflow-y-auto` made the
+   * buttons reachable; nothing made them *visible*, and a first-time user who
+   * does not know to scroll up is in the same position as before.
+   *
+   * `preventScroll` keeps the focus - a returning player still types their
+   * account name without touching the mouse - and leaves the panel where the
+   * layout put it. Supported in every engine this ships on; the optional call
+   * shape is kept because `tools/` mounts this component against stubs whose
+   * `focus` is a spy.
+   *
+   * Not fixed by removing the focus. The focus is the feature (see the header:
+   * "focus on a single field"), and deleting it to fix the scroll would trade
+   * one player's problem for another's. Same rule as CLAUDE.md's "ask what the
+   * thing you deleted was defending against".
    */
   useEffect(() => {
     if (stage !== 'form' || storedPassword === null) return
-    if (!trimmedAccount) accountRef.current?.focus?.()
-    else if (!usingStoredPassword) passwordRef.current?.focus?.()
-    else submitRef.current?.focus?.()
+    const opts = { preventScroll: true } as const
+    if (!trimmedAccount) accountRef.current?.focus?.(opts)
+    else if (!usingStoredPassword) passwordRef.current?.focus?.(opts)
+    else submitRef.current?.focus?.(opts)
   }, [stage, storedPassword, usingStoredPassword, trimmedAccount])
 
   /** Elapsed on a step, so a long wait does not read as a hang. */

@@ -17,7 +17,12 @@ import { ScriptApiPanel } from '../shared/ScriptApiPanel.tsx'
 import { AiClaimsPanel } from '../shared/AiClaimsPanel.tsx'
 import { PresentationBridgePanel } from '../shared/PresentationBridgePanel.tsx'
 import { HuntingGroundsPanel } from '../shared/HuntingGroundsPanel.tsx'
-import { APP_VERSION, EXPECTED_BRIDGE_VERSION } from '../../lib/versions.ts'
+import {
+  APP_VERSION,
+  EXPECTED_BRIDGE_VERSION,
+  REINSTALL_CONTROL,
+  SETTINGS_BRIDGE_SECTION,
+} from '../../lib/versions.ts'
 import { UpdateSection } from './UpdateSection.tsx'
 import { TYPE_SCALES, setTypeScale, initTypeScale } from '../../lib/typeScale.ts'
 import { DEMO_PRESET_LIST } from '../../bridge/index.ts'
@@ -32,6 +37,7 @@ import {
 import { useModalDialog } from '../../lib/useModalDialog.ts'
 import { LICH_LICENSE } from '../../data/lichLicense.ts'
 import { DiagnosticsPanel } from '../shared/DiagnosticsPanel.tsx'
+import { BridgeRestart } from '../shared/BridgeRestart.tsx'
 import { ForgetEverything } from '../shared/RememberSignIn.tsx'
 
 /**
@@ -439,7 +445,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           {isTauri() && (
             <section className="space-y-2">
               <h3 className="text-xs font-medium text-ink-faint uppercase tracking-wider">
-                Ruby, Lich and your frontend
+                {SETTINGS_BRIDGE_SECTION}
               </h3>
               <button
                 type="button"
@@ -449,12 +455,17 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
                   onClose()
                 }}
               >
-                Check what is installed
+                {REINSTALL_CONTROL}
               </button>
               <p className="text-xs text-ink-faint leading-snug">
                 Shows each piece and the folder it is in. Also where to go after
                 updating Lich, or if the bridge script needs reinstalling.
               </p>
+              {/* The second half of #539, beside the first on purpose. The
+                  stale-bridge warning names both of these controls by the
+                  same constants they render, and sends a player here once:
+                  reinstalling writes the file, restarting makes Lich read it. */}
+              <BridgeRestart />
             </section>
           )}
 
