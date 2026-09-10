@@ -42,6 +42,20 @@ MUST_APPEAR = {
     'waterfall': ('waterfall',),
 }
 
+# Words that can only be said about somewhere with the sky over it, and words
+# that can only be said about somewhere with a roof. A scene whose archetype
+# disagrees with the room's own words is drawing the wrong kind of place, and
+# unlike a question of taste this one has an answer.
+OPEN_AIR_WORDS = ('sky', 'stars', 'starry', 'sun beats', 'clouds overhead',
+                  'open sky', 'sunlight streams', 'moons')
+ROOFED_WORDS = ('ceiling', 'rafters', 'roof overhead', 'low beams')
+
+# Said of a place with no light in it. A scene that renders these at the same
+# brightness as noon is not wrong about any object, it is wrong about the
+# whole room, which is the sort of thing only a rule about the text can see.
+UNLIT_WORDS = ('darkness', 'pitch black', 'unlit', 'gloom', 'dimly lit',
+               'shadowy', 'lightless')
+
 
 def check_room(
     reading: RoomReading,
@@ -123,7 +137,86 @@ def check_room(
             observed=f'{scene.unplaced} dropped',
         )
 
+    # 6. The other direction of check 1, and the one nobody writes. An opening
+    #    the game never reported is a wall the player can see through and then
+    #    cannot walk through, which reads as a broken game rather than a
+    #    broken picture. Checking only that every exit has an opening leaves
+    #    this whole half unexamined.
+    reported = {e.strip().lower() for e in reading.exits}
+    invented = [o for o in scene.openings if o not in reported]
+    if invented:
+        complain(
+            'wrong',
+            'the scene has an opening where the game reports no exit',
+            expected=f'openings only for {", ".join(sorted(reported)) or "nothing"}',
+            observed=f'invented: {", ".join(sorted(invented))}',
+            evidence={'invented': invented},
+        )
+
+    # 7. Two things drawn in the same place are one thing hiding another. The
+    #    composer's rule-placed features cannot collide by construction; the
+    #    ones the text positioned can, and those are the ones a player was
+    #    told about explicitly.
+    stacked = _stacked(scene)
+    if stacked:
+        complain(
+            'thin',
+            'two features are placed at the same position and will overlap',
+            expected='one feature per position, or a composer that offsets them',
+            observed='; '.join(f'{where}: {", ".join(kinds)}' for where, kinds in stacked),
+            evidence={'stacked': {w: k for w, k in stacked}},
+        )
+
+    # 8. The archetype is the one decision that colours everything else, so a
+    #    room whose own words contradict it is worth more than a misplaced
+    #    bench.
+    roofed = scene.archetype in ('interior', 'cave', 'underground')
+    if roofed:
+        said = [w for w in OPEN_AIR_WORDS if w in lowered]
+        if said:
+            complain(
+                'wrong',
+                'the description is of somewhere open to the sky and the scene has a roof',
+                expected='an outdoor or forest archetype',
+                observed=f'archetype {scene.archetype}, text says: {", ".join(said)}',
+            )
+    else:
+        said = [w for w in ROOFED_WORDS if w in lowered]
+        if said:
+            complain(
+                'wrong',
+                'the description is of somewhere with a ceiling and the scene has open sky',
+                expected='an interior, cave or underground archetype',
+                observed=f'archetype {scene.archetype}, text says: {", ".join(said)}',
+            )
+
+    # 9. A room the text calls dark, rendered at the same brightness as noon.
+    if scene.light is None:
+        said = [w for w in UNLIT_WORDS if w in lowered]
+        if said:
+            complain(
+                'thin',
+                'the description calls the room dark and the scene carries no light setting',
+                expected='a light value the renderer can dim by',
+                observed=f'light is unset; text says: {", ".join(said)}',
+            )
+
     return out
+
+
+def _stacked(scene: Scene) -> list[tuple[str, list[str]]]:
+    """Positions holding more than one feature.
+
+    `edge` is excluded: it is where every door goes by construction, so a
+    room with two doors would report a defect that is really this check
+    misreading the composer's own convention.
+    """
+    by_where: dict[str, list[str]] = {}
+    for placement in scene.placements:
+        if placement.where == 'edge':
+            continue
+        by_where.setdefault(placement.where, []).append(placement.kind)
+    return [(where, kinds) for where, kinds in sorted(by_where.items()) if len(kinds) > 1]
 
 
 def check_neighbours(scenes: dict[int, Scene], wayto: dict[int, dict]) -> list[Complaint]:
