@@ -122,14 +122,16 @@ planned ones — the client's activity buttons — get their own contract,
 | `buffs` | R1, 10 Sep 2026 — starts the player's own `buff.lic`; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 | `loot` | R2, 10 Sep 2026 — sends the game's own `loot <type>` verb; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 | `travel` | R3, 10 Sep 2026 — starts `go2` against a named destination; see [Activity intents (Lane R)](#activity-intents-lane-r) |
+| `go_healer` | R4, 10 Sep 2026 — resolves the player's heal city (or the nearest healer) and starts `go2`; see [Activity intents (Lane R)](#activity-intents-lane-r) |
+| `escape_heal` | R4, 10 Sep 2026 — `escape` then `go_healer`, in order; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 
-**Planned, not yet implemented** — six of the nine activity intents from
+**Planned, not yet implemented** — four of the nine activity intents from
 [GAP-2026-09-09.md](GAP-2026-09-09.md), tracked as Lane R (`docs/PLAN_TO_1_0.md`
-§6b): `go_healer`, `town_run`, `start_training`,
-`escape_heal`, `start_combat`, `burgle`. `buffs`, `loot` and `travel` (above)
-are the first three of the nine to land, R1, R2 and R3. `isIntentImplemented`
-in `src/store/bridgePolicy.ts` disables the remaining six's controls
-honestly today. See
+§6b): `town_run`, `start_training`, `start_combat`, `burgle`. `buffs`, `loot`,
+`travel`, `go_healer` and `escape_heal` (above) are the first five of the
+nine to land, R1 through R4. `isIntentImplemented` in
+`src/store/bridgePolicy.ts` disables the remaining four's controls honestly
+today. See
 [Activity intents (Lane R)](#activity-intents-lane-r) for the contract each
 one implements against, and the existing per-intent research below
 ("Activity intents batch contract") for which dr-scripts script each starts.
@@ -1245,8 +1247,8 @@ its own pre-start check before it starts the next.
 | `buffs` | R1 | implemented |
 | `loot` | R2 | implemented |
 | `travel` | R3 | implemented |
-| `escape_heal` | R4 | not yet implemented |
-| `go_healer` | R4 | not yet implemented |
+| `escape_heal` | R4 | implemented |
+| `go_healer` | R4 | implemented |
 | `town_run` | R5 (depends on R3, X1) | not yet implemented |
 | `start_training` | R6 | not yet implemented |
 | `start_combat` | R7 (depends on R0, W1) | not yet implemented |
@@ -1474,6 +1476,53 @@ choice, but say which in the implementation, matching the existing
 **Safety:** moves the character while presumably hurt. Ordinary movement
 risk, same as any `go2` use; not the `burgle`-class concern.
 
+**Landed (R4, 10 Sep 2026):** `Intents.go_healer` in `companion_bridge.lic`
+follows `travel`'s refusal order (Stop, Pause, `go2` not installed, already
+traveling), then resolves a destination via `resolve_healer_destination`:
+`args['preferredCity']` — the `HealCityId` `bridgeIntentDispatcher.ts`
+already sends, sourced from the Settings sheet's heal-city picker, no new
+client wiring needed — is looked up against dr-scripts' own town data
+(`get_data('town')[town]['npc_empath']['id']`, the same field `safe-room.lic`
+reads) to get a room id. `DOMAIN.md:481-485`'s rule (preferred city wins,
+proximity is the fallback) is implemented exactly that way: no preferred
+city, an unrecognised one, or one with no known healer room all fall back to
+`nearest('npchealer', 1)` — the read-only `map_nearest` lookup already in
+this file — and every fallback is logged, not silent. The client-side
+`chooseHealer`/`scoreHealers` scoring this section originally proposed
+reusing is **not** reimplemented in Ruby, per its own recommendation above;
+what changed since this section was written is that the wired reality
+(`bridgeIntentDispatcher.ts`) sends a preferred city rather than a
+pre-resolved room, so the room lookup happens here instead.
+
+Two things beyond plain `travel`, both required by
+`docs/PLAN_TO_1_0.md`'s own R4 verify line ("no 'healed' result appears
+before live health confirms it; a failure leaves a stated recovery action"):
+
+- **Arrival is checked before healing is ever claimed.** `watch_healer_arrival`
+  reuses `wait_for_script_to_stop`/`report_travel_arrival` (both pulled out of
+  R3's travel watcher for this reuse) to confirm the character actually
+  reached the resolved room — never reading "go2 stopped" as "arrived,"
+  exactly as `travel` already does.
+- **Healing is checked live, not assumed from arrival.** Only once arrival is
+  confirmed does the watcher call `read_health_result`/`wound_summary` (both
+  pulled out of `check_health` for this reuse) and compare wounds/bleeding/
+  poison/disease against zero. "Healed" is logged only then; any wound
+  remaining logs a stated recovery action ("wait a moment ... and send Go to
+  Healer again, or ask a nearby empath directly") rather than a bare failure.
+  A failed arrival logs its own distinct recovery action ("check the room and
+  send Go to Healer again"), matching `NEXT-50.md:475-482`'s requirement that
+  combat escape and travel report separate states — arrival and healing are
+  two states here for the same reason.
+
+Not live-tested against a real DragonRealms character (none available this
+session, same gap R2/R3 recorded) — verified by `ruby -c`, by the same
+sabotage-covered mechanisms R1–R3 already prove (`intent-drift-test.mjs`,
+`activity-intent-contract-test.mjs`, `pause-reaches-travel-test.mjs`), and by
+code reading against `DRCH.check_health`'s and `MapInfo`'s real return
+shapes. `get_data('town')`'s exact field structure was verified by reading
+the installed `C:\Ruby4Lich5\Lich5\scripts\data\base-town.yaml` and
+`safe-room.lic` directly, not assumed.
+
 ### `escape_heal`
 
 **This is a composition of two things that already exist separately, not a
@@ -1493,6 +1542,21 @@ preference. Nothing additional for the flee half.
 itself (fleeing combat), already shipped and presumably already reviewed;
 composing it with a travel step doesn't add new risk beyond what `go_healer`
 above already carries.
+
+**Landed (R4, 10 Sep 2026):** `Intents.escape_heal` does exactly the
+composition this section already specified — Stop/Pause checked once up
+front (its own refusal sentences), then `escape(server)` and `go_healer(args,
+server)` called in sequence, combining both detail strings in its return
+rather than writing a third implementation. `go_healer` re-checks Stop/Pause
+itself the moment `escape_heal` calls it, so the two composed steps each get
+their own pre-start check, per this contract's rule for composed intents,
+without `escape_heal` needing a second copy of that check. It has no
+`PAUSE_HELD` entry of its own — `tools/pause-reaches-travel-test.mjs`
+classifies a "mover" by whether an intent's own method body calls
+`Script.start` directly, and `escape_heal`'s never does (it calls
+`go_healer`, which does) — so it relies on the shared fallback sentence, the
+same precedent `loot`/`stow_all`/`escape` already set; the actual Pause
+guarantee is `go_healer`'s own check, run again on every call.
 
 ### `travel`
 

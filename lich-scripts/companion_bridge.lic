@@ -1914,7 +1914,8 @@ module Companion
       'run_macro'    => 'Paused - press Resume before running a macro.',
       'start_script' => 'Paused - press Resume before starting a script.',
       'buffs'        => 'Paused - press Resume before buffing.',
-      'travel'       => 'Paused - press Resume before travelling.'
+      'travel'       => 'Paused - press Resume before travelling.',
+      'go_healer'    => 'Paused - press Resume before going to a healer.'
       # loot (R2) deliberately has no line here - see its own comment above
       # `def loot`. It still calls `pause_refusal('loot')` and gets the
       # shared fallback sentence below, same as stow_all/escape/
@@ -1926,6 +1927,15 @@ module Companion
       # intent that calls Cmd.exec. loot composes one game command the same
       # way those five already do, so it follows their precedent rather
       # than buffs'/start_script's.
+      #
+      # escape_heal (R4) also has no line here, for the same reason: its own
+      # `def escape_heal` body never calls `Script.start` directly (it calls
+      # `go_healer`, which does), so `tools/pause-reaches-travel-test.mjs`'s
+      # static derivation does not classify it as a mover, and a PAUSE_HELD
+      # entry for it would be flagged as a stray. It still checks
+      # `pause_refusal('escape_heal')` itself and gets the shared fallback
+      # sentence; the actual Pause-blocks-travel guarantee comes from
+      # `go_healer`'s own check, run again the moment escape_heal calls it.
     }.freeze
 
     # nil when nothing is held, so a caller reads as `if (held = ...)` and each
@@ -2045,6 +2055,8 @@ module Companion
       'buffs' => ->(args, server) { buffs(args, server) },
       'loot' => ->(args, server) { loot(args, server) },
       'travel' => ->(args, server) { travel(args, server) },
+      'go_healer' => ->(args, server) { go_healer(args, server) },
+      'escape_heal' => ->(args, server) { escape_heal(args, server) },
     }.freeze
 
     # The three-state contract this feeds (BRIDGE_CONTRACT.md): absent means
@@ -2521,19 +2533,29 @@ module Companion
     TRAVEL_WATCH_TIMEOUT_SECONDS = 20 * 60
     TRAVEL_WATCH_POLL_SECONDS = 2
 
+    # Polls until a named Lich script is no longer in `Script.running`, or a
+    # deadline passes — the mechanism `watch_travel_arrival` used to inline
+    # for `go2` specifically. Pulled out (R4) so `watch_healer_arrival` can
+    # wait on `go2` the same way rather than a second copy of this loop; the
+    # class of bug this whole file keeps citing (`DOMAIN.md:1059-1060`, "two
+    # things that answer the same question will drift") applies to a polling
+    # loop as much as to game logic.
+    def wait_for_script_to_stop(name, timeout_seconds = TRAVEL_WATCH_TIMEOUT_SECONDS, poll_seconds = TRAVEL_WATCH_POLL_SECONDS)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout_seconds
+      loop do
+        running = State.safe([]) { Script.running }.any? do |s|
+          State.safe(nil) { s.name }.to_s.casecmp?(name)
+        end
+        break unless running
+        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+        sleep poll_seconds
+      end
+    end
+
     def watch_travel_arrival(destination, server)
       Thread.new do
-        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + TRAVEL_WATCH_TIMEOUT_SECONDS
-        loop do
-          running = State.safe([]) { Script.running }.any? do |s|
-            State.safe(nil) { s.name }.to_s.casecmp?('go2')
-          end
-          break unless running
-          break if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
-
-          sleep TRAVEL_WATCH_POLL_SECONDS
-        end
-
+        wait_for_script_to_stop('go2')
         report_travel_arrival(destination, server)
       rescue StandardError => e
         server.log("travel: could not confirm arrival at #{destination} (#{e.message}).", 'warn')
@@ -2549,16 +2571,20 @@ module Companion
     # map database loaded at all, and every map intent answered nothing. That
     # case is handled explicitly below rather than left to raise: no map
     # loaded is reported as "cannot confirm," never silently read as success.
+    #
+    # Returns true/false/nil (arrived / did not / could not be confirmed) —
+    # R4's `watch_healer_arrival` reads this to decide whether it is honest to
+    # go on and check for healing at all, rather than only logging as before.
     def report_travel_arrival(destination, server)
       unless MapInfo.available?
         server.log("travel: go2 stopped; no Lich map loaded, so arrival at #{destination} cannot be confirmed.", 'warn')
-        return
+        return nil
       end
 
       room = MapInfo.current
       unless room
         server.log("travel: go2 stopped; Lich does not know the current room, so arrival at #{destination} cannot be confirmed.", 'warn')
-        return
+        return nil
       end
 
       here_id  = State.safe(nil) { room.id }
@@ -2584,6 +2610,199 @@ module Companion
           'warn'
         )
       end
+
+      arrived
+    end
+
+    # ------------------------------------------------------------ healing --
+    #
+    # R4 (docs/PLAN_TO_1_0.md, Lane R). Two more of the nine activity intents,
+    # both "get the character healed": `go_healer` walks to a healer and
+    # confirms the outcome; `escape_heal` is `escape` (already shipped, one
+    # of `SAFETY_INTENTS`) followed by the same healer trip, reporting each
+    # step as its own state rather than one blended result
+    # (`NEXT-50.md:475-482` #46: "combat escape and travel report separate
+    # states").
+    #
+    # `docs/BRIDGE_CONTRACT.md`'s own research for `go_healer` found the
+    # healer-*choice* problem already solved, client-side, by
+    # `chooseHealer`/`scoreHealers` in `src/data/healers.ts` — real, tested
+    # logic that already implements `DOMAIN.md:481-485`'s rule ("a preferred
+    # heal city wins by default, with scoring as the fallback") and that this
+    # bridge should not grow a second copy of. `bridgeIntentDispatcher.ts`
+    # already sends the outcome of that client-side choice on the wire, as
+    # `args.preferredCity` — the same `HealCityId` the Settings sheet's heal-
+    # city picker writes. What the client's catalog cannot do is name a room
+    # `go2` can walk to (`HealerOption` in `healers.ts` has no room ids yet —
+    # see that file's own header), so this reads dr-scripts' own town data
+    # (`C:\Ruby4Lich5\Lich5\scripts\data\base-town.yaml`) the same way the
+    # vendored `safe-room.lic` already does: `town['npc_empath']['id']`.
+    #
+    # `HEAL_CITY_TOWN_NAMES` is the one unavoidable duplication: six id/label
+    # pairs, copied from `healers.ts`'s `HEAL_CITIES` because Ruby cannot
+    # import a TypeScript module. They name DR's own six towns, not a
+    # decision this bridge is making — CLAUDE.md's "two things that answer
+    # the same question will drift" is about two *decisions*, and there is
+    # only one here (which cities dr-scripts' own town data recognises),
+    # written twice because the two languages cannot share one source file.
+    HEAL_CITY_TOWN_NAMES = {
+      'crossing' => 'Crossing',
+      'leth'     => 'Leth Deriel',
+      'haven'    => 'Riverhaven',
+      'theren'   => 'Therenborough',
+      'shard'    => 'Shard',
+      'hib'      => 'Hibarnhvidar'
+    }.freeze
+
+    # `DOMAIN.md:481-485`: the player's own heal city wins; `nearest`
+    # (`map_nearest`'s own read-only lookup, above) is the fallback and only
+    # the fallback — reached when no city is preferred, or the preferred
+    # one's healer room is not in dr-scripts' town data.
+    def resolve_healer_destination(args, server)
+      city = args.is_a?(Hash) ? args['preferredCity'].to_s.strip : ''
+
+      unless city.empty?
+        town_name = HEAL_CITY_TOWN_NAMES[city]
+        server.log("go_healer: '#{city}' is not a heal city this bridge knows; using the nearest healer instead.", 'warn') unless town_name
+
+        if town_name
+          empath_id = State.safe(nil) do
+            town = get_data('town')[town_name]
+            town && town['npc_empath'] && town['npc_empath']['id']
+          end
+
+          return { 'ok' => true, 'destination' => empath_id.to_s, 'label' => "#{town_name} (your heal city)" } if empath_id
+
+          server.log(
+            "go_healer: #{town_name} is your heal city, but dr-scripts' own town data has no healer room for it; " \
+            'using the nearest one instead.',
+            'warn'
+          )
+        end
+      end
+
+      found = nearest('npchealer', 1)
+      rooms = found.is_a?(Hash) ? found['rooms'] : nil
+      if found.is_a?(Hash) && found['ok'] && rooms&.any?
+        room = rooms.first
+        return { 'ok' => true, 'destination' => room['id'].to_s, 'label' => "the nearest healer (room #{room['id']})" }
+      end
+
+      reason = found.is_a?(Hash) ? found['reason'] : nil
+      {
+        'ok' => false,
+        'reason' => reason || 'no heal city is set and no map is loaded to find the nearest healer - ' \
+                               'set a heal city in Settings, or load a Lich map, and try again'
+      }
+    end
+
+    def go_healer(args, server)
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before going to a healer.']
+      end
+
+      if (held = pause_refusal('go_healer'))
+        return held
+      end
+
+      return [false, 'go2 is not installed. Install the standard dr-scripts suite to travel to a healer.'] \
+        unless State.safe(false) { Script.exists?('go2') }
+
+      already_walking = State.safe([]) { Script.running }.any? do |s|
+        State.safe(nil) { s.name }.to_s.casecmp?('go2')
+      end
+      return [false, 'already traveling (go2 is running) - stop it, or wait for it to arrive, first'] if already_walking
+
+      resolved = resolve_healer_destination(args, server)
+      return [false, resolved['reason']] unless resolved['ok']
+
+      tier = State.account_tier
+      if %w[f2p unknown].include?(tier)
+        server.log(
+          "Going to #{resolved['label']}: this account is #{tier == 'f2p' ? 'Free to Play' : 'of unverified subscription tier'} " \
+          'and the bridge has no live read on passport status - an expired passport can strand you crossing provinces.',
+          'warn'
+        )
+      end
+
+      started = State.safe(false) { Script.start('go2', resolved['destination']) }
+      return [false, 'could not start go2'] unless started
+
+      server.log("Heading to #{resolved['label']} via go2.")
+      watch_healer_arrival(resolved['destination'], resolved['label'], server)
+
+      [true, "travelling to #{resolved['label']}"]
+    end
+
+    # Same shape as `watch_travel_arrival` (R3) - poll until go2 stops, then
+    # confirm - with one thing travel does not need: a live health check
+    # after arrival. "Healed" is this intent's actual claim, and
+    # `docs/PLAN_TO_1_0.md`'s own verify line for R4 is explicit that no
+    # "healed" result may appear before that is confirmed against real
+    # HEALTH output. Arriving and being healed are different facts; this
+    # reports both, never reading "go2 stopped" as either one.
+    def watch_healer_arrival(destination, label, server)
+      Thread.new do
+        wait_for_script_to_stop('go2')
+        arrived = report_travel_arrival(destination, server)
+
+        unless arrived
+          server.log(
+            "go_healer: could not confirm arrival at #{label}, so healing was not checked either. " \
+            'Check the room and send Go to Healer again once you know where you are.',
+            'warn'
+          )
+          next
+        end
+
+        data = read_health_result
+        unless data
+          server.log(
+            "go_healer: arrived at #{label}, but could not read HEALTH to confirm healing. " \
+            'Send Check Health yourself, or wait a moment and try Go to Healer again.',
+            'warn'
+          )
+          next
+        end
+
+        summary = wound_summary(data)
+        if summary[:count].zero? && summary[:bleed].zero? && !summary[:poisoned] && !summary[:diseased]
+          server.log("go_healer: healed at #{label} - no wounds, bleeding, poison or disease remain.")
+        else
+          server.log(
+            "go_healer: arrived at #{label}, but #{summary[:count]} wound(s)" \
+            "#{summary[:bleed].positive? ? ", #{summary[:bleed]} bleeding" : ''} remain. Wait a moment for the " \
+            'healer to work and send Go to Healer again, or ask a nearby empath directly.',
+            'warn'
+          )
+        end
+      rescue StandardError => e
+        server.log("go_healer: could not confirm the outcome at #{label} (#{e.message}).", 'warn')
+      end
+    end
+
+    # `escape` (already shipped) then `go_healer` (above) - `NEXT-50.md`'s own
+    # words for this intent, "do both, in order." Reuses both rather than
+    # writing a third implementation, matching `docs/BRIDGE_CONTRACT.md`'s
+    # own `escape_heal` entry. Each step gets its own pre-start check before
+    # it runs the next, per the contract's rule for composed intents:
+    # `escape` has none (a safety valve, exempt like every other
+    # `SAFETY_INTENTS` member) and `go_healer` re-checks Stop/Pause itself
+    # the moment this calls it, so a Stop pressed between the two steps still
+    # lands rather than being absorbed by a check done only once up front.
+    def escape_heal(args, server)
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before escaping to a healer.']
+      end
+
+      if (held = pause_refusal('escape_heal'))
+        return held
+      end
+
+      _escape_ok, escape_detail = escape(server)
+      heal_ok, heal_detail = go_healer(args, server)
+
+      [heal_ok, "escape: #{escape_detail}; heal: #{heal_detail}"]
     end
 
     def map_zone(args, server)
@@ -2826,32 +3045,59 @@ module Companion
       end
     end
 
+    # DRCH.check_health returns a HealthResult
+    # (lib/dragonrealms/commons/common-healing.rb:405) on success - a plain
+    # class, attr_reader only, no Hash ancestor and no `[]`. Checked by
+    # interface (respond_to?) rather than by class name so this doesn't care
+    # whether Lich renames or wraps the type, as long as whatever comes back
+    # still answers .wounds. This used to be `data.is_a?(Hash)`, which is
+    # never true for the real return type - every successful call fell
+    # through to the fallback below, and the accessors past this point used
+    # to be `data['wounds']` etc., Hash subscript syntax that would have
+    # raised NoMethodError on a HealthResult the moment the gate was fixed
+    # without also fixing them. Both bugs found together; a gate that can
+    # never pass had been hiding a broken body the whole time nobody could
+    # reach it.
+    #
+    # Pulled out of check_health (R4) so go_healer/escape_heal's post-arrival
+    # confirmation can read the same live result rather than a second copy of
+    # this rescue/respond_to? dance - "no healed result before live health
+    # confirms it" needs exactly what check_health already reads.
+    def read_health_result
+      data = begin
+        DRCH.check_health
+      rescue StandardError
+        nil
+      end
+      data.respond_to?(:wounds) ? data : nil
+    end
+
+    # The small summary both check_health and R4's healer-outcome check need
+    # from a HealthResult - counts, not the full reply, on purpose. DOMAIN.md
+    # (:669, :829) is precisely about a wound *list* and a severity *summary*
+    # disagreeing and a script trusting one silently; this bridge reports the
+    # count either caller can act on rather than deciding for them.
+    def wound_summary(data)
+      wounds   = data.wounds || {}
+      bleeders = data.bleeders || {}
+      {
+        count: wounds.values.flatten.size,
+        bleed: bleeders.values.flatten.size,
+        poisoned: data.poisoned,
+        diseased: data.diseased,
+        bleeders: bleeders
+      }
+    end
+
     # Wounds are not in the passive status stream. `check_health` in Lich's
     # commons works by sending HEALTH and parsing the reply, so this is a poll
     # and deliberately not on the status tick.
     #
     # Read-only: it sends one command and reports what came back.
     def check_health(server)
-      data = begin
-        DRCH.check_health
-      rescue StandardError
-        nil
-      end
+      data = read_health_result
 
-      # DRCH.check_health returns a HealthResult
-      # (lib/dragonrealms/commons/common-healing.rb:405) on success - a
-      # plain class, attr_reader only, no Hash ancestor and no `[]`. Checked
-      # by interface (respond_to?) rather than by class name so this
-      # doesn't care whether Lich renames or wraps the type, as long as
-      # whatever comes back still answers .wounds. This used to be
-      # `data.is_a?(Hash)`, which is never true for the real return type -
-      # every successful call fell through to the fallback below, and the
-      # accessors past this point used to be `data['wounds']` etc., Hash
-      # subscript syntax that would have raised NoMethodError on a
-      # HealthResult the moment the gate was fixed without also fixing
-      # them. Both bugs found together; a gate that can never pass had
-      # been hiding a broken body the whole time nobody could reach it.
-      unless data.respond_to?(:wounds)
+      unless data
         # Fall back to reading the raw reply ourselves rather than giving up.
         line = Cmd.exec('health', expect: Patterns.expect(:health), timeout: 8)
         return [false, 'Could not read health.'] if line.nil?
@@ -2865,13 +3111,11 @@ module Companion
       # lives. See docs/BRIDGE_CONTRACT.md's injuries contract.
       State.record_health(data, server)
 
-      wounds    = data.wounds || {}
-      bleeders  = data.bleeders || {}
-      poisoned  = data.poisoned
-      diseased  = data.diseased
-
-      count = wounds.values.flatten.size
-      bleed = bleeders.values.flatten.size
+      summary  = wound_summary(data)
+      count    = summary[:count]
+      bleed    = summary[:bleed]
+      poisoned = summary[:poisoned]
+      diseased = summary[:diseased]
 
       if count.zero? && bleed.zero? && !poisoned && !diseased
         server.log('Health: no wounds.')
@@ -2881,7 +3125,7 @@ module Companion
           "#{poisoned ? ', poisoned' : ''}#{diseased ? ', diseased' : ''}",
           bleed.positive? ? 'warn' : 'info'
         )
-        bleeders.each do |severity, list|
+        summary[:bleeders].each do |severity, list|
           Array(list).each do |w|
             part = begin
               w.body_part

@@ -68,9 +68,17 @@ const MOCK_ALL_INTENTS: string[] = [
  * failure #30's whole disable-mechanism exists to prevent, defeated by this
  * fixture claiming a capability the real system doesn't have. Caught by
  * downloads-37's audit + Prime, not by this file. See #34.
+ *
+ * `go_healer` and `escape_heal` dropped off this list in R4 (10 Sep 2026):
+ * `companion_bridge.lic` now has real `HANDLERS` entries for both. The rich
+ * simulations below (`case 'go_healer'`, `case 'escape_heal'`) predate that
+ * landing and are kept as the mock's own approximation — they still exercise
+ * `chooseHealer`/`scoreHealers` from `src/data/healers.ts`, which is real
+ * logic the real bridge deliberately does not reimplement (see the R4
+ * comment on `Intents.go_healer`), just resolved to a room a different way.
  */
 const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
-  'burgle', 'escape_heal', 'go_healer',
+  'burgle',
   'start_combat', 'start_training', 'town_run',
 ]
 
