@@ -85,6 +85,26 @@ const NEEDS_ENVIRONMENT = [
     requires:
       'Ruby, and a second shell: the harness serves the real protocol on 7419 and tools/ws-client.mjs connects to it',
   },
+  {
+    script: 'test:room-player',
+    // Two things the build box has neither of, and it needs both. The engine
+    // composes the tree; the map database supplies the rooms, and the whole
+    // point of this suite is that the rooms are real ones nobody chose rather
+    // than fixtures somebody wrote to pass. `godot/tests/room_composer_test.gd`
+    // is the half that needs only an engine and runs inside `test:godot`.
+    requires:
+      "a Godot 4 binary and Lich's DragonRealms map database (C:\\Ruby4Lich5\\Lich5\\data\\DR\\map-*.json, or set DRC_DR_MAP). It starts one headless engine, composes 16 real rooms through the TCP control API and asserts the node tree against them - 165 checks",
+  },
+  {
+    script: 'test:room-player-break',
+    // Same environment as the suite above, plus minutes: it runs that whole
+    // suite five times (one control, four sabotages). Unlike the other
+    // break-checks here it damages nothing in the tree - it copies `godot/`
+    // to a temp directory first, which is why it is safe to run beside other
+    // sessions and still does not belong inside `run-tests.mjs`.
+    requires:
+      'the same engine and map database as test:room-player, and about five minutes: it runs that suite once as a control and four more times against a sabotaged copy of godot/ in a temp directory',
+  },
 ]
 
 // Suites that need nothing special and are simply not wired in. This is a

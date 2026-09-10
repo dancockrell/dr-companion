@@ -1,0 +1,85 @@
+{
+  "room_id": 1,
+  "archetype": "outdoor",
+  "ground": "road",
+  "ground_source": "text",
+  "boundary": "open",
+  "canopy": "sky",
+  "openings": [
+    "northeast",
+    "southeast",
+    "west"
+  ],
+  "placements": [
+    {
+      "kind": "door",
+      "where": "edge",
+      "source": "text",
+      "term": "go arched door",
+      "scale": null,
+      "tint": null
+    },
+    {
+      "kind": "door",
+      "where": "edge",
+      "source": "text",
+      "term": "go dark forge",
+      "scale": null,
+      "tint": null
+    },
+    {
+      "kind": "door",
+      "where": "edge",
+      "source": "text",
+      "term": "go white building",
+      "scale": null,
+      "tint": null
+    },
+    {
+      "kind": "roof",
+      "where": "east",
+      "source": "rule",
+      "term": "roof",
+      "scale": null,
+      "tint": null
+    },
+    {
+      "kind": "fence",
+      "where": "southeast",
+      "source": "rule",
+      "term": "railing",
+      "scale": null,
+      "tint": null
+    },
+    {
+      "kind": "flower",
+      "where": "south",
+      "source": "rule",
+      "term": "blossom",
+      "scale": null,
+      "tint": null
+    },
+    {
+      "kind": "door",
+      "where": "southwest",
+      "source": "rule",
+      "term": "door",
+      "scale": null,
+      "tint": "white"
+    },
+    {
+      "kind": "building",
+      "where": "west",
+      "source": "rule",
+      "term": "building",
+      "scale": null,
+      "tint": "white"
+    }
+  ],
+  "light": "lamp",
+  "palette": "white",
+  "varied": [
+    "ring-rotation:2"
+  ],
+  "unplaced": 1
+}
