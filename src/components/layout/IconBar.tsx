@@ -1,4 +1,4 @@
-import { Eye, EyeOff, PictureInPicture2, Loader2 } from 'lucide-react'
+import { Maximize2, Eye, EyeOff, PictureInPicture2, Loader2 } from 'lucide-react'
 import { PANEL_BAR_ORDER, PANEL_ICONS } from '../../lib/panelBar.ts'
 import { PANEL_DATA_CONTRACTS, panelIsShowable } from '../../lib/panelDataContracts.ts'
 import { PANEL_TITLES } from '../dashboard/panels.tsx'
@@ -83,13 +83,31 @@ export function IconBar({
 }
 
 /**
- * One control for the pane's three states, not three.
+ * One control for the pane's four states, not four.
  *
  * A cycling button rather than a menu, for the reason `layout.ts`'s deck
  * control gives: it is one target, it shows its own state, and it costs no
  * space when not in use. The card names the state it will move to, so nobody
  * has to press it to find out.
+ *
+ * `docked` is the primary panel (the default) and `minimap` the small
+ * preview a player can still choose - see `scenePane.ts` for why the default
+ * changed 10 September 2026. Both are described here rather than only in the
+ * icon, since the icon alone cannot carry "this is now the main window".
  */
+const SCENE_STATE_LABEL: Record<ScenePaneState, string> = {
+  docked: 'the main panel',
+  minimap: 'a small preview in the corner',
+  popped: 'its own window',
+  hidden: 'hidden',
+}
+const SCENE_STATE_ICON: Record<ScenePaneState, typeof Eye> = {
+  docked: Maximize2,
+  minimap: Eye,
+  popped: PictureInPicture2,
+  hidden: EyeOff,
+}
+
 function SceneButton({
   scene,
   onSceneChange,
@@ -98,14 +116,9 @@ function SceneButton({
   onSceneChange: (next: ScenePaneState) => void
 }) {
   const next = nextScenePaneState(scene)
-  const Icon = scene === 'minimap' ? Eye : scene === 'popped' ? PictureInPicture2 : EyeOff
-  const now =
-    scene === 'minimap'
-      ? 'in the corner'
-      : scene === 'popped'
-        ? 'in its own window'
-        : 'hidden'
-  const to = next === 'minimap' ? 'the corner' : next === 'popped' ? 'its own window' : 'hidden'
+  const Icon = SCENE_STATE_ICON[scene]
+  const now = SCENE_STATE_LABEL[scene]
+  const to = SCENE_STATE_LABEL[next]
   const label = `Scene pane: ${now}. Press for ${to}.`
 
   return (
@@ -113,7 +126,7 @@ function SceneButton({
       label={label}
       title={PANEL_TITLES.board}
       detail={`${PANEL_DATA_CONTRACTS.board.purpose} Right now: ${now}. Press for ${to}.`}
-      active={scene === 'minimap'}
+      active={scene === 'docked' || scene === 'minimap'}
       onClick={() => onSceneChange(next)}
       data-scene-state={scene}
     >

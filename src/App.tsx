@@ -58,7 +58,7 @@ import {
   writeScenePaneState,
   sizeBucket,
   railWant,
-  SCENE_RAIL_W,
+  DOCKED_RAIL_W,
   COMBAT_GROWTH,
   type ScenePaneState,
 } from './lib/scenePane.ts'
@@ -96,8 +96,16 @@ const SetupWizard = lazy(() => import('./components/first-run/SetupWizard.tsx').
  * read as the new rail that is a 260px column where the pane needs 380. That
  * is the "old data under a new meaning" trap, so the key is new and every
  * install falls back to the default once.
+ *
+ * v2, 10 September 2026: same trap, one door down. `v1`'s fallback was
+ * `SCENE_RAIL_W` (380px), converted to a share the first time an install ever
+ * measured its window - so most installs are sitting on a share around 19%
+ * to 28%, the exact smallness Dan corrected ("random and broken"). Bumping
+ * the key re-measures against `DOCKED_RAIL_W` once, the same as a fresh
+ * install, rather than quietly keeping the old proportion under a state
+ * (`docked`) that is supposed to mean something bigger.
  */
-const RAIL_KEY = 'drc.scene-rail-width.v1'
+const RAIL_KEY = 'drc.scene-rail-width.v2'
 
 /*
  * `drc.map-height.v4` and `drc.map-height.v1` used to be read here: how the
@@ -304,7 +312,7 @@ function AppViews() {
    * below lands on the next layout pass.
    */
   const [railShare, setRailShare] = useState<number>(() =>
-    readShare(RAIL_KEY, window.innerWidth, SCENE_RAIL_W)
+    readShare(RAIL_KEY, window.innerWidth, DOCKED_RAIL_W)
   )
 
   /**
@@ -378,9 +386,10 @@ function AppViews() {
   /*
    * What the rail asks for.
    *
-   * `railWant` applies the display-time ceiling for the two states that do not
-   * put the pane in the corner - the stored width is never rewritten, so
-   * bringing the pane back restores the width the player dragged.
+   * `railWant` applies the display-time ceiling for the states that do not
+   * put the pane on screen at full size - the stored width is never
+   * rewritten, so bringing the pane back restores the width the player
+   * dragged.
    *
    * `combatBattleWant` then grows it during a fight, for the reason it was
    * written: a dedicated battlespace that stays at its out-of-combat width
@@ -388,6 +397,15 @@ function AppViews() {
    * of what the pane already asked for rather than at that function's own 49%
    * of the window - see the constant for the measurement that made the cap
    * necessary.
+   *
+   * `minimap` only, not `docked`. `docked` is already sized to be the primary
+   * panel - that is the whole point of it existing - so stacking a further
+   * 30% onto it pushes toward the "wrong way round for a MUD" arrangement
+   * `TEXT_WIDTH_FLOOR` exists to catch, measured directly: applying growth to
+   * both states put the text under 55% at every size from 1180px up.
+   * `minimap`'s growth is unchanged from Lane O - the small preview still
+   * gets bigger in a fight, for the reason this was written in the first
+   * place.
    */
   const railAsked = railWant(scene, railW)
   const railWantVisible =
@@ -457,7 +475,7 @@ function AppViews() {
     // which is the only column with a stored width here. Its default is the
     // rail's own, not `DEFAULT_DASH_W`: that constant is 250, the width of a
     // context column that no longer exists.
-    if (plan.dash !== null) setRailW(SCENE_RAIL_W)
+    if (plan.dash !== null) setRailW(DOCKED_RAIL_W)
   }
 
   /** Small enough to keep a column grabbable, and no opinion beyond that. */
@@ -592,10 +610,16 @@ function AppViews() {
               Dan asked for it - and the things you watch continuously sit
               underneath.
 
-              The pane is only mounted in `minimap`. In `popped` it is in a
-              window of its own and this says so rather than drawing a second
-              copy; in `hidden` it is not drawn at all and the ceiling in
-              `railWant` gives the width back to the text.
+              Dan, 10 September 2026, correcting Lane O's small default: "you
+              are going to get a godot screen with basically a modern ui." The
+              pane is mounted at full size in `docked` (the default) and at a
+              player-chosen smaller size in `minimap` - both draw the same
+              component, sized by `railWFit` alone, so "primary panel" and
+              "small preview" are one component at two widths rather than two
+              implementations. In `popped` it is in a window of its own and
+              this says so rather than drawing a second copy; in `hidden` it
+              is not drawn at all and the ceiling in `railWant` gives the
+              width back to the text.
             */}
             {showRail && character && (
               <div
@@ -603,8 +627,11 @@ function AppViews() {
                 style={railStyle(railWFit)}
                 aria-label="Context side"
               >
-                {scene === 'minimap' && (
-                  <div className="flex min-h-0 flex-[3] flex-col overflow-hidden" aria-label="Scene pane">
+                {(scene === 'docked' || scene === 'minimap') && (
+                  <div
+                    className="flex min-h-0 flex-[3] flex-col overflow-hidden rounded border border-border"
+                    aria-label="Scene pane"
+                  >
                     <PanelBoundary label="Scene">
                       <BattleColumn />
                     </PanelBoundary>

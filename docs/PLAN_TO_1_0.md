@@ -3414,6 +3414,7 @@ two-column mode - so this is not a second layout engine beside that one.
   verify: the after table in `docs/verification/layout-2026-09-09.md`; `npx tsc -b`; `npm run gate`.
   done: the text region went from 17.9% to **52.9%** of the window at 1997x935, 20.3% to 49.7% at 1180x820 and 21.7% to 48.1% at 1366x768, and holds about 74% of the window's width at all three. The scene pane's right edge sits 4px from the window's right edge at every size that has one.
   note: the bar's names come from `PANEL_TITLES` and its descriptions from `PANEL_DATA_CONTRACTS[id].purpose`. `panelBar.ts` adds an icon and an order and nothing else - a third table of names and sentences would be wrong within a month and would look identical while being wrong.
+  note: not superseded - the frame this row built (text left, pane in the right corner, bar along the bottom) is still exactly right and still stands; `plan-audit.mjs` reserves `superseded:`/`[-]` for an increment whose file was undone, and `scenePane.ts` was extended, not undone. What Dan's 10 September message narrowed is the pane's *default size and state* within this same frame - see **P1/P2** below. His own words distinguish the two: "I am quite sure I said to put the main window to the right" (the corner this row built was correct) versus "right now you are random and broken" (the 380px default inside it was not). The `done:` line above is still an accurate record of what O2 built and measured at the time.
 
 - [x] **O3  The pane's three states, remembered per size of window** (~45)
   commit: (this PR) verified: 2026-09-09 minutes: 60
@@ -3422,6 +3423,7 @@ two-column mode - so this is not a second layout engine beside that one.
   do: `minimap`, `popped` and `hidden`, with one cycling control on the bar that names the state it will move to. `popped` opens the `board` panel window; the corner then says where the pane went rather than drawing a second copy. The state is stored per class of window size, because it is a different decision on a 1997px monitor and at the app's 720px minimum, and one stored answer makes one of them wrong.
   verify: `npm run test:scene-pane` - 21 checks.
   sabotage: `sizeBucket` returning one bucket for every size, so the per-size persistence check goes red. Run under O4.
+  note: not superseded, extended - **P1** below adds a fourth state (`docked`) and makes it the default; `minimap` survives as a player's own smaller choice rather than being deleted. The per-size storage mechanism this row built is unchanged and is exactly what P1 builds on rather than forks.
 
 - [x] **O4  Assert the frame at every supported size, and break it on purpose** (~60)
   commit: (this PR) verified: 2026-09-09 minutes: 90
@@ -3445,6 +3447,43 @@ whether the `game` panel still earns a bar slot now that the main window is
 nearly the same thing; whether the twelve macros of the Actions panel deserve
 to be permanently visible; and whether the AI worker's status should stay in
 the rail.
+
+### Lane P - The scene pane becomes the main window (Dan's correction to Lane O)
+
+Dan, 10 September 2026, reacting to Lane O:
+
+> I am quite sure I said to put the main window to the right. you need to
+> figure out your art situation...you are going to get a godot screen with
+> basically a modern ui...everything else you need to figure out on your
+> own, because it still needs to be a good mud interface without that...
+> right now you are random and broken...don't be random and broken.
+
+**Why this is a new lane and not a reopened O2/O3.** The correction is not a
+reversal of the corner placement, the divider, or the bottom bar - all three
+stand. It is that Lane O defaulted the pane to `minimap`, a 380px preview
+(10.2% of Dan's own window once the combat-growth measurement in Lane O's own
+verification doc is backed out), and a preview that small cannot read as
+"the main window" no matter what chrome Godot eventually brings to it. A row
+added to O2/O3 would read as those rows having been wrong the first time,
+when what happened is a second report from the same player narrowing what
+"the right corner" was supposed to mean once Godot's own UI is part of it.
+
+- [x] **P1  A fourth state, `docked`, and it is the new default** (~40)
+  commit: (this PR) verified: 2026-09-10 minutes: 45
+  touches: src/lib/scenePane.ts, src/App.tsx, src/components/layout/IconBar.tsx, src/lib/panelDataContracts.ts, src/components/dashboard/panels.tsx, tools/scene-pane-test.mjs, tools/play-first-layout-test.mjs, tools/play-first-layout-break-check.mjs
+  depends-on: O3
+  do: `docked` (new, default, the primary panel) joins `minimap` (demoted to a player's own smaller choice, not deleted), `popped` and `hidden` - build on O3's per-size storage rather than fork a second pane implementation beside it (CLAUDE.md section 0). `DOCKED_RAIL_W` replaces `SCENE_RAIL_W` as the default width, chosen as a share of the window so the text still clears `TEXT_WIDTH_FLOOR` (0.55) with real margin at every supported size; `MINIMAP_RAIL_W` keeps Lane O's old 380px number for the state it now describes. Combat growth (`COMBAT_GROWTH`) moves to apply to `minimap` only - applying it to `docked` as well pushed the text share under the floor at every size from 1180px up, measured directly. Both storage keys (`SCENE_PANE_KEY`, `RAIL_KEY`) bump a version so an install already sitting on the old small default actually re-defaults, rather than keeping a `minimap` value written under a meaning that changed out from under it (CLAUDE.md section 12, old data under a new meaning).
+  verify: `npx tsc -b`; `node tools/scene-pane-test.mjs` - 24 checks; `node tools/play-first-layout-test.mjs` - 61 checks; `node tools/play-first-layout-break-check.mjs` - 5 sabotages, control first. Full record in `docs/verification/main-panel-2026-09-10.md`.
+  done: the pane draws at 702px of a 1997px window by default with no press needed (was 380px/489px combat-widened under Lane O), and the text still holds 63.7%-74.8% of the window across all five supported sizes - comfortably above the 55% floor Dan's own first message established. The scene button's own tooltip now reads "the main panel" rather than "in the corner".
+
+- [x] **P2  One coherent chrome across the three regions** (~30)
+  commit: (this PR) verified: 2026-09-10 minutes: 30
+  touches: src/components/shared/StatsPanel.tsx, src/components/shared/RiskBar.tsx, src/App.tsx
+  depends-on: P1
+  do: read every component that stacks in the right rail side by side rather than guess at "coherent" - `StatsPanel`, `RiskBar`, `AiWorkerPanel`, `BattleColumn`, `GameChatColumn`, `IconBar` - and fix only the mismatches actually found: `StatsPanel`'s TDP chip (`rounded-lg`) and `RiskBar`'s box (`rounded-xl`, `bg-surface-raised`) were outliers against every other card in the app (`rounded`, `bg-surface` for a chip inside an already-framed column); both now match. The scene-pane mount point in `App.tsx` had no outer frame at all, so the "primary panel" did not read as one coherent panel the way the left text column does - it now carries a `rounded border` matching frame, generic enough to host whatever chrome Godot's own UI eventually brings rather than assuming what is inside beyond "a scene/game view lives here" (`docs/NO-3D.md`: Godot is expanding, not shrinking out of this panel).
+  verify: manual pass in a real browser at 1997x935 and 1200x850 against the demo character, recorded with the exact mismatches found (not assumed) in `docs/verification/main-panel-2026-09-10.md`.
+  done: `ExperienceStrip`'s deliberate lack of border/background (Dan's own instruction, recorded in that file) was left untouched rather than "fixed" into false consistency - the two changes above are the two mismatches that were actually present, not a larger redesign invented to fill the brief.
+  note: left as Dan's own call rather than decided here - whether the primary panel's default width (~480px at the app's own 1180px window) is the right proportion once Godot's real UI lands in it, since that UI is not built yet and this pass sized the frame for the room picture that exists today.
 
 ---
 

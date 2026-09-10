@@ -126,7 +126,7 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
   },
   board: {
     purpose:
-      'The visual pane - the room picture with everyone in it drawn on the board, the combat controls, the room description and what is on the floor. It is the pane that sits in the top right corner in minimap mode and opens in a window of its own when popped out; see scenePane.ts for the three states and App.tsx for the corner it sits in.',
+      'The visual pane - the room picture with everyone in it drawn on the board, the combat controls, the room description and what is on the floor. It is the primary panel in the top right corner (docked), can be shrunk to a small preview (minimap), or opened in a window of its own when popped out; see scenePane.ts for the four states and App.tsx for the corner it sits in.',
     dataNeeded: [
       'character (room fields: roomCreatures/roomAllies/roomPlayers/roomItems/roomCombatants)',
       'mapZone',

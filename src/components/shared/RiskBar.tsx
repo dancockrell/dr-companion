@@ -62,7 +62,13 @@ export function RiskBar() {
        * all - a screen reader announces an unlabelled region rather than
        * "Risk". `sr-only` keeps the visual unchanged and gives it one. */}
       <h2 className="sr-only">Risk</h2>
-      <div className="rounded-xl border border-border bg-surface-raised px-2 py-1.5 flex items-center gap-4 text-xs flex-wrap">
+      {/* `rounded` and `bg-surface`, not `rounded-xl`/`bg-surface-raised`: this
+          sits in the right rail beside StatsPanel's chips and AiWorkerPanel's
+          rows, and until 10 September 2026 it was the one box in that column
+          with its own corner radius and its own background weight - a
+          mismatch nobody had asked for, found while giving the rail a
+          coherent chrome to match the left pane. */}
+      <div className="rounded border border-border bg-surface px-2 py-1.5 flex items-center gap-4 text-xs flex-wrap">
         {isTown !== undefined && (
           <span
             className="flex items-center gap-1.5"

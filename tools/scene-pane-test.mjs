@@ -63,10 +63,10 @@ const MIN = [720, 480]
 const LAPTOP = [1366, 768]
 const DAN = [1997, 935]
 
-ok('the three states are exactly the three states', m.SCENE_PANE_STATES.join(',') === 'minimap,popped,hidden', m.SCENE_PANE_STATES.join(','))
+ok('the four states are exactly the four states', m.SCENE_PANE_STATES.join(',') === 'docked,minimap,popped,hidden', m.SCENE_PANE_STATES.join(','))
 ok(
   'one control reaches every state and comes back to where it started',
-  m.nextScenePaneState(m.nextScenePaneState(m.nextScenePaneState('minimap'))) === 'minimap',
+  m.nextScenePaneState(m.nextScenePaneState(m.nextScenePaneState(m.nextScenePaneState('docked')))) === 'docked',
   [...m.SCENE_PANE_STATES].map((s) => `${s}->${m.nextScenePaneState(s)}`).join(' ')
 )
 
@@ -79,13 +79,16 @@ ok(
 )
 
 ok('a window too narrow for the frame opens with no pane', m.defaultScenePaneState(...MIN) === 'hidden', m.defaultScenePaneState(...MIN))
-ok('every window that can hold one opens with the corner pane', m.defaultScenePaneState(...DAN) === 'minimap' && m.defaultScenePaneState(...LAPTOP) === 'minimap')
+ok(
+  'every window that can hold one opens docked - the primary panel, not the small preview',
+  m.defaultScenePaneState(...DAN) === 'docked' && m.defaultScenePaneState(...LAPTOP) === 'docked'
+)
 
 // The property the whole module exists for. Choosing `hidden` on a laptop must
 // not reach the big monitor, and vice versa - a single stored answer would.
 m.writeScenePaneState(...LAPTOP, 'hidden')
 ok('a choice made at one size comes back at that size', m.readScenePaneState(...LAPTOP) === 'hidden', m.readScenePaneState(...LAPTOP))
-ok('and does not reach a different size', m.readScenePaneState(...DAN) === 'minimap', m.readScenePaneState(...DAN))
+ok('and does not reach a different size', m.readScenePaneState(...DAN) === 'docked', m.readScenePaneState(...DAN))
 m.writeScenePaneState(...DAN, 'popped')
 ok('two sizes hold two different answers at once', m.readScenePaneState(...LAPTOP) === 'hidden' && m.readScenePaneState(...DAN) === 'popped')
 ok(
@@ -96,18 +99,28 @@ ok(
 
 store.set(m.SCENE_PANE_KEY, JSON.stringify({ [m.sizeBucket(...DAN)]: 'enormous' }))
 ok(
-  'a stored value that is not one of the three is not read as one',
-  m.readScenePaneState(...DAN) === 'minimap',
+  'a stored value that is not one of the four is not read as one',
+  m.readScenePaneState(...DAN) === 'docked',
   m.readScenePaneState(...DAN)
 )
 store.set(m.SCENE_PANE_KEY, 'not json at all')
-ok('and neither is a store that will not parse', m.readScenePaneState(...DAN) === 'minimap')
+ok('and neither is a store that will not parse', m.readScenePaneState(...DAN) === 'docked')
 
 // The ceiling, not a rewrite. This is the half a player notices: pressing
-// hidden has to give the width back, and pressing minimap has to give their
-// own dragged width back rather than a default.
+// hidden has to give the width back, and pressing minimap has to shrink to
+// its own smaller ceiling rather than draw at whatever `docked` was at.
 const dragged = 520
-ok('the corner pane gets exactly the width the player dragged', m.railWant('minimap', dragged) === dragged, String(m.railWant('minimap', dragged)))
+ok('the primary panel gets exactly the width the player dragged', m.railWant('docked', dragged) === dragged, String(m.railWant('docked', dragged)))
+ok(
+  'the small preview is capped at its own ceiling, not at the dragged width',
+  m.railWant('minimap', dragged) === m.MINIMAP_RAIL_W,
+  String(m.railWant('minimap', dragged))
+)
+ok(
+  'a preference already narrower than the preview ceiling is not widened by choosing it',
+  m.railWant('minimap', 140) === 140,
+  String(m.railWant('minimap', 140))
+)
 ok('hiding the pane gives the surplus width back to the text', m.railWant('hidden', dragged) === m.COMPACT_RAIL_W, String(m.railWant('hidden', dragged)))
 ok('so does popping it out', m.railWant('popped', dragged) === m.COMPACT_RAIL_W, String(m.railWant('popped', dragged)))
 ok(
@@ -115,13 +128,18 @@ ok(
   m.railWant('hidden', 140) === 140,
   String(m.railWant('hidden', 140))
 )
-ok('and the stored preference itself is never touched', m.railWant('minimap', dragged) === dragged)
+ok('and the stored preference itself is never touched', m.railWant('docked', dragged) === dragged)
 
 ok('a fight may widen the pane, but not without limit', m.COMBAT_GROWTH > 1 && m.COMBAT_GROWTH <= 1.5, String(m.COMBAT_GROWTH))
 ok(
-  'the default corner width leaves the text most of a laptop window',
-  LAPTOP[0] - m.SCENE_RAIL_W * m.COMBAT_GROWTH > LAPTOP[0] * 0.5,
-  `${Math.round(LAPTOP[0] - m.SCENE_RAIL_W * m.COMBAT_GROWTH)}px of ${LAPTOP[0]}`
+  'the default primary width leaves the text most of a laptop window',
+  LAPTOP[0] - m.DOCKED_RAIL_W * m.COMBAT_GROWTH > LAPTOP[0] * 0.5,
+  `${Math.round(LAPTOP[0] - m.DOCKED_RAIL_W * m.COMBAT_GROWTH)}px of ${LAPTOP[0]}`
+)
+ok(
+  'and is a real panel, not a corner tile - wider than the old 380px default',
+  m.DOCKED_RAIL_W > 380,
+  String(m.DOCKED_RAIL_W)
 )
 
 // A floor well under the real count, so a truncated or broken import reports

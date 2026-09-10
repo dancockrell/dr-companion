@@ -58,8 +58,13 @@ export function StatsPanel({ dense = false }: { dense?: boolean }) {
      * nothing here renders differently for it. */
     <div aria-label="Vitals" className={`flex flex-col ${dense ? 'gap-1.5' : 'gap-2'}`}>
       {/* TDPs first and biggest — the number that actually gates a training
-       * decision, not just one more stat in the grid below. */}
-      <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-1.5">
+       * decision, not just one more stat in the grid below. `rounded`, not
+       * `rounded-lg`: every other card-shaped box in this rail (RiskBar,
+       * AiWorkerPanel, the stat chips below) uses the same small radius, and
+       * this was the one outlier - fixed 10 September 2026 while giving the
+       * rail one consistent chrome instead of a different corner on nearly
+       * every box. */}
+      <div className="flex items-center gap-2 rounded border border-accent/30 bg-accent/5 px-2.5 py-1.5">
         <Sparkles className="w-4 h-4 text-accent shrink-0" />
         <div className="flex flex-col min-w-0">
           <span className="text-xs uppercase tracking-wide text-ink-faint">

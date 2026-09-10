@@ -1,16 +1,32 @@
 /**
- * The visual pane's three states, and where it remembers them.
+ * The visual pane's four states, and where it remembers them.
  *
- * Dan, 9 September 2026: *"the godot screen should include the map and the
- * ability to easily put it into mini map mode or pop it out into a big map,
- * nice interface"*, and *"it's not best to put the screen in the middle ...
- * put it in the right corner"*.
+ * Dan, 9 September 2026, first pass: *"the godot screen should include the
+ * map and the ability to easily put it into mini map mode or pop it out into
+ * a big map, nice interface"*, and *"it's not best to put the screen in the
+ * middle ... put it in the right corner"*. Lane O built exactly that and
+ * defaulted the corner pane to a small tile (`minimap`, 380px).
  *
- * So the pane has three states and exactly one control that moves between
- * them:
+ * Dan, reacting to that build, 10 September 2026: *"I am quite sure I said to
+ * put the main window to the right ... you are going to get a godot screen
+ * with basically a modern ui ... right now you are random and broken."* The
+ * correction is not "move it back to the middle" - the right corner was
+ * right. It is that a *tile* is not what "the main window" means: Godot is
+ * bringing its own chrome with it, and a 380px preview reads as a minimap
+ * bolted to the side, not as a panel a modern UI could live in.
  *
- *   `minimap`  small, in the top right corner of the workspace, beside the
- *              text rather than instead of it;
+ * So the pane now has four states and one control that cycles all of them.
+ * `docked` is new and is the default; `minimap` survives as the small preview
+ * a player can still choose, demoted rather than deleted (CLAUDE.md section
+ * 0 - build on it, don't fork a second pane beside it):
+ *
+ *   `docked`   the primary panel, in the top right corner of the workspace,
+ *              sized like a real panel rather than a corner tile - see
+ *              `DOCKED_RAIL_W`. The default for every window wide enough to
+ *              hold one;
+ *   `minimap`  the old small corner tile (`MINIMAP_RAIL_W`), kept as a
+ *              player's own choice for whoever wants the text wider than
+ *              `docked` leaves it;
  *   `popped`   in a window of its own, through the panel-window machinery
  *              that already exists (`panelWindows.ts`, the `board` panel) -
  *              not a second pop-out implementation;
@@ -35,16 +51,16 @@
 import { FRAME_MIN_W, FRAME_MIN_H, SIDE_RIGHT_W } from './columns.ts'
 import { readJSON, writeJSON } from './storage.ts'
 
-export type ScenePaneState = 'minimap' | 'popped' | 'hidden'
+export type ScenePaneState = 'docked' | 'minimap' | 'popped' | 'hidden'
 
 /**
  * The order the one control cycles through.
  *
- * `minimap` first so a single press from any state is never far from the one
- * that shows the pane, and `hidden` last so it is never reached by accident
- * on the way somewhere else.
+ * `docked` first so a single press from any other state is never far from
+ * the primary panel, `minimap` next as the one step down from it, and
+ * `hidden` last so it is never reached by accident on the way somewhere else.
  */
-export const SCENE_PANE_STATES: readonly ScenePaneState[] = ['minimap', 'popped', 'hidden']
+export const SCENE_PANE_STATES: readonly ScenePaneState[] = ['docked', 'minimap', 'popped', 'hidden']
 
 export function nextScenePaneState(now: ScenePaneState): ScenePaneState {
   const i = SCENE_PANE_STATES.indexOf(now)
@@ -53,7 +69,7 @@ export function nextScenePaneState(now: ScenePaneState): ScenePaneState {
 
 /** Above this the window has room for the corner pane and a wide transcript
  * at once; below it the two are competing. Not a mockup number - the width at
- * which `SCENE_RAIL_W` stops being a large fraction of the window. */
+ * which `DOCKED_RAIL_W` stops being a large fraction of the window. */
 export const WIDE_W = 1600
 
 /**
@@ -73,13 +89,25 @@ export function sizeBucket(width: number, height: number): string {
  *
  * `hidden` on a narrow window, because that is the size at which the pane and
  * a readable transcript genuinely cannot both be had, and the transcript is
- * what makes this a MUD client. `minimap` everywhere else.
+ * what makes this a MUD client. `docked` everywhere else - the primary panel,
+ * not the small preview - because a corner tile is exactly the "random and
+ * broken" default Dan corrected.
  */
 export function defaultScenePaneState(width: number, height: number): ScenePaneState {
-  return sizeBucket(width, height).startsWith('narrow') ? 'hidden' : 'minimap'
+  return sizeBucket(width, height).startsWith('narrow') ? 'hidden' : 'docked'
 }
 
-export const SCENE_PANE_KEY = 'drc.scene-pane.v1'
+/**
+ * v2: the meaning of a stored `'minimap'` changed today from "the pane, at
+ * its only size" to "the pane, deliberately shrunk" - old data under a new
+ * meaning (CLAUDE.md section 12). An install that already holds `minimap`
+ * from before this change was never asked for the small preview; it just
+ * never touched the control. Bumping the key means every existing install
+ * re-defaults to `docked` once, the same as a fresh one, rather than quietly
+ * inheriting a state whose meaning moved out from under it. A player who
+ * really does want the small tile chooses it again - one press.
+ */
+export const SCENE_PANE_KEY = 'drc.scene-pane.v2'
 
 type Stored = Partial<Record<string, ScenePaneState>>
 
@@ -90,8 +118,8 @@ function isState(value: unknown): value is ScenePaneState {
 export function readScenePaneState(width: number, height: number): ScenePaneState {
   const stored = readJSON<Stored>(SCENE_PANE_KEY, {})
   const found = stored[sizeBucket(width, height)]
-  // A stored value that is not one of the three is not a state, and reading it
-  // as one would put the pane into a fourth condition nothing renders. Fall
+  // A stored value that is not one of the four is not a state, and reading it
+  // as one would put the pane into a fifth condition nothing renders. Fall
   // back rather than repair: the next write corrects the entry anyway.
   return isState(found) ? found : defaultScenePaneState(width, height)
 }
@@ -102,24 +130,52 @@ export function writeScenePaneState(width: number, height: number, state: SceneP
 }
 
 /**
- * The right rail's default width when it is holding the corner pane.
+ * The right rail's default width in `docked` - the primary panel, not a
+ * corner tile.
  *
- * Wide enough for the scene picture to be worth looking at and narrow enough
- * that the transcript still holds most of the window: at Dan's 1997px this
- * leaves the text about 1600px, and at 1366px about 980px, both well above
- * `ROOM_MIN`. It is a default, not a rule - the divider still drags.
+ * Dan measured Lane O's `minimap` default at 489px of a 1997px window - 10.2%
+ * - beside game text at 52.9%, and called the result "random and broken": a
+ * scene pane that small cannot read as "the main window" whatever chrome
+ * Godot eventually brings to it. This is a share of the window, not a fixed
+ * pixel count, because a fixed pixel default is only ever the right
+ * proportion on the screen it was measured on (`columns.ts`'s own reasoning
+ * for storing shares, not pixels) - a 480px panel is 40% of a 1180px window
+ * and 24% of a 1997px one, and only the share is the number that means the
+ * same thing on both. `App.tsx` converts this into the stored share the
+ * first time the rail is ever measured, the same way it always has.
+ *
+ * Chosen so the text still clears `TEXT_WIDTH_FLOOR` (0.55,
+ * `tools/play-first-layout-test.mjs`) at every supported size with real
+ * margin, while the rail itself is now a genuine panel rather than a
+ * preview: at the app's own 1180px default window this leaves the pane about
+ * 480px - wider than the old 380px default and, unlike that default, large
+ * enough to be the thing Dan asked for. The divider still drags either way -
+ * this is a default, not a rule.
  */
-export const SCENE_RAIL_W = 380
+export const DOCKED_RAIL_W = 480
 
 /**
- * What the rail asks for when the pane is not in it.
+ * The right rail's width in `minimap` - the small preview, demoted from
+ * being the default rather than deleted.
+ *
+ * This is Lane O's original `SCENE_RAIL_W`, kept at the same 380px and the
+ * same reasoning (wide enough for the scene picture to be worth looking at,
+ * narrow enough that the transcript still holds most of the window) - it
+ * did not stop being a sound size for a preview the moment it stopped being
+ * the default.
+ */
+export const MINIMAP_RAIL_W = 380
+
+/**
+ * What the rail asks for when the pane is not showing itself at full size -
+ * `popped` and `hidden`.
  *
  * A display-time ceiling on the player's stored width, exactly like
  * `MAP_EMPTY_WANT` and `combatBattleWant` in `columns.ts`: the preference is
  * never rewritten, so putting the pane back into the corner restores the
- * width they dragged. Without this, hiding the pane would leave a 380px
- * column of vitals and give the text nothing back, which is not what "hidden"
- * means to the person who pressed it.
+ * width they dragged. Without this, hiding the pane would leave a wide
+ * column of vitals and give the text nothing back, which is not what
+ * "hidden" means to the person who pressed it.
  */
 export const COMPACT_RAIL_W = SIDE_RIGHT_W
 
@@ -139,7 +195,17 @@ export const COMPACT_RAIL_W = SIDE_RIGHT_W
  */
 export const COMBAT_GROWTH = 1.3
 
-/** The rail's request at this state, given the width the player stored. */
+/**
+ * The rail's request at this state, given the width the player stored.
+ *
+ * `docked` is uncapped - it is the primary panel, and the stored width is
+ * exactly what it should draw at. `minimap` is capped at its own, smaller
+ * ceiling rather than at `docked`'s width, so choosing the small preview
+ * actually shrinks the pane instead of drawing it at whatever the player last
+ * dragged `docked` to. `popped`/`hidden` keep the original, smaller ceiling.
+ */
 export function railWant(state: ScenePaneState, storedPx: number): number {
-  return state === 'minimap' ? storedPx : Math.min(storedPx, COMPACT_RAIL_W)
+  if (state === 'docked') return storedPx
+  if (state === 'minimap') return Math.min(storedPx, MINIMAP_RAIL_W)
+  return Math.min(storedPx, COMPACT_RAIL_W)
 }
