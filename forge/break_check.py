@@ -30,7 +30,13 @@ SABOTAGE = [
     ('term boundary loses its closing anchor', 'extract.py',
      "_INFLECTION = r'(?:s|es)?'",
      "_INFLECTION = r'[a-z]*'",
-     {'term boundary'}),
+     # Two guards, declared rather than tidied away. 'under the trees' has one
+     # end-to-end case that asks read_room() for a whole enclosure, and every
+     # enclosure score is counted with these patterns - so gutting the boundary
+     # necessarily takes it down too. That is a real dependency and the honest
+     # thing is to write it here, where a *change* in the entanglement shows up
+     # as a failure, rather than to weaken the check into "something went red".
+     {'term boundary', 'under the trees'}),
     ('figurative-water guard always says no', 'extract.py',
      "    head = f'{term} of '",
      "    return False\n    head = f'{term} of '",
@@ -55,6 +61,18 @@ SABOTAGE = [
      "TERRAIN = {\n    'dune': ('dune', 'sand drift'),",
      "TERRAIN = {\n    'unused': ('zzzznotaword',),\n    'dune-was-here': ('sand drift',),",
      {'terrain is a feature'}),
+    ('canopy question always answers "overhead"', 'extract.py',
+     '    if over == away:',
+     '    if False:',
+     {'under the trees'}),
+    ('canopy question refuses to answer', 'extract.py',
+     '    over = any(cue in lowered for cue in _UNDER_THE_TREES)',
+     '    return None  # sabotage\n    over = any(cue in lowered for cue in _UNDER_THE_TREES)',
+     {'under the trees'}),
+    ('other-sense guard blocks everything', 'extract.py',
+     '    blocked = sum(text.count(phrase) for phrase in phrases)',
+     '    blocked = total',
+     {'other sense'}),
     ('tunnel loses its determiner', 'lexicon.py',
      "'the tunnel', 'a tunnel', 'this tunnel', 'of tunnel',",
      "'tunnel',",
@@ -127,7 +145,7 @@ def main() -> int:
                 print(f'        expected exactly: {sorted(expect)}')
 
     print(f'\n{len(SABOTAGE)} sabotages, {failures} not behaving as declared')
-    if len(SABOTAGE) < 8:
+    if len(SABOTAGE) < 11:
         print('REFUSING TO PASS: fewer sabotages than this file declares')
         return 2
     return 1 if failures else 0

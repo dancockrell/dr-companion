@@ -124,7 +124,16 @@ ENCLOSURE = {
                 'hill', 'hillside', 'slope', 'ridge', 'cliff', 'valley',
                 'river', 'riverbank', 'shore', 'beach', 'dock', 'pier',
                 'bridge', 'pavement', 'gate', 'rooftop', 'terrace',
-                'path', 'trail', 'walkway', 'green', 'hedge', 'yard',
+                # A bare 'green' was here for the village green, and it was
+                # measured and cut. It is the colour in 475 rooms and the
+                # place in 136, and putting it back is worth +77 clean reads
+                # of which roughly four in five are a patch of dark green moss
+                # being read as open ground. That is the exact invention this
+                # parser exists to refuse, so the 0.4 of a point stays lost
+                # and only the named place is kept. 'green' still earns its
+                # keep in TINT, which is where it always belonged.
+                'village green', 'town green', 'the commons',
+                'path', 'trail', 'walkway', 'hedge', 'yard',
                 'park', 'orchard', 'meadow', 'clearing', 'crossroads',
                 # Same reasoning one step further out. The list above has the
                 # places a *town* puts you outdoors and almost no wild ones,

@@ -15,6 +15,8 @@ import re
 
 from .extract import (
     _built_floor,
+    _other_sense,
+    _under_the_trees,
     _compiled,
     _figurative,
     _ground_near_surface,
@@ -160,6 +162,37 @@ def build() -> None:
                     'relaxation for customers, set against the north wall.'),
          'interior')
 
+    # --- forest or open ground, when the counts tie -------------------------
+    case('under the trees', 'a canopy overhead means woods',
+         _under_the_trees('branches form a thick canopy, obscuring the '
+                          'forest floor'), True)
+    case('under the trees', 'surrounding trees mean woods',
+         _under_the_trees('sunlight filters through the leafy canopy of the '
+                          'surrounding trees'), True)
+    case('under the trees', 'the edge of a forest is not the forest',
+         _under_the_trees('a ruined building sits alongside the stone road. it '
+                          'lies at the edge of a forest that rises from '
+                          'grassland'), False)
+    case('under the trees', 'forests below are not overhead',
+         _under_the_trees('a whisper is carried on the gale as it gusts '
+                          'through the trees of the forests below'), None)
+    case('under the trees', 'silence stays silent',
+         _under_the_trees('a small pond glitters in the wan sunlight'), None)
+    case('under the trees', 'a tie resolves to forest when trees are overhead',
+         _enclosure('At the edge of the meadow a small pond glitters in the '
+                    'sunlight that filters through the leafy canopy of the '
+                    'surrounding trees.'), 'forest')
+
+    # --- terms whose commonest use is not the thing -------------------------
+    case('other sense', '"as well as" is not a wellhead',
+         _other_sense('well', 'the shelves hold rope as well as lanterns'), True)
+    case('other sense', 'a real well is a well',
+         _other_sense('well', 'a stone well stands at the centre of the yard'), False)
+    case('other sense', 'one real well among adverbs still counts',
+         _other_sense('well', 'a stone well stands here as well as a trough'), False)
+    case('other sense', 'a term with no blocklist is never blocked',
+         _other_sense('fountain', 'a fountain plays in the square'), False)
+
     # --- the tunnel determiner ---------------------------------------------
     case('tunnel determiner', 'a determined tunnel is underground',
          _enclosure('Flickering lanterns cast wavering shadows on the pocketed '
@@ -192,7 +225,7 @@ def main() -> int:
         print(f'\nFAIL [{guard}] {name}\n  got  {got!r}\n  want {want!r}')
 
     print(f'\n{len(CASES)} cases across {len(guards)} guards, {len(failures)} failing')
-    if len(CASES) < 46 or len(guards) < 9:
+    if len(CASES) < 56 or len(guards) < 11:
         print('REFUSING TO PASS: fewer cases ran than this file contains, '
               'so a green result here would mean nothing')
         return 2

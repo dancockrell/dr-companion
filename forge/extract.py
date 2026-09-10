@@ -175,6 +175,35 @@ def _figurative(term: str, sentence: str) -> bool:
     return any(tail.startswith(word) for word in _FIGURATIVE_OF)
 
 
+# Terms whose commonest appearance in this corpus is not the thing they name.
+# Counted: of the 719 rooms containing 'well', 169 of them are the adverb in
+# "as well as" and were putting a stone wellhead in the middle of a bedroom.
+# The village green went the other way and was deleted from the outdoor list
+# entirely rather than guarded - 'green' is the colour in 475 rooms and the
+# place in 136, so it was costing more than it earned. Removing a term that
+# does not pay is the same judgement as adding one that does.
+#
+# Same containment-only construction as _FIGURATIVE_OF above, and for the same
+# reason: nothing here to escape, so nothing here can fail silently.
+_OTHER_SENSE = {
+    'well': ('as well',),
+    'hold': ('hold of', 'holding'),
+    'spring': ('spring of the year',),
+}
+
+
+def _other_sense(term: str, text: str) -> bool:
+    """Is every occurrence of this term part of a phrase that means something else?"""
+    phrases = _OTHER_SENSE.get(term)
+    if not phrases:
+        return False
+    total = len(_compiled(term).findall(text))
+    if not total:
+        return False
+    blocked = sum(text.count(phrase) for phrase in phrases)
+    return blocked >= total
+
+
 # How far from the word "floor" a material still counts as being the floor's.
 # 48 characters is about eight words either side, which covers "the floor is
 # covered in a thick layer of straw" and "polished marble floors" and stops
@@ -268,6 +297,9 @@ def read_room(record: dict) -> RoomReading:
                 # people are the common case of this and the cheap one to
                 # rule out; a word-sense model is not warranted for it.
                 if category == 'water' and _figurative(term, sentence):
+                    continue
+                # "may as well" is not a wellhead. Same shape as above.
+                if _other_sense(term, sentence):
                     continue
                 reading.detections.append(
                     Detection(
@@ -367,6 +399,8 @@ _ROOM_WALL = (
     'the western wall', 'one wall', 'the opposite wall', 'each wall',
     'four walls', 'the walls of this', 'along the walls', 'on the wall',
     'against the wall', 'the walls are', 'walls and floor', 'wall behind the',
+    'surrounding walls', 'alongside the wall', 'the walls of the',
+    'lining the wall', 'walls and ceiling', 'covers the wall',
 )
 
 
@@ -400,6 +434,46 @@ def _erode(scores: dict[str, int], kind: str, lowered: str, distance: int) -> bo
         del scores[kind]
         return True
     return False
+
+
+# Forest and outdoor are not two answers to the same question, which is why
+# 481 rooms were being reported as an unresolved contest between them. A forest
+# *is* outdoors; the only thing that separates the two archetypes in
+# compose.py is whether there are branches overhead or sky. So a forest/outdoor
+# tie is not a coin toss to be escalated, it is a specific question to put back
+# to the text: are the trees over you, or are they on the far side of a field?
+#
+# Read off eight sampled ties and correct on all eight: #8725 "branches form a
+# thick canopy" and #52015 "filters through the leafy canopy of the surrounding
+# trees" are woods; #1023 "it lies at the edge of a forest" and #31514 "the
+# trees of the forests below" are open ground with a treeline in view. Where
+# the text says neither, the doubt stands.
+_UNDER_THE_TREES = (
+    'canopy', 'overhead', 'through the trees', 'among the trees',
+    'beneath the trees', 'under the trees', 'surrounding trees',
+    'undergrowth', 'overgrowth', 'thicket', 'branches', 'boughs',
+    'into the woods', 'through the woods', 'the woods are', 'deep in the',
+    'dense', 'crowd close', 'tangle',
+)
+_TREES_AT_A_REMOVE = (
+    'edge of a forest', 'edge of the forest', 'edge of the wood',
+    'forests below', 'forest below', 'woods below', 'line of trees',
+    'band of', 'border', 'bordering', 'stand of trees', 'toward the forest',
+    'the forest beyond', 'distant', 'in the distance',
+)
+
+
+def _under_the_trees(lowered: str) -> bool | None:
+    """Are the trees overhead, at a remove, or does the text not say?
+
+    Three states on purpose. Folding "the text does not say" into either of
+    the other two is where the invented answer would get in.
+    """
+    over = any(cue in lowered for cue in _UNDER_THE_TREES)
+    away = any(cue in lowered for cue in _TREES_AT_A_REMOVE)
+    if over == away:
+        return None
+    return over
 
 
 def _decide_enclosure(lowered: str, reading: RoomReading) -> str | None:
@@ -442,6 +516,14 @@ def _decide_enclosure(lowered: str, reading: RoomReading) -> str | None:
         return None
 
     ranked = sorted(scores.items(), key=lambda kv: -kv[1])
+
+    # A forest/outdoor tie gets one more question rather than an escalation.
+    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        if {ranked[0][0], ranked[1][0]} == {'forest', 'outdoor'}:
+            under = _under_the_trees(lowered)
+            if under is not None:
+                return 'forest' if under else 'outdoor'
+
     if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
         reading.doubts.append(
             f'enclosure is a tie between {ranked[0][0]} and {ranked[1][0]}, '
