@@ -1167,6 +1167,29 @@ module Companion
         { 'ok' => false, 'error' => e.message.to_s }
       end
     end
+
+    # Every file that applies to a character, parsed and merged in the same
+    # later-file-wins order files_for already establishes. Used to validate a
+    # client-supplied name (a waggle set, so far) against what the character's
+    # own settings actually contain, rather than trusting the client typed it
+    # correctly — see BRIDGE_CONTRACT.md's "Activity intents (Lane R)": this
+    # bridge never invents spell lists, buff sets or hunting grounds, it only
+    # reads what the player already configured.
+    #
+    # Best-effort: a file that fails to parse is skipped rather than raising,
+    # because a broken profile should not block starting an activity that does
+    # not even need it.
+    def merged(character)
+      require 'yaml'
+      files_for(character).each_with_object({}) do |path, acc|
+        data = begin
+          YAML.unsafe_load_file(path)
+        rescue StandardError
+          nil
+        end
+        acc.merge!(data) if data.is_a?(Hash)
+      end
+    end
   end
 
   # --------------------------------------------------------------------- map --
@@ -1879,7 +1902,8 @@ module Companion
     PAUSE_HELD = {
       'map_walk'     => 'Paused - press Resume before travelling.',
       'run_macro'    => 'Paused - press Resume before running a macro.',
-      'start_script' => 'Paused - press Resume before starting a script.'
+      'start_script' => 'Paused - press Resume before starting a script.',
+      'buffs'        => 'Paused - press Resume before buffing.'
     }.freeze
 
     # nil when nothing is held, so a caller reads as `if (held = ...)` and each
@@ -1986,15 +2010,17 @@ module Companion
 
       # --- activity intents (Lane R, docs/PLAN_TO_1_0.md §6b) ---------------
       #
-      # buffs, loot, travel, escape_heal, go_healer, town_run, start_training,
-      # start_combat and burgle are not here yet - see BRIDGE_CONTRACT.md's
-      # "Activity intents (Lane R)" contract for the args/progress/refusal
-      # shape each one adds, and its "Status of the nine" table for which
+      # buffs lands first (R1) - see BRIDGE_CONTRACT.md's "Activity intents
+      # (Lane R)" contract for the args/progress/refusal shape every one of
+      # the nine follows, and its "Status of the nine" table for which
       # increment (R1-R7) lands which, and why burgle (R8) is deferred rather
-      # than absent. Each one lands as its own HANDLERS entry above this
-      # comment, in the same commit that flips its row from "not yet
-      # implemented" to "implemented" - the doc and the dispatch table are
-      # not allowed to say two different things about the same intent.
+      # than absent. loot, travel, escape_heal, go_healer, town_run,
+      # start_training and start_combat are not here yet. Each lands as its
+      # own HANDLERS entry below this comment, in the same commit that flips
+      # its row from "not yet implemented" to "implemented" - the doc and the
+      # dispatch table are not allowed to say two different things about the
+      # same intent.
+      'buffs' => ->(args, server) { buffs(args, server) },
     }.freeze
 
     # The three-state contract this feeds (BRIDGE_CONTRACT.md): absent means
@@ -2287,6 +2313,55 @@ module Companion
 
       server.log("started #{name}")
       [true, "#{name} started"]
+    end
+
+    # First of the nine activity intents (R1, docs/PLAN_TO_1_0.md §6b Lane R;
+    # contract: docs/BRIDGE_CONTRACT.md's "Activity intents (Lane R)"), and
+    # deliberately read-mostly: this starts the player's own buff-tracking
+    # script and reports what it does as progress, exactly like start_script
+    # above except for one named script and one optional argument.
+    #
+    # `scripts/buff.lic` is what already does this — it knows the character's
+    # own configured spell sets (`get_settings.waggle_sets`); this bridge does
+    # not, and does not invent one. An explicit `set` is only ever validated
+    # against Yaml.merged, never guessed, and when validation cannot say
+    # either way (no profiles, a set key not found where expected) the
+    # unverified name is still passed through and buff.lic's own handling
+    # applies — this bridge refuses only what it can actually disprove.
+    def buffs(args, server)
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before buffing.']
+      end
+
+      if (held = pause_refusal('buffs'))
+        return held
+      end
+
+      unless State.safe(false) { Script.exists?('buff') }
+        return [false, "'buff' is not installed. Install the standard dr-scripts suite to buff."]
+      end
+
+      already = State.other_scripts.any? { |s| s['name'].to_s.casecmp?('buff') }
+      return [false, 'already buffing (buff is running) - stop it, or wait for it to finish, first'] if already
+
+      set = args.is_a?(Hash) ? args['set'].to_s.strip : ''
+      if !set.empty?
+        sets = State.safe(nil) { Yaml.merged(State.char_name)['waggle_sets'] }
+        if sets.is_a?(Hash) && !sets.key?(set)
+          return [false, "no buff set named '#{set}' in your dr-scripts settings"]
+        end
+      end
+
+      started = if set.empty?
+                  State.safe(false) { Script.start('buff') }
+                else
+                  State.safe(false) { Script.start('buff', "set=#{set}") }
+                end
+      return [false, "could not start 'buff'"] unless started
+
+      detail = set.empty? ? 'buff started' : "buff started (set=#{set})"
+      server.log(detail)
+      [true, detail]
     end
 
     def map_zone(args, server)

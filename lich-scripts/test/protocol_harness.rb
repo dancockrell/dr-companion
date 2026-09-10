@@ -83,8 +83,20 @@ end
 
 module Script
   @@running = [FakeScript.new('companion_bridge'), FakeScript.new('uber'), FakeScript.new('travel', true)]
+  # Named scripts this fake Lich install has on disk. 'buff' is here for R1
+  # (docs/PLAN_TO_1_0.md §6b Lane R) so the harness can exercise the buffs
+  # intent's happy path — start it, see it appear in `scripts` — rather than
+  # only its "not installed" refusal, which is all Script.exists? returning
+  # false for everything would let this harness prove.
+  INSTALLED = %w[companion_bridge uber travel buff go2].freeze
   def self.current = FakeScript.new('companion_bridge')
   def self.running = @@running
+  def self.exists?(name) = INSTALLED.include?(name.to_s)
+  def self.start(name, *_args)
+    started = FakeScript.new(name.to_s)
+    @@running << started
+    started
+  end
   def self.kill(n) = @@running.reject! { |s| s.name == n }
   def self.pause(_n) = nil
   def self.unpause(_n) = nil
