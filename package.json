@@ -14,8 +14,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node tools/intent-drift-test.mjs && node tools/bridge-version-drift-test.mjs && node tools/gamelines-test.mjs && node tools/escape-check.mjs && node tools/contrast-test.mjs && tsc -b && vite build",
+    "build": "node tools/intent-drift-test.mjs && node tools/activity-intent-contract-test.mjs && node tools/bridge-version-drift-test.mjs && node tools/gamelines-test.mjs && node tools/escape-check.mjs && node tools/contrast-test.mjs && tsc -b && vite build",
     "check-intents": "node tools/intent-drift-test.mjs",
+    "check-activity-intents": "node tools/activity-intent-contract-test.mjs",
     "check-bridge-version": "node tools/bridge-version-drift-test.mjs",
     "lint": "oxlint",
     "gate": "node tools/gate.mjs",

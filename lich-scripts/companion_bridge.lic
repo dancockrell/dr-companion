@@ -1983,6 +1983,18 @@ module Companion
       'install_mapdb' => ->(_args, server) { install_mapdb(server) },
       'list_scripts'  => ->(_args, server) { list_scripts(server) },
       'start_script'  => ->(args, server) { start_script(args, server) },
+
+      # --- activity intents (Lane R, docs/PLAN_TO_1_0.md §6b) ---------------
+      #
+      # buffs, loot, travel, escape_heal, go_healer, town_run, start_training,
+      # start_combat and burgle are not here yet - see BRIDGE_CONTRACT.md's
+      # "Activity intents (Lane R)" contract for the args/progress/refusal
+      # shape each one adds, and its "Status of the nine" table for which
+      # increment (R1-R7) lands which, and why burgle (R8) is deferred rather
+      # than absent. Each one lands as its own HANDLERS entry above this
+      # comment, in the same commit that flips its row from "not yet
+      # implemented" to "implemented" - the doc and the dispatch table are
+      # not allowed to say two different things about the same intent.
     }.freeze
 
     # The three-state contract this feeds (BRIDGE_CONTRACT.md): absent means
