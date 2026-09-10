@@ -156,6 +156,16 @@ def build() -> None:
          _room_wall('the town wall rises beyond the orchard'), False)
     case('room wall', 'a cliff wall is not a room wall',
          _room_wall('water has eroded a section of cliff wall'), False)
+    # The word boundary. Containment read 'one wall' out of the middle of
+    # 'stone walls' - st-one wall-s - and handed an interior vote to 440 rooms
+    # that never named a wall of their own. Both directions, because a matcher
+    # that had simply dropped 'one wall' from the table would pass the negative
+    # on its own.
+    case('room wall', 'a single named wall is a room wall',
+         _room_wall('one wall is hung with a faded tapestry'), True)
+    case('room wall', 'one wall inside stone walls is not a room wall',
+         _room_wall('the tall stone walls of the palace courtyard rise above'),
+         False)
     case('room wall', 'a bank interior is read as interior',
          _enclosure('A desk is littered with papers scratched with notes. An '
                     'abacus clicks loudly. Some chairs lining a wall serve as '
@@ -225,7 +235,7 @@ def main() -> int:
         print(f'\nFAIL [{guard}] {name}\n  got  {got!r}\n  want {want!r}')
 
     print(f'\n{len(CASES)} cases across {len(guards)} guards, {len(failures)} failing')
-    if len(CASES) < 56 or len(guards) < 11:
+    if len(CASES) < 58 or len(guards) < 11:
         print('REFUSING TO PASS: fewer cases ran than this file contains, '
               'so a green result here would mean nothing')
         return 2

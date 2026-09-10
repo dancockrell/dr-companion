@@ -54,8 +54,15 @@ SABOTAGE = [
      '    return True',
      {'built floor'}),
     ('room-wall guard accepts any wall', 'extract.py',
-     '    return any(phrase in lowered for phrase in _ROOM_WALL)',
+     '    return any(_compiled(phrase).search(lowered) for phrase in _ROOM_WALL)',
      "    return 'wall' in lowered",
+     {'room wall'}),
+    # The boundary itself. Reverting to containment puts back the bug where
+    # 'one wall' is read out of the middle of 'stone walls' - 440 rooms given
+    # an interior vote by an accident of spelling.
+    ('room-wall matching goes back to containment', 'extract.py',
+     '    return any(_compiled(phrase).search(lowered) for phrase in _ROOM_WALL)',
+     '    return any(phrase in lowered for phrase in _ROOM_WALL)',
      {'room wall'}),
     ('terrain table emptied', 'lexicon.py',
      "TERRAIN = {\n    'dune': ('dune', 'sand drift'),",
@@ -77,21 +84,85 @@ SABOTAGE = [
      "'the tunnel', 'a tunnel', 'this tunnel', 'of tunnel',",
      "'tunnel',",
      {'tunnel determiner'}),
+
+    # --- the adjudication path ---------------------------------------------
+    # The guard that keeps the coverage number honest. If an override stops
+    # naming the ruling that made it, a hand-decided room becomes
+    # indistinguishable from one the parser read, and every number downstream
+    # is quietly wrong while every test still passes.
+    ('an override stops naming the ruling that made it', 'extract.py',
+     "        reading.sources[field_name] = ruling['id']",
+     "        reading.sources[field_name] = 'parsed'",
+     {'override provenance'}),
+    ('adjudicated always says no', 'extract.py',
+     "        return any(src != 'parsed' for src in self.sources.values())",
+     '        return False',
+     {'override provenance'}),
+    # The rulings file stops being validated. Every negative case in the
+    # loader depends on this, and nothing else should.
+    ('rulings validation is disarmed', 'rulings.py',
+     '    if not condition:\n        raise RulingError(message)',
+     '    return',
+     {'rulings load'}),
+    # A removal that matches nothing goes back to being a silent no-op: the
+    # ruling would be out of force while the audit reported it as applied.
+    ('an absent term is removed silently', 'extract.py',
+     '            if term not in terms:\n                raise _rulings.RulingError(',
+     '            if False:\n                raise _rulings.RulingError(',
+     {'lexicon ruling'}),
+    # Author-side silence starts being escalated again, which is how a queue
+    # of 1,718 actionable rooms turns back into 6,720 mostly unactionable ones.
+    ('author-side silence is escalated again', 'escalate.py',
+     '    # Everything left is a room whose only doubt is that the author never said\n'
+     '    # what the ground was. Not actionable, and deliberately not queued.\n'
+     '    return None',
+     "    return 'NO-GROUND', 'the author never said'",
+     {'escalation filter'}),
+    # The critic guesses when it cannot run. This is the single worst failure
+    # available to this package: invented readings that are indistinguishable
+    # from measured ones.
+    ('the critic guesses when unavailable', 'critic.py',
+     "        return Proposal(cluster_key=cluster['key'], state=NOT_ADJUDICATED,\n"
+     "                        why=ready.reason, rooms=len(samples))",
+     "        return Proposal(cluster_key=cluster['key'], state=DECIDED,\n"
+     "                        verdict='outdoor', why=ready.reason, "
+     "rooms=len(samples))",
+     {'critic honesty'}),
+    # 'I could not tell' collapses into 'nothing to report'. Three states
+    # folded into two is where the lie enters.
+    ('cannot-tell collapses into not-adjudicated', 'critic.py',
+     "CANNOT_TELL = 'cannot tell from the text'",
+     "CANNOT_TELL = 'not adjudicated'",
+     {'critic honesty'}),
 ]
 
 
+# Both suites run, and their guard names share one namespace. A sabotage in
+# the parser can redden a rulings guard and vice versa - that entanglement is
+# real and the exact-set assertions below are what make it visible instead of
+# letting it hide behind "something went red".
+SUITES = ('forge.test_extract', 'forge.test_escalate')
+
+
 def run(pkg_parent: pathlib.Path) -> tuple[int, set[str]]:
-    """Run the suite in `pkg_parent` and return (exit code, guards that failed)."""
-    proc = subprocess.run(
-        [sys.executable, '-m', 'forge.test_extract'],
-        cwd=pkg_parent, capture_output=True, text=True,
-    )
+    """Run both suites in `pkg_parent` and return (worst exit code, red guards)."""
     red = set()
-    for line in proc.stdout.splitlines():
-        if line.startswith('FAIL  '):
-            # "FAIL  <guard padded to 24>  N cases, M failing"
-            red.add(line[6:].split('  ')[0].strip())
-    return proc.returncode, red
+    worst = 0
+    for suite in SUITES:
+        proc = subprocess.run(
+            [sys.executable, '-m', suite],
+            cwd=pkg_parent, capture_output=True, text=True,
+        )
+        worst = max(worst, proc.returncode)
+        for line in proc.stdout.splitlines():
+            if line.startswith('FAIL  '):
+                # "FAIL  <guard padded to 24>  N cases, M failing"
+                red.add(line[6:].split('  ')[0].strip())
+        # A suite that dies before printing anything reports no red guards,
+        # which is indistinguishable from a clean run. Name it instead.
+        if proc.returncode not in (0, 1):
+            red.add(f'{suite} did not run')
+    return worst, red
 
 
 def main() -> int:
@@ -145,7 +216,7 @@ def main() -> int:
                 print(f'        expected exactly: {sorted(expect)}')
 
     print(f'\n{len(SABOTAGE)} sabotages, {failures} not behaving as declared')
-    if len(SABOTAGE) < 11:
+    if len(SABOTAGE) < 19:
         print('REFUSING TO PASS: fewer sabotages than this file declares')
         return 2
     return 1 if failures else 0

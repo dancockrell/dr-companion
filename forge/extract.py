@@ -23,7 +23,53 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 
+from . import rulings as _rulings
 from .lexicon import CATEGORIES, DIRECTIONS, ENCLOSURE, SURFACE, SURFACE_MATERIAL
+
+
+# Rebuilt only when the active rulings object changes, which in a normal run
+# is once. Keyed on identity rather than cached outright so that `reload` in a
+# test is actually honoured instead of being served a stale set - a cache that
+# cannot be invalidated would make every negative rulings test meaningless.
+_TABLE_CACHE: dict[str, object] = {}
+
+
+def _tables() -> tuple[dict, dict]:
+    """The lexicon as the rulings leave it: (CATEGORIES, ENCLOSURE).
+
+    A lexicon ruling is a decision about what a word means, reached from a
+    counted population. It is applied here rather than by editing the tables
+    in place so that the tables stay a record of what the corpus said and the
+    rulings stay a record of what was decided about it - two different claims,
+    which is why they are two different files.
+    """
+    active = _rulings.active()
+    if _TABLE_CACHE.get('for') is active:
+        return _TABLE_CACHE['tables'], _TABLE_CACHE['enclosure']  # type: ignore[return-value]
+    ruled = active.lexicon
+    if not ruled:
+        _TABLE_CACHE.update(**{'for': active}, tables=CATEGORIES, enclosure=ENCLOSURE)
+        return CATEGORIES, ENCLOSURE
+    tables = {name: {k: tuple(v) for k, v in table.items()}
+              for name, table in CATEGORIES.items()}
+    for ruling in ruled:
+        table = tables[ruling['table']]
+        category = ruling['category']
+        terms = list(table.get(category, ()))
+        for term in ruling.get('remove', ()):
+            if term not in terms:
+                raise _rulings.RulingError(
+                    f'{ruling["id"]}: cannot remove {term!r} from '
+                    f'{ruling["table"]}/{category}; it is not there. A removal '
+                    f'that matches nothing would load as a no-op and the '
+                    f'ruling would silently not be in force.')
+            terms.remove(term)
+        for term in ruling.get('add', ()):
+            if term not in terms:
+                terms.append(term)
+        table[category] = tuple(terms)
+    _TABLE_CACHE.update(**{'for': active}, tables=tables, enclosure=tables['enclosure'])
+    return tables, tables['enclosure']
 
 # A sentence is the unit a feature and its direction share. "A fountain plays
 # to the southeast. Trees line the road." - splitting on sentences is what
@@ -56,6 +102,22 @@ class RoomReading:
     location: str | None = None
     words: int = 0
     doubts: list[str] = field(default_factory=list)
+
+    # Where each field's value came from. 'parsed' means the parser read it out
+    # of the description; anything else is a ruling id, and a room closed by a
+    # ruling must never be countable as a room the parser read. This field is
+    # the whole reason the coverage number can be trusted.
+    sources: dict[str, str] = field(default_factory=dict)
+
+    # Which enclosure terms actually fired, per candidate. This is what makes a
+    # tie clusterable: "interior and outdoor tied" is a symptom, and
+    # "'shop' against 'street'" is the thing a reader can rule on.
+    evidence: dict[str, list[str]] = field(default_factory=dict)
+
+    @property
+    def adjudicated(self) -> bool:
+        """Was any field of this reading decided by hand rather than read?"""
+        return any(src != 'parsed' for src in self.sources.values())
 
     def of(self, category: str) -> list[Detection]:
         return [d for d in self.detections if d.category == category]
@@ -282,15 +344,16 @@ def read_room(record: dict) -> RoomReading:
     if reading.words < 8:
         reading.doubts.append(f'description is {reading.words} words, too short to compose from')
 
+    categories, _ = _tables()
     lowered = text.lower()
     sentences = _SENTENCE.split(lowered)
 
     for index, sentence in enumerate(sentences):
         direction = _direction_in(sentence)
-        scale = _first_match(sentence, CATEGORIES['scale'])
-        tint = _first_match(sentence, CATEGORIES['tint'])
+        scale = _first_match(sentence, categories['scale'])
+        tint = _first_match(sentence, categories['tint'])
         for category in ('structure', 'terrain', 'goods', 'flora', 'water', 'light'):
-            for kind, term in _all_matches(sentence, CATEGORIES[category]):
+            for kind, term in _all_matches(sentence, categories[category]):
                 # A stream of customers is not a stream. Found live in #788,
                 # where "the stream of customers, though steady" put a river
                 # through the middle of a shop front. Water words used of
@@ -313,16 +376,43 @@ def read_room(record: dict) -> RoomReading:
                     )
                 )
 
-    ground = _first_match(lowered, CATEGORIES['ground'])
+    ground = _first_match(lowered, categories['ground'])
     if ground:
         reading.ground = ground[0]
+        reading.sources['ground'] = 'parsed'
     else:
         reading.ground = _ground_near_surface(lowered)
-        if not reading.ground:
+        if reading.ground:
+            reading.sources['ground'] = 'parsed'
+        else:
             reading.doubts.append('nothing in the text says what the ground is')
 
     reading.enclosure = _decide_enclosure(lowered, reading)
+    if reading.enclosure:
+        reading.sources['enclosure'] = 'parsed'
+
+    _apply_room_ruling(reading)
     return reading
+
+
+def _apply_room_ruling(reading: RoomReading) -> None:
+    """Let a hand decision about this room stand, and say that it was one.
+
+    The doubt it answers is struck, because it has been answered - leaving it
+    would make the audit report a question that is closed. What is *not* struck
+    is the trail: `sources` names the ruling, so this room is counted in the
+    overridden column and never in the parser's.
+    """
+    ruling = _rulings.active().for_room(reading.room_id)
+    if not ruling:
+        return
+    for field_name, value in (ruling.get('set') or {}).items():
+        setattr(reading, field_name, value)
+        reading.sources[field_name] = ruling['id']
+    answered = set(ruling.get('answers') or ())
+    if answered:
+        reading.doubts = [d for d in reading.doubts
+                          if d.split(',')[0] not in answered]
 
 
 # A noun is not evidence of enclosure until you know how far away it is.
@@ -412,8 +502,26 @@ def _built_floor(lowered: str) -> bool:
 
 
 def _room_wall(lowered: str) -> bool:
-    """Does the text name a wall that can only be a wall of this room?"""
-    return any(phrase in lowered for phrase in _ROOM_WALL)
+    """Does the text name a wall that can only be a wall of this room?
+
+    Matched on word boundaries, not by containment, and that is not a style
+    preference - containment was wrong here in 440 rooms.
+
+    `'one wall'` is a substring of `'stone wall'`: st-**one wall**-s. So every
+    room that mentioned a stone wall scored a point for being indoors, and of
+    the 497 rooms containing both phrasings, 440 had *no other* room-wall
+    phrase in them at all - the whole interior vote came from a word that was
+    never there. It read as evidence and it was an accident of spelling.
+
+    The comment above `_FIGURATIVE_OF` is right that containment has nothing to
+    escape and so cannot fail silently the way a mangled regex does. It has a
+    different silent failure instead, and this is it: containment cannot tell a
+    word from the inside of a longer word. `_compiled` already builds the
+    boundaried pattern safely - the terms go through `re.escape`, so there is
+    still nothing here to hand-escape - and it allows the plural, which is what
+    lets 'the walls of this' keep matching.
+    """
+    return any(_compiled(phrase).search(lowered) for phrase in _ROOM_WALL)
 
 
 def _erode(scores: dict[str, int], kind: str, lowered: str, distance: int) -> bool:
@@ -483,19 +591,27 @@ def _decide_enclosure(lowered: str, reading: RoomReading) -> str | None:
     ceiling and a window in the same breath and the winner should be the one
     with more of the text behind it. A tie is a doubt, not a coin toss.
     """
+    _, enclosure_table = _tables()
     scores: dict[str, int] = {}
-    for kind, terms in ENCLOSURE.items():
-        hits = sum(1 for t in terms if _compiled(t).search(lowered))
-        if hits:
-            scores[kind] = hits
+    for kind, terms in enclosure_table.items():
+        fired = [t for t in terms if _compiled(t).search(lowered)]
+        if fired:
+            scores[kind] = len(fired)
+            reading.evidence[kind] = fired
 
     # A built floor and a room wall are evidence of being indoors in their own
     # right, and each is worth exactly what one enclosure word is worth. They
     # are scored here rather than listed in the table because each needs a
     # guard the table has no way to carry.
-    for present in (_built_floor(lowered), _room_wall(lowered)):
+    #
+    # They are named in the evidence too. Without that, a tie decided by a
+    # room wall shows up in the queue as 'interior' with no terms behind it,
+    # and the reader is asked to adjudicate an empty accusation.
+    for name, present in (('a built floor', _built_floor(lowered)),
+                          ('a wall of this room', _room_wall(lowered))):
         if present:
             scores['interior'] = scores.get('interior', 0) + 1
+            reading.evidence.setdefault('interior', []).append(name)
 
     distance = sum(1 for cue in _AT_A_DISTANCE if cue in lowered)
     immediate = sum(1 for cue in _AROUND_YOU if cue in lowered)

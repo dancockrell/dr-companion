@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "rulings": [
+    {
+      "id": "beneath-the-is-a-preposition",
+      "kind": "lexicon",
+      "table": "enclosure",
+      "category": "underground",
+      "remove": ["beneath the"],
+      "add": ["beneath the surface"],
+      "by": "claude-opus-5, lane/escalation, 10 Sep 2026",
+      "cluster": "TIE underground and outdoor / TIE forest and underground",
+      "why": "'beneath the' was reading as a claim to be below ground, and in this corpus it is almost always a preposition of relative position instead. Counted over all 18,950 rooms: 525 occurrences of 'beneath the X'. The commonest X are 'stout-walled' (30), 'surface' (29), 'trees' (24), 'tree' (8), 'blanket' (8), 'globe' (8), 'water' (7), 'weight' (7), 'canopy' (6), 'balcony' (5), 'waves' (5), 'shade' (4), 'boughs' (4). Only 'surface' means below ground; the rest are a thing standing under another thing, outdoors. The term was also deciding the call alone: of the 540 rooms containing 'beneath the', 486 have no other underground word in them at all. So it was not adding weight to a judgement, it was making one. Same move the lexicon already made for 'green' (deleted, only the named place kept) and for 'tunnel' (kept only with a determiner in front of it): the specific phrasing that can only mean the thing is kept, and the bare word that means several things is not guessed at.",
+      "evidence": {
+        "occurrences_of_beneath_the_X": 525,
+        "rooms_containing_beneath_the": 540,
+        "rooms_where_it_was_the_only_underground_word": 486,
+        "rooms_containing_beneath_the_surface": 30,
+        "commonest_objects": ["stout-walled 30", "surface 29", "trees 24", "tree 8", "blanket 8", "globe 8", "water 7", "canopy 6", "balcony 5", "waves 5"]
+      },
+      "measured_effect": "rooms read as underground fell from 431 to 310. TIE underground/outdoor fell from 142 rooms to 88, TIE forest/underground from 57 to 16. Refusals rose by 44, because a room whose only underground evidence was 'beneath the trees' genuinely has no enclosure evidence at all - that is the parser becoming more honest rather than more covered, and it is the expected direction."
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "a-building-with-nobody-inside-it",
+      "cluster": "NO-ENCLOSURE / detected only structure (and its goods+structure, light+structure, flora+structure siblings)",
+      "rooms": 601,
+      "measured": "275 rooms detect only structure, 140 goods+structure, 92 light+structure, 85 flora+structure, plus smaller combinations. None contains any word from the enclosure table.",
+      "evidence": "#19 'A low, rippling wall surrounds the great Dragon Temple' - the speaker is outside, in a square. #274 'Within an ornately carved gazebo stands an exquisite statue' - inside a gazebo, which is itself outdoors. #137 'Deep gouges are cut in the walls, like scars in the stone... hard rock' - enclosed, probably a tunnel. #209 'A strange contraption squats in the middle of the intersection' - a street. #403 'a small open-air market' - outdoors, and note the parser misses 'open-air' because the table holds 'open air' with a space.",
+      "question": "These rooms name a built thing and never say whether you are inside it or looking at it. Sampling says the commonest case by far is standing outside looking at a facade, but it is not unanimous - #137 is genuinely enclosed. Is a named building with no interior cue worth reading as outdoor by default, accepting that some tunnels and shop interiors will be wrong? Or do these stay refused? A blanket outdoor default would close roughly 600 rooms and would be the largest single invention in the pipeline, so it is your call and not the parser's.",
+      "for": "Dan"
+    },
+    {
+      "id": "trees-present-but-the-text-never-says-where",
+      "cluster": "TIE forest and outdoor",
+      "rooms": 362,
+      "measured": "254 of the 359 rooms in this shape contain 'trees'. extract._under_the_trees() deliberately returns None for all of them: the text carries neither a canopy cue nor a treeline-at-a-remove cue, so the existing design lets the doubt stand.",
+      "evidence": "#520 'The press of pine and fir trees squeezes both sides of the path.' #1108 'a few scattered trees that line...' the road. #687 'paving pebbles mingle with soft, spongy moss'. In each the trees are beside a path or road and nothing says whether they close overhead.",
+      "question": "Both readings are outdoors; the only thing that changes in compose.py is whether the scene gets 'branches' as its canopy or 'sky'. Given that, is a tree-lined path better drawn as forest (branches overhead) or as outdoor (open sky)? If either is acceptable, this whole cluster can be closed with one lexicon ruling instead of staying refused - but picking one arbitrarily is exactly the invented default the pipeline refuses, so it needs your answer rather than mine.",
+      "for": "Dan"
+    },
+    {
+      "id": "a-shop-seen-from-the-street",
+      "cluster": "TIE interior and outdoor",
+      "rooms": 108,
+      "measured": "108 rooms tie between interior and outdoor where the outdoor evidence includes a named street, road, avenue, alley or thoroughfare. 20 were read by hand: 19 are unambiguously the speaker standing on the street looking at buildings; 1 is not.",
+      "evidence": "Streets: #97 'The street broadens slightly at a terminus of variegated sandstone structures'. #812 'fumes waft out of the open door of the Alchemist's Shop on the west side of the street here'. #880 'A spacious, clean facade of Ulven's Warehouse fronts the east side of the road here'. The exception: #27 'Several tables in this small shop contain a wide array of bones' - that one is genuinely inside the shop, and it names a street too.",
+      "question": "A named street looks like strong evidence that you are standing on it, because you cannot be inside a room and have the street be the room you are in. Should a named street beat a building noun outright when the two tie? At the sampled rate that closes about 103 rooms correctly and gets about 5 wrong. I did not make this ruling because a 1-in-20 error rate is a judgement about acceptable wrongness, which is yours, not a measurement.",
+      "for": "Dan"
+    },
+    {
+      "id": "whose-wall-is-it",
+      "cluster": "spread across TIE interior and outdoor, and inside the clean population",
+      "rooms": 191,
+      "measured": "191 places where a phrase from _ROOM_WALL is immediately followed by 'of X'. Most are legitimate - 'of this room' (6), 'of the chamber' (7), 'of the room' (10 across punctuation variants) - but a real minority name a wall belonging to something the speaker is looking at.",
+      "evidence": "#371 'the back walls of heavy stone buildings offer little in the way of distractions'. #816 'runs along the east wall of town'. #900 'just against the back wall of the whitewashed guildhall'. #420 'one wall of the pierless inn rises along the southern edge of the road'. #265 'the northern wall of the canyon'. Each of these scores a point for being indoors while describing the outside of something else.",
+      "question": "The related and much larger version of this bug is already fixed in this branch - 'one wall' was matching inside 'stone walls' in 440 rooms - but this residue needs a rule rather than a boundary. Is it safe to say that a room-wall phrase followed by 'of' plus anything other than room/chamber/hall is not this room's wall? The tail is long and I could not find a clean separator, so I have left it rather than guess at one.",
+      "for": "Dan"
+    },
+    {
+      "id": "the-parser-sees-nothing-at-all",
+      "cluster": "NO-ENCLOSURE / nothing at all was detected",
+      "rooms": 165,
+      "measured": "165 rooms produce no enclosure and no feature of any kind. They are not short - most are full descriptions - and they are not clustered by any n-gram above a lift of 2.5, which is why they are one cluster rather than several.",
+      "evidence": "#370 'Night workmen wash down and tidy up the entire area as they prepare for business in the morning. The scent of rotting fish lingers in the air.' The room is entirely people and smell; nothing in it is a thing a renderer can draw.",
+      "question": "This is the population an API-backed critic exists for, and the critic in this branch could not run - no anthropic SDK and no credential on this machine, so all of them are reported 'not adjudicated' rather than guessed. Do you want the critic pointed at these once a key is available, or are 165 rooms out of 18,950 better left refused? Nothing here is a parser defect that I can find; the descriptions genuinely describe activity rather than place.",
+      "for": "Dan"
+    }
+  ]
+}

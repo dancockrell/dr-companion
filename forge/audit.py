@@ -19,6 +19,7 @@ import json
 import pathlib
 import sys
 
+from . import rulings as _rulings
 from .extract import read_room
 
 DEFAULT_DB = r'C:\Ruby4Lich5\Lich5\data\DR\map-1788915136.json'
@@ -36,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--limit', type=int, help='stop after N rooms')
     parser.add_argument('--queue', help='write the escalation queue here as JSONL')
     parser.add_argument('--examples', type=int, default=0, help='show N doubted rooms')
+    parser.add_argument('--rulings', action='store_true',
+                        help='print every ruling in force and the open questions')
     args = parser.parse_args(argv)
 
     rooms = load(args.db)
@@ -48,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
         print('REFUSING TO REPORT: no rooms matched, so any percentage below would be a lie')
         return 2
 
-    read_ok, doubted, refused = [], [], []
+    read_ok, bare, doubted, refused, overridden = [], [], [], [], []
     enclosures = collections.Counter()
     grounds = collections.Counter()
     feature_counts = []
@@ -58,9 +61,30 @@ def main(argv: list[str] | None = None) -> int:
     for record in rooms:
         reading = read_room(record)
 
+        # A room closed by hand is counted on its own and never anywhere else.
+        # Folding an override into `read_ok` is precisely how a coverage
+        # number becomes a lie: it would say the parser read a room that a
+        # person decided.
+        if reading.adjudicated:
+            overridden.append(reading)
         # Refused: nothing to compose a scene from at all.
-        if reading.enclosure is None or not reading.detections:
+        elif reading.enclosure is None:
             refused.append(reading)
+        elif not reading.detections:
+            # A room with no props is not automatically a room the parser
+            # failed on. If the text named both the enclosure and the ground,
+            # there are two real readings in hand and compose.py has an
+            # archetype and a surface to draw - an empty stretch of street or
+            # an empty desert is a scene, and a truthful one.
+            #
+            # Counted separately from `read_ok` all the same. These scenes are
+            # thin, and merging them into the headline number would overstate
+            # what the pipeline can draw. What was wrong before was calling
+            # them refusals, which understated it in the other direction.
+            if reading.ground and not reading.doubts:
+                bare.append(reading)
+            else:
+                refused.append(reading)
         elif reading.doubts:
             doubted.append(reading)
         else:
@@ -86,8 +110,21 @@ def main(argv: list[str] | None = None) -> int:
     print(f'rooms examined: {total:,}')
     print()
     print(f'  read cleanly   {len(read_ok):>7,}  {pct(len(read_ok))}')
+    print(f'  read bare      {len(bare):>7,}  {pct(len(bare))}   '
+          f'enclosure and ground from the text, no props')
+    print(f'  overridden     {len(overridden):>7,}  {pct(len(overridden))}   '
+          f'decided by a ruling, NOT read by the parser')
     print(f'  doubted        {len(doubted):>7,}  {pct(len(doubted))}   -> escalate')
     print(f'  refused        {len(refused):>7,}  {pct(len(refused))}   -> escalate')
+    print()
+
+    # Spelled out because the two numbers answer different questions and the
+    # difference is the whole point of keeping the columns apart.
+    print(f'  composable from the room\'s own words: '
+          f'{len(read_ok) + len(bare):,}  {pct(len(read_ok) + len(bare))}')
+    if overridden:
+        print(f'  composable only because somebody decided: {len(overridden):,}  '
+              f'{pct(len(overridden))}')
     print()
 
     features = sum(feature_counts)
@@ -141,6 +178,31 @@ def main(argv: list[str] | None = None) -> int:
               f'ground; composable, nothing to escalate')
         print(f'  {unsure:>7,}  {pct(unsure)}  the parser is genuinely unsure; '
               f'this is the actionable queue')
+
+    # What is in force, printed rather than left implicit. A ruling nobody can
+    # see is a change to the parser's behaviour with no trail back to whoever
+    # made it and the evidence they made it on.
+    if args.rulings:
+        ruled = _rulings.active()
+        print()
+        print(f'rulings in force: {len(ruled.by_id)}')
+        for ruling in ruled.by_id.values():
+            if ruling['kind'] == 'lexicon':
+                what = (f'lexicon {ruling["table"]}/{ruling["category"]}: '
+                        f'-{list(ruling.get("remove", []))} '
+                        f'+{list(ruling.get("add", []))}')
+            else:
+                what = (f'{len(ruling["rooms"])} rooms overridden: '
+                        f'{ruling["set"]}')
+            print(f'\n  [{ruling["id"]}] {what}')
+            print(f'    by:  {ruling["by"]}')
+            print(f'    why: {ruling["why"][:400]}')
+        print()
+        print(f'open questions for Dan: {len(ruled.open_questions)}')
+        for question in ruled.open_questions:
+            print(f'\n  [{question["id"]}] {question.get("rooms", "?")} rooms, '
+                  f'cluster {question.get("cluster")}')
+            print(f'    {question["question"]}')
 
     if args.examples:
         print()
