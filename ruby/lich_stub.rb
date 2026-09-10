@@ -195,6 +195,12 @@ def checkpcs = []
 def checknpcs = []
 def checkroom = 'Town Square Central'
 
+# Reads a dr-scripts data file (`data/town.yaml` and friends) by name. Empty
+# is the honest answer here: this shim has no such file on disk, and callers
+# that look up a key in the result (e.g. a town name) must already treat a
+# miss as "no data for that key", never as "the file must be malformed".
+def get_data(_name) = {}
+
 # --------------------------------------------------------------------------
 # The module surface. Same rule: what our scripts call, nothing more.
 # --------------------------------------------------------------------------
@@ -399,6 +405,7 @@ module LichStub
       pause waitrt waitrt? waitcastrt? checkrt checkcastrt checkpaused running? variable script_error
       checkhealth checkmana checkstamina checkspirit checkname checkbleeding checkstunned
       checkdead checkhidden checkstanding checkloot checkpcs checknpcs checkroom
+      get_data
     ].freeze,
     'constants' => {
       'Vars' => %w[list [] []=],

@@ -10,11 +10,21 @@
  * The room the button left is spent on numbers rather than given back. "Health
  * is low" is a judgement the app made; 34 of 118 is the reading it made it
  * from, and the reading is what decides whether you walk to a healer or run.
+ *
+ * R4 (`docs/PLAN_TO_1_0.md`, Lane R) added the percentage alongside the raw
+ * numbers, for the same reason: `docs/DOMAIN.md:669,:829` — two separate
+ * players hit confusion in two separate channels over a "go heal" decision
+ * that was made somewhere they could not see it, which that document calls a
+ * design problem rather than user error. This banner is where the decision
+ * to offer Go to Healer is actually made (`isLowHealth`, below), so the
+ * threshold it used is shown here rather than left implicit in the numbers —
+ * "34 of 118 health — below 35%" says both what was read and why it
+ * mattered, instead of asking the player to do the division themselves.
  */
 import type { IntentName } from '../../bridge/types'
 import { AlertTriangle, Heart, Swords, Skull, RotateCcw } from 'lucide-react'
 import { useAppStore, isIntentImplemented } from '../../store/useAppStore.ts'
-import { isLowHealth } from '../../lib/vitals.ts'
+import { isLowHealth, LOW_HEALTH_SHARE } from '../../lib/vitals.ts'
 
 export function SituationBanner() {
   const character = useAppStore((s) => s.character)
@@ -77,7 +87,15 @@ export function SituationBanner() {
     tone = 'bg-danger/15 border-danger/40 text-danger'
     icon = <Heart className="w-4 h-4 shrink-0" />
     title = 'Health is low'
-    reading = `${character.vitals.health} of ${character.vitals.healthMax} health`
+    // The threshold that decided this banner shows, stated plainly rather
+    // than left for the player to infer from the raw numbers alone —
+    // `docs/DOMAIN.md:669,:829` names exactly this confusion. `flags`
+    // carrying `low_health` from the bridge (no live vitals yet) has no
+    // percentage to show; the client-computed case does.
+    reading =
+      character.vitals.healthMax > 0
+        ? `${character.vitals.health} of ${character.vitals.healthMax} health — below ${Math.round(LOW_HEALTH_SHARE * 100)}%`
+        : `${character.vitals.health} of ${character.vitals.healthMax} health`
     action = autoSuggestHealer
       ? { label: 'Go to Healer', intent: 'go_healer' }
       : null
