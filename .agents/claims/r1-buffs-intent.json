@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": "r1-buffs-intent",
+  "agent": "claude-code",
+  "summary": "Implement the buffs activity intent (R1): thin adapter starting scripts/buff.lic, reporting progress via log+scripts, refusing per the R0 contract",
+  "status": "completed",
+  "claimed_at": "2026-09-10T00:00:00Z",
+  "updated_at": "2026-09-10T05:14:00Z",
+  "paths": [
+    "lich-scripts/companion_bridge.lic",
+    "lich-scripts/test/protocol_harness.rb",
+    "src/bridge/mockBridge.ts",
+    "docs/BRIDGE_CONTRACT.md",
+    "docs/TESTING.md",
+    "tools/doc-claims-break-check.mjs",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/r1-buffs-intent.json"
+  ],
+  "symbols": [
+    "Intents.buffs",
+    "Intents::Yaml.merged",
+    "PAUSE_HELD",
+    "HANDLERS",
+    "MOCK_UNIMPLEMENTED_INTENTS"
+  ],
+  "coordination": {
+    "depends_on": ["R0"],
+    "conflicts_with": [],
+    "notes": "First of the nine activity intents (Lane R). Only one increment touching lich-scripts/companion_bridge.lic may be [~] at a time across Lanes R/W/X/Y/Z (docs/PLAN_TO_1_0.md §3.1/§6b); verified section 3.1 and git ls-remote 'lane-*' showed nothing else in flight before claiming. Starts scripts/buff.lic via Script.start, exactly the shape start_script already uses; does not invent a spell/buff list (gap row 20, LIVE-STATE.md:281 precedent for Bard songs) — an explicit 'set' arg is only validated against the character's own settings (Yaml.merged) when that key is present, never guessed."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "node tools/intent-drift-test.mjs: OK — 27 implemented (was 26), mock's claimed-unimplemented set 8 (was 9), matches exactly",
+      "node tools/activity-intent-contract-test.mjs: OK — 9 of 9 rows, buffs now 'implemented' and matches HANDLERS",
+      "ruby -c lich-scripts/companion_bridge.lic: Syntax OK",
+      "ruby -c lich-scripts/test/protocol_harness.rb: Syntax OK",
+      "node tools/protocol-harness-test.mjs (DRC_RUBY=C:\\Ruby4Lich5\\4.0.6\\bin\\ruby.exe): all passed",
+      "manual WebSocket client against lich-scripts/test/protocol_harness.rb: buffs starts 'buff', reports via log+scripts, intent_ack ok=true; second call refused 'already buffing'",
+      "sabotage: deleted 'buffs' => ... from HANDLERS (a #-commented line was tried first and did NOT redden the drift test, because the regex extractor matches inside Ruby comments too - real deletion required); intent-drift-test.mjs and activity-intent-contract-test.mjs both FAILED naming buffs; live hello.implementedIntents excluded buffs and the bridge refused the intent generically; restored, both checks green again, re-syntax-checked",
+      "node tools/run-tests.mjs: baseline (stashed, origin/main) 176 passed/0 failed/5 partial (10 NOT CHECKED, pre-existing env gaps); post-change identical: 176 passed/0 failed/5 partial",
+      "node tools/doc-claims-test.mjs: caught a stale count (26) and a stale unimplemented-intent list in docs/TESTING.md; fixed both, 101 checked/0 failed",
+      "node tools/doc-claims-break-check.mjs: caught its own stale sabotage fixture (hardcoded '26') aborting rather than silently passing; fixed to '27', re-ran clean: 22 sabotages across 14 files, 0 mismatches, all files restored byte-identical",
+      "npm run gate: 16 of 16 stages ran in 737s, no failures (first run hit the pre-fix doc-claims-break-check ABORT as break-doc-claims FAILED exit 2; fixed and re-ran clean)",
+      "git show --stat HEAD (post-commit): only the claimed touches + this claim + PLAN_TO_1_0.md",
+      "pushed lane-r1/buffs-intent, PR opened"
+    ]
+  }
+}

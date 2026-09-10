@@ -119,12 +119,15 @@ planned ones — the client's activity buttons — get their own contract,
 | `read_settings`, `check_toggles`, `list_vars` | read the character's dr-scripts settings |
 | `map_here`, `map_path`, `map_walk`, `map_nearest`, `map_zone`, `install_mapdb` | map queries; `map_walk` is the one that moves the character |
 | `list_scripts`, `start_script` | launch any installed script by name |
+| `buffs` | R1, 10 Sep 2026 — starts the player's own `buff.lic`; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 
-**Planned, not yet implemented** — the nine activity intents from
+**Planned, not yet implemented** — eight of the nine activity intents from
 [GAP-2026-09-09.md](GAP-2026-09-09.md), tracked as Lane R (`docs/PLAN_TO_1_0.md`
-§6b): `go_healer`, `town_run`, `start_training`, `loot`, `buffs`, `travel`,
-`escape_heal`, `start_combat`, `burgle`. `isIntentImplemented` in
-`src/store/bridgePolicy.ts` disables their controls honestly today. See
+§6b): `go_healer`, `town_run`, `start_training`, `loot`, `travel`,
+`escape_heal`, `start_combat`, `burgle`. `buffs` (above) is the first of the
+nine to land, R1. `isIntentImplemented` in
+`src/store/bridgePolicy.ts` disables the remaining eight's controls honestly
+today. See
 [Activity intents (Lane R)](#activity-intents-lane-r) for the contract each
 one implements against, and the existing per-intent research below
 ("Activity intents batch contract") for which dr-scripts script each starts.
@@ -1237,7 +1240,7 @@ its own pre-start check before it starts the next.
 
 | Intent | Increment | Status |
 |---|---|---|
-| `buffs` | R1 | not yet implemented |
+| `buffs` | R1 | implemented |
 | `loot` | R2 | not yet implemented |
 | `travel` | R3 | not yet implemented |
 | `escape_heal` | R4 | not yet implemented |
@@ -1317,6 +1320,16 @@ launch with none and let `buff.lic`'s own default apply.
 
 **Safety:** none beyond what casting spells at yourself already carries in
 DR. Not flagged.
+
+**Landed (R1, 10 Sep 2026):** `Intents.buffs` in `companion_bridge.lic`
+follows `start_script`'s exact refusal order (Stop latched, Pause latched,
+`Script.exists?('buff')`, already running) plus one domain check of its
+own — an explicit `set` is checked against `Yaml.merged(character)`'s
+`waggle_sets` key and refused only when that key is present and does not
+contain it; when settings cannot say either way, the name is passed through
+unverified and `buff.lic`'s own handling applies, matching "never invent
+data this repo does not have." Progress is `log` plus `scripts`, per R0's
+contract above — no bespoke payload.
 
 ### `start_training`
 

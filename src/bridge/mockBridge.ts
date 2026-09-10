@@ -70,7 +70,7 @@ const MOCK_ALL_INTENTS: string[] = [
  * downloads-37's audit + Prime, not by this file. See #34.
  */
 const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
-  'buffs', 'burgle', 'escape_heal', 'go_healer', 'loot',
+  'burgle', 'escape_heal', 'go_healer', 'loot',
   'start_combat', 'start_training', 'town_run', 'travel',
 ]
 
@@ -1797,9 +1797,29 @@ export class MockBridge {
           this.emit({ type: 'log', line: 'Loot pass (mock).' })
         }
         break
-      case 'buffs':
-        this.emit({ type: 'log', line: 'Buff routine (mock).' })
+      case 'buffs': {
+        // Mirrors the real bridge's buffs handler (R1, BRIDGE_CONTRACT.md's
+        // "Activity intents (Lane R)"): start the player's own buff.lic and
+        // report it as progress through `log` and `scripts`, the same two
+        // channels start_script already uses below — no bespoke payload.
+        if (this.scripts.includes('buff')) {
+          this.emit({
+            type: 'intent_ack',
+            intent,
+            ok: false,
+            detail: 'already buffing (buff is running) - stop it, or wait for it to finish, first',
+          })
+          break
+        }
+        const set = typeof _args?.set === 'string' ? _args.set.trim() : ''
+        this.scripts = [...this.scripts, 'buff']
+        this.emit({
+          type: 'scripts',
+          payload: this.scripts.map((n) => ({ name: n, status: 'running' })),
+        })
+        this.emit({ type: 'log', line: set ? `buff started (set=${set})` : 'buff started (mock)' })
         break
+      }
       case 'list_scripts':
         this.emit({ type: 'script_catalog', payload: MOCK_SCRIPT_CATALOG })
         break
