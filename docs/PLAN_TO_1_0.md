@@ -3239,7 +3239,8 @@ against a settled type.
   verify: a check that every field added here is named by at least one entry in `PANEL_DATA_CONTRACTS` and read by at least one component before its lane closes — the "grep the consuming side" rule, made mechanical.
   sabotage: add a field nothing reads → the check names it.
 
-- [ ] **W1  Stance, read back** (≈50)
+- [~] **W1  Stance, read back** (≈50)
+  owner: claude claim: W1 since: 2026-09-10
   touches: lich-scripts/companion_bridge.lic, src/data/macros.ts, src/components/shared/RiskBar.tsx, src/types/index.ts
   depends-on: W0
   do: gap row 15, and the cleanest instance of the whole pattern. `src/data/macros.ts:58-66` sends `stance defensive|guarded|offensive`; `grep -c '\bstance\b' lich-scripts/companion_bridge.lic` is **0**; and DragonRealms does not send `pbarStance` on the XML stream, which `src/types/stream.ts` states from Lich's own source. So the client changes a combat-critical setting and can never say what it is. Read it in the bridge and show it where the risk readout already is — `panelDataContracts.ts` already *claims* the risk panel shows stance, which today it cannot.
