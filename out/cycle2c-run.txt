@@ -1,0 +1,104 @@
+map database: 18,950 rooms, 15,674 with a uid
+safe area: 594 rooms in 16 locations
+
+distinct rooms: 169   moves attempted: 675   in 60.7 min
+  arrivals identified by uid: 264 (of which 1 carried across a look)   by description: 411   not identified: 0
+  retreats out of unmapped rooms: 0   distinct scene signatures: 156 over 157 scenes
+  moves that landed elsewhere: 0   moves that did not move: 0
+  answer time over 1100 commands: median 0.39s, p90 0.42s, worst 0.59s
+  commands sent: 1100   refused by the safety list: 5
+    refused: 'look': session budget spent: 1100 commands
+    refused: 'look': session budget spent: 1100 commands
+    refused: 'look': session budget spent: 1100 commands
+    refused: 'look': session budget spent: 1100 commands
+    refused: 'look': session budget spent: 1100 commands
+  stopped: four unreadable rooms in a row
+
+606 complaints, 19 distinct:
+
+  [blocking] scene   x12     the room has a description but produced no scene at all
+             expected: a scene of some archetype
+             observed: nothing in the text says what the ground is; nothing says whether this is inside, outside or underground
+             rooms: #867, #767, #766, #747, #782
+
+  [wrong   ] bot     x17     the game sent something the room parser could not read
+             expected: a title and a description
+             observed: title="Traders' Guild, Main Hall" description=False
+
+  [wrong   ] scene   x8      the room contains a well the scene has nowhere to put
+             expected: a well placement
+             observed: scene kinds: tree, tree-conifer
+
+  [wrong   ] scene   x5      the room contains a sign the scene has nowhere to put
+             expected: a sign placement
+             observed: scene kinds: armor, building, wall
+
+  [wrong   ] scene   x3      the description names a well and the scene has none
+             expected: a placement of kind well
+             observed: kinds present: bridge, building, door
+             rooms: #769, #759, #730
+
+  [wrong   ] scene   x2      the description is of somewhere open to the sky and the scene has a roof
+             expected: an outdoor or forest archetype
+             observed: archetype interior, text says: moons
+             rooms: #7913, #8240
+
+  [wrong   ] game    x2      the stored description does not match what the game shows in that room
+             expected: the database text for #7940
+             observed: Windows look out over western Crossing on one side, and shop entrances are spaced out along the wall opposite them. An exhibit of desert artifacts dominates the
+             rooms: #7940, #7944
+
+  [wrong   ] scene   x1      the room contains a anvil the scene has nowhere to put
+             expected: a hearth placement
+             observed: scene kinds: building, door, hill, wall
+
+  [wrong   ] scene   x1      the room contains a forge the scene has nowhere to put
+             expected: a hearth placement
+             observed: scene kinds: building, door, hill, wall
+
+  [wrong   ] scene   x1      the room contains a bench the scene has nowhere to put
+             expected: a counter placement
+             observed: scene kinds: cushion, door, expanse, tree, tree-broadleaf, well
+
+  [wrong   ] scene   x1      the room contains a table the scene has nowhere to put
+             expected: a counter placement
+             observed: scene kinds: artwork, crop, door, pillar, wall, wall-brick
+
+  [wrong   ] scene   x1      the room contains a fountain the scene has nowhere to put
+             expected: a well placement
+             observed: scene kinds: shrub, tree
+
+  [thin    ] scene   x40     two features are placed at the same position and will overlap
+             expected: one feature per position, or a composer that offsets them
+             observed: west: building, door
+             rooms: #865, #864, #863, #772, #771
+
+  [thin    ] scene   x21     the room described more than the scene had room for
+             expected: every detected feature placed
+             observed: 1 dropped
+             rooms: #16657, #16659, #16661, #16663, #16668
+
+  [thin    ] scene   x12     the room has people standing in it and the scene draws nobody
+             expected: some feature standing for the people the game just listed
+             observed: Also here: Battle Empath Kelgaris. - scene kinds: building, flower, wall, wall-stone
+
+  [thin    ] scene   x1      the scene is bare - a ground plane and nothing else
+             expected: at least one feature from a description this long
+             observed: 36 words of description produced 0 placements
+             rooms: #7922
+
+  [note    ] bot     x411    a room was identified by prose because no arrival had supplied a uid
+             expected: an arrival to take a uid from
+             observed: matched on the first 60 characters of the description
+             rooms: #867, #777, #749, #823, #823
+
+  [note    ] scene   x62     the ground was chosen by archetype because the text never said
+             expected: the description to name a surface
+             observed: defaulted to dirt
+             rooms: #863, #862, #772, #770, #769
+
+  [note    ] bot     x5      the safety allowlist refused a move the map database records
+             expected: 'look' to be a movement the bot may make
+             observed: session budget spent: 1100 commands
+
+19 distinct complaints -> out/live-cycle2c.jsonl
