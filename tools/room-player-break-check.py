@@ -47,8 +47,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 GODOT_DIR = REPO / "godot"
+FORGE_DIR = REPO / "forge"
 TEST = REPO / "python" / "test_room_player.py"
+
+#: The two sabotage targets, each relative to its own copied tree. `COMPOSER` is
+#: under the working copy of `godot/`; `FORGE_COMPOSE` is under the working copy
+#: of the package root that holds `forge/`.
 COMPOSER = "scripts/room_composer.gd"
+FORGE_COMPOSE = "forge/compose.py"
 
 #: Not the default 11731, so a break-check never collides with a normal run of
 #: the suite in another shell. Not 11024, ever.
@@ -56,14 +62,22 @@ PORT = "11742"
 
 
 class Sabotage:
-    """One deliberate defect, and exactly which checks must notice it."""
+    """One deliberate defect, and exactly which checks must notice it.
 
-    def __init__(self, name: str, why: str, find: str, replace: str, expect: set[str]) -> None:
+    `target` names which half of the round trip is damaged. Both halves are
+    sabotageable on purpose: the composer decides how a spec becomes a tree, the
+    forge decides what the spec says in the first place, and a harness that can
+    only break one of them proves half a chain.
+    """
+
+    def __init__(self, name: str, why: str, find: str, replace: str,
+                 expect: set[str], target: str = COMPOSER) -> None:
         self.name = name
         self.why = why
         self.find = find
         self.replace = replace
         self.expect = expect
+        self.target = target
 
 
 SABOTAGES = [
@@ -77,12 +91,24 @@ SABOTAGES = [
         expect={
             "every placement appears exactly once",
             "each placement carries the kind the forge asked for",
-            # Not in the first version of this expectation, and the mismatch
-            # was the harness working. Dropping the edge doors takes the total
-            # matched from 68 to under 40, so the denominator collapses - which
-            # is the entire reason that floor exists. A third check going red
-            # here is the right answer, not entanglement.
-            "at least 40 individual placements were matched",
+            # A third check joined this set, and one left it. Both moves were
+            # this comparison working rather than noise, so both are written
+            # down instead of being smoothed away:
+            #
+            # `carries the position` arrived because that check now works from
+            # the *cell*, not from the `where` string the composer copies out
+            # of the spec, so a placement that is not in the tree at all now
+            # registers as a position failure as well as a kind failure.
+            #
+            # `at least 40 individual placements were matched` left because the
+            # sample grew from 16 rooms to 19 when the stress rooms for the
+            # collision properties were added. Dropping every edge door used to
+            # take the total from 68 to under 40; against 75 it lands on 55 and
+            # the floor no longer fires. That floor is not tuned to this
+            # mutation - its job is to catch a composer that answers every
+            # request and places nothing - so it is left where it is and the
+            # expectation is corrected instead.
+            "each placement carries the position the forge asked for",
         },
     ),
     Sabotage(
@@ -116,6 +142,64 @@ SABOTAGES = [
         # entangled, which is exactly what an exact-set comparison is for.
         expect={"every exit the game reports is an opening"},
     ),
+    Sabotage(
+        "edge doors are spread over cells other placements already took",
+        "`edge` and `north` are different words in the spec and the same cell "
+        "in this file, so only the composer can see the collision. Measured "
+        "before it was fixed: 209 rooms in a 1,004-room sample stacked two "
+        "features in one cell, 178 of them exactly this pair",
+        find="\t\tif not claimed_cells.has(cell):",
+        replace="\t\tif true:",
+        expect={"no two features occupy one position"},
+    ),
+    Sabotage(
+        "overhead, underfoot and the middle collapse into one place",
+        "all three anchor at cell (0,0) and they are not the same position; "
+        "a window the room put overhead drew on the floor beside a statue, six "
+        "pixels apart, and every check in the suite was green",
+        find='\t"canopy": "overhead",',
+        replace='\t"__no-such-where": "overhead",',
+        expect={"no two features occupy one position"},
+    ),
+    Sabotage(
+        "the word a displaced reading came from is dropped in transit",
+        "the forge records `displaced_from` for one reason only - so something "
+        "downstream can tell a demoted text reading from a plain rule fill. A "
+        "field nobody receives is the same absence with more steps",
+        find='\t\t\t"displaced_from": p.get("displaced_from"),',
+        replace='\t\t\t"displaced_from": null,',
+        expect={"a displaced text reading keeps the word the room used"},
+    ),
+    Sabotage(
+        "compass placements are all anchored in the middle",
+        "the node keeps the right label and the right kind and moves to the "
+        "wrong place. Comparing the `where` string cannot see this - the "
+        "composer copies that straight out of the spec - which is why the "
+        "position check works from the cell instead",
+        find="\t\telif RING.has(where):\n\t\t\tcell = RING[where]",
+        replace="\t\telif RING.has(where):\n\t\t\tcell = Vector2i(0, 0)",
+        expect={
+            "each placement carries the position the forge asked for",
+            # Eight compass points landing on one cell in one layer is a pile,
+            # and the collision check is right to say so. Two checks red here
+            # is the correct answer rather than entanglement: they assert
+            # different properties and this defect genuinely breaks both.
+            "no two features occupy one position",
+        },
+    ),
+    Sabotage(
+        "the forge lets a text reading claim a position already taken",
+        "this is the defect the lane began with, on the other side of the "
+        "socket. A room that names one direction twice - a wall and a building "
+        "both to the north - used to put both features on the same cell; "
+        "2,838 of the map's 17,060 composable rooms did. The fix is that text "
+        "claims are handed out before rule fills and each position is claimed "
+        "once, so removing the `not in taken` guard restores it exactly",
+        target=FORGE_COMPOSE,
+        find="        if stated is not None and stated not in taken:",
+        replace="        if stated is not None:",
+        expect={"no two features occupy one position"},
+    ),
 ]
 
 
@@ -123,9 +207,10 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run_test(project: Path) -> tuple[int, str]:
+def run_test(project: Path, forge_root: Path) -> tuple[int, str]:
     env = dict(os.environ)
     env["DRC_ROOM_PROJECT"] = str(project)
+    env["DRC_FORGE_ROOT"] = str(forge_root)
     env["DRC_ROOM_PORT"] = PORT
     done = subprocess.run(
         [sys.executable, str(TEST)],
@@ -172,16 +257,29 @@ def main() -> int:
     workspace = Path(tempfile.mkdtemp(prefix="room-player-break-"))
     project = workspace / "godot"
     shutil.copytree(GODOT_DIR, project)
-    pristine = workspace / "room_composer.gd.pristine"
-    shutil.copy2(project / COMPOSER, pristine)
-    pristine_hash = sha256(pristine)
+    forge_root = workspace / "pkg"
+    shutil.copytree(FORGE_DIR, forge_root / "forge")
+
+    #: target -> (the file under the working copy, an untouched copy of it, its
+    #: hash). Both halves of the round trip, so a sabotage of either can be
+    #: applied, undone, and proved undone.
+    targets = {}
+    for name, path in ((COMPOSER, project / COMPOSER),
+                       (FORGE_COMPOSE, forge_root / FORGE_COMPOSE)):
+        keep = workspace / (Path(name).name + ".pristine")
+        shutil.copy2(path, keep)
+        targets[name] = (path, keep, sha256(keep))
+
     print(f"working copy: {project}")
-    print(f"composer sha256: {pristine_hash[:16]}\n")
+    print(f"forge copy:   {forge_root / 'forge'}")
+    for name, (_path, _keep, digest) in targets.items():
+        print(f"  {name} sha256 {digest[:16]}")
+    print()
 
     try:
         # ---- the positive control, before anything is interpreted --------
-        print("positive control: the untouched copy must pass")
-        code, output = run_test(project)
+        print("positive control: the untouched copies must pass")
+        code, output = run_test(project, forge_root)
         control_checks = check_count(output)
         if code != 0:
             print("FAILED: the unmodified copy does not pass, so no sabotage result means anything.")
@@ -195,10 +293,13 @@ def main() -> int:
 
         results = []
         for sabotage in SABOTAGES:
-            shutil.copy2(pristine, project / COMPOSER)
-            if sha256(project / COMPOSER) != pristine_hash:
-                print("FAILED: the restore did not restore. Refusing to continue.")
-                return 1
+            path, pristine, pristine_hash = targets[sabotage.target]
+            for other, (opath, okeep, ohash) in targets.items():
+                shutil.copy2(okeep, opath)
+                if sha256(opath) != ohash:
+                    print(f"FAILED: the restore of {other} did not restore. "
+                          "Refusing to continue.")
+                    return 1
 
             # Text mode on purpose. This repository checks out CRLF on
             # Windows, and an anchor written with "\n" matched against raw
@@ -207,23 +308,24 @@ def main() -> int:
             # reports "not caught" when it means "the edit did nothing".
             # Universal newlines makes the anchor line-ending-agnostic, and
             # the abort below is the backstop if it ever is not.
-            source = (project / COMPOSER).read_text(encoding="utf-8")
+            source = path.read_text(encoding="utf-8")
             if sabotage.find not in source:
                 # Rule 2. A rewrite that changed nothing would leave the test
                 # green and this script would print "not caught", meaning
                 # something entirely different from what it says.
-                print(f"ABORT: the anchor for '{sabotage.name}' is not in {COMPOSER} any more.")
+                print(f"ABORT: the anchor for '{sabotage.name}' is not in "
+                      f"{sabotage.target} any more.")
                 print(f"  Looked for: {sabotage.find!r}")
                 print("  The sabotage would have changed nothing and the test would have")
                 print("  stayed green, which is indistinguishable from the defect surviving.")
                 return 1
             damaged = source.replace(sabotage.find, sabotage.replace, 1)
-            (project / COMPOSER).write_text(damaged, encoding="utf-8")
-            if sha256(project / COMPOSER) == pristine_hash:
+            path.write_text(damaged, encoding="utf-8")
+            if sha256(path) == pristine_hash:
                 print(f"ABORT: '{sabotage.name}' left the file byte-identical.")
                 return 1
 
-            code, output = run_test(project)
+            code, output = run_test(project, forge_root)
             reds = failing_labels(output)
             checks = check_count(output)
             caught = code != 0
@@ -231,6 +333,7 @@ def main() -> int:
             results.append((sabotage, caught, exact, reds, checks))
 
             print(f"sabotage: {sabotage.name}")
+            print(f"  in: {sabotage.target}")
             print(f"  why it matters: {sabotage.why}")
             print(f"  exit {code}, {checks} checks asserted")
             print(f"  expected red: {sorted(sabotage.expect)}")
@@ -246,12 +349,20 @@ def main() -> int:
             print()
 
         # ---- restore and prove the restore -------------------------------
-        shutil.copy2(pristine, project / COMPOSER)
-        restored = sha256(project / COMPOSER) == pristine_hash
-        print(f"restore verified by hash: {restored}")
-        real = sha256(GODOT_DIR / COMPOSER)
-        untouched = real == pristine_hash
-        print(f"the repository's own {COMPOSER} is untouched: {untouched}")
+        #
+        # Both trees, and both against the repository's own file as well as
+        # against the working copy. These suites damage real source; leaving one
+        # broken is the only outcome worse than having no negative test.
+        restored = True
+        untouched = True
+        for name, (path, keep, digest) in targets.items():
+            shutil.copy2(keep, path)
+            here = sha256(path) == digest
+            real = (GODOT_DIR / COMPOSER) if name == COMPOSER else (REPO / name)
+            mine = sha256(real) == digest
+            restored = restored and here
+            untouched = untouched and mine
+            print(f"{name}: working copy restored {here}, repository untouched {mine}")
 
         bad = [r for r in results if not (r[1] and r[2])]
         print(f"\n{len(results) - len(bad)} of {len(results)} sabotages caught by exactly "
