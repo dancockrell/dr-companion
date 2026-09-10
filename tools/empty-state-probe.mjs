@@ -60,17 +60,34 @@ export const EMPTY_STATE_SIZES = [
  */
 export const EMPTY_STATE_CONTROLS = [
   ['Nothing is connected yet', 'text'],
-  ['Attach to Lich', 'text'],
+  ['press Attach in the game pane', 'text'],
   ['Start the demo', 'button'],
   ['Connection help', 'button'],
-  // The last prose block on the panel, and the only entry here that is not a
-  // control. It is the one that has to be reached by *scrolling* once the
+  // The last thing on the panel, and the only entry here that is not a call to
+  // action. It is the one that has to be reached by *scrolling* once the
   // reorder has pulled the buttons above the fold, so without it a pass would
   // only be evidence that the panel got shorter - not that anything scrolls.
   // Rule: never answer a bad-looking screen by deleting information; this
   // asserts the information is still gettable.
-  ['This keeps Genie as your window', 'text'],
+  ['Remember my sign-in on this computer', 'text'],
 ]
+
+/*
+ * Two needles above were stale and both read as a clean NOT FOUND (issue #418,
+ * September 2026). 'Attach to Lich' and 'This keeps Genie as your window' were
+ * the wording before N5 rewrote this screen and deleted the Genie
+ * instructions, and after that no run of this probe examined either of them.
+ *
+ * That is section 1's "a check that always fires is as empty as one that never
+ * does" in its quietest form: the probe reported five controls, found three,
+ * and the two it could not find were not failures of the screen. So the list
+ * below is asserted rather than assumed - `emptyStateControlsPresent` is the
+ * denominator, and any suite using this must fail when a needle goes missing
+ * instead of counting a smaller population.
+ */
+export function emptyStateControlsPresent(measured) {
+  return measured.controls.filter((c) => c.found).length
+}
 
 export const EMPTY_STATE_PROBE = `
   const want = ${JSON.stringify(EMPTY_STATE_CONTROLS)};

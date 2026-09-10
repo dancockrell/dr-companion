@@ -319,6 +319,88 @@ console.log('\n-- telling a tagged stream from plain text --')
   }
 }
 
+console.log('\n-- a component that carried no text is state, not a blank row (#537) --')
+{
+  /*
+   * Dan's first live sign-in: the `experience` chip advertised 61 lines and
+   * the pane rendered 61 rows of a single space. DragonRealms clears a skill
+   * from the experience window by sending the component empty - Lich's own
+   * `ExpClearMindstate`, `Lich5/lib/dragonrealms/drinfomon/drparser.rb:20` -
+   * and every one of those arrived here as a line with `text: ''`.
+   *
+   * Asserted as the property a player cares about (a rendered row has text in
+   * it), not as the mechanism. A test naming `partialWasStateOnly` would go
+   * green for a rewrite that reintroduces the rows through another tag.
+   */
+  const skills = ['Athletics', 'Outdoorsmanship', 'Scholarship', 'Perception', 'Stealth']
+  let wire = ''
+  for (const s of skills) {
+    wire += `<pushStream id='experience'/><component id='exp ${s}'></component><popStream/>\r\n`
+  }
+  const state = newStreamState()
+  const got = feed(state, wire)
+  const blank = got.filter((l) => l.text.trim() === '')
+  ok('no experience row is empty', blank.length === 0, `${blank.length} of ${got.length} rows`)
+  // The denominator, and it is the fragile number: if the parser stopped
+  // recognising these tags entirely, "no empty rows" would be true of an
+  // empty output and this suite would certify the bug fixed by accident.
+  ok(
+    'and all five clears were actually seen',
+    state.stateOnly.experience === skills.length,
+    JSON.stringify(state.stateOnly)
+  )
+  // Counted against the channel it belonged to, not the main window. The pop
+  // happens before the newline, so reading the stack at emit time answered ''.
+  ok('counted against experience, not the main window', !('' in state.stateOnly))
+}
+
+console.log('\n-- and the same component carrying data still renders it (#537) --')
+{
+  /*
+   * The positive control, and the reason this is not "drop every experience
+   * line". `BriefExpOn` in the same Lich parser is the populated form, and it
+   * is the experience window a player reads.
+   */
+  const got = feed(
+    newStreamState(),
+    "<pushStream id='experience'/><component id='exp Athletics'>" +
+      "<d cmd='skill Athletics'>      Athletics:</d>   34 45% [ 2/34]</component>" +
+      '<popStream/>\r\n'
+  )
+  eq('the experience row survives whole', got.map((l) => l.text), [
+    '      Athletics:   34 45% [ 2/34]',
+  ])
+  eq('on the channel the game named', got.map((l) => l.stream), ['experience'])
+}
+
+console.log('\n-- a room component with text is untouched by that rule (#537) --')
+{
+  const got = feed(
+    newStreamState(),
+    "<pushStream id='room'/><component id='room desc'>The road bends north.</component><popStream/>\r\n"
+  )
+  eq('the room description still renders', got.map((l) => l.text), ['The road bends north.'])
+}
+
+console.log("\n-- the game's own paragraphing blanks are still kept (#537) --")
+{
+  /*
+   * The thing the fix must not break, and the reason `emit` cannot simply
+   * drop every empty line: the game paragraphs with real blank lines, and
+   * stripping them turns readable output into a wall.
+   */
+  const state = newStreamState()
+  const got = feed(state, 'one\r\n\r\ntwo\r\n')
+  eq('a blank between two paragraphs survives', got.map((l) => l.text), ['one', '', 'two'])
+  ok('and nothing was counted as state', Object.keys(state.stateOnly).length === 0)
+}
+
+console.log('\n-- text on the same line as an empty component is not lost (#537) --')
+{
+  const got = feed(newStreamState(), "You bow.<component id='exp Athletics'></component>\r\n")
+  eq('the text still emits', got.map((l) => l.text), ['You bow.'])
+}
+
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or
 // half-loaded run, not a regression test on the number of cases.

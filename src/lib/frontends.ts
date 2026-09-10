@@ -208,6 +208,29 @@ export function bridgeCommand(frontendId: string | null | undefined, arg?: strin
   return arg ? `${p}companion_bridge ${arg}` : `${p}companion_bridge`
 }
 
+/**
+ * The two commands that restart the bridge script, in order (issue #539).
+ *
+ * `;kill <script>` is Lich's own, not the bridge's: Lich prints
+ * `Stop it first with: #{$clean_lich_char}kill exp-monitor` from
+ * `Lich5/lib/global_defs.rb:2693` and `.../drinfomon/drexpmonitor.rb:54`, so
+ * the syntax is read off the installation rather than guessed. `;companion_bridge`
+ * then starts the copy now on disk, which is the whole point: a reinstall
+ * replaces the file and Lich goes on running what it read at start-up.
+ *
+ * Deliberately *not* `;companion_bridge stop` — that was tried against a live
+ * Lich and had no effect (the script has no such argument), and adding one
+ * would mean editing `lich-scripts/companion_bridge.lic`, which another lane
+ * holds. Nothing here needs the script's cooperation.
+ *
+ * Sent through the **game** socket rather than the bridge's WebSocket, which
+ * matters: the first command is what takes the WebSocket down.
+ */
+export function bridgeRestartCommands(frontendId: string | null | undefined): [string, string] {
+  const p = prefixFor(frontendId)
+  return [`${p}kill companion_bridge`, `${p}companion_bridge`]
+}
+
 /** Guess the frontend from a detected executable path. */
 export function frontendFromPath(path: string | null | undefined): string | null {
   if (!path) return null

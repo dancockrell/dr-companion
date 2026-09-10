@@ -33,6 +33,7 @@ import { ArrowDownToLine, Info } from 'lucide-react'
 import {
   setShowGaggedLines,
   useGameLines,
+  useGameStateOnly,
   useGameTabs,
   useShowGaggedLines,
   type DisplayLine,
@@ -84,6 +85,21 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
   // *named* channels and therefore excludes the main window. Building the row
   // out of that list is what made live game text undisplayable (#525).
   const streams = useGameTabs()
+  /*
+   * Lines the game sent on a channel that carried no text (issue #537).
+   *
+   * DragonRealms clears a skill from the experience window by sending an
+   * empty `<component id='exp Athletics'></component>`, and the parser no
+   * longer admits those as lines - Dan's first live sign-in produced 61 of
+   * them and the pane rendered 61 rows of a single space each.
+   *
+   * The count is here rather than nowhere because "wire it" and "delete it"
+   * look identical on screen and are opposite fixes. Deleting the rows alone
+   * would leave a channel that the game demonstrably used looking like one it
+   * had never touched, which is the exact inversion of the promise this
+   * file's header makes about the tabs being evidence.
+   */
+  const stateOnly = useGameStateOnly()
   const showGagged = useShowGaggedLines()
   const gagCount = usePlayerConfig().gags.filter((g) => g.enabled).length
   const logLines = useAppStore((s) => s.logLines)
@@ -369,7 +385,26 @@ export function StreamTabs({ highlights, heading, query = '' }: { highlights: Hi
           <p className="p-2 text-xs text-ink-faint">Nothing in game scrollback matches “{query.trim()}”.</p>
         )}
 
-        {!needle && !isLogTab(tab) && shown.length === 0 && (
+        {/* What the channel carried that was not text (issue #537).
+          *
+          * Said whenever there is any, not only when the channel is otherwise
+          * empty: a channel can mix real experience rows with clears, and a
+          * count that appeared and vanished depending on the mix would be a
+          * worse answer than one that is always there when it is non-zero.
+          *
+          * Named as what it is - the game's own state updates - rather than
+          * "dropped lines", because nothing was lost: the skills and the room
+          * both have panels fed from the same updates. */}
+        {!needle && !isLogTab(tab) && (stateOnly[tab] ?? 0) > 0 && (
+          <p className="p-2 text-xs text-ink-faint" data-testid={`state-only-note-${tab}`}>
+            The game sent {stateOnly[tab]} update
+            {stateOnly[tab] === 1 ? '' : 's'} on this channel that carried no
+            text — skill and room state, which the panels show rather than this
+            pane. They are not missing lines.
+          </p>
+        )}
+
+        {!needle && !isLogTab(tab) && shown.length === 0 && (stateOnly[tab] ?? 0) === 0 && (
           <p className="p-2 text-xs text-ink-faint">
             Nothing on this channel yet.
           </p>

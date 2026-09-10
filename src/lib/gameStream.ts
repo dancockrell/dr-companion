@@ -91,6 +91,18 @@ export interface StreamState {
    */
   partialWasStateOnly: boolean
   /**
+   * The stream that was open when this line was last marked state-only, so a
+   * drop can be counted against the channel it belonged to (issue #537).
+   *
+   * Recorded at the tag rather than read at emit time, because the game's own
+   * shape is `<pushStream id='experience'/><component .../></popStream>` and
+   * then the newline: by the time `emit()` runs the stack has already been
+   * popped, so reading it there attributed every experience drop to the main
+   * window. Measured - `stateOnly` came back `{"": 5}` for five experience
+   * clears before this field existed.
+   */
+  partialStateStream: string | null
+  /**
    * Whether the line being built contains any bold text.
    *
    * Separate from boldDepth, and the difference is a bug the tests caught.
@@ -162,6 +174,20 @@ export interface StreamState {
   roomDescriptionCapture: string | null
   /** Title from the current main streamWindow subtitle. */
   roomTitle: string | null
+  /**
+   * How many state-only lines have been dropped, per stream (issue #537).
+   *
+   * A dropped line leaves no trace in the buffer, and a channel whose every
+   * line is dropped would then look exactly like a channel the game never
+   * used - which inverts the promise `StreamTabs` makes in its own header,
+   * that a missing tab means the game sent nothing. So the drop is counted
+   * where it happens and the count is what the pane says out loud.
+   *
+   * Keyed by the stream that was open at the moment the line was dropped,
+   * `''` for the main window. Monotonic for the life of the parser state, the
+   * same as the scrollback's own `dropped` counter.
+   */
+  stateOnly: Record<string, number>
 }
 
 /**
@@ -191,7 +217,7 @@ export function newStreamState(): StreamState {
     afterPrompt: false, afterTagBreak: false, partial: '',
     partialWasStateOnly: false, roomPlayersCapture: null,
     inRoomObjsComponent: false, roomItemsBuilding: null, roomItemCapture: null,
-    roomDescriptionCapture: null, roomTitle: null,
+    roomDescriptionCapture: null, roomTitle: null, stateOnly: {}, partialStateStream: null,
     // Empty rather than absent, and the two are different on purpose: an
     // empty indicator map means no icon has ever been reported, which a
     // reader must be able to tell from an icon reported as 'unknown'.
@@ -351,6 +377,23 @@ function attrs(tag: string): Record<string, string> {
  * reason this takes a state object rather than being a pure function of a
  * string: a tag split across two socket reads has to survive the gap.
  */
+/**
+ * This tag contributed no text, so the line it is on is state rather than
+ * content — *if* nothing else has been added to it.
+ *
+ * One function rather than the six copies of
+ * `state.partialWasStateOnly = state.partial.length === 0` that used to be
+ * spread through `feed`, because issue #537 needed a second thing recorded at
+ * the same moment (which stream the drop belonged to) and six copies is six
+ * places to forget it. The condition is unchanged.
+ */
+function markStateOnly(state: StreamState): void {
+  state.partialWasStateOnly = state.partial.length === 0
+  state.partialStateStream = state.partialWasStateOnly
+    ? (state.stack[state.stack.length - 1] ?? '')
+    : null
+}
+
 export function feed(state: StreamState, chunk: string): StreamLine[] {
   const out: StreamLine[] = []
   state.buffer += chunk
@@ -371,6 +414,12 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     if (state.partial.length === 0 && state.partialWasStateOnly) {
       state.partialWasStateOnly = false
       state.partialBold = false
+      // Counted, never silent. See StreamState.stateOnly (issue #537). The
+      // stream comes from where the tag was, not from the stack now: the
+      // pop has usually already happened. See partialStateStream.
+      const where = state.partialStateStream ?? state.stack[state.stack.length - 1] ?? ''
+      state.stateOnly[where] = (state.stateOnly[where] ?? 0) + 1
+      state.partialStateStream = null
       return
     }
 
@@ -383,6 +432,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
     state.partial = ''
     state.partialBold = false
     state.partialWasStateOnly = false
+    state.partialStateStream = null
   }
 
   /** Throw away what is buffered without emitting it. */
@@ -540,7 +590,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         state.character.roomPresentation = undefined
         state.roomDescriptionCapture = null
         state.roomTitle = null
-        state.partialWasStateOnly = state.partial.length === 0
+        markStateOnly(state)
       } else if (name === 'streamwindow' && !closing) {
         const a = attrs(tag)
         if ((a.id ?? '').toLowerCase() === 'main' && a.subtitle) {
@@ -573,7 +623,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
             at: Date.now(),
           }
         }
-        state.partialWasStateOnly = state.partial.length === 0
+        markStateOnly(state)
       } else if (name === 'indicator') {
         const a = attrs(tag)
         // Ids arrive as 'IconBLEEDING'; stored as 'bleeding' so a reader is
@@ -589,7 +639,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
             at: Date.now(),
           }
         }
-        state.partialWasStateOnly = state.partial.length === 0
+        markStateOnly(state)
       } else if (name === 'compass') {
         // An opening <compass> replaces the previous exits rather than
         // merging: the game re-sends the whole set on every room change, and
@@ -598,7 +648,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         if (!closing) {
           state.character.compass = { value: [], from: 'stream', at: Date.now() }
         }
-        state.partialWasStateOnly = state.partial.length === 0
+        markStateOnly(state)
       } else if (name === 'dir') {
         const a = attrs(tag)
         const dir = a.value
@@ -609,7 +659,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
             at: Date.now(),
           }
         }
-        state.partialWasStateOnly = state.partial.length === 0
+        markStateOnly(state)
       } else if (name === 'clearstream') {
         // Not our business to clear anything: a client that dropped
         // scrollback because the game asked would lose the line somebody was
@@ -656,6 +706,28 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
           // still open should not leak a half-built item into the next one.
           state.roomItemCapture = null
         }
+        /*
+         * A component that carried no text is state, not a line (issue #537).
+         *
+         * DragonRealms clears a skill from the experience window by sending
+         * the component empty - `<component id='exp Athletics'></component>`,
+         * which is Lich's own `ExpClearMindstate` regexp
+         * (`Lich5/lib/dragonrealms/drinfomon/drparser.rb:20`). The room window
+         * does the same when nobody is there and the parser's `room players`
+         * capture already says so a hundred lines up: "an empty component is a
+         * real answer". Sixty-one of those in a row arrived on Dan's first live
+         * sign-in, each terminated by a newline, so `experience` advertised 61
+         * lines and rendered 61 rows of nothing.
+         *
+         * Exactly the mechanism Lich's attach dump already uses here - a run
+         * of `progressBar`/`indicator` tags and a newline with no text - so
+         * this is the same rule extended to a second producer rather than a
+         * second rule. The guard is `partial.length === 0` at emit time, so a
+         * component that *did* carry text still emits it: verified, an
+         * `exp Athletics` component with real experience data renders as
+         * `      Athletics:   34 45% [ 2/34]` on the `experience` channel.
+         */
+        markStateOnly(state)
       } else if (name === 'a' && state.inRoomObjsComponent) {
         // Bold marks a creature in room objs; only a plain <a> is loot
         // (Lich's own GameObj.new_loot path, xmlparser.rb:1080). A bold one
