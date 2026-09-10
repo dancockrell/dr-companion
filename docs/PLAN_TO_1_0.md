@@ -3373,7 +3373,8 @@ each file, counts and names the settings, and on a syntax error reports the
 to discover. `src/components/shared/SettingsFilesPanel.tsx` shows it. This lane
 is the write side, and nothing else.
 
-- [ ] **Z0  The schema, derived and never invented** (≈90)
+- [~] **Z0  The schema, derived and never invented** (≈90)
+  owner: claude claim: Z0 since: 2026-09-10
   touches: new:src/lib/drScriptsSchema.ts, lich-scripts/companion_bridge.lic, lich-scripts/test/yaml_test.rb
   depends-on: none
   do: `DOMAIN.md:1150-1153` — "the settings are structured, typed data. A herb entry is a record with `name`, `size`, `stackable`, `room`, `price`, `quantity`. A form produces that correctly every time; a person counting spaces does not." Derive the schema **from the installed `base.yaml` on the player's own disk**, at runtime, rather than committing a copy of somebody else's file: a committed schema is a fork of a file its authors keep changing, and it will drift silently. Anchors, aliases and merge keys (`<<: *`) are in scope and are the hard part; anchors do not cross files, which the derivation must respect.
