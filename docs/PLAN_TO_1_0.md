@@ -3159,7 +3159,8 @@ already has. None of them is a reimplementation, and an increment here whose
   sabotage: delete one contract row → the check names the intent that lost its row; add a tenth row for an intent `IntentName` does not declare → red. Restore, md5 either side.
   done-when: a session can implement any of R1–R7 without asking what the payload looks like.
 
-- [ ] **R1  `buffs`** (≈70)
+- [~] **R1  `buffs`** (≈70)
+  owner: claude-code claim: r1-buffs-intent since: 2026-09-10
   touches: lich-scripts/companion_bridge.lic, lich-scripts/test/protocol_harness.rb, src/bridge/mockBridge.ts, docs/BRIDGE_CONTRACT.md
   depends-on: R0
   do: first because `NEXT-50.md:441-447` (#42) nominates it — read-mostly, so the blast radius of getting it wrong is small. Start the player's own buff script; report which buffs are up as progress. Do not invent a spell list: gap row 20 records that nothing in this repo knows DR's spells, and `LIVE-STATE.md:281` records the same decision being taken deliberately for Bard songs.
