@@ -104,6 +104,8 @@
     "test:nullable-coercion": "node tools/nullable-field-coercion-test.mjs",
     "godot:export": "node tools/export-godot-viewer.mjs",
     "test:godot": "node tools/godot-tests.mjs",
+    "test:room-player": "node tools/python-test.mjs python/test_room_player.py --min 120",
+    "test:room-player-break": "python tools/room-player-break-check.py",
     "release:config": "node tools/build-release-config.mjs",
     "release:verify": "node tools/verify-release-bundle.mjs",
     "release:manifest": "node tools/build-update-manifest.mjs",

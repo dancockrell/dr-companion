@@ -439,6 +439,15 @@ const NOT_COVERED = [
     'python tools/sign-in-break-check.py',
     'drives a browser against the running app, and needs Python; run it by hand from docs/TESTING.md',
   ],
+  [
+    'break-room-player',
+    'python tools/room-player-break-check.py',
+    "needs a Godot 4 binary and Lich's DragonRealms map database, and runs the whole "
+      + 'room-player suite five times (one control, four sabotages) - minutes, not seconds. '
+      + 'Unlike the two above it damages nothing in this tree: it copies godot/ to a temp '
+      + 'directory first, so it is safe to run beside other sessions. Run it by hand when '
+      + 'godot/scripts/room_composer.gd changes',
+  ],
 ]
 
 /**

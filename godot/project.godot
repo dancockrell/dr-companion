@@ -4,10 +4,12 @@
 ; client with explicit mock and authenticated live modes, intent validation,
 ; event playback, a visibility budget, and an accessible room inspector. The
 ; WorldRoot scene, camera director and content registry this comment used to
-; name were the 3D subsystem and are deleted; a 2D isometric main scene has
-; not been authored yet, which is why run/main_scene below is unset. It ships
-; no final art. See docs/NO-3D.md at the repo root for the direction this
-; project implements.
+; name were the 3D subsystem and are deleted. The 2D isometric main scene this
+; paragraph used to say "has not been authored yet" now exists:
+; scenes/room.tscn, composing one room from a forge scene spec. It ships no
+; final art - every sprite is a labelled placeholder polygon keyed by kind, so
+; real art changes textures and nothing structural. See docs/NO-3D.md at the
+; repo root for the direction this project implements.
 
 config_version=5
 
@@ -15,8 +17,17 @@ config_version=5
 
 config/name="DR Companion World Viewer"
 config/description="World/route/room viewer for DR Companion, 2D isometric. Local presentation renderer only: owns no game state, credentials, or topology truth. 3D is cancelled, see ../docs/NO-3D.md."
-; run/main_scene removed: WorldRoot.tscn was the 3D scene. A 2D main scene
-; must be authored before this project runs. See ../docs/NO-3D.md.
+; `scenes/room.tscn` composes one room from a `forge` scene spec
+; through `scripts/room_composer.gd` - the same composer the headless control
+; API (`scripts/room_server.gd`) drives, so the window and the bot are looking
+; at one tree rather than two implementations of it.
+run/main_scene="res://scenes/room.tscn"
+; Left at 4.3 deliberately. `tools/godot-tests.mjs` reads this line as the
+; project's declared engine and refuses any binary that prints a different
+; version, so changing it here would stop every other checkout on this machine
+; from running the Godot suite. Nothing added for the room player uses an API
+; newer than 4.3; it was run on 4.3.stable and on 4.7.2.stable.mono and the
+; results are identical. Migrating the project is a separate, repo-wide call.
 config/features=PackedStringArray("4.3", "Forward Plus")
 
 [autoload]
