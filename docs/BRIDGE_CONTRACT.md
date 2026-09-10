@@ -120,13 +120,14 @@ planned ones — the client's activity buttons — get their own contract,
 | `map_here`, `map_path`, `map_walk`, `map_nearest`, `map_zone`, `install_mapdb` | map queries; `map_walk` is the one that moves the character |
 | `list_scripts`, `start_script` | launch any installed script by name |
 | `buffs` | R1, 10 Sep 2026 — starts the player's own `buff.lic`; see [Activity intents (Lane R)](#activity-intents-lane-r) |
+| `loot` | R2, 10 Sep 2026 — sends the game's own `loot <type>` verb; see [Activity intents (Lane R)](#activity-intents-lane-r) |
 
-**Planned, not yet implemented** — eight of the nine activity intents from
+**Planned, not yet implemented** — seven of the nine activity intents from
 [GAP-2026-09-09.md](GAP-2026-09-09.md), tracked as Lane R (`docs/PLAN_TO_1_0.md`
-§6b): `go_healer`, `town_run`, `start_training`, `loot`, `travel`,
-`escape_heal`, `start_combat`, `burgle`. `buffs` (above) is the first of the
-nine to land, R1. `isIntentImplemented` in
-`src/store/bridgePolicy.ts` disables the remaining eight's controls honestly
+§6b): `go_healer`, `town_run`, `start_training`, `travel`,
+`escape_heal`, `start_combat`, `burgle`. `buffs` and `loot` (above) are the
+first two of the nine to land, R1 and R2. `isIntentImplemented` in
+`src/store/bridgePolicy.ts` disables the remaining seven's controls honestly
 today. See
 [Activity intents (Lane R)](#activity-intents-lane-r) for the contract each
 one implements against, and the existing per-intent research below
@@ -1241,7 +1242,7 @@ its own pre-start check before it starts the next.
 | Intent | Increment | Status |
 |---|---|---|
 | `buffs` | R1 | implemented |
-| `loot` | R2 | not yet implemented |
+| `loot` | R2 | implemented |
 | `travel` | R3 | not yet implemented |
 | `escape_heal` | R4 | not yet implemented |
 | `go_healer` | R4 | not yet implemented |
@@ -1528,6 +1529,56 @@ the existing quick action and should be reconsidered rather than
 implemented, or (b) it's meant to carry real per-item preferences the client
 doesn't currently send anywhere, in which case the wire format needs those
 preferences specified before this can be built. Not deciding between them.
+
+**Landed (R2, 10 Sep 2026):** R0's own rule ("for `loot`, compose the
+existing quick-action") settled (a) for this batch: no new dr-scripts script.
+But "the existing quick-action" the real bridge composes is not `get all` —
+that string does not appear anywhere in `companion_bridge.lic` or
+`src/data/macros.ts`'s `Take all` macro step turned out to be the only place
+it lived, and it sends the raw floor-loose-items command, not a corpse loot.
+The DragonRealms verb dr-scripts' own automation actually sends after a kill
+is `loot <type>`, confirmed in the vendored scripts at
+`C:\Ruby4Lich5\Lich5\scripts` (read, not run, per instruction): `stabbity.lic`'s
+`loot_mob` — `fput("loot #{@settings.custom_loot_type}")` — and
+`profiles/base.yaml`'s comment on that same setting, `custom_loot_type`:
+"treasure/equipment/all? What LOOT type to use for mobs." That resolves (a)
+vs (b) further than R0 stated it: `loot` composes `loot <type>`, a single
+`Cmd.exec` call, the `stow_all`/`escape` shape, not `Script.start`.
+`burgle.lic`'s `loot_type` (`drop`/`keep`/`pawn`/`bin`/`trashcan`) is a
+*different* setting — a post-loot disposal policy `burgle.lic` and
+`combat-trainer.lic` apply themselves after items are already in hand — and
+is not what this intent sends; conflating the two would have been guessing
+data this repo does not have.
+
+`Intents.loot` in `companion_bridge.lic` follows the same refusal order as
+every other activity intent (Stop latched, Pause latched — no "not
+installed"/"already running" checks, because this sends one composed game
+command rather than starting a named script, the same shape difference
+`stow_all` and `escape` already have from `buffs`/`start_script`). An
+optional `type` argument is used verbatim (sanitised only, length- and
+control-character-checked); when absent, the character's own
+`custom_loot_type` dr-scripts setting is read back the same way `buffs`
+reads `waggle_sets`, and only when that is unset either does it fall back to
+plain `all` — never a disposal decision (`drop`/`pawn`/`bin`) invented on
+the player's behalf, which is how "no protected item is taken by default"
+(NEXT-50.md:449) is satisfied. Progress and refusal both follow R0's
+contract: `log` narration only, no bespoke payload, and the single reply
+line the game sends back to `loot <type>` (or an honest "no response seen"
+when nothing recognisable came back within the timeout, matching `escape`'s
+own precedent for the same uncertainty) is what `intent_ack.detail` reports
+— not a parsed inventory, since the game's own `loot` command is not
+guaranteed to reply in exactly one line and this bridge does not invent a
+second parser to itemise it.
+
+Not live-tested against a real character for this increment (no live
+DragonRealms session was available); syntax-checked (`ruby -c`) and verified
+against `tools/intent-drift-test.mjs` and
+`tools/activity-intent-contract-test.mjs` only. The exact in-game reply text
+`EXPECT[:loot]` matches is a best-effort pattern assembled from domain
+knowledge, not a captured transcript — flagged here rather than presented as
+proven, per this repo's own rule about writing checks rather than claims. A
+future session with a live character should confirm the pattern against real
+`loot <type>` output and tighten or correct it.
 
 ### `burgle` — **blocked on Dan, not spec'd**
 
