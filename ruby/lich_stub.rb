@@ -297,7 +297,11 @@ module DRRoom
 end
 
 module DRCI
-  def self.get_worn_containers = %w[backpack]
+  # No get_worn_containers here on purpose. It does not exist in Lich or in
+  # dr-scripts, companion_bridge.lic called it for months and got a silent
+  # NoMethodError every tick, and a stub that answered it was the reason no
+  # test could see that. See docs/BRIDGE_CONTRACT.md's container contents
+  # contract. Contents come from GameObj.containers, above.
   def self.remove_item?(item) = LichStub::Recorder.send!(:remove_item, item)
   def self.wear_item?(item) = LichStub::Recorder.send!(:wear_item, item)
   def self.stow_item?(item) = LichStub::Recorder.send!(:stow_item, item)
@@ -332,6 +336,11 @@ module GameObj
   def self.npcs = []
   def self.pcs = []
   def self.type = nil
+
+  # container id => contents. Real Lich fills this from the game's own
+  # `<inv id='...'>` blocks; empty here, which is the honest stub answer
+  # for a script that is not in the game.
+  def self.containers = {}
 end
 
 class StubRoom
@@ -443,12 +452,12 @@ module LichStub
       ],
       'DRSkill' => %w[list getrank getxp getskillset],
       'DRRoom' => %w[title npcs dead_npcs pcs group_members],
-      'DRCI' => %w[get_worn_containers remove_item? wear_item? stow_item? respond_to?],
+      'DRCI' => %w[remove_item? wear_item? stow_item? respond_to?],
       'DRC' => %w[assess_teach listen? bput message respond_to?],
       'DRCH' => %w[check_health],
       'DRSpells' => %w[active_spells],
       'DRInfomon' => %w[startup_complete?],
-      'GameObj' => %w[inv loot right_hand left_hand npcs pcs type],
+      'GameObj' => %w[inv loot right_hand left_hand npcs pcs type containers],
       'Room' => %w[current],
       'Map' => %w[current by_genie_ref list],
       'Script' => %w[current running exists? start run kill pause unpause at_exit self_kill],

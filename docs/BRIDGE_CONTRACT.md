@@ -837,11 +837,12 @@ to render "wounded but not bleeding" vs "actively bleeding" from the string
 and its own `bleeding` flag in the same data, not from a pre-flattened bit
 that has already thrown the distinction away.
 
-## Container contents contract (spec — not yet implemented, issue #5)
+## Container contents contract (implemented in W2, issue #5)
 
-Same author, same file-ownership rule, same status as the section above: a
-spec for `companion_bridge.lic`'s owner, not a description of what already
-ships.
+Written as a spec, delivered in Lane W's W2. What follows is the spec as it
+stood, then **what was actually built and where it departs from it** — the
+departures are at the end of this section and they are the part to read if
+you are extending this.
 
 **The bug is worse than the filed issue says.** #5 reads as "capacity is
 hardcoded to 0" — true against the mock bridge (`mockBridge.ts` invents
@@ -912,6 +913,72 @@ different known content counts, confirm `inventory.containers` reports the
 right names and the right `used` count for each (not `[]`, not `0`), and
 confirm the header now shows a real encumbrance word instead of a hardcoded
 "Space OK".
+
+### What W2 actually built, and where it departs from the spec above
+
+Three departures, all in the same direction: the spec assumed the count had
+to be *asked for*, and it does not.
+
+**1. Contents are read passively from `GameObj.containers`, not by
+rummaging.** Points 1 and 2 above proposed probing each candidate with
+`look_in_container`, and the cost note then deferred the whole thing behind
+an on-demand intent because rummaging every bag on a status tick is real
+roundtime and real message-log noise. That trade does not have to be made.
+Lich already maintains `GameObj.containers` — a `{container id => [contents]}`
+hash filled from the game's own `<inv id='...'>` blocks and committed at each
+prompt (`lib/common/xmlparser.rb`'s `clearContainer` / `inv` /
+`commit_all_containers`, and `GameObj.new_inv`'s container branch in
+`lib/common/gameobj.rb`). Reading it costs **no game command at all**, so the
+safety question the cost note raised — opening or closing something a player
+is mid-use of — never arises, and this can stay on the ordinary inventory
+push. The `look_in_container` route remains correct and remains unused.
+
+**2. An unknown container is omitted, not sent with a zero.** Lich holds a key
+only for containers the game has described this session, and drops it again
+when the game says the container closed. So a bag nobody has opened has no
+entry, and W2 leaves it out of the payload entirely rather than inventing a
+count for it. `InventorySummary.used` is optional for exactly this reason:
+absent means uncounted, `0` means empty. That distinction is the whole
+increment — the pre-W2 constant could not express it, and neither could a
+`used` that was required to be a number.
+
+The visible consequence: the reported list can be **shorter than what the
+character is actually wearing**. That is deliberate and is the honest shape.
+An enumeration of worn containers regardless of whether their contents are
+known would need the probe from point 1, and would buy a name the player can
+already see in `worn`.
+
+**3. `capacity` stays `0`, and this was checked rather than assumed.** The
+spec's "there is no capacity in Lich for DR, full stop" holds, with one
+qualification worth recording so nobody re-runs the search: the only numeric
+capacity read anywhere in the tree is `DRCI.count_lockpick_container`
+(`common-items.rb`), which is `APPRAISE <ring> QUICK` and is specific to
+lockpick rings and Necromancer stackers — it does not generalise. For an
+ordinary container the game's only fullness signal is the failure text when a
+PUT does not fit (`PUT_AWAY_ITEM_FAILURE_PATTERNS`: "There isn't any more room
+in", "even after stuffing it", "no matter how you arrange it"), which is a
+consequence of attempting the action, not a value that can be read. There is
+no qualitative capacity phrase to report either, so W2 adds no qualitative
+field: the honest answer is that DR exposes nothing here.
+
+**And the method that was called here never existed.** `DRCI.get_worn_containers`
+is in no version of Lich or dr-scripts on this machine — `grep -rn
+get_worn_containers /c/Ruby4Lich5/Lich5` returns this script and its own
+`.bak` and nothing else, while the same grep for `open_container?` finds a
+real definition. It raised `NoMethodError` into `safe([])` on every tick. Two
+smaller things fell out of fixing it: `reset_degraded!` ran *after* the
+container read rather than before, so a swallowed read of this very field
+could never be reported as degraded; and `ruby/lich_stub.rb`'s `SURFACE` list
+advertised `get_worn_containers` as covered, which is now removed and
+`GameObj.containers` added in its place.
+
+**Verified by:** `lich-scripts/test/container_test.rb` (`npm run
+test:containers`), whose fixture carries a three-item bag, an empty bag, an
+uncounted bag and a non-container at once, so a detector that cannot
+discriminate fails rather than returning a plausible zero. Sabotaged by
+restoring the pre-W2 constant-zero body: it reddens four checks including
+`full=0 empty=0`. Not exercised against a live DragonRealms character — the
+acceptance check above is still outstanding and is the honest gap.
 
 ## Lane W field specs (types published, not yet implemented)
 

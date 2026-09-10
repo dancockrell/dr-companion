@@ -41,6 +41,7 @@
     "test:map-walk": "node tools/ruby-test.mjs lich-scripts/test/map_walk_test.rb lich-scripts/companion_bridge.lic --min 23",
     "test:pause-bridge": "node tools/ruby-test.mjs lich-scripts/test/pause_test.rb lich-scripts/companion_bridge.lic --min 30",
     "test:map-nearest": "node tools/ruby-test.mjs lich-scripts/test/map_nearest_test.rb lich-scripts/companion_bridge.lic --min 15",
+    "test:containers": "node tools/ruby-test.mjs lich-scripts/test/container_test.rb lich-scripts/companion_bridge.lic --min 15",
     "test:pins": "node tools/pins-test.mjs",
     "test:pins-file": "node tools/pins-file-test.mjs",
     "test:pin-nudge": "node tools/pin-nudge-test.mjs",

@@ -64,12 +64,17 @@ end
 
 module GameObj
   def self.inv = (1..11).to_a
+
+  # Lich's own {container id => contents} registry, which is what the bridge
+  # reads for container counts. Empty here: this harness exercises the
+  # protocol, not the inventory, and an empty registry is the honest answer
+  # for a script that is not in the game. There is deliberately no
+  # DRCI.get_worn_containers stub any more - that method does not exist in
+  # Lich, the bridge called it for months and got a silent NoMethodError, and
+  # a stub that answered it is why no test could see that.
+  def self.containers = {}
   def self.right_hand = Struct.new(:id).new(nil)
   def self.left_hand = Struct.new(:id).new(nil)
-end
-
-module DRCI
-  def self.get_worn_containers = %w[backpack]
 end
 
 class FakeScript

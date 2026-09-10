@@ -607,23 +607,44 @@ export interface InventorySummary {
   containers: {
     name: string
     /**
-     * How many items this container holds, from a real recursive scan.
-     * There is no "not yet known" state for this one — a container with a
-     * genuine zero items and one nobody has counted yet are both `0`,
-     * because pre-W2 bridges only ever emit the constant `0` and cannot
-     * tell the two apart either (see docs/BRIDGE_CONTRACT.md's container
-     * contents contract, issue #5). `capacity` below is where the honest
-     * "not reported" state lives instead.
+     * How many items this container holds, counted for real.
+     *
+     * **Optional, and absent is the answer when nobody has counted.** W0 had
+     * to document the opposite — that a genuinely empty bag and an uncounted
+     * one were both `0` — because the bridge emitted the constant `0` for
+     * every container and could not tell them apart. W2 made the count real,
+     * so the sentinel is gone: a present number is a measurement, `0` means
+     * the container is empty, and absent means Lich has no contents for it
+     * (never opened this session, or closed again since).
+     *
+     * The bridge reads `GameObj.containers`, which Lich fills passively from
+     * the game's own `<inv id='...'>` blocks, so this costs no game command
+     * and cannot be stale in the way a cached rummage would be. See
+     * docs/BRIDGE_CONTRACT.md's container contents contract.
+     *
+     * A pre-0.15.0 bridge sends the old constant `0` here, which this field
+     * cannot distinguish from a real empty. That bridge is three fields
+     * behind in other ways too and `compareVersions` already tells the player
+     * to reinstall it; `EXPECTED_BRIDGE_VERSION` is what makes that warning
+     * fire, and is the reason this does not also need a per-field guard.
      */
-    used: number
+    used?: number
     /**
-     * DR has no capacity concept Lich exposes for a worn container — see
-     * docs/BRIDGE_CONTRACT.md's container contents contract. `0` is the
-     * sentinel every bridge sends today and means "not reported," not "no
-     * room left"; `InventoryPanel.tsx` already only draws the used/capacity
-     * bar when this is greater than zero and shows a plain count otherwise.
-     * A future bridge that can genuinely measure capacity would send a
-     * real positive number here; nothing currently can.
+     * Always `0`: DragonRealms exposes no capacity for an ordinary container,
+     * so this means "not reported" and never "no room left".
+     *
+     * Checked rather than assumed, across the installed Lich5 tree. The only
+     * numeric capacity read anywhere in dr-scripts is
+     * `DRCI.count_lockpick_container` (`APPRAISE <ring> QUICK`), which is
+     * specific to lockpick rings. For an ordinary bag the game's only signal
+     * is the failure text when a PUT does not fit — "There isn't any more
+     * room in", "even after stuffing it" — which is a consequence of trying,
+     * not a value that can be read. Inventing a number from item type would
+     * reproduce the bug W2 removed with extra steps.
+     *
+     * `InventoryPanel.tsx` draws the used/capacity bar only when this is
+     * greater than zero, so a future bridge that could genuinely measure one
+     * would light it up without any further change here.
      */
     capacity: number
     /** Present after a deliberate recursive inventory scan. */

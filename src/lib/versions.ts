@@ -34,7 +34,7 @@
  * now fails the build the moment these two numbers disagree rather than
  * waiting for a live app to print the warning at someone.
  */
-export const EXPECTED_BRIDGE_VERSION = '0.14.0'
+export const EXPECTED_BRIDGE_VERSION = '0.15.0'
 
 /**
  * Two version axes, one source each. Written down 9 Sep 2026 because two lanes

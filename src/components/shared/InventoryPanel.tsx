@@ -73,16 +73,18 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
   )
 
   /**
-   * `pressure`/`used`/`capacity` come from the bridge already fabricated:
-   * `companion_bridge.lic` hardcodes `used: 0, capacity: 0, pressure: 'ok'`
-   * for every container (issue #5) — a live bridge currently can't even reach
-   * that far, since it calls a `DRCI.get_worn_containers` method that does
-   * not exist in Lich and silently returns an empty list instead. Nothing
-   * here is measured yet, so nothing here is drawn as though it were. DR
-   * containers always have a real capacity above zero, so `capacity === 0`
-   * unambiguously means "not reported" rather than "holds nothing" — that's
-   * what gates the bar below, no separate unknown flag needed until the
-   * bridge starts sending a real number.
+   * `used` is a real count as of W2 and `capacity` is still nothing.
+   *
+   * The bridge used to hardcode `used: 0, capacity: 0` for every container
+   * (issue #5), and on a live bridge never got that far anyway — it called a
+   * `DRCI.get_worn_containers` that does not exist in Lich, so the list was
+   * always empty. It now reads `GameObj.containers`, Lich's own registry of
+   * what the game said each container holds, and **omits any container it has
+   * no contents for** rather than sending a zero. So `used === undefined` is
+   * "nobody has counted this", `used === 0` is "this bag is empty", and those
+   * two are drawn differently below. `capacity` stays 0 because DR exposes no
+   * capacity to read at all (see `InventorySummary.capacity`), which is why
+   * the bar is still gated on it rather than on `used`.
    *
    * `character.encumbrance` is real, already sent by the bridge
    * (`DRStats.encumbrance`), and was never read here — the panel computed
@@ -125,8 +127,12 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
 
       <div className="rounded-xl border border-border bg-surface-raised divide-y divide-border">
         {containers.map((c) => {
-          const known = c.capacity > 0
-          const pct = known ? Math.round((c.used / c.capacity) * 100) : 0
+          // Three states, not two: a measured count, a measured count against
+          // a real capacity, and no measurement at all. Folding the third into
+          // either of the first two is what W2 exists to undo.
+          const counted = typeof c.used === 'number'
+          const known = c.capacity > 0 && counted
+          const pct = known ? Math.round(((c.used ?? 0) / c.capacity) * 100) : 0
           const revealedBySearch = Boolean(needle) && Boolean(c.items)
           const expanded = open.has(c.name) || revealedBySearch
           return (
@@ -138,8 +144,12 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
                     <Package className="w-3.5 h-3.5 text-ink-faint shrink-0" />
                     <span className="truncate">{c.name}</span>
                   </span>
-                  <span className={!known ? 'text-ink-faint text-xs' : pct >= 90 ? 'text-danger text-xs' : pct >= 70 ? 'text-warn text-xs' : 'text-ink-muted text-xs'}>
-                    {known ? `${c.used}/${c.capacity}` : c.items ? `${c.items.length} items` : 'contents unknown'}
+                  <span className={known ? (pct >= 90 ? 'text-danger text-xs' : pct >= 70 ? 'text-warn text-xs' : 'text-ink-muted text-xs') : counted ? 'text-ink-muted text-xs' : 'text-ink-faint text-xs'}>
+                    {known
+                      ? `${c.used}/${c.capacity}`
+                      : counted
+                        ? c.used === 1 ? '1 item' : `${c.used} items`
+                        : 'contents unknown'}
                   </span>
                 </button>
                 <button type="button" className="grid w-8 shrink-0 place-items-center border-l border-border/50 text-ink-faint hover:text-info" onClick={() => showWiki(c.name)} title={`Look up ${c.name} on Elanthipedia`} aria-label={`Elanthipedia information for ${c.name}`}><BookOpen className="h-3.5 w-3.5" /></button>
