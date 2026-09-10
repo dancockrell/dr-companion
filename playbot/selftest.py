@@ -21,6 +21,7 @@ is asserted rather than assumed.
 from __future__ import annotations
 
 import random
+import re
 import sys
 
 from forge.compose import Placement, Scene
@@ -30,7 +31,7 @@ from .live import parse_room
 from .oracle import check_room
 from .world import World
 
-FLOOR = 32   # well under the real count, so truncation or an import failure shows
+FLOOR = 50   # well under the real count, so truncation or an import failure shows
 
 # Captured from 127.0.0.1:11024 on 10 Sep 2026 by sending `south` as Phemius.
 # Note what it does *not* have: the compass is empty on a move, and the room's
@@ -301,6 +302,360 @@ def execution_cases(world: World) -> None:
           f'got {waited}')
 
 
+# Captured the same session, by sending `look` in the room the move above
+# arrived in. The whole point of keeping it is what is missing: there is no
+# `<nav>` anywhere in it, and there never is on a look.
+LOOK_PAYLOAD = (
+    "<preset id='roomDesc'>This tranquil corner of the Green has a small bower of"
+    " entwined modwyn vines.</preset>\n"
+    "Obvious paths: <d>north</d>, <d>west</d>.\n"
+    "<style id=\"roomName\" />[The Crossing, Town Green Southeast]\n"
+    "<prompt time=\"1789050071\">&gt;</prompt>"
+)
+
+
+# The exact bytes a refused move comes back as, captured 10 Sep 2026 by
+# sending `up` in The Crossing, Bank Street. 62 bytes: no room block, so no
+# nav, and the character has demonstrably not moved.
+BLOCKED_PAYLOAD = ('You can\'t go there.\r\n'
+                   '<prompt time="1789058921">&gt;</prompt>\r\n')
+
+
+class _FakeSocket:
+    """Hands back one scripted reply, then behaves like a quiet socket."""
+
+    def __init__(self, reply: str) -> None:
+        self.reply = reply.encode('utf-8')
+        self.chunks: list[bytes] = []
+        self.sent: list[bytes] = []
+
+    def recv(self, _size: int) -> bytes:
+        # Nothing until something has been sent. `ask` calls `flush` first,
+        # and a fixture that answers that call feeds the reply to the drain
+        # instead of to the read - which made these cases fail against a fix
+        # that works. The fixture has to model the order, not just the bytes.
+        import socket as _socket
+        if not self.chunks:
+            raise _socket.timeout()
+        return self.chunks.pop(0)
+
+    def sendall(self, data: bytes) -> None:
+        self.sent.append(data)
+        self.chunks.append(self.reply)
+
+    def close(self) -> None:
+        pass
+
+
+def _walked(reply: str, last_uid: int | None):
+    """Drive the real `Session.walk` against a scripted reply.
+
+    The point is that `walk` decides for itself whether the character moved,
+    from the reply, and that decision is the thing under test.
+    """
+    from .live import Session
+    from .safety import Governor
+
+    session = Session.__new__(Session)
+    session.sock = _FakeSocket(reply)
+    session.governor = Governor(per_minute=100, total=100)
+    session.transcript, session.refusals, session.turns = [], [], []
+    session.vitals, session.indicators = {}, {}
+    session.last_uid = last_uid
+    session.walk('north', timeout=1.0)
+    return session
+
+
+def uid_cases() -> None:
+    """A look carries no identity, and what the bot does about that.
+
+    Three states, not two: read off the wire, carried because the character
+    demonstrably did not move, and unknown. Folding the third into either of
+    the others is the whole defect.
+    """
+    from .live import Session, Turn
+
+    session = Session.__new__(Session)      # no socket: only `absorb` is under test
+    session.vitals, session.indicators, session.last_uid = {}, {}, None
+
+    arrived = session.absorb(MOVE_PAYLOAD, moved=True)
+    check('a move carries the room uid off the wire', arrived.uid == 10031,
+          f'got {arrived.uid}')
+    check('a uid read off the wire is labelled as read', arrived.uid_source == 'nav',
+          f'got {arrived.uid_source}')
+
+    looked = session.absorb(LOOK_PAYLOAD, moved=False)
+    check('a look has no nav in it at all', '<nav' not in LOOK_PAYLOAD)
+    check('a look after a move keeps the uid the move gave', looked.uid == 10031,
+          f'got {looked.uid}')
+    check('a carried uid is labelled as carried', looked.uid_source == 'carried',
+          f'got {looked.uid_source}')
+
+    # The half that matters more: a *move* with no nav must not inherit one.
+    # Carrying it there would assert a position instead of reading one, and
+    # the safe-area bound downstream trusts this number.
+    moved_blind = session.absorb(LOOK_PAYLOAD, moved=True)
+    check('a move with no nav leaves the uid unknown', moved_blind.uid is None,
+          f'got {moved_blind.uid}')
+    check('an unknown uid is not labelled as anything', moved_blind.uid_source is None,
+          f'got {moved_blind.uid_source}')
+    after = session.absorb(LOOK_PAYLOAD, moved=False)
+    check('a look after an unidentified move does not resurrect a stale uid',
+          after.uid is None, f'got {after.uid}')
+
+    # These go through `Session.walk` rather than calling `absorb` with a
+    # `moved` this file worked out for itself. The first version did the
+    # latter and the sabotage harness caught it: damaging the line in `walk`
+    # that decides `moved` left every one of these green, because the test was
+    # checking my own arithmetic and never executed the code under test. A
+    # case that cannot see the line it is named after is worse than no case.
+    check('a refused move does not throw away the identity of the room you are in',
+          _walked(BLOCKED_PAYLOAD, last_uid=10031).last_uid == 10031,
+          f'got {_walked(BLOCKED_PAYLOAD, last_uid=10031).last_uid}')
+
+    walked = _walked(BLOCKED_PAYLOAD, last_uid=10031)
+    check('and a look after a refused move still knows where it is',
+          walked.absorb(LOOK_PAYLOAD, moved=False).uid == 10031)
+
+    # The control. A move that was *not* refused and carried no nav must still
+    # clear it, or the fix above has simply disabled the clearing.
+    check('an unrefused move with no nav still clears the identity',
+          _walked('You wander off.\r\n<prompt/>', last_uid=10031).last_uid is None,
+          f'got {_walked("You wander off.<prompt/>", last_uid=10031).last_uid}')
+
+
+def exit_cases() -> None:
+    """A reply carrying two compasses must not report six exits."""
+    doubled = MOVE_PAYLOAD.replace(
+        '<compass></compass>',
+        '<compass><dir value="n"/><dir value="e"/><dir value="n"/></compass>')
+    check('duplicate compass directions are collapsed',
+          parse_room(doubled).exits == ['north', 'east'],
+          f'got {parse_room(doubled).exits}')
+    check('collapsing does not lose a genuinely distinct exit',
+          sorted(parse_room(MOVE_PAYLOAD).exits) == ['north', 'northwest', 'west'],
+          f'got {parse_room(MOVE_PAYLOAD).exits}')
+
+
+def retreat_cases(world: World) -> None:
+    """The patrol may never choose a direction the safe area cannot bound."""
+    from .complaints import Sink
+    from .live import Session, Turn
+    from .patrol import Patrol
+
+    def patrol_at(last_movement):
+        sink = Sink()
+        session = Session.__new__(Session)
+        patrol = Patrol(world, session, sink, 'test')
+        patrol.last_movement = last_movement
+        return patrol, sink
+
+    class Room:
+        title = 'somewhere unmapped'
+        exits = ['north', 'east', 'south']
+
+    patrol, sink = patrol_at('north')
+    move = patrol._choose(None, Room())
+    check('an unmapped room is left by undoing the last move', move == (None, 'south'),
+          f'got {move}')
+    check('leaving the map is complained about',
+          any('map database does not hold' in c.summary for c, _, _ in sink.all()),
+          f'got {[c.summary for c, _, _ in sink.all()]}')
+
+    # The case this replaced: the old code took `room.exits[0]` here, which is
+    # 'north' - a direction chosen with nothing bounding where it goes.
+    check('the retreat is not simply the first exit the game offered',
+          move[1] != Room.exits[0])
+
+    patrol, sink = patrol_at('out')
+    move = patrol._choose(None, Room())
+    check('with no invertible last move the patrol stops instead of guessing',
+          move is None, f'got {move}')
+    check('stopping rather than guessing is blocking',
+          any(c.severity == 'blocking' for c, _, _ in sink.all()),
+          f'got {[(c.severity, c.summary) for c, _, _ in sink.all()]}')
+
+
+def sameness_cases(world: World) -> None:
+    """A street of identical rooms, which no per-room rule can see."""
+    from .complaints import Sink
+    from .live import Session, Turn
+    from .patrol import SAME_RUN, Patrol
+
+    def walked(signatures):
+        sink = Sink()
+        patrol = Patrol(world, Session.__new__(Session), sink, 'test')
+        patrol.signatures = [(100 + i, s) for i, s in enumerate(signatures)]
+        patrol.finish()
+        return [c.summary for c, _, _ in sink.all()]
+
+    same = walked(['a'] * (SAME_RUN + 1))
+    check('a run of identical rooms is complained about',
+          any('render identically' in s for s in same), f'got {same}')
+
+    varied = walked(list('abcdefgh'))
+    check('a walk of distinct rooms produces no sameness complaint',
+          not any('render identically' in s for s in varied), f'got {varied}')
+    check('a distinct walk is not called samey either',
+          not any('same handful of places' in s for s in varied), f'got {varied}')
+
+    # A run one short of the threshold must stay silent, or the check is
+    # really "any two rooms alike" wearing a threshold's clothes.
+    edge = walked(['a'] * (SAME_RUN - 1) + list('xyz'))
+    check(f'a run of {SAME_RUN - 1} does not trip a threshold of {SAME_RUN}',
+          not any('render identically' in s for s in edge), f'got {edge}')
+
+    # Alternating on purpose, so no three in a row are alike: this isolates
+    # the ratio check from the run check above. A fixture like 'aabbccdd'
+    # trips both at once and would let either one carry the other - and it
+    # sits at exactly 50%, on the wrong side of the threshold, which is how
+    # this case first failed.
+    samey = walked(list('abababab'))
+    check('a walk with few distinct pictures is called thin',
+          any('same handful of places' in s for s in samey), f'got {samey}')
+    check('and that fixture trips the ratio check without the run check',
+          not any('render identically' in s for s in samey), f'got {samey}')
+
+
+class _ScriptedSession:
+    """A session that hands `Patrol.run` a prepared sequence of rooms."""
+
+    def __init__(self, rooms):
+        self.rooms = list(rooms)
+        self.governor = self.refusals = None
+        self.asked = 0
+
+    def _next(self):
+        from .live import Turn
+        room = self.rooms.pop(0) if self.rooms else _unreadable()
+        self.asked += 1
+        return room, Turn(command='x', raw='<prompt/>', latency=0.1, sent=True)
+
+    def look(self, timeout=8.0):
+        return self._next()
+
+    def walk(self, _movement, timeout=12.0):
+        return self._next()
+
+    def ask(self, _command, timeout=8.0):
+        return self._next()
+
+
+def _readable(world: World):
+    from .live import LiveRoom
+    record = world.match_uid(10031)
+    return LiveRoom(uid=10031, title=(record.get('title') or ['x'])[0],
+                    description=(record.get('description') or ['x'])[0],
+                    exits=['north'])
+
+
+def _unreadable():
+    from .live import LiveRoom
+    return LiveRoom(uid=None, title='somewhere', description=None)
+
+
+def stuck_cases(world: World) -> None:
+    """The guard that ended both live walks of this cycle, 440 steps early.
+
+    `stuck` counted every unreadable room a walk ever met and never came back
+    down, so it fired on the fourth in the *session* while its message said
+    "in a row". Nothing could see it from inside: the walk stopped, said a
+    sentence that sounded like a reason, and reported everything it had found
+    up to that point as a completed run.
+    """
+    from .complaints import Sink
+    from .patrol import Patrol
+
+    def walk(rooms, steps=14):
+        patrol = Patrol(world, _ScriptedSession(rooms), Sink(), 'test')
+        patrol.pace = lambda: None
+        patrol.run(steps)
+        return patrol.stopped_because
+
+    # The shape matters. `run` already recovers from one unreadable arrival by
+    # looking, so a single unreadable room never reaches the top of the loop.
+    # Two in succession do: the walk lands unreadable, the recovery look is
+    # unreadable too, and the next pass through the loop is where `stuck`
+    # moves. So (readable, unreadable, unreadable) repeated puts exactly one
+    # increment between two readable rooms - six of them, well past the
+    # threshold of four, with a reset available each time.
+    #
+    # An earlier fixture here alternated one-for-one and failed against the
+    # fix, because it simply ran out of rooms and the scripted session then
+    # returned unreadable ones forever - four in a row, stopping the walk for
+    # the right reason at the wrong time. The fixture was wrong, not the code.
+    scattered = [_readable(world)] + [_unreadable(), _unreadable(),
+                                      _readable(world)] * 8
+    stopped = walk(scattered, steps=20)
+    check('four unreadable rooms scattered through a walk do not stop it',
+          stopped != 'four unreadable rooms in a row', f'stopped: {stopped!r}')
+
+    # No readable room at the front, deliberately. With one, the walk has to
+    # reach `_choose` and pick a move before it can meet an unreadable room,
+    # so this case would also depend on the map graph - and it did: emptying
+    # the safe area reddened it, because the walk then stopped for a different
+    # reason entirely. Starting unreadable means the guard is the only thing
+    # under test, which is what the case is named after.
+    consecutive = [_unreadable() for _ in range(12)]
+    stopped = walk(consecutive, steps=20)
+    check('four unreadable rooms in a row still stop the walk',
+          stopped == 'four unreadable rooms in a row', f'stopped: {stopped!r}')
+
+
+def population_cases(world: World) -> None:
+    """An occupied room whose picture is empty - the live-only complaint."""
+    from .complaints import Sink
+    from .live import Session, Turn
+    from .patrol import Patrol
+
+    class Bare:
+        placements: list = []
+
+    def occupants(payload):
+        sink = Sink()
+        patrol = Patrol(world, Session.__new__(Session), sink, 'test')
+        patrol._check_population(parse_room(payload), Bare())
+        return [c.summary for c, _, _ in sink.all()]
+
+    peopled = occupants(MOVE_PAYLOAD)
+    check('a room with someone in it and an empty scene is complained about',
+          any('draws nobody' in s for s in peopled), f'got {peopled}')
+
+    # The control. Without it this case passes just as well against a check
+    # that fires on every room it is ever handed.
+    empty = occupants(MOVE_PAYLOAD.replace(
+        "<component id='room players'>Also here: Chore.</component>", ''))
+    check('an empty room produces no such complaint', empty == [], f'got {empty}')
+
+    check('the forge really has no feature for a person, which is what the '
+          'complaint asserts',
+          not _forge_mentions_a_person_kind(),
+          'something in forge now produces a person placement, so reword the complaint')
+
+
+def _forge_mentions_a_person_kind() -> bool:
+    """Is there any placement kind standing for a person yet?
+
+    The complaint above claims a capability is missing, and a claim about
+    somebody else's code goes stale the moment they add it - at which point
+    the bot would be filing a defect that has been fixed. This reads the
+    forge rather than remembering what it said today.
+    """
+    import pathlib
+
+    import forge
+    root = pathlib.Path(forge.__file__).parent
+    for path in root.glob('*.py'):
+        if path.name.startswith('test_'):
+            continue
+        for line in path.read_text(encoding='utf-8').splitlines():
+            if 'kind' not in line or line.lstrip().startswith('#'):
+                continue
+            if re.search(r"kind\s*=\s*['\"](person|people|crowd|figure|npc)", line):
+                return True
+    return False
+
+
 def main() -> int:
     world = World.load()
     parser_cases()
@@ -308,6 +663,12 @@ def main() -> int:
     exploration_cases(world)
     oracle_cases()
     execution_cases(world)
+    population_cases(world)
+    exit_cases()
+    stuck_cases(world)
+    uid_cases()
+    retreat_cases(world)
+    sameness_cases(world)
 
     print(f'{_ran} cases ran, {len(_failed)} failed')
     for failure in _failed:

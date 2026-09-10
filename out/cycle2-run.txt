@@ -1,0 +1,91 @@
+map database: 18,950 rooms, 15,674 with a uid
+safe area: 594 rooms in 16 locations
+
+distinct rooms: 176   moves attempted: 360   in 25.3 min
+  arrivals identified by uid: 265 (of which 1 carried across a look)   by description: 95   not identified: 0
+  retreats out of unmapped rooms: 0   distinct scene signatures: 162 over 162 scenes
+  moves that landed elsewhere: 0   moves that did not move: 0
+  answer time over 461 commands: median 0.39s, p90 0.42s, worst 0.55s
+  commands sent: 461   refused by the safety list: 0
+  stopped: four unreadable rooms in a row
+
+247 complaints, 17 distinct:
+
+  [blocking] scene   x14     the room has a description but produced no scene at all
+             expected: a scene of some archetype
+             observed: nothing in the text says what the ground is; nothing says whether this is inside, outside or underground
+             rooms: #747, #767, #766, #762, #807
+
+  [wrong   ] scene   x9      the room contains a sign the scene has nowhere to put
+             expected: a sign placement
+             observed: scene kinds: door, well
+
+  [wrong   ] scene   x8      the room contains a well the scene has nowhere to put
+             expected: a well placement
+             observed: scene kinds: building, door, hanging, roof, tree-broadleaf
+
+  [wrong   ] bot     x4      the game sent something the room parser could not read
+             expected: a title and a description
+             observed: title='The Crossing, Riverpine Circle' description=False
+
+  [wrong   ] scene   x3      the description names a well and the scene has none
+             expected: a placement of kind well
+             observed: kinds present: armor, building, door, hearth, reed, wall
+             rooms: #730, #769, #759
+
+  [wrong   ] scene   x2      the description is of somewhere open to the sky and the scene has a roof
+             expected: an outdoor or forest archetype
+             observed: archetype interior, text says: sky, moons
+             rooms: #14756, #8240
+
+  [wrong   ] scene   x1      the room contains a anvil the scene has nowhere to put
+             expected: a hearth placement
+             observed: scene kinds: building, door, hill, wall
+
+  [wrong   ] scene   x1      the room contains a forge the scene has nowhere to put
+             expected: a hearth placement
+             observed: scene kinds: building, door, hill, wall
+
+  [wrong   ] scene   x1      the room contains a table the scene has nowhere to put
+             expected: a counter placement
+             observed: scene kinds: bridge, building, door
+
+  [wrong   ] scene   x1      the description names a tree and the scene has none
+             expected: a placement of kind tree or tree-broadleaf or tree-conifer or tree-palm or tree-dead
+             observed: kinds present: book, building, crop, door, wall
+             rooms: #5990
+
+  [wrong   ] scene   x1      the room contains a bench the scene has nowhere to put
+             expected: a counter placement
+             observed: scene kinds: cushion, door, expanse, tree, tree-broadleaf, well
+
+  [wrong   ] scene   x1      the room contains a fountain the scene has nowhere to put
+             expected: a well placement
+             observed: scene kinds: shrub, tree
+
+  [thin    ] scene   x48     two features are placed at the same position and will overlap
+             expected: one feature per position, or a composer that offsets them
+             observed: northeast: building, shrub
+             rooms: #1644, #1643, #1618, #729, #748
+
+  [thin    ] scene   x12     the room described more than the scene had room for
+             expected: every detected feature placed
+             observed: 2 dropped
+             rooms: #752, #7902, #5990, #16657, #16659
+
+  [thin    ] scene   x1      the scene is bare - a ground plane and nothing else
+             expected: at least one feature from a description this long
+             observed: 47 words of description produced 0 placements
+             rooms: #802
+
+  [note    ] bot     x95     the first room of a session is identified by prose, having never been arrived at
+             expected: an arrival to take a uid from
+             observed: matched on the first 60 characters of the description
+             rooms: #1644, #773, #770, #766, #818
+
+  [note    ] scene   x45     the ground was chosen by archetype because the text never said
+             expected: the description to name a surface
+             observed: defaulted to dirt
+             rooms: #1644, #732, #731, #730, #728
+
+17 distinct complaints -> out/live-cycle2.jsonl

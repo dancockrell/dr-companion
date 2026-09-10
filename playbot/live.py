@@ -136,6 +136,12 @@ class Turn:
 @dataclass
 class LiveRoom:
     uid: int | None = None
+    # How the uid was come by: 'nav' straight off the wire, 'carried' from the
+    # last arrival because this reply was a look and a look never carries one,
+    # None if unknown. Kept separate from the uid itself so a caller can tell
+    # an exact identity from a justified inference - the two are different
+    # claims and only one of them survives a move.
+    uid_source: str | None = None
     title: str | None = None
     description: str | None = None
     exits: list[str] = field(default_factory=list)
@@ -293,14 +299,54 @@ class Session:
 
     def look(self, timeout: float = 8.0) -> tuple[LiveRoom, Turn]:
         turn = self.ask('look', timeout)
-        return self.absorb(turn.raw), turn
+        return self.absorb(turn.raw, moved=False), turn
 
     def walk(self, movement: str, timeout: float = 12.0) -> tuple[LiveRoom, Turn]:
         turn = self.ask(movement, timeout)
-        return self.absorb(turn.raw), turn
+        # A move the game *refused* moved nobody, and treating it as a move is
+        # what the first version of this got wrong. Measured on the wire:
+        #
+        #     up  ->  "You can't go there.\r\n<prompt .../>"   62 bytes
+        #
+        # No room block, so no nav, so `moved=True` cleared the identity of a
+        # room the character was still standing in - and the recovery look
+        # could not restore it either, because the thing it carries forward had
+        # just been thrown away. That cascade is what ended the second live
+        # walk 440 steps early on "four unreadable rooms in a row", and what
+        # sent 95 arrivals to be identified by prose in a run whose whole
+        # point was that identity comes from the game.
+        #
+        # `moved` is a claim that the character *may* be somewhere else. A
+        # refusal is positive evidence that it is not.
+        return self.absorb(turn.raw, moved=turn.blocked is None), turn
 
-    def absorb(self, raw: str) -> LiveRoom:
-        """Parse a room and keep the session-level state the game sends once."""
+    def absorb(self, raw: str, moved: bool = True) -> LiveRoom:
+        """Parse a room and keep the session-level state the game sends once.
+
+        ``moved`` says whether the command that produced this text could have
+        changed which room the character is standing in, and it decides what an
+        absent ``<nav>`` means. Measured on the wire rather than assumed, five
+        commands in a row:
+
+            look   nav=None   name="Wedding Chapel, Bride's Chamber"
+            north  nav=755062 name='Wedding Chapel, Foyer'
+            look   nav=None   name='Wedding Chapel, Foyer'
+            south  nav=755064 name="Wedding Chapel, Bride's Chamber"
+            look   nav=None   name="Wedding Chapel, Bride's Chamber"
+
+        **The game sends the room's identity on arrival and never on a look.**
+        So a look with no nav is not the game withholding anything; the
+        character has not moved and the uid is the one it already gave us. The
+        previous walk filed nine of those against the *game* - "the game sent
+        no room uid" - when the bot had asked with the one verb that never
+        carries one, and then identified those rooms by prose or not at all.
+
+        A *move* with no nav is the opposite case and stays unknown: the
+        character may well be somewhere else, and carrying the old uid forward
+        there would assert a position rather than read one. That is the error
+        worth being careful about, because everything downstream - the route,
+        the safe-area bound - trusts this number.
+        """
         room = parse_room(raw)
         if room.vitals:
             self.vitals.update(room.vitals)
@@ -310,6 +356,12 @@ class Session:
         room.indicators = dict(self.indicators)
         if room.uid is not None:
             self.last_uid = room.uid
+            room.uid_source = 'nav'
+        elif not moved:
+            room.uid = self.last_uid
+            room.uid_source = 'carried' if self.last_uid is not None else None
+        else:
+            self.last_uid = None
         return room
 
 
@@ -343,6 +395,13 @@ def parse_room(raw: str) -> LiveRoom:
         if paths:
             room.exits = [w for w in re.findall(r'[a-z]+', strip_tags(paths.group(1)).lower())
                           if w in _COMPASS_WORD.values()]
+    # A reply can carry the same exits twice - the main stream and the room
+    # stream each get a compass - and a room on Bank Street came back as
+    # ['north', 'east', 'west', 'north', 'east', 'west']. Nothing downstream
+    # crashed on that, which is why it survived: the exit comparison makes a
+    # set of it. But the oracle counts placements against this list, so a
+    # doubled list quietly doubles what a scene is asked to account for.
+    room.exits = list(dict.fromkeys(room.exits))
 
     objs = _ROOM_OBJS.search(raw)
     if objs:
