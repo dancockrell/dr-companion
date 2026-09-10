@@ -3319,7 +3319,8 @@ guesswork would be the invented-data defect this repository has already been
 burned by twice (`NEXT-50.md:32` on portraits, `LIVE-STATE.md:281` on Bard
 songs).
 
-- [ ] **Y0  Establish what a task actually is, from sources** (≈70)
+- [~] **Y0  Establish what a task actually is, from sources** (≈70)
+  owner: claude claim: Y0 since: 2026-09-10
   touches: new:docs/BOUNTIES.md, docs/DOMAIN.md
   depends-on: none
   do: from Elanthipedia and from the vendored Lich scripts (read, never run), write down: who gives tasks, what kinds exist, how one is accepted, how progress is reported in the game text, how one is turned in, and what a failure looks like. Cite each claim. **Where a fact is not established, say so and leave it out** — `DOMAIN.md` earns its authority by marking its own invented numbers as invented (`:133`), and this page must do the same.
