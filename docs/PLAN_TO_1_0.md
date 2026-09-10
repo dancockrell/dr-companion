@@ -3373,13 +3373,31 @@ each file, counts and names the settings, and on a syntax error reports the
 to discover. `src/components/shared/SettingsFilesPanel.tsx` shows it. This lane
 is the write side, and nothing else.
 
-- [~] **Z0  The schema, derived and never invented** (≈90)
-  owner: claude claim: Z0 since: 2026-09-10
-  touches: new:src/lib/drScriptsSchema.ts, lich-scripts/companion_bridge.lic, lich-scripts/test/yaml_test.rb
+- [x] **Z0  The schema, derived and never invented** (≈90)
+  commit: (this PR) verified: 2026-09-10 minutes: 120
+  note: scoped down. `lich-scripts/companion_bridge.lic` was held by lane R0
+  (`lane-r0/activity-intent-contract`, live uncommitted changes at the time)
+  for the whole of this session — §3.1 allows only one increment touching it
+  in progress at a time across R/W/X/Y/Z, so the bridge-side change (sending
+  a settings file's raw text to the client over the socket) and
+  `lich-scripts/test/yaml_test.rb` are deferred to whoever next holds the
+  bridge queue. What shipped is the whole derivation itself: `deriveSchema`/
+  `deriveSchemaFromYaml` in `src/lib/drScriptsSchema.ts`, usable today from
+  a Node test, a Tauri `fs` read, or the bridge once free. Verified against
+  the real, installed `C:\Ruby4Lich5\Lich5\scripts\profiles\base.yaml`: 629
+  settings derived, 0 unparsed. Two things turned out to be the real "hard
+  part", both measured rather than assumed: `js-yaml` 5.4.1's *default*
+  schema does not resolve `<<` merge keys at all (confirmed empirically,
+  not from docs — `YAML11_SCHEMA` does, and it also matches Ruby/Psych's
+  looser YAML-1.1 scalar rules, which is what this derivation should see);
+  and the installed `base.yaml` itself uses `!ruby/regexp` scalars, which
+  the default schema rejects outright — a generic `!ruby/*` tag handler
+  keeps that setting in the schema instead of failing the whole file.
+  touches: new:src/lib/drScriptsSchema.ts, tools/drscripts-schema-test.mjs, package.json, tools/test-suites.json, docs/PLAYER_DATA.md, docs/PRIVACY.md
   depends-on: none
   do: `DOMAIN.md:1150-1153` — "the settings are structured, typed data. A herb entry is a record with `name`, `size`, `stackable`, `room`, `price`, `quantity`. A form produces that correctly every time; a person counting spaces does not." Derive the schema **from the installed `base.yaml` on the player's own disk**, at runtime, rather than committing a copy of somebody else's file: a committed schema is a fork of a file its authors keep changing, and it will drift silently. Anchors, aliases and merge keys (`<<: *`) are in scope and are the hard part; anchors do not cross files, which the derivation must respect.
-  verify: derive against the installed `base.yaml` and report how many settings were found, with a floor — a derivation that finds nothing must fail, not produce an empty form.
-  sabotage: point it at a `base.yaml` with a broken anchor and confirm it reports the line rather than producing a schema missing one branch.
+  verify: `node tools/drscripts-schema-test.mjs` → `all passed`, including a section against the real installed `base.yaml` (629 settings, floor is 200 in the test). `npx tsc -b` and `npm run lint` clean on the new file.
+  sabotage: point it at a `base.yaml` with a broken anchor and confirm it reports the line rather than producing a schema missing one branch — covered as a permanent regression case in the test suite. Also: the floor check itself (`MIN_SETTINGS`) was disabled in the source, the suite's own harness confirmed an empty mapping then reported "ok", and the source was restored and md5-verified byte-identical.
 
 - [ ] **Z1  The write side, which must never touch `base.yaml`** (≈90)
   touches: new:src/lib/drScriptsWrite.ts, lich-scripts/companion_bridge.lic
