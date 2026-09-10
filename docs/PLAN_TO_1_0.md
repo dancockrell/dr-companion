@@ -3283,12 +3283,13 @@ between provinces, repair (including magic repair kits and crafting tool
 repair), and pawning." `DOMAIN.md:358-359` names the Lich APIs to drive rather
 than reimplement — `DRCM` for money, `DRCI` for inventory, `DRCT` for travel.
 
-- [~] **X0  Publish the money and shop types** (≈50)
-  owner: claude claim: X0 since: 2026-09-10
-  touches: new:src/lib/townLoop.ts, docs/BRIDGE_CONTRACT.md, src/types/index.ts
+- [x] **X0  Publish the money and shop types** (≈50)
+  commit: (this PR) verified: 2026-09-10 minutes: 75
+  touches: src/lib/townLoop.ts, docs/BRIDGE_CONTRACT.md, src/types/index.ts, tools/townLoop-test.mjs, package.json, tools/test-suites.json, docs/PLAYER_DATA.md, docs/PRIVACY.md
   depends-on: none
   do: denominations first, because a wrong one is a silent factor of ten: `DOMAIN.md:148` — 1 platinum = 10 gold = 100 silver = 1,000 bronze = 10,000 copper. Model coins on hand and coins banked as different things per province, because cross-province exchange is a real step in the loop. Nothing here reads a shop database, because there is not one: measured, `data/elanthipedia/` has 11 files covering items, weapons, armour, creatures and materials, and **nothing about merchants**.
   verify: a round-trip test over every denomination boundary, and one deliberately wrong conversion that must fail.
+  note: `src/types/index.ts` gained a barrel re-export of `Wealth`/`TownTransactionResult`/`ExchangeQuote` only — `CharacterStatus` itself was left untouched, because the conflict matrix locked it to W0 and W0 had not landed when this work started. W0 merged (#551) while this increment's gate was running; wiring `Wealth` onto `CharacterStatus` is left for a later Lane X increment (X1) rather than added here as scope creep.
 
 - [ ] **X1  Wealth: what you have, and where** (≈60)
   touches: lich-scripts/companion_bridge.lic, new:src/components/shared/WealthPanel.tsx, src/lib/panelDataContracts.ts, src/lib/layout.ts, src/components/dashboard/panels.tsx

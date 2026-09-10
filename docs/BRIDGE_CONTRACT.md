@@ -1412,6 +1412,22 @@ tier-gating note above — sending a vault-tier player to try a vault step
 that F2P can't use is the exact bug the existing capability-aware rule in
 this document was written to prevent.
 
+**Money types (Lane X0, published, not yet wired):** `src/lib/townLoop.ts`
+now carries the coin/currency data model this composition needs — copper is
+the base unit, denominations convert at `1 platinum = 10 gold = 100 silver =
+1,000 bronze = 10,000 copper` (`DOMAIN.md:148`), `Wealth` splits coins on
+hand from coins banked, and banked funds are keyed per province because a
+DragonRealms bank balance stays where it was deposited (see the file's own
+header comment for the reasoning). `DRCM` is the commons module that will
+drive this once a lane wires it — see "The Lich API this reads" below — but
+**no status payload carries a `Wealth` field yet**: `hello`/`status` are
+unchanged by this increment, and nothing here should be read as the wire
+shape until a later Lane X increment publishes it in the `status` message
+above. `TownTransactionResult` and `ExchangeQuote` are the shared shapes
+Lane X2 (sell/pawn/repair) and Lane X3 (banking/exchange) report through,
+so a refusal and a completed transaction are never confused (X2's own
+`verify:` line) and an exchange always states its rate and fee first (X3's).
+
 ### `go_healer`
 
 **What already does this, partially:** `scripts/go2.lic` resolves the map

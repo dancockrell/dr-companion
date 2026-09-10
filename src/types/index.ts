@@ -19,9 +19,18 @@ import type { Trail } from '../lib/trail'
 import type { QuickSwitchPin } from '../lib/quickSwitch'
 import type { PauseLatchMode } from '../lib/bridgeModeSelect'
 import type { ConnectIntent } from '../bridge/realBridge'
+import type { Wealth, TownTransactionResult, ExchangeQuote } from '../lib/townLoop.ts'
 
 export type { SkillState }
 export type { CharacterProfile }
+/**
+ * Money/town-loop types (Lane X0). Re-exported here, not added to
+ * `CharacterStatus`, deliberately: the conflict matrix in
+ * docs/PLAN_TO_1_0.md section 3 locks `CharacterStatus` to W0 until W0 is
+ * `[x]`, and it is not yet. A later Lane X increment wires `Wealth` onto
+ * `CharacterStatus` once that lock is released.
+ */
+export type { Wealth, TownTransactionResult, ExchangeQuote }
 
 export type GameInstance = 'Prime' | 'Platinum' | 'Fallen' | 'Test' | 'Unknown'
 

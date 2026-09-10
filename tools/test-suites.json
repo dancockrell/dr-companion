@@ -154,6 +154,7 @@
   "test:scrollable-region",
   "test:map-landmarks",
   "test:splitter-range",
+  "test:town-loop",
   "test:game-time",
   "test:command-history",
   "test:editor-safety",
