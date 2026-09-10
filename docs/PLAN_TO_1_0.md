@@ -3319,13 +3319,14 @@ guesswork would be the invented-data defect this repository has already been
 burned by twice (`NEXT-50.md:32` on portraits, `LIVE-STATE.md:281` on Bard
 songs).
 
-- [~] **Y0  Establish what a task actually is, from sources** (≈70)
-  owner: claude claim: Y0 since: 2026-09-10
+- [x] **Y0  Establish what a task actually is, from sources** (≈70)
+  commit: (this PR) verified: 2026-09-10 minutes: 75
   touches: new:docs/BOUNTIES.md, docs/DOMAIN.md
   depends-on: none
   do: from Elanthipedia and from the vendored Lich scripts (read, never run), write down: who gives tasks, what kinds exist, how one is accepted, how progress is reported in the game text, how one is turned in, and what a failure looks like. Cite each claim. **Where a fact is not established, say so and leave it out** — `DOMAIN.md` earns its authority by marking its own invented numbers as invented (`:133`), and this page must do the same.
   verify: every claim carries its source; the page states what it could not establish.
   done-when: a session can build Y1 without inventing a mechanic.
+  done: `docs/BOUNTIES.md` written from Elanthipedia's [Task](https://elanthipedia.play.net/Task) page and five vendored Lich scripts (`taskmaster.lic`, `task-forage.lic`, `trade.lic`, `ulfhara.lic`, `corn-maze.lic`), each claim cited to its source. Biggest finding: DR has no mechanic called "bounty" — this repository's own vocabulary is a false friend for the game's "Task System"; "bounty" names a separate PK minigame (Assassins), confirmed by a zero-hit grep for "bounty" across all 236 vendored scripts against 21 hits for "task" as a positive control. Six of nine task types (Boss, Delivery, Item Recovery, Kill, Searching, Skinning) have no sourced progress/turn-in text and are explicitly left unfilled rather than guessed; task expiry/auto-failure is explicitly not established. Also checked, per the plan's own note: the `bounty` stream label already exists in `src/lib/streamLabels.ts`, but `docs/GAP-2026-09-09.md:201` records every tagged stream (bounty included) staying empty on the one live session this repo has measured, so Y1 cannot assume that stream carries Task text without confirming against a live character first. `docs/DOMAIN.md` gets a new §26 pointing to the full document.
 
 - [ ] **Y1  Publish the task types and read the current one** (≈70)
   touches: new:src/lib/tasks.ts, lich-scripts/companion_bridge.lic, docs/BRIDGE_CONTRACT.md, src/types/index.ts
