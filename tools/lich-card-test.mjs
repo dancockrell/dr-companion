@@ -164,26 +164,14 @@ for (const s of STATES) {
 
 // 4. The password sentence, unbranched.
 {
-  // The sentence, not a copy of it. `docs/PRIVACY.md` is generated and is the
-  // owner; `tools/doc-claims-test.mjs` section K pins the three components that
-  // must state it. A fourth hand-typed copy here is one more thing to update on
-  // the day the sentence changes - which is the day this check went red, hours
-  // after it was written: the wording it named ("not stored unless you later
-  // ask for it") was retired when Dan reversed the remembering default on
-  // 9 September 2026, and section K now lists it as retired so it cannot come
-  // back. Read from the document instead, so this file has an opinion about
-  // *presence* and none about wording.
-  const CLAIM = (() => {
-    const privacy = readFileSync('docs/PRIVACY.md', 'utf8').replace(/[\s*_`]+/g, ' ')
-    const m = /your password is typed into this app, ([^.]+)\./i.exec(privacy)
-    if (!m) throw new Error('docs/PRIVACY.md no longer states the password sentence this check reads')
-    return m[1].trim()
-  })()
+  // Presence and unbranchedness, asserted against the component itself. This
+  // used to derive the exact wording from a generated document; the documents
+  // are gone, and a test that checks prose against prose was the thing being
+  // removed. What matters to a player is that the card states what happens to
+  // the password at all, and states it on every path.
   const flat = src.replace(/\s+/g, ' ')
-  // The denominator: a claim that came back empty would make the next line
-  // pass against anything.
-  ok('the password sentence was read from the document it belongs to', CLAIM.length > 30, `"${CLAIM.slice(0, 60)}…"`)
-  ok('the password sentence is present', flat.includes(CLAIM), CLAIM)
+  const m = /your password is typed into this app, ([^.<{]+)/i.exec(flat)
+  ok('the card states what happens to the password', Boolean(m), m ? m[1].trim().slice(0, 60) : 'no sentence found')
   ok(
     'and it is not one arm of a conditional',
     !/guiLoginUsable[\s\S]{0,80}Your password/.test(flat),

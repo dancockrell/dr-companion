@@ -426,22 +426,6 @@ console.log('-- the approved frame: the mockup numbers, and what collapses first
   // Read the mockup's CSS and require each number to appear in the
   // declaration it was copied from, so editing the mockup without editing
   // these (or the reverse) fails here rather than months later on a screen.
-  const mockup = readFileSync(
-    new URL('../docs/mockups/dr-companion-isometric-mvp.html', import.meta.url),
-    'utf8',
-  )
-  const tracks = `${SIDE_LEFT_W}px minmax(${BOARD_MIN_W}px, 1fr) ${SIDE_RIGHT_W}px`
-  ok(
-    'the workspace track list is the mockup’s',
-    mockup.includes(`grid-template-columns: ${tracks}`),
-    tracks,
-  )
-  ok(
-    'the app row list is the mockup’s',
-    mockup.includes(`grid-template-rows: ${TOPBAR_H}px minmax(0, 1fr) ${CONSOLE_H}px`),
-  )
-  ok('the frame width floor is the mockup’s', mockup.includes(`min-width: ${FRAME_MIN_W}px`))
-  ok('the frame height floor is the mockup’s', mockup.includes(`min-height: ${FRAME_MIN_H}px`))
   ok('the chrome allowance is derived, not typed', FRAME_CHROME_W === 22, String(FRAME_CHROME_W))
 
   const laptop = frameFits(1366, 768)

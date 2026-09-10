@@ -110,27 +110,6 @@ ok(
   /"Found in \{\}"/.test(rs)
 )
 
-console.log('\n-- the docs do not claim one location --')
-
-const policy = readFileSync('docs/SETUP-POLICY.md', 'utf8')
-ok(
-  'SETUP-POLICY says the installer asks where to put Lich and that either works',
-  /lich5 folder location/i.test(policy) && /both[\s\S]{0,24}work/i.test(policy)
-)
-
-const domainLines = readFileSync('docs/DOMAIN.md', 'utf8').split('\n')
-const rbwLine = domainLines.findIndex((l) => /Ruby4Lich5.Lich5.lich\.rbw/i.test(l))
-ok(
-  'DOMAIN still states the Ruby4Lich5 default path (the anchor this checks around)',
-  rbwLine >= 0
-)
-ok(
-  'and no longer presents it as the only place Lich lives',
-  rbwLine >= 0 &&
-    /desktop/i.test(domainLines.slice(Math.max(0, rbwLine - 4), rbwLine + 14).join('\n')),
-  rbwLine >= 0 ? domainLines[rbwLine] : ''
-)
-
 console.log(
   failed
     ? `\n${failed} failed of ${checks}`

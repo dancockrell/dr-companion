@@ -318,12 +318,6 @@ ok(
       'Stored in Windows Credential Manager. Anyone signed in to this Windows account can use it.',
     REMEMBER_SIGN_IN_NOTICE,
   )
-  // One sentence, two places. docs/PRIVACY.md is generated, so a drift here is
-  // a generator edit rather than a prose edit - which is the point.
-  ok(
-    'docs/PRIVACY.md carries the same sentence word for word',
-    read('docs/PRIVACY.md').replace(/\n/g, ' ').replace(/\s+/g, ' ').includes(REMEMBER_SIGN_IN_NOTICE),
-  )
 }
 
 /* ---------------------------------- the stored password is actually read --- */

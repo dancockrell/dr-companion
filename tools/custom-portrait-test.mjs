@@ -19,7 +19,6 @@ const editor = read('src/components/shared/CustomPortraitEditor.tsx')
 const processing = read('src/lib/customPortraits.ts')
 const choices = read('src/lib/portraits.ts')
 const battle = read('src/components/room/BattleColumn.tsx')
-const docs = read('docs/PLAYER-ART.md')
 
 let pass = 0
 let fail = 0
@@ -87,10 +86,6 @@ check('an old image failure does not poison later portrait sources', () =>
   assert.doesNotMatch(portrait, /const \[failed, setFailed\]/, 'an old image failure must not poison later portrait sources'))
 check('portrait chooser art decodes without blocking and loads on demand', () =>
   assert.match(portrait, /loading="lazy"\s+decoding="async"/, 'portrait chooser art should decode without blocking and load on demand'))
-check('the docs promise a portrait is never uploaded, committed or published', () =>
-  assert.match(docs, /never uploads, commits, or publishes/))
-check('the docs name the separate reviewed process for shipped art', () =>
-  assert.match(docs, /separate, reviewed repository process/))
 
 console.log('')
 const total = pass + fail
