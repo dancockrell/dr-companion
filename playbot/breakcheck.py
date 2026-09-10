@@ -40,8 +40,15 @@ SABOTAGES = [
     (
         'a look no longer carries the uid forward',
         'playbot/live.py', 'elif not moved:', 'elif False:',
+        # The two refused-move cases red here as well, and genuinely so: a
+        # refused move is handled by `walk` deciding not-moved and `absorb`
+        # then carrying the uid, so damaging either half breaks them. That is
+        # a real dependency rather than an entangled check, which is why they
+        # are named here instead of the expectation being loosened.
         {'a look after a move keeps the uid the move gave',
-         'a carried uid is labelled as carried'},
+         'a carried uid is labelled as carried',
+         'a refused move does not throw away the identity of the room you are in',
+         'and a look after a refused move still knows where it is'},
     ),
     (
         'a move with no nav keeps the old uid instead of clearing it',
@@ -54,7 +61,8 @@ SABOTAGES = [
         # the gate and never touched this line. Expecting them here was my
         # error, and the harness is what found it - which is the argument for
         # naming the cases rather than counting them.
-        {'a look after an unidentified move does not resurrect a stale uid'},
+        {'a look after an unidentified move does not resurrect a stale uid',
+         'an unrefused move with no nav still clears the identity'},
     ),
     (
         'the retreat picks the first exit the game offered, as it used to',
@@ -75,6 +83,17 @@ SABOTAGES = [
         'the sameness ratio never fires',
         'playbot/patrol.py', 'if share < 0.5:', 'if share < 0.0:',
         {'a walk with few distinct pictures is called thin'},
+    ),
+    (
+        'a refused move counts as a move again, as it did on the second walk',
+        'playbot/live.py', 'moved=turn.blocked is None', 'moved=True',
+        {'a refused move does not throw away the identity of the room you are in',
+         'and a look after a refused move still knows where it is'},
+    ),
+    (
+        'duplicate exits are no longer collapsed',
+        'playbot/live.py', 'room.exits = list(dict.fromkeys(room.exits))', 'pass',
+        {'duplicate compass directions are collapsed'},
     ),
     (
         'an occupied room no longer counts as occupied',

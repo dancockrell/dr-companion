@@ -303,7 +303,22 @@ class Session:
 
     def walk(self, movement: str, timeout: float = 12.0) -> tuple[LiveRoom, Turn]:
         turn = self.ask(movement, timeout)
-        return self.absorb(turn.raw, moved=True), turn
+        # A move the game *refused* moved nobody, and treating it as a move is
+        # what the first version of this got wrong. Measured on the wire:
+        #
+        #     up  ->  "You can't go there.\r\n<prompt .../>"   62 bytes
+        #
+        # No room block, so no nav, so `moved=True` cleared the identity of a
+        # room the character was still standing in - and the recovery look
+        # could not restore it either, because the thing it carries forward had
+        # just been thrown away. That cascade is what ended the second live
+        # walk 440 steps early on "four unreadable rooms in a row", and what
+        # sent 95 arrivals to be identified by prose in a run whose whole
+        # point was that identity comes from the game.
+        #
+        # `moved` is a claim that the character *may* be somewhere else. A
+        # refusal is positive evidence that it is not.
+        return self.absorb(turn.raw, moved=turn.blocked is None), turn
 
     def absorb(self, raw: str, moved: bool = True) -> LiveRoom:
         """Parse a room and keep the session-level state the game sends once.
@@ -380,6 +395,13 @@ def parse_room(raw: str) -> LiveRoom:
         if paths:
             room.exits = [w for w in re.findall(r'[a-z]+', strip_tags(paths.group(1)).lower())
                           if w in _COMPASS_WORD.values()]
+    # A reply can carry the same exits twice - the main stream and the room
+    # stream each get a compass - and a room on Bank Street came back as
+    # ['north', 'east', 'west', 'north', 'east', 'west']. Nothing downstream
+    # crashed on that, which is why it survived: the exit comparison makes a
+    # set of it. But the oracle counts placements against this list, so a
+    # doubled list quietly doubles what a scene is asked to account for.
+    room.exits = list(dict.fromkeys(room.exits))
 
     objs = _ROOM_OBJS.search(raw)
     if objs:

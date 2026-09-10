@@ -212,15 +212,22 @@ class Patrol:
         if len(by_desc) == 1:
             self.identified_by_description += 1
             # Filed against the bot, not the game. The game sends `<nav>` on
-            # arrival and only there, so the one command that can reach this
-            # is the opening look of a session, when there has been no arrival
-            # to carry an identity from. The previous walk filed nine of these
-            # as a game defect - "the game sent no room uid" - which read as
-            # the world being unreliable when it was the bot asking with the
-            # wrong verb. It is now one per session and it is honest about
-            # whose limitation it is.
+            # arrival and only there, so this is reached whenever there has
+            # been no arrival to carry an identity from. The previous walk
+            # filed nine of these as a game defect - "the game sent no room
+            # uid" - which read as the world being unreliable when it was the
+            # bot asking with the wrong verb.
+            #
+            # The wording here used to say "the first room of a session", on
+            # my reasoning that the opening look was the only command that
+            # could reach it. The next walk filed it 95 times and settled
+            # that: a move the game refuses also arrives with no nav, and the
+            # bot was throwing the identity away on those too. `Session.walk`
+            # no longer does. What is left genuinely is the opening look, but
+            # the summary now says what is true rather than what I expected,
+            # because a count is the one thing that can argue with a claim.
             self.file('note', 'bot',
-                      'the first room of a session is identified by prose, having never been arrived at',
+                      'a room was identified by prose because no arrival had supplied a uid',
                       room_id=by_desc[0]['id'], room_title=room.title,
                       expected='an arrival to take a uid from',
                       observed='matched on the first 60 characters of the description')

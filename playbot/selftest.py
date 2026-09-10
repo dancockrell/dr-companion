@@ -314,6 +314,58 @@ LOOK_PAYLOAD = (
 )
 
 
+# The exact bytes a refused move comes back as, captured 10 Sep 2026 by
+# sending `up` in The Crossing, Bank Street. 62 bytes: no room block, so no
+# nav, and the character has demonstrably not moved.
+BLOCKED_PAYLOAD = ('You can\'t go there.\r\n'
+                   '<prompt time="1789058921">&gt;</prompt>\r\n')
+
+
+class _FakeSocket:
+    """Hands back one scripted reply, then behaves like a quiet socket."""
+
+    def __init__(self, reply: str) -> None:
+        self.reply = reply.encode('utf-8')
+        self.chunks: list[bytes] = []
+        self.sent: list[bytes] = []
+
+    def recv(self, _size: int) -> bytes:
+        # Nothing until something has been sent. `ask` calls `flush` first,
+        # and a fixture that answers that call feeds the reply to the drain
+        # instead of to the read - which made these cases fail against a fix
+        # that works. The fixture has to model the order, not just the bytes.
+        import socket as _socket
+        if not self.chunks:
+            raise _socket.timeout()
+        return self.chunks.pop(0)
+
+    def sendall(self, data: bytes) -> None:
+        self.sent.append(data)
+        self.chunks.append(self.reply)
+
+    def close(self) -> None:
+        pass
+
+
+def _walked(reply: str, last_uid: int | None):
+    """Drive the real `Session.walk` against a scripted reply.
+
+    The point is that `walk` decides for itself whether the character moved,
+    from the reply, and that decision is the thing under test.
+    """
+    from .live import Session
+    from .safety import Governor
+
+    session = Session.__new__(Session)
+    session.sock = _FakeSocket(reply)
+    session.governor = Governor(per_minute=100, total=100)
+    session.transcript, session.refusals, session.turns = [], [], []
+    session.vitals, session.indicators = {}, {}
+    session.last_uid = last_uid
+    session.walk('north', timeout=1.0)
+    return session
+
+
 def uid_cases() -> None:
     """A look carries no identity, and what the bot does about that.
 
@@ -321,7 +373,7 @@ def uid_cases() -> None:
     demonstrably did not move, and unknown. Folding the third into either of
     the others is the whole defect.
     """
-    from .live import Session
+    from .live import Session, Turn
 
     session = Session.__new__(Session)      # no socket: only `absorb` is under test
     session.vitals, session.indicators, session.last_uid = {}, {}, None
@@ -351,11 +403,44 @@ def uid_cases() -> None:
     check('a look after an unidentified move does not resurrect a stale uid',
           after.uid is None, f'got {after.uid}')
 
+    # These go through `Session.walk` rather than calling `absorb` with a
+    # `moved` this file worked out for itself. The first version did the
+    # latter and the sabotage harness caught it: damaging the line in `walk`
+    # that decides `moved` left every one of these green, because the test was
+    # checking my own arithmetic and never executed the code under test. A
+    # case that cannot see the line it is named after is worse than no case.
+    check('a refused move does not throw away the identity of the room you are in',
+          _walked(BLOCKED_PAYLOAD, last_uid=10031).last_uid == 10031,
+          f'got {_walked(BLOCKED_PAYLOAD, last_uid=10031).last_uid}')
+
+    walked = _walked(BLOCKED_PAYLOAD, last_uid=10031)
+    check('and a look after a refused move still knows where it is',
+          walked.absorb(LOOK_PAYLOAD, moved=False).uid == 10031)
+
+    # The control. A move that was *not* refused and carried no nav must still
+    # clear it, or the fix above has simply disabled the clearing.
+    check('an unrefused move with no nav still clears the identity',
+          _walked('You wander off.\r\n<prompt/>', last_uid=10031).last_uid is None,
+          f'got {_walked("You wander off.<prompt/>", last_uid=10031).last_uid}')
+
+
+def exit_cases() -> None:
+    """A reply carrying two compasses must not report six exits."""
+    doubled = MOVE_PAYLOAD.replace(
+        '<compass></compass>',
+        '<compass><dir value="n"/><dir value="e"/><dir value="n"/></compass>')
+    check('duplicate compass directions are collapsed',
+          parse_room(doubled).exits == ['north', 'east'],
+          f'got {parse_room(doubled).exits}')
+    check('collapsing does not lose a genuinely distinct exit',
+          sorted(parse_room(MOVE_PAYLOAD).exits) == ['north', 'northwest', 'west'],
+          f'got {parse_room(MOVE_PAYLOAD).exits}')
+
 
 def retreat_cases(world: World) -> None:
     """The patrol may never choose a direction the safe area cannot bound."""
     from .complaints import Sink
-    from .live import Session
+    from .live import Session, Turn
     from .patrol import Patrol
 
     def patrol_at(last_movement):
@@ -394,7 +479,7 @@ def retreat_cases(world: World) -> None:
 def sameness_cases(world: World) -> None:
     """A street of identical rooms, which no per-room rule can see."""
     from .complaints import Sink
-    from .live import Session
+    from .live import Session, Turn
     from .patrol import SAME_RUN, Patrol
 
     def walked(signatures):
@@ -435,7 +520,7 @@ def sameness_cases(world: World) -> None:
 def population_cases(world: World) -> None:
     """An occupied room whose picture is empty - the live-only complaint."""
     from .complaints import Sink
-    from .live import Session
+    from .live import Session, Turn
     from .patrol import Patrol
 
     class Bare:
@@ -494,6 +579,7 @@ def main() -> int:
     oracle_cases()
     execution_cases(world)
     population_cases(world)
+    exit_cases()
     uid_cases()
     retreat_cases(world)
     sameness_cases(world)
