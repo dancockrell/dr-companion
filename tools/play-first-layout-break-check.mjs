@@ -64,8 +64,8 @@ const CASES = [
   {
     name: 'the rail eats the window, so the text falls under its floor',
     file: 'src/lib/scenePane.ts',
-    from: 'export const SCENE_RAIL_W = 380',
-    to: 'export const SCENE_RAIL_W = 1400',
+    from: 'export const DOCKED_RAIL_W = 480',
+    to: 'export const DOCKED_RAIL_W = 1400',
     expect: ['the game text holds most of the width'],
   },
   {

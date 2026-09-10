@@ -95,9 +95,9 @@ export const PANEL_CONTENT: Record<PanelId, Render> = {
   config: () => <PlayerConfigPanel />,
   // The same component the workspace's own corner pane renders. One
   // component, two possible mounts, and only ever one of them at a time:
-  // `App.tsx` draws it in the corner while the pane is `minimap` and stops
-  // drawing it when the pane is `popped`, which is when this window exists.
-  // A second "big scene" component would be the fork.
+  // `App.tsx` draws it in the corner while the pane is `docked` or `minimap`
+  // and stops drawing it when the pane is `popped`, which is when this
+  // window exists. A second "big scene" component would be the fork.
   board: () => <BattleColumn />,
   tasks: () => <TaskFlowPanel title="Functions & scripts" />,
 }

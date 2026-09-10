@@ -22,7 +22,7 @@
  *   3. **every function is reachable from the bar**, its name is on it, and
  *      what it is for is one hover or focus away. A panel that is neither on
  *      the bar nor named in `OFF_BAR` is a function a player cannot reach.
- *   4. **the three states work and are remembered.** One control moves
+ *   4. **the four states work and are remembered.** One control moves
  *      between them and a reload comes back to the same one.
  *
  * # The sizes are derived, not typed
@@ -346,12 +346,21 @@ try {
     await b.eval('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))')
   }
 
-  ok('a wide window opens with the pane in the corner', (await sceneState()) === 'minimap', await sceneState())
+  ok('a wide window opens docked - the primary panel, not a corner tile', (await sceneState()) === 'docked', await sceneState())
   const wide = await b.run(GEOMETRY)
   ok('and the pane is drawn', !!wide.pane, wide.pane ? `${wide.pane.w}x${wide.pane.h}` : 'absent')
 
   await pressScene()
-  ok('one press pops it out', (await sceneState()) === 'popped', await sceneState())
+  ok('one press shrinks it to the small preview', (await sceneState()) === 'minimap', await sceneState())
+  const mini = await b.run(GEOMETRY)
+  ok(
+    'and the preview is narrower than the primary panel was',
+    !!mini.pane && mini.pane.w < wide.pane.w,
+    `${wide.pane.w} -> ${mini.pane?.w ?? 'absent'}`
+  )
+
+  await pressScene()
+  ok('the next press pops it out', (await sceneState()) === 'popped', await sceneState())
   const popped = await b.run(GEOMETRY)
   ok('the corner stops drawing a second copy of it', !popped.pane)
   ok('and says where it went rather than going blank', popped.poppedNote)
@@ -364,10 +373,11 @@ try {
   await pressScene()
   ok('the next press hides it', (await sceneState()) === 'hidden', await sceneState())
   await pressScene()
-  ok('and the next brings it back to the corner', (await sceneState()) === 'minimap', await sceneState())
+  ok('and the next brings it back to the primary panel', (await sceneState()) === 'docked', await sceneState())
 
   // Persistence, both halves: the same size comes back to what was chosen,
   // and a different size does not inherit it.
+  await pressScene()
   await pressScene()
   await pressScene()
   ok('hidden, on this size', (await sceneState()) === 'hidden', await sceneState())
@@ -379,7 +389,7 @@ try {
   await b.eval('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))')
   ok(
     'and a different size keeps its own answer rather than inheriting that one',
-    (await sceneState()) === 'minimap',
+    (await sceneState()) === 'docked',
     await sceneState()
   )
 } finally {
