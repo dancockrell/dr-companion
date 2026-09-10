@@ -57,7 +57,9 @@ ENCLOSURE = {
                 'courtyard', 'square', 'plaza', 'garden', 'field', 'pasture',
                 'hill', 'hillside', 'slope', 'ridge', 'cliff', 'valley',
                 'river', 'riverbank', 'shore', 'beach', 'dock', 'pier',
-                'bridge', 'pavement', 'gate', 'rooftop', 'terrace'),
+                'bridge', 'pavement', 'gate', 'rooftop', 'terrace',
+                'path', 'trail', 'walkway', 'green', 'hedge', 'yard',
+                'park', 'orchard', 'meadow', 'clearing', 'crossroads'),
 }
 
 # Built things. These become wall, door and prop sprites.
@@ -74,7 +76,9 @@ STRUCTURE = {
     'fence': ('fence', 'railing', 'rail', 'balustrade', 'palisade'),
     'bridge': ('bridge', 'span', 'crossing'),
     'building': ('building', 'house', 'structure', 'cottage', 'hut', 'tower',
-                 'shack', 'edifice'),
+                 'shack', 'edifice', 'shop', 'storefront', 'inn', 'tavern',
+                 'temple', 'hall of', 'dome', 'arena', 'warehouse', 'barn',
+                 'stable', 'mill', 'guild'),
     'counter': ('counter', 'table', 'desk', 'bench', 'stall', 'shelf', 'shelves'),
     'hearth': ('hearth', 'fireplace', 'forge', 'furnace', 'brazier', 'oven'),
     'statue': ('statue', 'monument', 'obelisk', 'shrine', 'altar', 'idol'),

@@ -104,6 +104,31 @@ def _direction_in(sentence: str) -> str | None:
     return None
 
 
+# Water words used of people are not water. "The stream of customers, though
+# steady" put a river through a shop front in room #788, found by the bot on a
+# live walk rather than by reading.
+#
+# Deliberately no regex. The first version of this check was a regex built in a
+# heredoc, and the tool halved its backslashes: the "\b" word boundary arrived
+# as a real backspace byte, so the pattern compiled cleanly and matched
+# nothing, and the false positive survived a fix that looked applied. Substring
+# containment has nothing to escape and therefore no way to fail silently.
+_FIGURATIVE_OF = (
+    'customers', 'people', 'visitors', 'shoppers', 'traffic', 'pilgrims',
+    'patrons', 'humanity', 'faces', 'bodies', 'refugees', 'mourners',
+)
+
+
+def _figurative(term: str, sentence: str) -> bool:
+    """Is this water word being used of a crowd rather than of water?"""
+    head = f'{term} of '
+    at = sentence.find(head)
+    if at < 0:
+        return False
+    tail = sentence[at + len(head):]
+    return any(tail.startswith(word) for word in _FIGURATIVE_OF)
+
+
 def read_room(record: dict) -> RoomReading:
     """Parse one room record out of Lich's map database.
 
@@ -144,6 +169,13 @@ def read_room(record: dict) -> RoomReading:
         tint = _first_match(sentence, CATEGORIES['tint'])
         for category in ('structure', 'flora', 'water', 'light'):
             for kind, term in _all_matches(sentence, CATEGORIES[category]):
+                # A stream of customers is not a stream. Found live in #788,
+                # where "the stream of customers, though steady" put a river
+                # through the middle of a shop front. Water words used of
+                # people are the common case of this and the cheap one to
+                # rule out; a word-sense model is not warranted for it.
+                if category == 'water' and _figurative(term, sentence):
+                    continue
                 reading.detections.append(
                     Detection(
                         category=category,
