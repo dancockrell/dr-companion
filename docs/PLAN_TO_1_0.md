@@ -3263,7 +3263,8 @@ against a settled type.
   do: two things that must be decided together. (1) `StreamCharacterState.spell` is declared in `src/types/stream.ts`, is **never written by the parser and never read by anything** (`grep -n spell src/lib/gameStream.ts` finds only a comment, control `compass` → 9; `WIRING-AUDIT.md:174` independently lists the tag as still absent). **Wiring it and deleting it look identical on screen and are opposite fixes** — decide which, say so in the commit, and do not delete it merely because deleting is cheaper. (2) Gap row 20: nothing tracks prep state or mana cost, so a caster's most frequent action has no readout at all. Do not invent a spell catalogue; read what the game and `base-spells.yaml` say.
   verify: preparing a spell, holding it, and releasing it are three distinguishable states in the readout, and an unknown spell is shown as unknown rather than as none.
 
-- [ ] **W4  Encumbrance as numbers** (≈45)
+- [~] **W4  Encumbrance as numbers** (≈45)
+  owner: claude-code claim: W4 since: 2026-09-10
   touches: lich-scripts/companion_bridge.lic, src/types/index.ts, src/components/shared/InventoryPanel.tsx
   depends-on: W0, W2
   do: `encumbrance` arrives as a string. `DOMAIN.md:142` gives the real shape — 100 items free-to-play, 75 before junk-room warnings, 300/250 with the inventory upgrade, and slot limits of body 10, over shoulder 2, finger 2, belt 2 — and `:210-212` explains why it is not cosmetic: burden and armour reduce effective Athletics, which is what decides whether a shortcut kills you.
