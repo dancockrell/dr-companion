@@ -399,13 +399,19 @@ PRs per lane, squash-merged.
 | N | N3, N3b, N4 | `lane-n/n4-attach-measure-v2` | `dev/wt-n3` | 2026-09-06 |
 | Q | Q2 | `lane-q/q2-highlights` | `C:\Users\Admin\dev\wt-q2` | 2026-09-06 |
 | S | S1-S4 | `feat/scene-editor` | `C:\Users\Admin\dev\wt-scene` | 6 Sep 2026 |
-| R | R0 | `lane-r0/activity-intent-contract` | `C:\Users\Admin\dev\wt-r0` | 2026-09-10 |
 
-**Lanes R, W, X, Y and Z are new on 9 September 2026, unheld, and are the
+**Lanes R, W, X, Y and Z are new on 9 September 2026, and are the
 first player-facing work in this plan** — see section 6b and
-[GAP-2026-09-09.md](GAP-2026-09-09.md). Take **R0** or **W0** first: they are
-the two that publish an interface everything else in their lane waits on, and
-they name disjoint files. X0, Y0 and Z0 can start beside them.
+[GAP-2026-09-09.md](GAP-2026-09-09.md). Take **W0** first, alongside **X0**,
+**Y0** and **Z0** — they name disjoint files and each publishes an interface
+its own lane then waits on. **R0 landed 10 Sep 2026 and added no row here**,
+for the reason Lane N/Q/H's precedent above already sets: one increment, one
+PR, and its `[x]` ships in the same commit as this note, so a row claiming
+the lane would have been stale the moment it arrived. It published the
+args/progress/refusal/Stop-Pause contract every activity intent (R1–R7)
+implements against — `docs/BRIDGE_CONTRACT.md`'s "Activity intents (Lane R)"
+— and the "Status of the nine" table `tools/activity-intent-contract-test.mjs`
+checks. **R1 is next and unheld.**
 
 **Lanes T, U and V are unheld and free to claim** (added 9 Sep 2026). Take
 T0 or T3 first — they name disjoint files and are the two that unblock the
@@ -3144,9 +3150,9 @@ Every one of these is a thin adapter over a dr-scripts script the player
 already has. None of them is a reimplementation, and an increment here whose
 `do:` starts writing combat logic in Ruby has gone wrong.
 
-- [~] **R0  Publish the activity-intent contract before any handler exists** (≈60)
-  owner: claude claim: R0 since: 2026-09-10
-  touches: docs/BRIDGE_CONTRACT.md, lich-scripts/companion_bridge.lic, tools/intent-drift-test.mjs, new:tools/activity-intent-contract-test.mjs
+- [x] **R0  Publish the activity-intent contract before any handler exists** (≈60)
+  commit: (this PR) verified: 2026-09-10 minutes: 90
+  touches: docs/BRIDGE_CONTRACT.md, lich-scripts/companion_bridge.lic, tools/intent-drift-test.mjs, new:tools/activity-intent-contract-test.mjs, new:tools/bridge-intent-parsing.mjs, package.json
   depends-on: none
   do: the nine intents have never had a written shape, which is why eight of them are "specified" in `NEXT-50.md` as prose and none is buildable from it. Write one contract covering all nine: the args each takes, the **progress** messages it emits while running (an activity takes minutes, so a request/response shape is wrong for it), the **refusal** shape when the character cannot do it right now, and how Stop and Pause reach it — they must, and `SAFETY_INTENTS` in `src/store/bridgePolicy.ts` is why. State plainly that an activity handler's job is to start a named dr-scripts script and report, and name the script for each of the nine. `burgle` gets a contract row saying it is deferred to R8 and why, rather than being left out.
   verify: `node tools/activity-intent-contract-test.mjs` reads `docs/BRIDGE_CONTRACT.md` and the bridge and asserts that every intent the contract describes is either in `HANDLERS` or listed as deferred, and that every deferred one names its blocker. Print N of N — the number of contract rows parsed and the number matched — so a parser that matched nothing reports itself rather than certifying agreement.

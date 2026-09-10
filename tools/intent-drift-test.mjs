@@ -25,9 +25,9 @@
  * Wired into `npm run build` so a divergence fails the build, not just this
  * script when someone remembers to run it.
  */
-import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { readNormalized, declaredIntents, implementedIntents } from './bridge-intent-parsing.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -42,98 +42,18 @@ function readAt(relPath) {
     // throw "could not locate the IntentName union" against an unmodified
     // file. .lic files are pinned `eol=lf` for the opposite reason already
     // documented in .gitattributes, so this is a no-op for companion_bridge.lic.
-    return readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
+    return readNormalized(path)
   } catch (e) {
     throw new Error(`intent-drift-test: could not read ${relPath}: ${e.message}`)
   }
 }
 
-/** Declared intents — every `| 'xyz'` line inside the IntentName union. */
-function declaredIntents(typesSrc) {
-  // IntentName is the last declaration in the file (BridgeConnectionState/
-  // BridgeSnapshot, the anchor this used, were dead types deleted in a
-  // cleanup pass), so this matches to end-of-file rather than to a named
-  // neighbor.
-  const m = typesSrc.match(/export type IntentName =([\s\S]*)$/)
-  if (!m) throw new Error('intent-drift-test: could not locate the IntentName union in types.ts — did it move or get renamed? This script needs updating, not silencing.')
-  const body = m[1]
-  const names = [...body.matchAll(/\|\s*'([a-z_]+)'/g)].map((x) => x[1])
-  if (names.length === 0) throw new Error('intent-drift-test: found the IntentName union but extracted zero names — the regex is broken, not the file.')
-  return new Set(names)
-}
-
-/**
- * Real dispatch — every `when '...'` label inside Intents.handle's body,
- * scoped to that one method so a `when` in an unrelated case statement
- * (BridgeClientMessage's own type dispatch, ping/subscribe/get_status/...)
- * doesn't get counted as an intent.
- */
-function implementedIntents(bridgeSrc) {
-  // The refactor landed: `Intents.dispatch` now looks up a `HANDLERS` hash
-  // rather than switching on a `case/when`, specifically so
-  // `HANDLERS.keys` (Intents.implemented_intents, exposed on `hello` as
-  // `implementedIntents`) is a genuine runtime enumeration instead of a
-  // hand-maintained list. That hash is the actual source of truth now, so
-  // it is checked first — falling through to the older dispatch/handle
-  // anchors only for a bridge checkout that predates this commit, the same
-  // reason two case/when shapes were accepted before.
-  const handlersStart = bridgeSrc.indexOf('HANDLERS = {')
-  if (handlersStart !== -1) {
-    const handlersEnd = bridgeSrc.indexOf('}.freeze', handlersStart)
-    if (handlersEnd === -1) throw new Error('intent-drift-test: found `HANDLERS = {` but no closing `}.freeze` — the hash extraction is broken, not the file.')
-    const body = bridgeSrc.slice(handlersStart, handlersEnd)
-    const names = [...body.matchAll(/'([a-z_]+)'\s*=>/g)].map((x) => x[1])
-    if (names.length === 0) throw new Error('intent-drift-test: found the HANDLERS hash but extracted zero intents — the regex is broken, not the file.')
-    return new Set(names)
-  }
-
-  // `Intents.handle` is now a thin wrapper: it decides whether an intent
-  // needs CMD_LOCK (added for run_macro/stow_all pre-emption — a Stop must
-  // be dispatchable while one of those is mid-flight, not queued behind it)
-  // and calls `dispatch`, which is where the actual case/when or hash lives.
-  // Checked both names rather than one, for the same reason this file
-  // already accepts two dispatch shapes: a rename shouldn't make a
-  // momentary two-method read look like structural damage.
-  const start = bridgeSrc.indexOf('def dispatch(intent, args, server)')
-  const startHandle = start === -1 ? bridgeSrc.indexOf('def handle(intent, args, server)') : -1
-  const anchor = start !== -1 ? start : startHandle
-  if (anchor === -1) throw new Error("intent-drift-test: could not find 'HANDLERS = {', 'def dispatch(intent, args, server)' or 'def handle(intent, args, server)' in companion_bridge.lic — did Intents' dispatch get renamed or restructured? This script needs updating to match, not silencing.")
-  const elseIdx = bridgeSrc.indexOf('\n      else\n', anchor)
-  const end = elseIdx === -1 ? bridgeSrc.indexOf('\nend', anchor) : elseIdx
-  if (end === -1 || end <= anchor) throw new Error('intent-drift-test: found the dispatch method but could not find its else/end boundary — the method body extraction is broken, not the file.')
-  const body = bridgeSrc.slice(anchor, end)
-
-  // Two dispatch shapes, on purpose.
-  //
-  // `Intents.handle` is being converted from `case/when` to a hash of
-  // `{'intent_name' => :method}`, because Ruby cannot enumerate a case
-  // statement's literals at runtime, and a hand-maintained list beside a
-  // twenty-branch dispatch would drift — which is the exact failure this
-  // script exists to catch.
-  //
-  // Accepting both rather than swapping one for the other is deliberate.
-  // Swapping would mean the refactor and this parser had to land in the same
-  // commit, or every build in between is red. Three false alarms tonight
-  // already came from sessions reading the shared tree mid-edit; a parser
-  // that knows both shapes stays quiet through that window instead of crying
-  // wolf at whoever happens to run a build.
-  const names = [
-    ...body.matchAll(/when\s+'([a-z_]+)'/g),
-    ...body.matchAll(/'([a-z_]+)'\s*=>/g),
-  ].map((x) => x[1])
-
-  if (names.length === 0) {
-    throw new Error(
-      "intent-drift-test: found handle()'s body but extracted zero intents. " +
-        'Either the extraction is broken, or the dispatch has legitimately ' +
-        "changed shape (this script knows `when 'name'` and `'name' => :method`). " +
-        'Check which before assuming companion_bridge.lic is damaged — the ' +
-        'previous wording asserted the regex was at fault, which would be ' +
-        'exactly wrong after a deliberate restructure.'
-    )
-  }
-  return new Set(names)
-}
+// declaredIntents/implementedIntents used to live here, hand-rolled. R0
+// (docs/PLAN_TO_1_0.md §6b) extracted them into ./bridge-intent-parsing.mjs
+// so tools/activity-intent-contract-test.mjs — which needs the exact same
+// two facts, "what does IntentName declare" and "what does HANDLERS really
+// implement" — doesn't grow a second, independently-drifting copy of the
+// same two regexes. Behaviour here is unchanged; only the import moved.
 
 /** What the mock currently claims is unimplemented — parsed, not trusted by name alone. */
 function mockClaimedUnimplemented(mockSrc) {

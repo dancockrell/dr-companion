@@ -94,17 +94,40 @@ one of our releases would be a second, worse, staler answer.
 
 ### Supported intents (v0.1)
 
+**Corrected 10 Sep 2026 (R0).** This table used to list `go_healer`,
+`town_run`, `start_training`, `loot` and `buffs` as "Supported" alongside
+intents that are actually in `HANDLERS`. They never were: none of the five
+has a dispatch entry in `companion_bridge.lic`, `HANDLERS.keys` does not
+include them, and `MOCK_UNIMPLEMENTED_INTENTS` in `src/bridge/mockBridge.ts`
+lists all five as unimplemented — a stale claim sitting next to the exact
+mechanism (`isIntentImplemented`) built to prevent it. Split below into what
+`HANDLERS` genuinely dispatches today and what is only planned. The nine
+planned ones — the client's activity buttons — get their own contract,
+[Activity intents (Lane R)](#activity-intents-lane-r), below.
+
+**Actually implemented** (present in `HANDLERS`, `lich-scripts/companion_bridge.lic`):
+
 | Intent | Meaning |
 |--------|---------|
 | `stop_all` | Emergency / full stop of Companion-driven scripts |
 | `pause` / `resume` | Pause automation — **latching**, see below |
-| `go_healer` | **Capability-aware** heal path (not “closest only”) |
-| `town_run` | Heal → sell/deposit → basic chores |
-| `start_training` | Conservative attended training routine |
-| `loot` | Loot pass per preferences |
-| `buffs` | Buff routine |
-| `escape` | Emergency exit to safety |
+| `escape` | Emergency exit to safety (`flee`) |
 | `stow_all` | Stow loose items per rules |
+| `run_macro` | Send a sequence of literal game commands |
+| `armor_manage`, `check_health`, `check_teaching`, `listen_to`, `stop_listening` | see their own sections below |
+| `trace_on` / `trace_off` / `trace_dump`, `reset_runaway` | diagnostics |
+| `read_settings`, `check_toggles`, `list_vars` | read the character's dr-scripts settings |
+| `map_here`, `map_path`, `map_walk`, `map_nearest`, `map_zone`, `install_mapdb` | map queries; `map_walk` is the one that moves the character |
+| `list_scripts`, `start_script` | launch any installed script by name |
+
+**Planned, not yet implemented** — the nine activity intents from
+[GAP-2026-09-09.md](GAP-2026-09-09.md), tracked as Lane R (`docs/PLAN_TO_1_0.md`
+§6b): `go_healer`, `town_run`, `start_training`, `loot`, `buffs`, `travel`,
+`escape_heal`, `start_combat`, `burgle`. `isIntentImplemented` in
+`src/store/bridgePolicy.ts` disables their controls honestly today. See
+[Activity intents (Lane R)](#activity-intents-lane-r) for the contract each
+one implements against, and the existing per-intent research below
+("Activity intents batch contract") for which dr-scripts script each starts.
 
 ### Pause is latched, not only a snapshot (bridge 0.13.0)
 
@@ -1079,6 +1102,165 @@ bridge advertises them, and confirm Stop/Pause/Resume/Escape are never
 disabled by this regardless of what the list says or whether it's present at
 all.
 
+## Activity intents (Lane R)
+
+R0 (`docs/PLAN_TO_1_0.md` §6b, Lane R), 10 Sep 2026. The section immediately
+below this one — "Activity intents batch contract" — already worked out
+*which* dr-scripts script each of the nine activity intents starts and what
+it needs to know; that research is not repeated here. What was still
+missing, and what none of these nine could be implemented from without
+asking, is the **shape**: the args each intent's wire message actually
+carries, how a caller is told the activity is still running (an activity
+takes minutes; `intent_ack`'s ok/detail pair is the wrong shape for that),
+how a caller is told the character cannot do this right now, and how Stop
+and Pause reach something that runs for minutes rather than milliseconds.
+This section is that contract. R1–R7 implement against it; each flips its
+own row in the "Status of the nine" table below from "not yet implemented"
+to "implemented" in the same commit that adds its `HANDLERS` entry, and that
+table is what `tools/activity-intent-contract-test.mjs` reads.
+
+### The rule every one of the nine follows
+
+**Every activity handler's job is to start a named dr-scripts script (or, for
+`loot`, compose the existing quick-action) and report — never to reimplement
+game logic.** `map_walk` and `install_mapdb` already do this for map/script
+control; these nine do it for combat, healing, training and town chores.
+`DOMAIN.md:1059-1060`: "A companion that drives `;go2` inherits every fix
+anyone makes to it. One that reimplements pathfinding owns every bug
+forever." Same argument, nine more times.
+
+### Args
+
+Each intent's args are exactly what its underlying script needs and nothing
+the client cannot honestly supply — see each intent's own entry below and in
+the batch contract for the specific shape. Two rules that apply across all
+nine:
+
+- **Never invent data this repo does not have.** Spell lists, hunting
+  grounds and buff sets live in the character's own dr-scripts settings
+  (`C:\Ruby4Lich5\Lich5\scripts\data`, `DOMAIN.md:305-325,:1150-1170`) or on
+  Lich's side (`go2`'s tag resolution). An intent that needs one of these
+  either omits the arg and lets the script use its own configured default,
+  or reads it back first with the bridge's existing `read_settings` /
+  `map_nearest` and lets the *client* choose — it is never hardcoded here.
+- **A destination is a tag, a room id, or a `u<uid>`** — the same three
+  forms `go2` itself accepts and this document already distinguishes
+  (`id` vs `uid`, above). `travel`, `go_healer` and `escape_heal` all take a
+  destination in this form; `town_run` resolves its own stops via `go2`
+  internally and takes none.
+
+### Progress
+
+**Request/response (`intent_ack`) is the wrong shape for something that runs
+for minutes**, so an activity's progress is not a new message type. It
+reuses the two channels that already carry a running script's state:
+
+- **`log`** — the running script's own narration, forwarded the same way
+  `map_walk`, `install_mapdb` and `run_macro` already forward theirs
+  (`server.log(...)`). "Buffing: fire spirit (2 of 5)", "Walking to 1049
+  (12 rooms)", "Selling: 3 skins, 1 gem" are this channel, not a payload of
+  their own.
+- **`scripts`** — `{ name, status }[]`, already sent by `list_scripts` /
+  populated by `Script.running`. Once an activity handler calls
+  `Script.start`, the started script appears here exactly like any other
+  running script; a client that wants "is my training run still going"
+  polls this rather than inventing a per-intent status field.
+
+`status.activity` (already documented above, in `CharacterStatus`) is the
+third source a client reads, unchanged by this contract — it is what the
+game stream itself says the character is doing, independent of which script
+started it.
+
+No activity intent gets a bespoke progress message type. If a future
+increment finds these three insufficient for a specific intent, that is a
+new spec entry here, not a silent new field on `intent_ack`.
+
+### Refusal
+
+Every activity handler returns the same two-element shape every handler in
+`HANDLERS` already returns: `[false, '<reason>']`, surfaced to the client as
+`{ type: 'intent_ack', intent, ok: false, detail: '<reason>' }`. Nothing new
+here either — the contract is which reasons a *refusal-worthy* state
+produces, checked in this order, matching `map_walk`'s and `start_script`'s
+existing pattern:
+
+1. **Stop is latched:** `'Stop is still latched - press Resume before <doing the thing>.'`
+   (`stop_requested?`, checked first, same as `map_walk`/`start_script`).
+2. **Pause is latched:** `pause_refusal(intent)` — each activity intent adds
+   its own sentence to `PAUSE_HELD` (below), the way `map_walk`, `run_macro`
+   and `start_script` already do; a shared "Paused - press Resume." only
+   covers an intent that forgot to add its own line.
+3. **The underlying script is not installed:** `'<script> is not installed.
+   Install the standard dr-scripts suite to <do the thing>.'`
+   (`Script.exists?`), matching `map_walk`'s `go2`-missing message.
+4. **The activity is already running:** `'already <doing the thing> (<script>
+   is running) - stop it, or wait for it to finish, first'`, matching
+   `map_walk`'s already-walking check.
+5. **Anything the specific intent's own domain rules refuse for** — e.g.
+   `travel`'s unreachable destination, `go_healer`'s expired passport
+   (`DOMAIN.md:96-101`) — named in that intent's own entry below.
+
+A refusal never reports success. `install_mapdb`'s own history is the
+warning: it used to report "started" for a script that had already exited,
+because starting is not the same fact as succeeding — every one of these
+nine must confirm the thing it claims, the same correction R3's `travel` and
+R4's health check make explicit in their own `verify:` lines
+(`docs/PLAN_TO_1_0.md`).
+
+### Stop and Pause reach every one of these, and here is the whole mechanism
+
+`SAFETY_INTENTS` in `src/store/bridgePolicy.ts` — `stop_all`, `pause`,
+`resume`, `escape` — is why: those four controls are never disabled by
+capability gating, on the client. On the bridge side, `stop_all`/`pause_all`/
+`resume_all` already sweep **every** named script in `Script.running`
+generically (`companion_bridge.lic`'s own `stop_all`/`pause_all`/
+`resume_all`) — so the moment an activity handler calls `Script.start`, Stop
+and Pause already reach the running process with **no further plumbing**.
+What each of R1–R7 must still add, per intent, because it is per-intent and
+cannot be generic:
+
+1. **A pre-start check**, exactly like `map_walk`/`start_script`: refuse to
+   start while `stop_requested?` or `pause_refusal(intent)` is truthy. Skip
+   this and Stop can be latched while the click that starts the activity
+   still lands — the exact bug `map_walk` was fixed for (issue #462).
+2. **One line in `PAUSE_HELD`** naming that intent's own refusal sentence,
+   so a paused player reads "press Resume before training" rather than the
+   generic fallback.
+
+Composed intents (`escape_heal`, `town_run`) are not exempt: each step they
+start is itself one of these nine-or-existing scripts, and each step gets
+its own pre-start check before it starts the next.
+
+<a id="activity-intents-lane-r"></a>
+
+### Status of the nine, and where each is tracked
+
+| Intent | Increment | Status |
+|---|---|---|
+| `buffs` | R1 | not yet implemented |
+| `loot` | R2 | not yet implemented |
+| `travel` | R3 | not yet implemented |
+| `escape_heal` | R4 | not yet implemented |
+| `go_healer` | R4 | not yet implemented |
+| `town_run` | R5 (depends on R3, X1) | not yet implemented |
+| `start_training` | R6 | not yet implemented |
+| `start_combat` | R7 (depends on R0, W1) | not yet implemented |
+| `burgle` | R8 | **deferred** — blocked-on: a product decision only Dan can make (`docs/PLAN_TO_1_0.md` §10; `NEXT-50.md:493-499`) — whether the house-entry feature ships at all, and under what safety contract. `scripts/burgle.lic` is real and complete; it is not being wired up until Dan decides. |
+
+This table is the single source of truth for each intent's status —
+nothing else in this document restates it, so there is nothing else for it
+to drift against. `tools/activity-intent-contract-test.mjs` reads this table
+against `companion_bridge.lic`'s real `HANDLERS` and reports drift: a row
+whose status is anything other than "deferred" while `HANDLERS` already has
+a matching key (meaning this table fell behind an increment that landed), a
+deferred row with no blocker, or one of the nine missing a row entirely. As
+each of R1–R7 lands, that row's own commit changes "not yet implemented" to
+"implemented" in the same edit that adds the `HANDLERS` entry — the marker
+and the fact ship together, the way `docs/PLAN_TO_1_0.md` §0.2 already
+requires for the plan's own `[x]` markers.
+
+---
+
 ## Activity intents batch contract (spec — not yet implemented)
 
 Written by `downloads-2e` per Prime's ruling, batched deliberately: nine
@@ -1095,6 +1277,13 @@ These are exactly the intents the Activities panel and Task Flows were built
 around (`src/data/activities.ts`), so this is the gap between "the app can
 read state and stop scripts" and "the app can make the character do things,"
 per the existing `else` branch's own honest wording.
+
+**R0 (above) is the args/progress/refusal/Stop-Pause contract every entry
+below implements against, and ["Status of the nine"](#activity-intents-lane-r)
+is the one place that says whether a given one has landed yet.** What
+follows is unchanged research into which script each intent starts and what
+it needs to know — read both: this section for the *what*, R0 above for the
+*shape*.
 
 **Shape reference, so each entry below doesn't repeat it:** two existing
 handlers are the two shapes everything here fits into. `run_macro`
