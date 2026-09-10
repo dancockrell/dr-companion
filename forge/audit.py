@@ -117,6 +117,31 @@ def main(argv: list[str] | None = None) -> int:
         for reason, n in doubt_reasons.most_common(8):
             print(f'  {n:>7,}  {reason}')
 
+    # What the escalation queue is actually made of, which is not obvious from
+    # the counts above and decides whether it is worth a human's time.
+    #
+    # A doubt only earns an escalation if there is something a reader could do
+    # about it. "The parser could not tell inside from outside" is one of
+    # those. "The author never wrote down what the floor was made of" is not:
+    # the only way to close it is to invent a floor, which is the one thing
+    # this whole pipeline exists to refuse. Printing them as one number makes
+    # a queue of several thousand items that mostly cannot be acted on, and a
+    # list that cries wolf gets skimmed on the day it matters.
+    silent, unsure = 0, 0
+    for reading in doubted:
+        reasons = set(reading.doubts)
+        if reasons == {'nothing in the text says what the ground is'}:
+            silent += 1
+        else:
+            unsure += 1
+    if doubted:
+        print()
+        print('what the doubted population is made of:')
+        print(f'  {silent:>7,}  {pct(silent)}  the description never mentions the '
+              f'ground; composable, nothing to escalate')
+        print(f'  {unsure:>7,}  {pct(unsure)}  the parser is genuinely unsure; '
+              f'this is the actionable queue')
+
     if args.examples:
         print()
         print(f'--- {args.examples} doubted rooms, verbatim ---')
