@@ -30,7 +30,7 @@ require 'securerandom'
 
 module Companion
   PROTOCOL      = 1
-  BRIDGE_VERSION = '0.15.0'
+  BRIDGE_VERSION = '0.16.0'
   DEFAULT_PORT  = 7415
   PATH          = '/companion'
   WS_GUID       = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -695,6 +695,14 @@ module Companion
         'circle'      => safe(0) { DRStats.circle.to_i },
         'favors'      => safe(0) { DRStats.favors.to_i },
         'encumbrance' => safe(nil) { DRStats.encumbrance.to_s },
+        # The same fact as a number, so a client can compare it instead of
+        # matching strings. See State.encumbrance_level for where the ladder
+        # comes from and why it is read rather than copied.
+        'encumbranceLevel'    => encumbrance_level,
+        'encumbranceScaleMax' => encumbrance_scale_max,
+        # How many items this character is carrying, everywhere at once. A
+        # floor, never an exact total - see State.carried_item_count.
+        'carriedItemCount'    => carried_item_count,
         # The eight base stats plus TDPs, luck and native mana type — all
         # already tracked by DRInfomon from the game's own 'exp tdp' and
         # stat-window components, and none of it previously left this
@@ -950,6 +958,101 @@ module Companion
           'items'    => names.first(MAX_CONTAINER_ITEMS)
         }
       }.compact.first(MAX_CONTAINERS)
+    end
+
+    # DragonRealms' own encumbrance ladder, as a rank instead of a word.
+    #
+    # `DRStats.encumbrance` is a phrase - "Somewhat Burdened", "Tottering
+    # Under Burden" - and a phrase cannot be compared, thresholded or drawn on
+    # a bar. Lich already keeps the ordering, because dr-scripts needs it:
+    # `Lich::DragonRealms::ENC_MAP` in
+    # `lib/dragonrealms/drinfomon/drvariables.rb` maps all twelve phrases to
+    # 0..11, and `DRC.check_encumbrance` in `commons/common.rb` is the
+    # in-tree caller. It is read here rather than copied, for the reason the
+    # balance/position fields above give: a second ladder in this file would
+    # be free to drift from Lich's, and Lich's is the one the game's own text
+    # is matched against.
+    #
+    # nil, not 0, when the phrase is not in the map. 0 is a real rank ("None",
+    # carrying nothing that weighs anything) and a word Lich does not
+    # recognise must never arrive at the client wearing it - that is the
+    # difference between "unburdened" and "we could not tell", and only one of
+    # them means you can pick something up.
+    # `ENC_MAP[...]` and `ENC_MAP.values` are called on the constant path
+    # itself rather than through a local, deliberately. `ruby/runner.rb
+    # --surface` extracts this script's Lich surface with Ruby's own parser and
+    # only records a CallNode whose receiver is a constant: bound to a local
+    # first, both calls become invisible to it, and `ruby/lich_stub.rb`'s
+    # containment shim could then lose this entry with nothing going red.
+    def encumbrance_level
+      word = safe(nil, as: 'encumbranceLevel') { DRStats.encumbrance.to_s }
+      return nil if word.nil? || word.empty?
+
+      rank = safe(nil, as: 'encumbranceLevel') { Lich::DragonRealms::ENC_MAP[word] }
+      rank.is_a?(Integer) ? rank : nil
+    end
+
+    def encumbrance_scale_max
+      ranks = safe(nil, as: 'encumbranceScaleMax') { Lich::DragonRealms::ENC_MAP.values }
+      return nil unless ranks.is_a?(Array)
+
+      top = ranks.grep(Integer).max
+      top.is_a?(Integer) ? top : nil
+    end
+
+    # How many items this character is carrying, everywhere at once.
+    #
+    # DragonRealms caps how many items you may carry at all - 100 on a free
+    # account, with junk-room warnings from 75, and higher with the Personal
+    # Inventory Upgrade (docs/DOMAIN.md section 4). The game never publishes
+    # the running total: the only time it says anything is when a PUT, STOW or
+    # ACCEPT fails with "would push you over the item limit" (see
+    # `commons/common-items.rb` and `scripts/combat-trainer.lic`), which is a
+    # consequence of trying, exactly like container capacity in State.containers
+    # above. So there is no number to read and this one is derived.
+    #
+    # Three places an item can be, which is the same enumeration Lich itself
+    # uses in `lib/gemstone/readylist.rb` when it asks whether it still has a
+    # given object anywhere on the character:
+    #
+    #   GameObj.inv                        worn and carried, top level
+    #   GameObj.containers.values.flatten  inside the containers Lich has seen
+    #   GameObj.right_hand / left_hand     held
+    #
+    # That the item limit counts the contents of containers, not only the top
+    # level, is why the second line is here: STOW puts an item *into* a
+    # container and is one of the commands that can fail with "push you over
+    # the item limit" (`scripts/combat-trainer.lic:736`).
+    #
+    # **This is a floor and never an exact total.** `GameObj.containers` holds
+    # an entry only for containers the game has described this session, so a
+    # bag nobody has opened contributes nothing - see State.containers. The
+    # client must say "at least N"; a number presented as the total would be
+    # the invented-measurement defect this file has already shipped once.
+    #
+    # Only the containers actually worn are summed, not every key in the
+    # registry: a chest in a room or a bin at a shop can leave contents behind
+    # in the same hash, and those are not on the character.
+    def carried_item_count
+      worn = safe(nil, as: 'carriedItemCount') { GameObj.inv.to_a }
+      return nil unless worn.is_a?(Array)
+
+      known = safe(nil, as: 'carriedItemCount') { GameObj.containers }
+      return nil unless known.is_a?(Hash)
+
+      total = worn.size
+      total += safe(0, as: 'carriedItemCount') { GameObj.right_hand&.id ? 1 : 0 }
+      total += safe(0, as: 'carriedItemCount') { GameObj.left_hand&.id ? 1 : 0 }
+
+      worn.each do |obj|
+        id = safe(nil) { obj.id }
+        next if id.nil?
+
+        contents = known[id] || known[id.to_s]
+        total += contents.size if contents.is_a?(Array)
+      end
+
+      total
     end
 
     def inventory

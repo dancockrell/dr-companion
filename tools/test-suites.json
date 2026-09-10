@@ -150,6 +150,7 @@
   "test:pause-bridge",
   "test:map-nearest",
   "test:containers",
+  "test:encumbrance",
   "test:verified-claim",
   "test:setup-guidance",
   "test:test-controller",

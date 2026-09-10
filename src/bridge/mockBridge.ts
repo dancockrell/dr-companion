@@ -280,17 +280,36 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       connected: true,
     },
     inventory: {
+      /**
+       * Issue #562: these used to carry `capacity` above zero, which drew the
+       * used/capacity bar — the **one** state a live bridge can never produce,
+       * because DragonRealms exposes no numeric capacity for an ordinary
+       * container (W2 established that against Lich's own source). So demo
+       * mode showed only the impossible state and the two real ones,
+       * `N items` and `contents unknown`, were unreachable. That is "a state
+       * the fixture cannot reach is a state nobody sees until a user does" in
+       * its exact form.
+       *
+       * Every `capacity` is now `0`, the not-reported sentinel, and two
+       * containers deliberately omit `used` so the `contents unknown` branch
+       * and the "Scan this container in game" row it reveals are both on
+       * screen in demo mode. An empty bag (`used: 0`) is kept alongside a full
+       * one so the distinction W2 exists for is visible here too.
+       */
       containers: [
-        { name: 'backpack', used: 18, capacity: 30, items: ['a steel skinning knife', 'a dark steel tower shield', 'a coil of climbing rope', 'some acanthite crystals'] },
-        { name: 'belt pouch', used: 4, capacity: 8, items: ['a cambrinth ring', 'a tiny gwethdesuan'] },
-        { name: 'thigh bag', used: 2, capacity: 6, items: ['some jadice flowers', 'a pothanit herb'] },
-        { name: 'weapon harness', used: 3, capacity: 6, items: ['a kertig throwing axe', 'a short hunting spear'] },
-        { name: 'crafting satchel', used: 9, capacity: 20, items: ['a balanced forging hammer', 'a book of blacksmithing instructions'] },
-        { name: 'gem pouch', used: 14, capacity: 50, items: ['an uncut sapphire', 'a smoky quartz'] },
-        { name: 'travel pack', used: 7, capacity: 20, items: ['a Crossing travel guide', 'a silver ferry ticket'] },
-        { name: 'herb case', used: 6, capacity: 12, items: ['some nemoih root', 'some hulnik grass'] },
-        { name: 'scroll case', used: 5, capacity: 10, items: ['a scroll of Ease Burden', 'a sealed parchment'] },
-        { name: 'coin purse', used: 1, capacity: 8, items: ['some copper Kronars'] },
+        { name: 'backpack', used: 18, capacity: 0, items: ['a steel skinning knife', 'a dark steel tower shield', 'a coil of climbing rope', 'some acanthite crystals'] },
+        { name: 'belt pouch', used: 4, capacity: 0, items: ['a cambrinth ring', 'a tiny gwethdesuan'] },
+        { name: 'thigh bag', used: 2, capacity: 0, items: ['some jadice flowers', 'a pothanit herb'] },
+        { name: 'weapon harness', used: 3, capacity: 0, items: ['a kertig throwing axe', 'a short hunting spear'] },
+        { name: 'crafting satchel', used: 9, capacity: 0, items: ['a balanced forging hammer', 'a book of blacksmithing instructions'] },
+        { name: 'gem pouch', used: 14, capacity: 0, items: ['an uncut sapphire', 'a smoky quartz'] },
+        { name: 'travel pack', used: 7, capacity: 0, items: ['a Crossing travel guide', 'a silver ferry ticket'] },
+        // Never opened this session: no `used`, no `items`. The panel must say
+        // "contents unknown", not "0 items".
+        { name: 'herb case', capacity: 0 },
+        { name: 'scroll case', capacity: 0 },
+        // Opened and genuinely empty, which must not read like the two above.
+        { name: 'coin purse', used: 0, capacity: 0, items: [] },
       ],
       worn: ['a steel-plated great helm', 'some etched plate armor', 'a darkened leather cloak'],
       wornCount: 12,
@@ -333,8 +352,9 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [
-        { name: 'backpack', used: 22, capacity: 25 },
-        { name: 'belt', used: 5, capacity: 6 },
+        { name: 'backpack', used: 22, capacity: 0 },
+        // Never opened: the panel must say "contents unknown" (issue #562).
+        { name: 'belt', capacity: 0 },
       ],
       // Above carryWarnAt (75, F2P-only - see accountCapabilities.ts),
       // below carryMax (100). This is the only preset F2P applies to, so it
@@ -388,8 +408,8 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [
-        { name: 'backpack', used: 14, capacity: 30 },
-        { name: 'satchel', used: 6, capacity: 12 },
+        { name: 'backpack', used: 14, capacity: 0 },
+        { name: 'satchel', capacity: 0 },
       ],
       wornCount: 11,
       looseCount: 0,
@@ -431,9 +451,9 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [
-        { name: 'backpack', used: 10, capacity: 35 },
-        { name: 'hiertog', used: 3, capacity: 15 },
-        { name: 'belt pouch', used: 2, capacity: 8 },
+        { name: 'backpack', used: 10, capacity: 0 },
+        { name: 'hiertog', used: 3, capacity: 0 },
+        { name: 'belt pouch', capacity: 0 },
       ],
       wornCount: 14,
       looseCount: 0,
@@ -475,8 +495,8 @@ const presets: Record<DemoPresetId, DemoPreset> = {
     },
     inventory: {
       containers: [
-        { name: 'backpack', used: 8, capacity: 35 },
-        { name: 'vault-linked pack', used: 2, capacity: 20 },
+        { name: 'backpack', used: 8, capacity: 0 },
+        { name: 'vault-linked pack', used: 2, capacity: 0 },
       ],
       wornCount: 15,
       looseCount: 0,
@@ -608,7 +628,7 @@ const presets: Record<DemoPresetId, DemoPreset> = {
       connected: true,
     },
     inventory: {
-      containers: [{ name: 'carpetbag', used: 3, capacity: 20 }],
+      containers: [{ name: 'carpetbag', used: 3, capacity: 0 }],
       // Observed on Phemius, and the helm is the reason this list exists: worn
       // with a wind instrument in hand, it silently slows Performance and the
       // game says so exactly once, when you play.
@@ -644,7 +664,31 @@ for (const p of Object.values(presets)) {
   // obviously missing one, because nothing about it invites checking.
   p.character.circle = p.character.circle ?? Math.max(1, Math.round(level / 3))
   p.character.roomPlayers = [...DEMO_INVASION_PLAYERS]
-  p.character.encumbrance = level > 100 ? 'Somewhat Burdened' : 'Light'
+  /**
+   * W4. `'Light'` was here, and it is not a DragonRealms phrase — the ladder
+   * is "None", "Light Burden", "Somewhat Burdened", … so the mock was the only
+   * place that word existed and demo mode could never show a rank. The pair
+   * below is kept consistent by construction: the phrase and its rank come
+   * from the same row, and `encumbranceScaleMax` is Lich's own ceiling (11),
+   * so the panel draws the same proportion here as against a real bridge.
+   */
+  const burdened = level > 100
+  p.character.encumbrance = burdened ? 'Somewhat Burdened' : 'Light Burden'
+  p.character.encumbranceLevel = burdened ? 2 : 1
+  p.character.encumbranceScaleMax = 11
+  /**
+   * A floor, the way a real bridge sends it: worn + held + the contents of
+   * the containers Lich has seen inside. Derived from this preset's own
+   * inventory fixture rather than typed, so a fixture edit cannot leave the
+   * count disagreeing with the containers beside it — which is the same class
+   * of defect as #562 one field over.
+   */
+  const inv = p.inventory
+  p.character.carriedItemCount = inv
+    ? inv.wornCount +
+      inv.looseCount +
+      inv.containers.reduce((sum, c) => sum + (c.used ?? 0), 0)
+    : null
   // The mock is explicitly a development fixture, not a claim about a live
   // room. Keep the crowded invasion active on load so scaling, two grab-scroll
   // rails, tooltips, floor search, and redraw behavior are always exercised.

@@ -235,6 +235,18 @@ module Lich
     module Creature
       def self.in_room = $creature_room
     end
+
+    # W4: the ladder the bridge turns DRStats.encumbrance into a rank with.
+    # A fixture **subset** of Lich's twelve entries, and labelled as one:
+    # this suite has to prove a phrase becomes a number and reaches the
+    # socket, not reproduce a table. ruby/lich_stub.rb carries the full
+    # ladder, because standing in for Lich is that file's whole job.
+    ENC_MAP = {
+      'None'              => 0,
+      'Light Burden'      => 1,
+      'Somewhat Burdened' => 2,
+      'Burdened'          => 3
+    }.freeze
   end
 end
 
@@ -303,6 +315,13 @@ end
 # getting lucky on an empty name matching nothing.
 module DRStats
   def self.name = 'Testchar'
+
+  # W4. Without this the encumbrance read raises, lands in the degraded list,
+  # and the two degraded checks below fail - the same reason balance/position
+  # got stubs. 'Light Burden' is rank 1 of the fixture ladder below, so the
+  # phrase and the rank can be checked against each other rather than each
+  # being asserted against a constant typed twice.
+  def self.encumbrance = 'Light Burden'
 
   # Base stats, TDPs, luck and native mana - issue #10's sibling gap for the
   # character sheet rather than injuries: DRInfomon already tracks all of
@@ -1127,6 +1146,30 @@ begin
   check('looseCount counts only the occupied hand', ipayload['looseCount'] == 1, ipayload['looseCount'])
 
   puts ''
+  puts '-- W4: the two numbers that answer "can I pick this up" cross the socket --'
+  # The same three worn things, the same one open backpack with two items in
+  # it, and the same one occupied hand the checks above just asserted - so
+  # this number is checkable against them rather than being a magic constant:
+  # 3 worn + 2 in the bag + 1 held = 6. A count that forgot the bag's contents
+  # is 4, one that forgot the hand is 5, and both are reachable wrong answers
+  # in this very fixture.
+  check(
+    'carriedItemCount reaches inside the container, so it is 6 and not 4 or 5',
+    payload['carriedItemCount'] == 6,
+    payload['carriedItemCount'].inspect
+  )
+  # This suite's DRStats stub reports 'Light Burden', rank 1 of its fixture
+  # ladder above. The phrase and the rank must agree - a rank that did not come
+  # from the phrase would be a number nobody can check.
+  check('encumbrance still crosses as the phrase', payload['encumbrance'] == 'Light Burden', payload['encumbrance'].inspect)
+  check('encumbranceLevel crosses as its rank', payload['encumbranceLevel'] == 1, payload['encumbranceLevel'].inspect)
+  check(
+    'and the ceiling comes with it, so the rank can be drawn as a proportion',
+    payload['encumbranceScaleMax'] == 3,
+    payload['encumbranceScaleMax'].inspect
+  )
+
+  puts ''
   puts '-- a legitimately empty inventory reports empty, honestly --'
   $gameobj_loot = []
   $gameobj_right_hand = nil
@@ -1240,8 +1283,14 @@ begin
   dinv = c.read_until('inventory')['payload']
   $gameobj_raise = false
 
+  # carriedItemCount joins this list as of W4, and belongs in it: the count is
+  # derived entirely from GameObj, so a broken GameObj means there is no count
+  # to give. It must be named rather than quietly reported as some number.
+  # encumbranceLevel does NOT appear here, and that distinction is the point -
+  # it reads DRStats and Lich's ladder, neither of which this sabotage touches,
+  # so a degraded list that grew it too would be naming a field that read fine.
   check('a broken GameObj names the status fields it could not read',
-        (dstat['degraded'] || []).sort == ['hands.left', 'hands.right', 'roomItems'],
+        (dstat['degraded'] || []).sort == ['carriedItemCount', 'hands.left', 'hands.right', 'roomItems'],
         dstat['degraded'].inspect)
   check('and the inventory fields, with dotted paths as the payload nests them',
         (dinv['degraded'] || []).sort == ['containers', 'looseCount', 'worn', 'wornCount'],

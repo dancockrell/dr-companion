@@ -33,7 +33,12 @@ module DRStats
   def self.race = 'Elothean'
   def self.circle = 42
   def self.favors = 7
-  def self.encumbrance = 'Light'
+  # A real DragonRealms phrase, not an invented one. This used to be 'Light',
+  # which is not in Lich's ENC_MAP at all - a fixture that could only ever
+  # exercise the "we could not tell" branch of W4's encumbrance rank. 'Light
+  # Burden' is rank 1 of 11, so server_test.rb can assert a number crosses the
+  # socket. encumbrance_test.rb keeps the unrecognised-phrase case.
+  def self.encumbrance = 'Light Burden'
   def self.health = 88
   def self.spirit = 100
   def self.fatigue = 71
@@ -106,6 +111,23 @@ module Script
   def self.pause(_n) = nil
   def self.unpause(_n) = nil
   def self.at_exit(&_blk) = nil
+end
+
+# W4: the encumbrance ladder the bridge turns DRStats.encumbrance into a rank
+# with. A **fixture subset**, not a copy of Lich's twelve-entry ENC_MAP: this
+# harness only has to prove a real phrase becomes a real number and reaches the
+# socket, and a partial table that admits to being partial is safer than one
+# that looks authoritative and silently drifts. `ruby/lich_stub.rb` carries the
+# full ladder, because standing in for Lich is its whole job.
+module Lich
+  module DragonRealms
+    ENC_MAP = {
+      'None'              => 0,
+      'Light Burden'      => 1,
+      'Somewhat Burdened' => 2,
+      'Burdened'          => 3
+    }.freeze
+  end
 end
 
 # Load the bridge, minus its entry-point block (which reads Script.current.vars).

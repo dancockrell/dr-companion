@@ -70,6 +70,17 @@ const CHARACTER_STATUS_FIELDS = [
     field: 'carriedItemCount',
     declPattern: /carriedItemCount\?:\s*number \| null/,
   },
+  // W4 added these two beside `carriedItemCount`, and they are graded by the
+  // same three rules. The manifest is hand-kept by design (see the header),
+  // so a lane that adds a field adds its row here or this test cannot see it.
+  {
+    field: 'encumbranceLevel',
+    declPattern: /encumbranceLevel\?:\s*number \| null/,
+  },
+  {
+    field: 'encumbranceScaleMax',
+    declPattern: /encumbranceScaleMax\?:\s*number \| null/,
+  },
   {
     field: 'preparedSpell',
     declPattern: /preparedSpell\?:\s*PreparedSpell \| null/,

@@ -399,6 +399,31 @@ module Lich
     module Creature
       def self.in_room = []
     end
+
+    # W4: DragonRealms' encumbrance ladder, phrase => rank. Reproduced here
+    # verbatim from `lib/dragonrealms/drinfomon/drvariables.rb` in an installed
+    # Lich5 because a shim has to answer with the real shape - a script that
+    # looks up "Somewhat Burdened" and gets nil would take its "we could not
+    # tell" branch under containment and never exercise the one that matters.
+    #
+    # This is the one place in this file where copying Lich's data is right
+    # rather than a fork: the shim exists precisely so a candidate script can
+    # run with no Lich present. `companion_bridge.lic` reads the real constant
+    # (State.encumbrance_map) and never this one.
+    ENC_MAP = {
+      'None'                              => 0,
+      'Light Burden'                      => 1,
+      'Somewhat Burdened'                 => 2,
+      'Burdened'                          => 3,
+      'Heavy Burden'                      => 4,
+      'Very Heavy Burden'                 => 5,
+      'Overburdened'                      => 6,
+      'Very Overburdened'                 => 7,
+      'Extremely Overburdened'            => 8,
+      'Tottering Under Burden'            => 9,
+      'Are you even able to move?'        => 10,
+      "It's amazing you aren't squashed!" => 11
+    }.freeze
   end
 
   module Common
@@ -462,6 +487,7 @@ module LichStub
       'Map' => %w[current by_genie_ref list],
       'Script' => %w[current running exists? start run kill pause unpause at_exit self_kill],
       'Lich::DragonRealms::Creature' => %w[in_room],
+      'Lich::DragonRealms::ENC_MAP' => %w[[] values],
       'Lich::Common::SocketReadHook' => %w[add remove]
     }.freeze
   }.freeze

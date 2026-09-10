@@ -90,7 +90,14 @@ export const PANEL_DATA_CONTRACTS: Record<PanelId, PanelDataContract> = {
   },
   inventory: {
     purpose: 'Worn and carried items, container contents, weight/burden - what the character is holding right now.',
-    dataNeeded: ['character.inventory', 'character.encumbrance', 'character.carriedItemCount', 'bridgeIntents'],
+    dataNeeded: [
+      'character.inventory',
+      'character.encumbrance',
+      'character.encumbranceLevel',
+      'character.encumbranceScaleMax',
+      'character.carriedItemCount',
+      'bridgeIntents',
+    ],
     requiresLiveCharacter: true,
   },
   risk: {

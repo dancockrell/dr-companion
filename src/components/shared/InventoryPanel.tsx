@@ -91,15 +91,38 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
    * its own fake pressure instead of using the true one sitting unused on
    * the character. Use that for the header instead of `inventory.pressure`.
    */
+  /**
+   * W4: the burden phrase, plus its rank on DragonRealms' own ladder.
+   *
+   * The colour used to be chosen by matching `encumbrance` against
+   * `'overloaded' | 'heavy' | 'moderate' | 'light'`. None of those four is a
+   * DragonRealms phrase — the game says "None", "Light Burden", "Somewhat
+   * Burdened", ... "Tottering Under Burden" — so on a live bridge every
+   * comparison was false and every burden state, including the one where you
+   * cannot move, drew in the same "some word arrived" green. It was matching
+   * a vocabulary nobody sends.
+   *
+   * The rank fixes that without this file owning a second copy of the ladder:
+   * `encumbranceLevel` and `encumbranceScaleMax` both come from Lich's
+   * `ENC_MAP`, so the thresholds below are proportions of whatever ladder the
+   * bridge read rather than a list of words to keep in step.
+   */
   const encumbrance = character?.encumbrance
+  const level = character?.encumbranceLevel
+  const scaleMax = character?.encumbranceScaleMax
+  const ranked =
+    typeof level === 'number' && typeof scaleMax === 'number' && scaleMax > 0
+  const burdenFraction = ranked ? level / scaleMax : null
   const pressureColor =
-    encumbrance === 'overloaded' || encumbrance === 'heavy'
-      ? 'text-danger'
-      : encumbrance === 'moderate' || encumbrance === 'light'
-        ? 'text-warn'
-        : encumbrance
-          ? 'text-good'
-          : 'text-ink-faint'
+    burdenFraction === null
+      ? encumbrance
+        ? 'text-ink-muted'
+        : 'text-ink-faint'
+      : burdenFraction >= 0.5
+        ? 'text-danger'
+        : burdenFraction > 0
+          ? 'text-warn'
+          : 'text-good'
 
   return (
     <div className="space-y-1.5">
@@ -115,7 +138,23 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
           <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find anything carried…" className="min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint" />
         </div>
-        <span className={`shrink-0 ${pressureColor}`}>{encumbrance ?? 'not reported'}</span>
+        <span
+          className={`shrink-0 ${pressureColor}`}
+          title={
+            ranked
+              ? `Burden ${level} of ${scaleMax} on DragonRealms' own scale`
+              : encumbrance
+                ? 'The game gave a burden phrase this bridge could not rank. Reinstall the bridge if this persists.'
+                : 'The bridge has not reported burden'
+          }
+        >
+          {encumbrance ?? 'not reported'}
+          {ranked && (
+            <span className="ml-1 tabular-nums opacity-80">
+              {level}/{scaleMax}
+            </span>
+          )}
+        </span>
       </div>
       <div {...scrollableRegionProps('Inventory searches', 'horizontal')} className="flex gap-1 overflow-x-auto pb-0.5">
         {FILTERS.map(([label, command]) => (
@@ -210,20 +249,70 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
         </p>
       )}
 
-      {/* carryMax/carryWarnAt were sitting in AccountCapabilities with no
+      {/* W4: the answer to "can I pick this up".
+        *
+        * carryMax/carryWarnAt were sitting in AccountCapabilities with no
         * reader anywhere (issue #39) — the free-account carry ceiling was
-        * computed and then thrown away. Worn + loose is the same total the
-        * game itself warns against; there is no separate "junk room" count
-        * the bridge sends. */}
-      {caps?.carryMax != null && (() => {
-        const carried = inventory.wornCount + inventory.looseCount
+        * computed and then thrown away. The first reader counted
+        * `wornCount + looseCount`, which is what is worn and held and nothing
+        * else: a character with eleven worn things and ninety items in bags
+        * read as eleven and was never warned. DragonRealms counts container
+        * contents toward the item limit — STOW, which puts an item *into* a
+        * container, is one of the commands that fails with "would push you
+        * over the item limit" — so that total was wrong in the direction that
+        * matters.
+        *
+        * `character.carriedItemCount` replaces it rather than sitting beside
+        * it: the bridge sums worn, held and every container Lich has seen
+        * inside, in one place, and this panel reads that. It is a floor, so
+        * it is shown as one — a bag nobody has opened is not in it, which is
+        * the same "contents unknown" the container rows above already draw.
+        * There is deliberately no fallback to the old arithmetic when the
+        * field is absent (a pre-0.16.0 bridge): a wrong number that looks
+        * like an answer is what this replaces, and the version card already
+        * tells the player their bridge is stale. */}
+      {(() => {
+        const carried = character?.carriedItemCount
+        if (typeof carried !== 'number') return null
+
+        const counted = inventory.containers.filter(
+          (c) => typeof c.used === 'number'
+        ).length
+        const unopened = inventory.containers.length - counted
+        const floorNote =
+          unopened > 0
+            ? ` ${unopened} container${unopened === 1 ? '' : 's'} not counted.`
+            : ' Anything you have not opened this session is not counted.'
+
+        if (caps?.carryMax == null) {
+          // No published ceiling for this tier — the Personal Inventory
+          // Upgrade is a purchase and nothing on the status payload says
+          // whether it was bought, so the cap is genuinely unknown rather
+          // than 100. Show the count and say so; do not invent a ceiling.
+          return (
+            <p className="text-xs leading-snug text-ink-faint">
+              Carrying at least {carried}. No published item ceiling for this
+              account tier.{floorNote}
+            </p>
+          )
+        }
+
         const overWarn = caps.carryWarnAt != null && carried >= caps.carryWarnAt
         const overMax = carried >= caps.carryMax
-        if (!overWarn) return null
+        if (!overWarn) {
+          return (
+            <p className="text-xs leading-snug text-ink-faint">
+              Carrying at least {carried} of {caps.carryMax}.{floorNote}
+            </p>
+          )
+        }
         return (
           <p className={`text-xs leading-snug ${overMax ? 'text-danger' : 'text-warn'}`}>
-            Carrying {carried} of {caps.carryMax} — free accounts get junk-room
-            warnings past this.
+            Carrying at least {carried} of {caps.carryMax} —{' '}
+            {overMax
+              ? 'at or past the limit, so the next thing you pick up may be refused.'
+              : 'free accounts get junk-room warnings past this.'}
+            {floorNote}
           </p>
         )
       })()}

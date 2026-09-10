@@ -1035,6 +1035,56 @@ reproduces the container-capacity mistake with extra steps. **Acceptance
 check:** the readout can answer "can I pick this up," which the word alone
 cannot.
 
+### What W4 actually built (bridge 0.16.0)
+
+Three fields, and the shape of the spec above survived with one correction.
+
+**`encumbranceLevel` / `encumbranceScaleMax`.** The word does have a number
+behind it, and Lich already keeps it: `Lich::DragonRealms::ENC_MAP` in
+`lib/dragonrealms/drinfomon/drvariables.rb` maps DragonRealms' twelve burden
+phrases (`None` .. `It's amazing you aren't squashed!`) to ranks 0..11, and
+`DRC.check_encumbrance` in `commons/common.rb` is the in-tree caller. So this
+is not the guessed mapping the spec above rightly forbids - it is the game's
+own ladder, read at runtime rather than copied, for the same reason the
+`balance`/`position` fields are sent raw. The ceiling rides along on the wire
+so no client holds a second copy of it. A phrase that is **not** on the ladder
+sends `null`, never `0`: `0` means unburdened, and those are opposite answers.
+
+**`carriedItemCount` is a floor, and clients must render it as one.** The
+spec's guess was right - there is no call that returns this. DragonRealms
+publishes no running total at all; the only time it says anything about the
+item limit is when a PUT, STOW or ACCEPT is refused with "would push you over
+the item limit" (`commons/common-items.rb`, `scripts/combat-trainer.lic`),
+which is a consequence of trying, exactly like container capacity. So the
+bridge derives it, from the same three places Lich itself enumerates when it
+asks whether an object is still on the character (`lib/gemstone/readylist.rb`):
+`GameObj.inv` (worn and carried, top level), the contents of the carried
+containers present in `GameObj.containers`, and the two hands. Container
+contents are in the sum because STOW - which puts an item *into* a container -
+is one of the commands that can be refused for the item limit.
+
+Because `GameObj.containers` holds an entry only for containers the game has
+described this session, a bag nobody has opened contributes nothing, and the
+total is therefore a **lower bound**. "At least N" is the only honest
+rendering; a client that prints it as an exact total has reintroduced the
+placeholder-that-looks-like-a-measurement defect W2 removed. Only *carried*
+containers are summed - a chest in a room can leave contents in the same
+registry and is not on the character.
+
+`null` on any of the three means the read failed this poll and the field is
+named in `degraded`; absent means a bridge older than 0.16.0. Both
+`BRIDGE_VERSION` and `EXPECTED_BRIDGE_VERSION` moved 0.15.0 -> 0.16.0
+together, so a stale bridge that never sends these is reported as stale
+rather than read as a character carrying nothing.
+
+**Acceptance check, outstanding:** none of this has been exercised against a
+live DragonRealms character - no session was available. What is checked is
+`npm run test:encumbrance` (a fixture where forgetting containers, forgetting
+the hands, and counting a room's chest each give a different wrong number) and
+`npm run test:server` (the three fields crossing the socket). A session with a
+real character should pick something up at a known count and confirm the
+number moves, and confirm the rank against the game's own ENCUMBRANCE output.
+
 ### Rezz sickness timer (gap row 25, W6)
 
 `CharacterStatus.rezzSicknessSeconds?: number | null`. DOMAIN.md sections 7

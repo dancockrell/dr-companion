@@ -305,22 +305,70 @@ export interface CharacterStatus {
    * See docs/DOMAIN.md section 17.
    */
   favors?: number
+  /**
+   * DragonRealms' own qualitative burden phrase, e.g. `"Somewhat Burdened"`.
+   *
+   * Real, and kept: it is what the game itself prints in the experience
+   * window, and `DRStats.encumbrance` is where Lich stores it. It is also
+   * unusable for comparison, which is what `encumbranceLevel` below is for.
+   * Absent means the bridge could not read it.
+   */
   encumbrance?: string
   /**
-   * Total items carried, against the free-to-play/upgraded slot thresholds
-   * DOMAIN.md section 4 gives — 100 items free-to-play, 75 before
-   * junk-room warnings, 300/250 with the Personal Inventory Upgrade — the
-   * number that answers "can I pick this up," which the word in
-   * `encumbrance` above cannot. That word is DR's own qualitative summary
-   * (`DRStats.encumbrance`, e.g. "Somewhat Burdened") and stays; this is a
-   * different, numeric fact alongside it, not a replacement.
+   * The same burden as a rank on DragonRealms' own twelve-step ladder —
+   * `0` (None) through `encumbranceScaleMax` ("It's amazing you aren't
+   * squashed!").
    *
-   * Absent (the key itself missing) means an older bridge that predates
-   * this field, or one that has not implemented the count yet. `null`
-   * means the bridge asked and could not get a count this poll. Burden and
-   * armor also reduce effective Athletics (DOMAIN.md section 6), which a
-   * consumer derives from this and `stats` — this field only carries the
-   * count itself.
+   * The ladder is `Lich::DragonRealms::ENC_MAP`
+   * (`lib/dragonrealms/drinfomon/drvariables.rb`), which the bridge reads
+   * rather than copies, so the ordering here is the same one dr-scripts'
+   * own `DRC.check_encumbrance` uses. There is deliberately no second copy
+   * of it in this repository.
+   *
+   * Three states, and conflating any two of them is the bug this field
+   * exists to avoid. **Absent** is a bridge older than 0.16.0, which never
+   * sent it. **`null`** is "the phrase the game gave us is not on Lich's
+   * ladder" — an unrecognised word, or no word at all. **`0`** is a real
+   * rank meaning unburdened. `null` and `0` read the same on a bar and mean
+   * opposite things, so never coerce one into the other.
+   */
+  encumbranceLevel?: number | null
+  /**
+   * The top rank of the ladder `encumbranceLevel` is measured against,
+   * taken from the same `ENC_MAP` at read time (11, today).
+   *
+   * On the wire rather than hardcoded in the client for one reason: a
+   * client-side copy of the ceiling is a second copy of Lich's table and
+   * would be free to drift from it. Absent or `null` means the bridge could
+   * not read the ladder, in which case `encumbranceLevel` is `null` too and
+   * neither should be drawn as a proportion.
+   */
+  encumbranceScaleMax?: number | null
+  /**
+   * How many items this character is carrying, everywhere at once, against
+   * the slot thresholds DOMAIN.md section 4 gives — 100 items free-to-play,
+   * 75 before junk-room warnings, 300/250 with the Personal Inventory
+   * Upgrade. This is the number that answers "can I pick this up," which the
+   * word in `encumbrance` above cannot.
+   *
+   * **It is a floor, and must be shown as one.** DragonRealms publishes no
+   * running total; it only says anything when a PUT, STOW or ACCEPT fails
+   * with "would push you over the item limit". So the bridge derives this by
+   * summing what is worn, what is held, and the contents of the containers
+   * Lich has actually seen inside — and a bag nobody has opened this session
+   * contributes nothing, exactly as it contributes no `used` count in
+   * `InventorySummary`. Rendering it as an exact total would be the invented
+   * measurement this repository has shipped once already. "At least N" is the
+   * honest form, and a count that has already crossed the cap is still a
+   * definite answer.
+   *
+   * Absent (the key itself missing) means a bridge older than 0.16.0.
+   * `null` means the bridge asked and could not get a count this poll —
+   * treat that as "not reported" and do not fall back to counting
+   * `inventory.wornCount + inventory.looseCount`, which is the undercount
+   * this field replaces. Burden and armor also reduce effective Athletics
+   * (DOMAIN.md section 6), which a consumer derives from this and `stats` —
+   * this field only carries the count itself.
    */
   carriedItemCount?: number | null
   /**

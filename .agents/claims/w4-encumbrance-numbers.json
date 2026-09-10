@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "task_id": "w4-encumbrance-numbers",
+  "agent": "claude-code",
+  "summary": "Encumbrance as numbers: DragonRealms' own burden rank read from Lich's ENC_MAP, plus a derived carried-item count that reaches inside containers and is reported as a floor. Also closes #562 (mock container fixtures could only draw the one state a live bridge can never produce).",
+  "status": "completed",
+  "claimed_at": "2026-09-10T00:00:00Z",
+  "updated_at": "2026-09-10T00:00:00Z",
+  "paths": [
+    "lich-scripts/companion_bridge.lic",
+    "src/types/index.ts",
+    "src/components/shared/InventoryPanel.tsx",
+    "src/lib/versions.ts",
+    "src/lib/panelDataContracts.ts",
+    "src/bridge/mockBridge.ts",
+    "docs/BRIDGE_CONTRACT.md",
+    "ruby/lich_stub.rb",
+    "lich-scripts/test/protocol_harness.rb",
+    "lich-scripts/test/server_test.rb",
+    "lich-scripts/test/encumbrance_test.rb",
+    "tools/character-status-fields-test.mjs",
+    "package.json",
+    "tools/test-suites.json",
+    "docs/PLAN_TO_1_0.md",
+    ".agents/claims/w4-encumbrance-numbers.json"
+  ],
+  "symbols": [
+    "Companion::State.encumbrance_level",
+    "Companion::State.encumbrance_scale_max",
+    "Companion::State.carried_item_count",
+    "CharacterStatus.encumbranceLevel",
+    "CharacterStatus.encumbranceScaleMax",
+    "CharacterStatus.carriedItemCount"
+  ],
+  "coordination": {
+    "depends_on": ["W0", "W2"],
+    "conflicts_with": [],
+    "notes": "lich-scripts/companion_bridge.lic is the file PLAN_TO_1_0.md section 3 allows only one in-progress increment across lanes R/W/X/Y/Z. Checked before claiming: section 3.1's live-claims table has no R/W/X/Y/Z row, `git ls-remote --heads origin 'lane-w*'` returns nothing, and the only `[~]` increment in the plan is V2, which touches tools/break-check-tree.mjs. Extends rather than duplicates: `carriedItemCount` was published by W0 and is wired here for the first time; the container contents it sums are the ones W2 wired in the same file two commits ago, so nothing re-reads GameObj a second way. The burden ladder is READ from Lich (`Lich::DragonRealms::ENC_MAP`) rather than copied, for the reason the neighbouring balance/position fields already state - a second ladder in this repository would be free to drift from the one the game's own text is matched against. The two test-side ladders (protocol_harness.rb, encumbrance_test.rb) are deliberate labelled SUBSETS, not copies claiming fidelity; ruby/lich_stub.rb carries the full twelve entries because standing in for an absent Lich is that file's whole job. src/data/obstacles.ts's effectiveAthletics still substring-matches the word and collapses ranks 4-11 into one bucket - left alone on purpose: its multipliers have no published source, and rewriting them against the rank would have meant inventing numbers, which is the defect this increment exists to avoid. Recorded here rather than silently fixed.",
+    "shared_state_touched": "Starting a dev server in this worktree wrote to node_modules/.vite/deps, which is a symlink into C:\\Users\\Admin\\dev\\dr-companion\\node_modules and therefore shared with every other session. It re-optimised dependencies; no source file outside this worktree was written. The server was stopped by its own id. Disclosed because CLAUDE.md's rule about not disturbing what another session holds covers this and nothing else would have shown it."
+  },
+  "completion": {
+    "commit": "(this PR)",
+    "checks": [
+      "node tools/run-tests.mjs baseline, before any edit: 177 passed, 0 failed, 7482 checks across 177 suites, 5 partial",
+      "npm run test:encumbrance (new): 21 checked, 0 failed, all passed - includes 'an unrecognised phrase does not rank: nil', 'and specifically is not 0', and the count discriminator where 4, 5, 7 and 11 are all reachable wrong answers and 8 is right",
+      "npm run test:server: 179 checked, 0 failed (baseline 175) - the three new fields cross the socket, carriedItemCount == 6 checkable against the 3 worn / 2 in bag / 1 held fixture the neighbouring checks assert, and a broken GameObj names carriedItemCount but not encumbranceLevel",
+      "node tools/ai-script-repair-test.mjs standalone: 149 passed, 0 failed, 0 not checked; 'the shim covers every Lich name companion_bridge.lic actually calls  76 calls found by Ruby's parser, 0 uncovered'",
+      "SABOTAGE 1: SURFACE entry for Lich::DragonRealms::ENC_MAP removed from ruby/lich_stub.rb -> 'FAIL the shim covers every Lich name companion_bridge.lic actually calls  76 calls found by Ruby's parser, 2 uncovered: Lich::DragonRealms::ENC_MAP.[], Lich::DragonRealms::ENC_MAP.values'; 148 passed, 1 failed. Restored from byte copy, md5sum -c OK (d561b93ba69bd6ffc11c92b756141dac), 149 passed again",
+      "SABOTAGE 2: bridge reverted to rank-0-for-an-unknown-phrase and a container sum of zero -> encumbrance_test.rb red on exactly 5 named checks (decisive: 'an unrecognised phrase does not rank: 0', 'it is 8 ...: got 5'), server_test.rb red on exactly 1 ('carriedItemCount ...: 4'), nothing else moved. Restored from byte copy, md5sum -c OK, ruby -c Syntax OK, both suites green",
+      "SABOTAGE 2's first attempt ABORTED instead of running: the fragment was built with \\n against a CRLF-sensitive region (plan trap 22), matched 0 times, and the harness refused rather than rewriting the file unchanged and reporting a pass",
+      "node tools/character-status-fields-test.mjs: 23 checked, 0 failed, 2 not checked (preparedSpell/rezzSicknessSeconds, W3/W6's, unchanged) - encumbranceLevel and encumbranceScaleMax each documented, registered in PANEL_DATA_CONTRACTS and read by InventoryPanel.tsx",
+      "npx tsc -b: exit 0, no output",
+      "node tools/plan-audit.mjs: plan ok, 208 increments, 996 paths checked",
+      "node tools/run-tests.mjs after: 178 passed, 0 failed, 7516 checks across 178 suites, same 5 pre-existing partials (test:mud-client-e2e, test:godot-fixture-contract, test:world-content, test:scene-registry, test:scene-editor)",
+      "NOT CHECKED: no live DragonRealms character was available, so the acceptance check (pick something up at a known count, confirm the number moves; confirm the rank against the game's own ENCUMBRANCE output) is outstanding. Recorded in docs/BRIDGE_CONTRACT.md and in the plan rather than left implied",
+      "NOT CHECKED: the panel was not seen rendered. A preview server started for this worktree served origin/main's mockBridge.ts (capacity: 8 where disk says capacity: 0, confirmed by fetching the module the dev server was transforming), so the browser check was abandoned rather than reported against stale output"
+    ]
+  }
+}
