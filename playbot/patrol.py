@@ -40,8 +40,15 @@ from forge.extract import read_room
 
 from .complaints import Complaint, Sink
 from .live import ROUNDTIME_PHRASES, Session
-from .oracle import check_room
+from .oracle import _signature, check_neighbours, check_room
 from .world import SAFE_LOCATIONS, World, desc_key
+
+# How many rooms in a row may render identically before a player stops being
+# able to tell where they are. Two is a coincidence; a street of five that all
+# look the same is the complaint every player of a game like this files, and it
+# is the one no per-room rule can see. Not a matter of taste: whether two
+# scenes carry the same signature is a fact, and this only counts them.
+SAME_RUN = 3
 
 DEFAULT_DB = r'C:\Ruby4Lich5\Lich5\data\DR\map-1788915136.json'
 
@@ -83,6 +90,14 @@ class Patrol:
         self.moves_that_went_elsewhere = 0
         self.moves_that_did_not_move = 0
         self.stopped_because: str | None = None
+        self.last_movement: str | None = None
+        self.retreats = 0
+        self.uid_carried = 0
+        # The scene each visited room produced, and the order they were walked
+        # in, so the pair checks and the sameness run below have something to
+        # work on. A per-room check cannot see either.
+        self.scenes: dict[int, object] = {}
+        self.signatures: list[tuple[int, str]] = []
 
     # -- pacing ----------------------------------------------------------
 
@@ -172,6 +187,8 @@ class Patrol:
 
         if by_uid is not None:
             self.identified_by_uid += 1
+            if getattr(room, 'uid_source', None) == 'carried':
+                self.uid_carried += 1
             stored = [desc_key(d) for d in (by_uid.get('description') or [])]
             live_key = desc_key(room.description or '')
             if live_key and stored and live_key not in stored:
@@ -194,10 +211,18 @@ class Patrol:
 
         if len(by_desc) == 1:
             self.identified_by_description += 1
-            self.file('note', 'game',
-                      'the game sent no room uid, so the room was identified by its prose',
+            # Filed against the bot, not the game. The game sends `<nav>` on
+            # arrival and only there, so the one command that can reach this
+            # is the opening look of a session, when there has been no arrival
+            # to carry an identity from. The previous walk filed nine of these
+            # as a game defect - "the game sent no room uid" - which read as
+            # the world being unreliable when it was the bot asking with the
+            # wrong verb. It is now one per session and it is honest about
+            # whose limitation it is.
+            self.file('note', 'bot',
+                      'the first room of a session is identified by prose, having never been arrived at',
                       room_id=by_desc[0]['id'], room_title=room.title,
-                      expected='a <nav rm=...> on arrival',
+                      expected='an arrival to take a uid from',
                       observed='matched on the first 60 characters of the description')
             return by_desc[0]
 
@@ -232,6 +257,9 @@ class Patrol:
         # generation time - so composing from live exits would test a pipeline
         # that does not exist and hide exactly the drift this walk is for.
         scene = compose(reading)
+        if scene is not None:
+            self.scenes[record['id']] = scene
+            self.signatures.append((record['id'], _signature(scene)))
         if room.exits:
             reading.exits = list(room.exits)
 
@@ -319,6 +347,7 @@ class Patrol:
             expected_id, movement = move
 
             self.moves_attempted += 1
+            self.last_movement = movement
             self.pace()
             arrived, turn = session.walk(movement)
             self.judge_turn(turn, room.title, here)
@@ -356,6 +385,54 @@ class Patrol:
                 self.judge_turn(turn, arrived.title or '(unknown)', None)
             room = arrived
 
+    def finish(self) -> None:
+        """The checks that are about more than one room, run once at the end.
+
+        The live walk was not running either of these. `check_neighbours` was
+        written for the offline pass and imported only there, so the single
+        most player-visible defect the project has a rule for - two rooms you
+        can walk between drawing the same picture - was never once applied to
+        the rooms actually walked.
+
+        The run-length check below is new, and it is the version of that
+        complaint a player would recognise. Adjacent pairs are a property of
+        the map; a *street* of rooms that all look alike is what someone
+        actually walks down, and a pairwise check reports it as scattered
+        pairs rather than as the one thing it is.
+        """
+        wayto = {rid: (self.world.rooms.get(rid) or {}).get('wayto') or {}
+                 for rid in self.scenes}
+        for complaint in check_neighbours(self.scenes, wayto):
+            self.sink.file(complaint)
+
+        run: list[int] = []
+        previous: str | None = None
+        for room_id, signature in self.signatures + [(-1, '\0end')]:
+            if signature == previous:
+                run.append(room_id)
+                continue
+            if len(run) >= SAME_RUN:
+                self.file('wrong', 'scene',
+                          f'{len(run)} rooms walked in a row render identically',
+                          room_id=run[0],
+                          room_title=_title(self.world, run[0]),
+                          expected=f'fewer than {SAME_RUN} consecutive rooms sharing a picture',
+                          observed=f'#{run[0]}..#{run[-1]} all carry {previous}',
+                          evidence={'rooms': run[:8], 'signature': previous})
+            run = [room_id]
+            previous = signature
+
+        if self.signatures:
+            distinct = len({s for _, s in self.signatures})
+            share = distinct / len(self.signatures)
+            if share < 0.5:
+                self.file('thin', 'scene',
+                          'most of the walk looked like the same handful of places',
+                          expected='a picture distinct enough to navigate by',
+                          observed=f'{len(self.signatures)} rooms produced {distinct} '
+                                   f'distinct scenes ({share:.0%})',
+                          evidence={'rooms': len(self.signatures), 'distinct': distinct})
+
     def _choose(self, here: int | None, room) -> tuple[int | None, str] | None:
         """The next move: toward unseen ground when the graph knows the way."""
         if here is not None:
@@ -373,11 +450,7 @@ class Patrol:
                           observed=(f'{len(scripted)} exits, all Lich scripts'
                                     if scripted else 'no exits at all'),
                           evidence={'scripted': list(scripted.values())[:3]})
-                for direction in room.exits:
-                    if direction in COMPASS:
-                        return None, direction
-                self.stopped_because = 'stuck: no exit from this room can be typed'
-                return None
+                return self._retreat(room, 'this room has no typeable exit')
 
             step = self.world.frontier_step(here, self.visited)
             if step:
@@ -391,12 +464,50 @@ class Patrol:
             # Everything reachable has been seen. Say so rather than starting
             # a random walk that would inflate the step count and find nothing.
             return None
-        # No identity, so no graph: fall back on the game's own exit list,
-        # which is the only thing left to steer by.
-        for direction in room.exits:
-            if direction in COMPASS:
-                return None, direction
-        return None
+        return self._retreat(room, 'the room the character is standing in is not on the map')
+
+    # The move that undoes each move, so an off-map step can be walked back.
+    # `out` has no inverse worth guessing - `in` may be a different doorway -
+    # and a direction absent here simply means the retreat is refused.
+    INVERSE = {
+        'north': 'south', 'south': 'north', 'east': 'west', 'west': 'east',
+        'northeast': 'southwest', 'southwest': 'northeast',
+        'northwest': 'southeast', 'southeast': 'northwest',
+        'up': 'down', 'down': 'up',
+    }
+
+    def _retreat(self, room, why: str) -> tuple[int | None, str] | None:
+        """Undo the last move, or stop. Never a fresh direction chosen blind.
+
+        This replaces the one place the patrol could leave its own safe area.
+        `world.moves` refuses every step into a room outside `SAFE_LOCATIONS`,
+        so a routed walk is bounded by construction - but both fallbacks here
+        used to pick the first compass direction out of the *game's* exit list,
+        which is bounded by nothing at all. Standing in an unmapped room beside
+        a town gate, the bot would have walked through it, and the safe-area
+        allowlist would have had no say: it is only consulted for rooms the map
+        knows, and this branch runs precisely when the map does not know one.
+
+        Walking back the way we came cannot do that. The room we came from was
+        in the safe set a moment ago, which is why we were allowed to leave it.
+        The step is one move, backwards, into somewhere already checked.
+        """
+        back = self.INVERSE.get((self.last_movement or '').strip().lower())
+        if back is None:
+            self.file('blocking', 'bot',
+                      'the patrol stopped rather than choose a direction it could not bound',
+                      room_title=room.title,
+                      expected='a mapped room, so the safe-area check has something to check',
+                      observed=f'{why}; last move {self.last_movement!r} has no inverse')
+            self.stopped_because = f'{why}, and no way back'
+            return None
+        self.retreats += 1
+        self.file('wrong', 'game', 'the character reached a room the map database does not hold',
+                  room_title=room.title,
+                  expected='every room reachable from the safe area to be mapped',
+                  observed=f'{why}; retreating {back!r}',
+                  evidence={'came_by': self.last_movement, 'retreat': back})
+        return None, back
 
 
 def _title(world: World, room_id: int | None) -> str:
@@ -465,6 +576,11 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         patrol.stopped_because = 'interrupted'
     finally:
+        # In the `finally` because `run` returns early from six places and an
+        # interrupted walk has just as much to say about what it saw as a
+        # finished one. A cross-room check that only runs when the loop ends
+        # tidily is a check that stops existing exactly when a walk goes wrong.
+        patrol.finish()
         session.close()
     elapsed = time.time() - started
 
@@ -472,8 +588,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f'distinct rooms: {len(patrol.visited)}   moves attempted: {patrol.moves_attempted}'
           f'   in {elapsed / 60:.1f} min')
     print(f'  arrivals identified by uid: {patrol.identified_by_uid}'
+          f' (of which {patrol.uid_carried} carried across a look)'
           f'   by description: {patrol.identified_by_description}'
           f'   not identified: {patrol.unidentified}')
+    print(f'  retreats out of unmapped rooms: {patrol.retreats}'
+          f'   distinct scene signatures: {len({s for _, s in patrol.signatures})}'
+          f' over {len(patrol.signatures)} scenes')
     print(f'  moves that landed elsewhere: {patrol.moves_that_went_elsewhere}'
           f'   moves that did not move: {patrol.moves_that_did_not_move}')
     if patrol.latencies:

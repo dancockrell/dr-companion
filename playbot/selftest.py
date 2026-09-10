@@ -30,7 +30,7 @@ from .live import parse_room
 from .oracle import check_room
 from .world import World
 
-FLOOR = 32   # well under the real count, so truncation or an import failure shows
+FLOOR = 50   # well under the real count, so truncation or an import failure shows
 
 # Captured from 127.0.0.1:11024 on 10 Sep 2026 by sending `south` as Phemius.
 # Note what it does *not* have: the compass is empty on a move, and the room's
@@ -301,6 +301,136 @@ def execution_cases(world: World) -> None:
           f'got {waited}')
 
 
+# Captured the same session, by sending `look` in the room the move above
+# arrived in. The whole point of keeping it is what is missing: there is no
+# `<nav>` anywhere in it, and there never is on a look.
+LOOK_PAYLOAD = (
+    "<preset id='roomDesc'>This tranquil corner of the Green has a small bower of"
+    " entwined modwyn vines.</preset>\n"
+    "Obvious paths: <d>north</d>, <d>west</d>.\n"
+    "<style id=\"roomName\" />[The Crossing, Town Green Southeast]\n"
+    "<prompt time=\"1789050071\">&gt;</prompt>"
+)
+
+
+def uid_cases() -> None:
+    """A look carries no identity, and what the bot does about that.
+
+    Three states, not two: read off the wire, carried because the character
+    demonstrably did not move, and unknown. Folding the third into either of
+    the others is the whole defect.
+    """
+    from .live import Session
+
+    session = Session.__new__(Session)      # no socket: only `absorb` is under test
+    session.vitals, session.indicators, session.last_uid = {}, {}, None
+
+    arrived = session.absorb(MOVE_PAYLOAD, moved=True)
+    check('a move carries the room uid off the wire', arrived.uid == 10031,
+          f'got {arrived.uid}')
+    check('a uid read off the wire is labelled as read', arrived.uid_source == 'nav',
+          f'got {arrived.uid_source}')
+
+    looked = session.absorb(LOOK_PAYLOAD, moved=False)
+    check('a look has no nav in it at all', '<nav' not in LOOK_PAYLOAD)
+    check('a look after a move keeps the uid the move gave', looked.uid == 10031,
+          f'got {looked.uid}')
+    check('a carried uid is labelled as carried', looked.uid_source == 'carried',
+          f'got {looked.uid_source}')
+
+    # The half that matters more: a *move* with no nav must not inherit one.
+    # Carrying it there would assert a position instead of reading one, and
+    # the safe-area bound downstream trusts this number.
+    moved_blind = session.absorb(LOOK_PAYLOAD, moved=True)
+    check('a move with no nav leaves the uid unknown', moved_blind.uid is None,
+          f'got {moved_blind.uid}')
+    check('an unknown uid is not labelled as anything', moved_blind.uid_source is None,
+          f'got {moved_blind.uid_source}')
+    after = session.absorb(LOOK_PAYLOAD, moved=False)
+    check('a look after an unidentified move does not resurrect a stale uid',
+          after.uid is None, f'got {after.uid}')
+
+
+def retreat_cases(world: World) -> None:
+    """The patrol may never choose a direction the safe area cannot bound."""
+    from .complaints import Sink
+    from .live import Session
+    from .patrol import Patrol
+
+    def patrol_at(last_movement):
+        sink = Sink()
+        session = Session.__new__(Session)
+        patrol = Patrol(world, session, sink, 'test')
+        patrol.last_movement = last_movement
+        return patrol, sink
+
+    class Room:
+        title = 'somewhere unmapped'
+        exits = ['north', 'east', 'south']
+
+    patrol, sink = patrol_at('north')
+    move = patrol._choose(None, Room())
+    check('an unmapped room is left by undoing the last move', move == (None, 'south'),
+          f'got {move}')
+    check('leaving the map is complained about',
+          any('map database does not hold' in c.summary for c, _, _ in sink.all()),
+          f'got {[c.summary for c, _, _ in sink.all()]}')
+
+    # The case this replaced: the old code took `room.exits[0]` here, which is
+    # 'north' - a direction chosen with nothing bounding where it goes.
+    check('the retreat is not simply the first exit the game offered',
+          move[1] != Room.exits[0])
+
+    patrol, sink = patrol_at('out')
+    move = patrol._choose(None, Room())
+    check('with no invertible last move the patrol stops instead of guessing',
+          move is None, f'got {move}')
+    check('stopping rather than guessing is blocking',
+          any(c.severity == 'blocking' for c, _, _ in sink.all()),
+          f'got {[(c.severity, c.summary) for c, _, _ in sink.all()]}')
+
+
+def sameness_cases(world: World) -> None:
+    """A street of identical rooms, which no per-room rule can see."""
+    from .complaints import Sink
+    from .live import Session
+    from .patrol import SAME_RUN, Patrol
+
+    def walked(signatures):
+        sink = Sink()
+        patrol = Patrol(world, Session.__new__(Session), sink, 'test')
+        patrol.signatures = [(100 + i, s) for i, s in enumerate(signatures)]
+        patrol.finish()
+        return [c.summary for c, _, _ in sink.all()]
+
+    same = walked(['a'] * (SAME_RUN + 1))
+    check('a run of identical rooms is complained about',
+          any('render identically' in s for s in same), f'got {same}')
+
+    varied = walked(list('abcdefgh'))
+    check('a walk of distinct rooms produces no sameness complaint',
+          not any('render identically' in s for s in varied), f'got {varied}')
+    check('a distinct walk is not called samey either',
+          not any('same handful of places' in s for s in varied), f'got {varied}')
+
+    # A run one short of the threshold must stay silent, or the check is
+    # really "any two rooms alike" wearing a threshold's clothes.
+    edge = walked(['a'] * (SAME_RUN - 1) + list('xyz'))
+    check(f'a run of {SAME_RUN - 1} does not trip a threshold of {SAME_RUN}',
+          not any('render identically' in s for s in edge), f'got {edge}')
+
+    # Alternating on purpose, so no three in a row are alike: this isolates
+    # the ratio check from the run check above. A fixture like 'aabbccdd'
+    # trips both at once and would let either one carry the other - and it
+    # sits at exactly 50%, on the wrong side of the threshold, which is how
+    # this case first failed.
+    samey = walked(list('abababab'))
+    check('a walk with few distinct pictures is called thin',
+          any('same handful of places' in s for s in samey), f'got {samey}')
+    check('and that fixture trips the ratio check without the run check',
+          not any('render identically' in s for s in samey), f'got {samey}')
+
+
 def main() -> int:
     world = World.load()
     parser_cases()
@@ -308,6 +438,9 @@ def main() -> int:
     exploration_cases(world)
     oracle_cases()
     execution_cases(world)
+    uid_cases()
+    retreat_cases(world)
+    sameness_cases(world)
 
     print(f'{_ran} cases ran, {len(_failed)} failed')
     for failure in _failed:

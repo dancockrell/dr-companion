@@ -136,6 +136,12 @@ class Turn:
 @dataclass
 class LiveRoom:
     uid: int | None = None
+    # How the uid was come by: 'nav' straight off the wire, 'carried' from the
+    # last arrival because this reply was a look and a look never carries one,
+    # None if unknown. Kept separate from the uid itself so a caller can tell
+    # an exact identity from a justified inference - the two are different
+    # claims and only one of them survives a move.
+    uid_source: str | None = None
     title: str | None = None
     description: str | None = None
     exits: list[str] = field(default_factory=list)
@@ -293,14 +299,39 @@ class Session:
 
     def look(self, timeout: float = 8.0) -> tuple[LiveRoom, Turn]:
         turn = self.ask('look', timeout)
-        return self.absorb(turn.raw), turn
+        return self.absorb(turn.raw, moved=False), turn
 
     def walk(self, movement: str, timeout: float = 12.0) -> tuple[LiveRoom, Turn]:
         turn = self.ask(movement, timeout)
-        return self.absorb(turn.raw), turn
+        return self.absorb(turn.raw, moved=True), turn
 
-    def absorb(self, raw: str) -> LiveRoom:
-        """Parse a room and keep the session-level state the game sends once."""
+    def absorb(self, raw: str, moved: bool = True) -> LiveRoom:
+        """Parse a room and keep the session-level state the game sends once.
+
+        ``moved`` says whether the command that produced this text could have
+        changed which room the character is standing in, and it decides what an
+        absent ``<nav>`` means. Measured on the wire rather than assumed, five
+        commands in a row:
+
+            look   nav=None   name="Wedding Chapel, Bride's Chamber"
+            north  nav=755062 name='Wedding Chapel, Foyer'
+            look   nav=None   name='Wedding Chapel, Foyer'
+            south  nav=755064 name="Wedding Chapel, Bride's Chamber"
+            look   nav=None   name="Wedding Chapel, Bride's Chamber"
+
+        **The game sends the room's identity on arrival and never on a look.**
+        So a look with no nav is not the game withholding anything; the
+        character has not moved and the uid is the one it already gave us. The
+        previous walk filed nine of those against the *game* - "the game sent
+        no room uid" - when the bot had asked with the one verb that never
+        carries one, and then identified those rooms by prose or not at all.
+
+        A *move* with no nav is the opposite case and stays unknown: the
+        character may well be somewhere else, and carrying the old uid forward
+        there would assert a position rather than read one. That is the error
+        worth being careful about, because everything downstream - the route,
+        the safe-area bound - trusts this number.
+        """
         room = parse_room(raw)
         if room.vitals:
             self.vitals.update(room.vitals)
@@ -310,6 +341,12 @@ class Session:
         room.indicators = dict(self.indicators)
         if room.uid is not None:
             self.last_uid = room.uid
+            room.uid_source = 'nav'
+        elif not moved:
+            room.uid = self.last_uid
+            room.uid_source = 'carried' if self.last_uid is not None else None
+        else:
+            self.last_uid = None
         return room
 
 

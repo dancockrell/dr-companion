@@ -36,6 +36,26 @@ DEFAULT_DB = r'C:\Ruby4Lich5\Lich5\data\DR\map-1788915136.json'
 # deliberately a list: the Sewers, the Lost Crossing and everything outside
 # the walls are absent on purpose, and adding one is an edit somebody has to
 # make and justify, exactly like adding a verb to the safety allowlist.
+#
+# The eight below the line were added for the second live cycle, because the
+# first had walked The Crossing itself and a further walk of the same streets
+# would measure the same rooms twice. Every one of them is an interior or
+# enclosed civic space *inside the town walls*, holds no spawning creature,
+# and - checked rather than assumed - is reachable from the temple by typeable
+# moves without any route leaving this set: 568 of the 594 rooms here are
+# connected to each other, and `moves()` still refuses every step into a room
+# outside it, so widening the list cannot widen a route beyond it.
+#
+# What was deliberately NOT added, and why, because the refusals are the part
+# of an allowlist that does the work:
+#
+#   Shipyard, Temple Watchtowers    both run to the wall and its guards
+#   East Gate & Moon Mage Observatory   the gate is a way *out* of town, and a
+#                                   route through it is the one move a
+#                                   town-bounded patrol must never make
+#   Crossing Sewers, Lost Crossing  hostile, and already excluded above
+#   Zoluren, the trade roads, the   open country: creatures spawn there
+#   Segoltha River, Lake of Dreams
 SAFE_LOCATIONS = frozenset({
     'The Crossing',
     'Crossing Temple',
@@ -45,6 +65,21 @@ SAFE_LOCATIONS = frozenset({
     'Crossing Enchanting Society',
     'Crossing Engineering Society',
     'Crossing Alchemy Society',
+    # -- added for cycle 2, all within the walls ------------------------
+    'Crossing',              # one room: the Town Green Southeast, which
+                             # carries a location the other 209 green and
+                             # street rooms do not. A hole in the middle of
+                             # the town the first walk could not step into.
+    "Traders' Guild",        # guild interior, 22 rooms
+    "Clerics' Guild",        # guild interior, 8 rooms
+    'Temple Eyes of 13',     # the temple's own annexe, 39 rooms
+    'Raven Court',           # a members' club interior, 26 rooms
+    'Market Plaza',          # the covered market building, 41 rooms. Shops,
+                             # but `buy`, `sell` and `order` are on the
+                             # forbidden list and stay there.
+    'Willow Walk',           # a walled public garden, 16 rooms
+    'Crossing Amusement Pier',  # the pier, 45 rooms, reached from the town
+                                # side without crossing open water
 })
 
 
