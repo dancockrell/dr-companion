@@ -72,12 +72,33 @@ const NON_COMPASS_OPENINGS := {
 }
 
 ## Anchors for a `where` that is not a compass point.
+##
+## All four are the middle cell, and that is correct: "overhead", "underfoot"
+## and "in the middle" are all the middle of the room. They are not the same
+## *place*, though, and treating them as one is a defect a round trip through
+## real Godot found - a window the text put overhead drew on the floor beside a
+## statue, six pixels apart, because both resolved to cell (0,0). LAYER_OF below
+## is what separates them.
 const SPECIAL_WHERE := {
 	"center": Vector2i(0, 0),
 	"centre": Vector2i(0, 0),
 	"ground": Vector2i(0, 0),
 	"canopy": Vector2i(0, 0),
 }
+
+## Which of the three vertical layers a `where` sits in. Two things occupy the
+## same position only when they share a cell *and* a layer, and that pair is
+## what the occupancy count below is keyed on. Anything not named here is on the
+## floor, which is where a compass point puts it.
+const LAYER_OF := {
+	"canopy": "overhead",
+	"ground": "underfoot",
+}
+
+## How far a placement anchored overhead is lifted. Shallower than the canopy
+## plane itself so a hanging sign reads as being under the ceiling rather than
+## painted on it, and recorded per node so the projection stays checkable.
+const PLACEMENT_LIFT := -96.0
 
 # z_index layering. Depth (gx+gy) dominates so nearer things draw later; the
 # bias separates things standing in the same cell.
@@ -86,6 +107,8 @@ const Z_GROUND := 0
 const Z_OPENING := 1
 const Z_BOUNDARY := 2
 const Z_PLACEMENT := 3
+const Z_UNDERFOOT := 1
+const Z_OVERHEAD := 2000
 const Z_CANOPY := 3000
 
 
@@ -245,15 +268,48 @@ static func compose(spec: Dictionary) -> Node2D:
 	# into a shop, with no bearing attached. Those are spread evenly round the
 	# perimeter so fifteen temple archways do not stack on one brick. Every
 	# other `where` is a compass point or one of SPECIAL_WHERE.
+	#
+	# Spread over the perimeter cells *nothing else claimed*, not over all 32.
+	# The even spread used to start at slot 0, which is the north cell, so every
+	# room with any `go <thing>` exit and any feature to the north drew both on
+	# one brick. Measured through this composer over a 1,004-room sample of the
+	# live map: 209 rooms stacked, 178 of them exactly that pair. The forge
+	# cannot prevent it - `edge` and `north` are different words up there, and
+	# only this file knows they are the same cell.
 	var placements_group := Node2D.new()
 	placements_group.name = "Placements"
 	root.add_child(placements_group)
 
+	var claimed_cells: Dictionary = {}
 	var edge_total := 0
 	for p in placements:
-		if p is Dictionary and str(p.get("where", "")) == "edge":
+		if not (p is Dictionary):
+			continue
+		var w := str(p.get("where", ""))
+		if w == "edge":
 			edge_total += 1
+		elif RING.has(w):
+			claimed_cells[RING[w]] = true
+
+	var edge_cells: Array = []
+	for cell in ring:
+		if not claimed_cells.has(cell):
+			edge_cells.append(cell)
+	if edge_cells.is_empty():
+		# Only reachable if every one of the 32 perimeter cells is spoken for,
+		# which eight compass points cannot do. Falling back to the whole ring
+		# rather than dividing by zero, and saying so.
+		edge_cells = ring
+		if edge_total > 0:
+			problems.append("no free perimeter cell for %d edge placements" % edge_total)
+	if edge_total > edge_cells.size():
+		problems.append("%d edge placements into %d free perimeter cells; some share"
+			% [edge_total, edge_cells.size()])
+
 	var edge_seen := 0
+	# Keyed on cell *and* layer: "overhead", "underfoot" and "in the middle" are
+	# the same cell and three different places, so counting by cell alone
+	# reported collisions that are not there and hid the ones that are.
 	var occupancy: Dictionary = {}
 
 	for i in range(placements.size()):
@@ -269,8 +325,8 @@ static func compose(spec: Dictionary) -> Node2D:
 		if where == "edge":
 			var slot: int = 0
 			if edge_total > 0:
-				slot = int(round(float(edge_seen) * float(ring.size()) / float(edge_total))) % ring.size()
-			cell = ring[slot]
+				slot = int(round(float(edge_seen) * float(edge_cells.size()) / float(edge_total))) % edge_cells.size()
+			cell = edge_cells[slot]
 			edge_seen += 1
 		elif RING.has(where):
 			cell = RING[where]
@@ -281,22 +337,34 @@ static func compose(spec: Dictionary) -> Node2D:
 			cell = Vector2i(0, 0)
 			anchor = "center"
 
-		var stack: int = int(occupancy.get(cell, 0))
-		occupancy[cell] = stack + 1
+		var layer := str(LAYER_OF.get(anchor, "floor"))
+		var lift := 0.0
+		var z_base := Z_PLACEMENT
+		if layer == "overhead":
+			lift = PLACEMENT_LIFT
+			z_base = Z_OVERHEAD
+		elif layer == "underfoot":
+			z_base = Z_UNDERFOOT
+
+		var key := "%d,%d,%s" % [cell.x, cell.y, layer]
+		var stack: int = int(occupancy.get(key, 0))
+		occupancy[key] = stack + 1
 
 		var scale_word = p.get("scale")
 		var tint_word = p.get("tint")
 		var node := _primitive(
-			kind, cell, Z_PLACEMENT + stack,
+			kind, cell, z_base + stack,
 			RoomPrimitives.scale_of(scale_word),
 			RoomPrimitives.tint_of(tint_word)
 		)
-		# Things sharing a cell are nudged apart so a stack of doors is
-		# visibly a stack rather than one door. Recorded, so a reader of the
+		# Things sharing a cell and a layer are nudged apart so a stack of doors
+		# is visibly a stack rather than one door. Recorded, so a reader of the
 		# report can tell an offset from a position the spec asked for.
 		var stack_offset := -6.0 * float(stack)
 		if stack > 0:
 			node.position += Vector2(0.0, stack_offset)
+		if lift != 0.0:
+			node.position += Vector2(0.0, lift)
 		node.name = "P%03d_%s" % [i, kind]
 		var entry := RoomPrimitives.of(kind)
 		_tag(node, {
@@ -306,8 +374,15 @@ static func compose(spec: Dictionary) -> Node2D:
 			"spec_index": i,
 			"where": where,
 			"anchor": anchor,
+			"layer": layer,
+			"lift": lift,
 			"source": str(p.get("source", "")),
 			"term": p.get("term"),
+			# The word the room used before another feature took that spot.
+			# Null on almost every placement; carried through because the forge
+			# only bothers to record it so that something downstream can tell a
+			# demoted text reading from a plain rule fill.
+			"displaced_from": p.get("displaced_from"),
 			"scale": scale_word,
 			"scale_applied": RoomPrimitives.scale_known(scale_word),
 			"tint": tint_word,
@@ -411,9 +486,10 @@ static func report(root: Node2D) -> Dictionary:
 			"z": node2d.z_index,
 			"visible": node2d.visible,
 		}
-		for extra in ["spec_index", "where", "anchor", "source", "term", "scale",
-				"scale_applied", "tint", "tint_applied", "stack", "stack_offset",
-				"unknown_kind", "dir", "on_boundary", "built", "lift"]:
+		for extra in ["spec_index", "where", "anchor", "layer", "source", "term",
+				"displaced_from", "scale", "scale_applied", "tint", "tint_applied",
+				"stack", "stack_offset", "unknown_kind", "dir", "on_boundary",
+				"built", "lift"]:
 			if meta.has(extra):
 				row[extra] = meta[extra]
 		nodes.append(row)

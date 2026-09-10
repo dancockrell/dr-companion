@@ -12,13 +12,29 @@ the database has rooms like that in it.
 
 # What it asserts, and why those
 
-Every placement the forge emitted must appear in the tree, once, with its kind,
-traceable to the spec index it came from. Every opening must appear. The
-counts must be exactly the arithmetic (81 ground tiles, 32 perimeter cells, a
-three-cell gap per compass opening) rather than "about right". And every node's
-position must satisfy the projection formula, recomputed here in Python rather
-than read back from Godot, so agreement means two implementations agree instead
-of one implementation repeating itself.
+The properties themselves live in `python/room_roundtrip.py`, shared with the
+corpus sweep (`python -m room_roundtrip`), because a gate and a sweep that
+disagreed about what "clean" means would be worse than having only one: the
+gate would go green on the very defect the sweep exists to count.
+
+In short, every placement the forge emitted must appear in the tree, once, with
+its kind and at the cell its `where` implies; every opening must appear; no two
+features may occupy one position; the counts must be exactly the arithmetic (81
+ground tiles, 32 perimeter cells, a three-cell gap per compass opening) rather
+than "about right"; and every node's position must satisfy the projection
+formula, recomputed in Python rather than read back from Godot, so agreement
+means two implementations agree instead of one implementation repeating itself.
+
+# Which rooms, and why not any dozen
+
+Three per archetype plus five named stress rooms. The stress rooms are not
+decoration: a check on a chooser has to run against a population where the
+wrong answer is present and reachable, and three-per-archetype happens to
+contain no room that anchors something overhead, no room whose text names one
+direction twice, and no room holding both a bearing-less door and a feature to
+the north. Every collision property could have passed against a composer that
+did not have it. `STRESS_ROOMS` says which room covers which property, and the
+sample aborts rather than shrinking if one of them stops composing.
 
 # The denominators
 
@@ -52,7 +68,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+#: Where the `forge` package is imported from. `DRC_ROOM_PROJECT` already lets
+#: the break-check point the Godot half at a damaged copy; without the same
+#: seam on this side, half of the round trip - the half that decides where
+#: anything goes - has no way of being sabotaged on purpose, and a branch
+#: nobody can execute deliberately is a branch nobody can prove they fixed.
+FORGE_ROOT = os.environ.get("DRC_FORGE_ROOT")
+if FORGE_ROOT:
+    sys.path.insert(0, FORGE_ROOT)
+
 from room_player_client import RoomPlayer, find_godot, godot_version  # noqa: E402
+from room_roundtrip import verify  # noqa: E402
 
 failed = 0
 checked = 0
@@ -94,10 +120,28 @@ PORT = int(os.environ.get("DRC_ROOM_PORT", "11731"))
 #: result is a change in the code.
 PER_ARCHETYPE = 3
 
-#: Room 8179, the Temple of Light's grand hall, carries fifteen `go <thing>`
-#: exits. Edge placements are the case where a naive layout stacks everything
-#: on one cell, and no hand-written fixture would have thought to have fifteen.
-STRESS_ROOM = 8179
+#: Rooms chosen because they are the only thing that makes a property
+#: checkable. A check on a chooser has to run against a population where the
+#: wrong answer is present and reachable; a sample of three-per-archetype
+#: happens not to contain any of these, so every property below could have gone
+#: green against a composer that did not have it.
+#:
+#: Each was found by sweeping the whole map database, not by guessing.
+STRESS_ROOMS = {
+    8179: "the Temple of Light's grand hall, fifteen `go <thing>` exits - the "
+          "case where a naive layout stacks every door on one cell, and no "
+          "hand-written fixture would have thought to have fifteen",
+    2: "an edge-anchored door and a feature to the north. `edge` and `north` "
+       "are different words in the spec and the same cell in the composer, so "
+       "only a room holding both can tell whether the composer knows that",
+    292: "a feature overhead and a feature in the middle. Both anchor at cell "
+         "(0,0) and they are not in the same place; a room with only one of "
+         "them cannot say whether the composer agrees",
+    1413: "a feature underfoot and a feature in the middle, for the same reason",
+    5: "the room says `north` twice. The second reading is demoted to a free "
+       "ring position carrying `displaced_from`, and this is the only kind of "
+       "room where that field is ever non-null",
+}
 
 ROOM_FLOOR = 12
 PLACEMENT_FLOOR = 40
@@ -114,109 +158,52 @@ def choose(rooms: list[dict]) -> list[tuple[dict, dict]]:
     from forge.extract import read_room
 
     per: dict[str, list] = {}
-    stress: list[tuple[dict, dict]] = []
+    stress: dict[int, tuple[dict, dict]] = {}
     for record in sorted(rooms, key=lambda r: r.get("id") or 0):
         scene = compose(read_room(record))
         if scene is None:
             continue
-        if record.get("id") == STRESS_ROOM:
-            stress.append((record, scene.to_dict()))
+        if record.get("id") in STRESS_ROOMS:
+            stress[record["id"]] = (record, scene.to_dict())
         bucket = per.setdefault(scene.archetype, [])
         if len(bucket) < PER_ARCHETYPE:
             bucket.append((record, scene.to_dict()))
     chosen: list[tuple[dict, dict]] = []
     for archetype in sorted(per):
         chosen.extend(per[archetype])
-    for entry in stress:
-        if entry not in chosen:
-            chosen.append(entry)
+    # Every stress room must actually be here. A stress room that quietly
+    # vanished - renumbered map, a lexicon change that stops the room composing -
+    # takes its property's only coverage with it and nothing else would say so.
+    missing = sorted(set(STRESS_ROOMS) - set(stress))
+    if missing:
+        raise SystemExit(
+            f"ABORT: stress rooms {missing} did not compose from {MAP_DB}.\n"
+            "  They are in the sample because they are the only rooms that make\n"
+            "  a property checkable; without them the suite passes without\n"
+            "  asserting it, which is worse than failing."
+        )
+    for room_id in sorted(stress):
+        if stress[room_id] not in chosen:
+            chosen.append(stress[room_id])
     return chosen
 
 
-# -- the projection, independently ------------------------------------------
-
-TILE_W = 64.0
-TILE_H = 32.0
-
-
-def iso(gx: float, gy: float) -> tuple[float, float]:
-    """The same formula as `RoomComposer.iso`, written out again here.
-
-    Deliberately a second implementation rather than a value read back from the
-    report. Two implementations agreeing is evidence; one implementation
-    agreeing with itself is not.
-    """
-    return ((gx - gy) * TILE_W / 2.0, (gx + gy) * TILE_H / 2.0)
-
-
 # -- checks -----------------------------------------------------------------
+#
+# The properties themselves live in `room_roundtrip.verify`, shared with the
+# corpus sweep (`python -m room_roundtrip`). One implementation, because a gate
+# and a sweep that disagreed about what "clean" means would be worse than
+# having only one of them: the gate would go green on the very defect the sweep
+# was built to count.
 
 
 def check_room(record: dict, spec: dict, reply: dict, radius: int) -> int:
     """Assert one composed room. Returns how many placements it matched."""
     room_id = record.get("id")
-    report = reply["report"]
-    counts = report["counts"]
-    nodes = report["nodes"]
-    room = report["room"]
-
-    side = radius * 2 + 1
-    perimeter = radius * 8
-
-    ok(f"room {room_id}: the report is about this room", room.get("room_id") == room_id,
-       f"report says {room.get('room_id')}")
-    ok(f"room {room_id}: archetype survived the round trip",
-       room.get("archetype") == spec["archetype"],
-       f"{room.get('archetype')} vs {spec['archetype']}")
-    ok(f"room {room_id}: ground fills the grid", counts["ground"] == side * side,
-       f"{counts['ground']} tiles, wanted {side * side}")
-
-    ring_openings = [d for d in spec["openings"]
-                     if d in ("north", "northeast", "east", "southeast",
-                              "south", "southwest", "west", "northwest")]
-    want_boundary = perimeter - 3 * len(ring_openings)
-    ok(f"room {room_id}: boundary is the perimeter less one gap per compass exit",
-       counts["boundary"] == want_boundary,
-       f"{counts['boundary']} segments, wanted {want_boundary} "
-       f"({perimeter} - 3x{len(ring_openings)})")
-
-    got_openings = sorted(row["dir"] for row in report["openings"])
-    ok(f"room {room_id}: every exit the game reports is an opening",
-       got_openings == sorted(spec["openings"]),
-       f"{got_openings} vs {sorted(spec['openings'])}")
-
-    placements = [row for row in nodes if row["role"] == "placement"]
-    by_index = {row["spec_index"]: row for row in placements}
-    ok(f"room {room_id}: every placement appears exactly once",
-       len(by_index) == len(spec["placements"]) == len(placements),
-       f"{len(placements)} nodes, {len(by_index)} distinct indices, "
-       f"{len(spec['placements'])} in the spec")
-
-    wrong_kind = [
-        i for i, p in enumerate(spec["placements"])
-        if i not in by_index or by_index[i]["kind"] != p["kind"]
-    ]
-    ok(f"room {room_id}: each placement carries the kind the forge asked for",
-       not wrong_kind, f"{len(wrong_kind)} mismatched at indices {wrong_kind[:5]}")
-
-    off = []
-    for row in nodes:
-        gx, gy = row["grid"]
-        want_x, want_y = iso(float(gx), float(gy))
-        want_y += float(row.get("stack_offset", 0.0))
-        if row["role"] == "canopy":
-            want_y += float(row.get("lift", 0.0))
-        if abs(row["pos"][0] - want_x) > 0.001 or abs(row["pos"][1] - want_y) > 0.001:
-            off.append((row["path"], row["pos"], [want_x, want_y]))
-    ok(f"room {room_id}: every node sits where the projection puts it",
-       not off, f"{len(off)} off, first {off[0] if off else ''}")
-
-    ok(f"room {room_id}: the composer reports no problems with a real forge spec",
-       not room["problems"], str(room["problems"][:2]))
-    ok(f"room {room_id}: every kind is one the primitive table knows",
-       not report["unknown_kinds"], str(report["unknown_kinds"]))
-
-    return len(by_index)
+    for finding in verify(room_id, spec, reply, radius):
+        ok(f"room {room_id}: {finding.label}", finding.ok, finding.detail)
+    return len({row["spec_index"] for row in reply["report"]["nodes"]
+                if row["role"] == "placement"})
 
 
 def main() -> None:
@@ -254,6 +241,22 @@ def main() -> None:
         got = str(hello.get("project", "")).replace("\\", "/")
         ok("and it is the project this run pointed it at",
            got.lower() == want.lower(), f"{got} vs {want}")
+
+        # The same question about the other half of the chain, and it is asked
+        # for the same reason. `DRC_FORGE_ROOT` was added so a sabotage of
+        # `forge/compose.py` could be run deliberately, and the first attempt
+        # silently loaded the pristine repository copy instead - because
+        # importing `room_roundtrip` put the repository back at the front of
+        # `sys.path`. The break-check printed "the suite stayed green. It is not
+        # checking this", which is the wrong sentence for "the damaged file was
+        # never loaded", and only a claim about the file that actually got
+        # imported can tell those apart.
+        import forge.compose as forge_compose
+        forge_file = Path(forge_compose.__file__).resolve()
+        want_forge = (Path(FORGE_ROOT).resolve() / "forge" / "compose.py"
+                      if FORGE_ROOT else REPO / "forge" / "compose.py")
+        ok("and the forge under test is the one this run pointed at",
+           forge_file == want_forge.resolve(), f"{forge_file} vs {want_forge}")
 
         for record, spec in sample:
             matched += check_room(record, spec, player.compose(spec), radius)

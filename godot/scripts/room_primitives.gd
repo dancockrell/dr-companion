@@ -112,6 +112,64 @@ const TABLE := {
 	"lake": [Shape.FLAT, 0.0, Color(0.18, 0.34, 0.48)],
 	"waterfall": [Shape.PANEL, 60.0, Color(0.30, 0.50, 0.62)],
 	"marsh": [Shape.FLAT, 0.0, Color(0.28, 0.34, 0.26)],
+
+	# ---- terrain (forge/lexicon.py TERRAIN) ------------------------------
+	#
+	# Everything from here down was found by sweeping the whole map database
+	# through this table rather than by reading the lexicon: 45 kinds the forge
+	# emits had no entry, so 13,417 features corpus-wide drew as the magenta
+	# unknown box. The unknown box did its job - it is loud, and the sweep is
+	# what looked at it - but a fifth of everything in the world being magenta
+	# is not a placeholder, it is a hole.
+	"hill": [Shape.BLOCK, 60.0, Color(0.34, 0.40, 0.24)],
+	"valley": [Shape.FLAT, 0.0, Color(0.30, 0.30, 0.22)],
+	"mountain": [Shape.BLOCK, 118.0, Color(0.40, 0.40, 0.43)],
+	"cliff": [Shape.PANEL, 92.0, Color(0.44, 0.41, 0.38)],
+	"ridge": [Shape.PANEL, 54.0, Color(0.42, 0.39, 0.33)],
+	"ledge": [Shape.PANEL, 30.0, Color(0.46, 0.45, 0.43)],
+	"slope": [Shape.FLAT, 10.0, Color(0.38, 0.33, 0.24)],
+	"boulder": [Shape.BLOCK, 34.0, Color(0.45, 0.44, 0.44)],
+	"rubble": [Shape.BLOCK, 14.0, Color(0.47, 0.45, 0.42)],
+	"dune": [Shape.BLOCK, 26.0, Color(0.76, 0.68, 0.47)],
+	"shore": [Shape.FLAT, 0.0, Color(0.70, 0.64, 0.48)],
+	"expanse": [Shape.FLAT, 0.0, Color(0.44, 0.44, 0.42)],
+
+	# ---- goods and furnishings (forge/lexicon.py GOODS) ------------------
+	"hanging": [Shape.PANEL, 38.0, Color(0.46, 0.26, 0.30)],
+	"banner": [Shape.PANEL, 50.0, Color(0.40, 0.22, 0.36)],
+	"artwork": [Shape.PANEL, 32.0, Color(0.52, 0.42, 0.28)],
+	"web": [Shape.HANG, 0.0, Color(0.82, 0.82, 0.80, 0.40)],
+	"rope": [Shape.POST, 26.0, Color(0.62, 0.54, 0.36)],
+	"pole": [Shape.POST, 60.0, Color(0.50, 0.40, 0.26)],
+	"weapon": [Shape.POST, 26.0, Color(0.60, 0.62, 0.66)],
+	"armor": [Shape.POST, 40.0, Color(0.55, 0.57, 0.62)],
+	"crate": [Shape.BLOCK, 20.0, Color(0.48, 0.36, 0.22)],
+	"basket": [Shape.BLOCK, 16.0, Color(0.60, 0.50, 0.30)],
+	"pottery": [Shape.BLOCK, 16.0, Color(0.58, 0.38, 0.28)],
+	"cushion": [Shape.BLOCK, 10.0, Color(0.48, 0.28, 0.34)],
+	"book": [Shape.BLOCK, 8.0, Color(0.42, 0.30, 0.24)],
+	"tools": [Shape.BLOCK, 14.0, Color(0.45, 0.42, 0.38)],
+	"cage": [Shape.BLOCK, 30.0, Color(0.40, 0.40, 0.42)],
+	"remains": [Shape.BLOCK, 12.0, Color(0.72, 0.70, 0.62)],
+
+	# ---- more ground surfaces (forge/lexicon.py GROUND) ------------------
+	"wood": [Shape.FLAT, 0.0, Color(0.44, 0.30, 0.18)],
+	"marble": [Shape.FLAT, 0.0, Color(0.76, 0.75, 0.72)],
+	"granite": [Shape.FLAT, 0.0, Color(0.50, 0.49, 0.50)],
+	"slate": [Shape.FLAT, 0.0, Color(0.33, 0.35, 0.38)],
+	"sandstone": [Shape.FLAT, 0.0, Color(0.70, 0.58, 0.40)],
+	"obsidian": [Shape.FLAT, 0.0, Color(0.12, 0.12, 0.16)],
+	"brick": [Shape.FLAT, 0.0, Color(0.50, 0.28, 0.22)],
+	"metal": [Shape.FLAT, 0.0, Color(0.46, 0.48, 0.52)],
+	"glass": [Shape.FLAT, 0.0, Color(0.60, 0.72, 0.74)],
+	"lava": [Shape.FLAT, 0.0, Color(0.72, 0.24, 0.08)],
+	"ash": [Shape.FLAT, 0.0, Color(0.38, 0.36, 0.34)],
+	"silt": [Shape.FLAT, 0.0, Color(0.40, 0.36, 0.28)],
+	"straw": [Shape.FLAT, 0.0, Color(0.68, 0.58, 0.30)],
+	"leaf-litter": [Shape.FLAT, 0.0, Color(0.42, 0.34, 0.20)],
+	"seaweed": [Shape.FLAT, 0.0, Color(0.24, 0.36, 0.28)],
+	"bone": [Shape.FLAT, 0.0, Color(0.74, 0.72, 0.64)],
+	"fur": [Shape.FLAT, 0.0, Color(0.44, 0.33, 0.24)],
 }
 
 ## Tints the forge can attach to a detection (`forge/lexicon.py` TINT).
