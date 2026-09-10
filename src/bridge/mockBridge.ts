@@ -70,7 +70,7 @@ const MOCK_ALL_INTENTS: string[] = [
  * downloads-37's audit + Prime, not by this file. See #34.
  */
 const MOCK_UNIMPLEMENTED_INTENTS: string[] = [
-  'burgle', 'escape_heal', 'go_healer', 'loot',
+  'burgle', 'escape_heal', 'go_healer',
   'start_combat', 'start_training', 'town_run', 'travel',
 ]
 
@@ -1786,17 +1786,27 @@ export class MockBridge {
 
         break
       }
-      case 'loot':
+      case 'loot': {
+        // Mirrors the real bridge's loot handler (R2, BRIDGE_CONTRACT.md's
+        // "Activity intents (Lane R)"): compose the game's own `loot <type>`
+        // verb through Cmd.exec and report the single reply line — no
+        // Script.start, no bespoke payload, same as `stow_all`/`escape`.
+        // `type` falls back the same order the real bridge does: an
+        // explicit arg, else the character's own `custom_loot_type` (not
+        // modelled by this mock — there is no settings store here), else
+        // plain 'all'.
+        const type = typeof _args?.type === 'string' && _args.type.trim() ? _args.type.trim() : 'all'
         if (cap.inventoryPressureTight) {
           this.emit({
             type: 'log',
-            line: 'Loot: selective mode (tight F2P inventory).',
+            line: `Loot (${type}): selective mode (tight F2P inventory).`,
             level: 'warn',
           })
         } else {
-          this.emit({ type: 'log', line: 'Loot pass (mock).' })
+          this.emit({ type: 'log', line: `Loot: you loot the corpse (${type}).` })
         }
         break
+      }
       case 'buffs': {
         // Mirrors the real bridge's buffs handler (R1, BRIDGE_CONTRACT.md's
         // "Activity intents (Lane R)"): start the player's own buff.lic and

@@ -225,6 +225,7 @@ export function InventoryPanel({ dense = false }: { dense?: boolean }) {
               type="button"
               className="flex-1 text-xs rounded-lg border border-border px-2 py-1 text-ink-muted hover:text-ink hover:bg-surface-overlay"
               onClick={() => requestIntent('loot')}
+              title="Loot the corpse in front of you, using your dr-scripts loot-type setting if you have one"
             >
               Loot pass
             </button>

@@ -924,6 +924,16 @@ module Companion
       toggle: [/BRIEF|INVBRIEF|Toggle settings|You have the following/i],
       flags:  [/ShowRoomID|Flags|You have the following/i],
       escape: [/You have fled|You can't flee|nowhere to flee|too hurt|You gather yourself/i],
+      # `loot <type>` (R2) - the real DragonRealms verb, confirmed against
+      # `scripts/stabbity.lic`'s `loot_mob` (`fput("loot #{custom_loot_type}")`)
+      # and `profiles/base.yaml`'s comment on that same setting ("treasure/
+      # equipment/all? What LOOT type to use for mobs"). No captured live text
+      # to pin an exact success string to, so this is deliberately broad
+      # rather than guessed-narrow: a pattern that never matches degrades to
+      # `loot`'s own "no response seen" honesty below, which is safe; a
+      # pattern that matches a refusal as though it were a haul is not, so
+      # REFUSALS (checked first by Cmd.exec) still wins on any real overlap.
+      loot: [/You loot|You search|You dig through|nothing (?:more|else) (?:here )?to loot|need a (?:visible )?corpse|already looted|too decayed|has decayed/i],
       # Filled in as intents land. Unknown keys fall through to no expectation,
       # which sends the command and does not pretend to have read the answer.
     }.freeze
@@ -1711,7 +1721,7 @@ module Companion
     # is visible at the one place that decides whether an intent may run
     # concurrently with a Stop, rather than buried in a helper three calls
     # deep.
-    COMMAND_SENDING = %w[check_toggles check_health stow_all escape run_macro armor_manage].freeze
+    COMMAND_SENDING = %w[check_toggles check_health stow_all escape run_macro armor_manage loot].freeze
     CMD_LOCK = Mutex.new
 
     # Every app window has its own JavaScript runtime, so the frontend's
@@ -1904,6 +1914,17 @@ module Companion
       'run_macro'    => 'Paused - press Resume before running a macro.',
       'start_script' => 'Paused - press Resume before starting a script.',
       'buffs'        => 'Paused - press Resume before buffing.'
+      # loot (R2) deliberately has no line here - see its own comment above
+      # `def loot`. It still calls `pause_refusal('loot')` and gets the
+      # shared fallback sentence below, same as stow_all/escape/
+      # armor_manage/check_health/check_toggles, none of which has a line
+      # here either: `tools/pause-reaches-travel-test.mjs`'s own "movers"
+      # population is Script.start plus PLAYER_SUPPLIED_COMMANDS
+      # (run_macro) by design ("The second cannot be derived from
+      # Script.start, so it is named... rather than assumed"), not every
+      # intent that calls Cmd.exec. loot composes one game command the same
+      # way those five already do, so it follows their precedent rather
+      # than buffs'/start_script's.
     }.freeze
 
     # nil when nothing is held, so a caller reads as `if (held = ...)` and each
@@ -2010,17 +2031,18 @@ module Companion
 
       # --- activity intents (Lane R, docs/PLAN_TO_1_0.md §6b) ---------------
       #
-      # buffs lands first (R1) - see BRIDGE_CONTRACT.md's "Activity intents
-      # (Lane R)" contract for the args/progress/refusal shape every one of
-      # the nine follows, and its "Status of the nine" table for which
-      # increment (R1-R7) lands which, and why burgle (R8) is deferred rather
-      # than absent. loot, travel, escape_heal, go_healer, town_run,
-      # start_training and start_combat are not here yet. Each lands as its
-      # own HANDLERS entry below this comment, in the same commit that flips
-      # its row from "not yet implemented" to "implemented" - the doc and the
-      # dispatch table are not allowed to say two different things about the
-      # same intent.
+      # buffs lands first (R1), loot second (R2) - see BRIDGE_CONTRACT.md's
+      # "Activity intents (Lane R)" contract for the args/progress/refusal
+      # shape every one of the nine follows, and its "Status of the nine"
+      # table for which increment (R1-R7) lands which, and why burgle (R8) is
+      # deferred rather than absent. travel, escape_heal, go_healer,
+      # town_run, start_training and start_combat are not here yet. Each
+      # lands as its own HANDLERS entry below this comment, in the same
+      # commit that flips its row from "not yet implemented" to
+      # "implemented" - the doc and the dispatch table are not allowed to say
+      # two different things about the same intent.
       'buffs' => ->(args, server) { buffs(args, server) },
+      'loot' => ->(args, server) { loot(args, server) },
     }.freeze
 
     # The three-state contract this feeds (BRIDGE_CONTRACT.md): absent means
@@ -2361,6 +2383,53 @@ module Companion
 
       detail = set.empty? ? 'buff started' : "buff started (set=#{set})"
       server.log(detail)
+      [true, detail]
+    end
+
+    # `loot` (R2). R0's own rule for this intent is different from every
+    # other one in the batch: "for loot, compose the existing quick-action"
+    # rather than start a named script — `docs/BRIDGE_CONTRACT.md`'s batch
+    # contract researched this one and could not find a standalone curated
+    # loot script; what dr-scripts' own automation actually sends is the
+    # game's built-in `loot <type>` verb directly (`scripts/stabbity.lic`'s
+    # `loot_mob`: `fput("loot #{custom_loot_type}")`), the same command
+    # `custom_loot_type` in `profiles/base.yaml` is documented against
+    # ("treasure/equipment/all? What LOOT type to use for mobs"). So this is
+    # the `stow_all`/`escape` shape — one composed game command through
+    # `Cmd.exec`, not `Script.start` — not the `buffs` shape.
+    #
+    # An explicit `type` is never invented past what the character's own
+    # settings say: if the client sends one, it is used (sanitised only);
+    # if not, the character's own `custom_loot_type` is read back the same
+    # way `buffs` reads `waggle_sets`, and only when that is unset either
+    # does this fall back to plain `all`, which loots without making any
+    # keep/drop/pawn/bin disposal decision on the player's behalf - the
+    # "no protected item is taken by default" requirement (NEXT-50.md:449)
+    # is satisfied by never guessing a disposal policy, not by filtering
+    # items this bridge cannot see.
+    def loot(args, server)
+      if stop_requested?
+        return [false, 'Stop is still latched - press Resume before looting.']
+      end
+
+      if (held = pause_refusal('loot'))
+        return held
+      end
+
+      type = args.is_a?(Hash) ? args['type'].to_s.strip : ''
+      if type.length > 40 || type.match?(/[\r\n;\x00-\x1f]/)
+        return [false, "invalid loot type '#{type}'"]
+      end
+
+      if type.empty?
+        configured = State.safe(nil) { Yaml.merged(State.char_name)['custom_loot_type'] }
+        type = configured.to_s.strip if configured.is_a?(String)
+      end
+      type = 'all' if type.empty?
+
+      line = Cmd.exec("loot #{type}", expect: Patterns.expect(:loot), timeout: 8)
+      detail = line || "loot #{type} sent, no response seen"
+      server.log("Loot: #{detail}", line ? 'info' : 'warn')
       [true, detail]
     end
 
