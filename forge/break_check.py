@@ -134,6 +134,108 @@ SABOTAGE = [
      "CANNOT_TELL = 'cannot tell from the text'",
      "CANNOT_TELL = 'not adjudicated'",
      {'critic honesty'}),
+
+    # --- people -------------------------------------------------------------
+    # The crowd kind emptied of its determined forms. Declared as measured, and
+    # the surprise is worth naming: 'presence trap' goes red too, because four
+    # of its cases assert that the *honest* form of a trapped word still fires
+    # ("a real crowd is still a crowd"), which is the direction that stops a
+    # table with nothing in it from passing the trap suite. 'guard sense' and
+    # 'presence conflict' survive, because neither depends on the crowd kind.
+    ('crowd kind loses its determined forms', 'lexicon.py',
+     "    'crowd': ('a crowd', 'the crowd', 'crowds', 'throng', 'bustle',",
+     "    'unused': ('zzzznotaword',),\n    'crowd-was-here': ('throng', 'bustle',",
+     {'presence detected', 'presence states', 'presence trap',
+      'busy elsewhere', 'live contract'}),
+    # The five states collapse to four. This is the defect the whole module was
+    # written against: silence about people reported as an empty room.
+    ('UNSAID collapses into SOLITARY', 'presence.py',
+     "UNSAID = 'unsaid'",
+     "UNSAID = 'solitary'",
+     {'presence states'}),
+    ('UNREAD collapses into UNSAID', 'presence.py',
+     "UNREAD = 'unread'",
+     "UNREAD = 'unsaid'",
+     {'presence states'}),
+    # `populated` starts answering yes for silence, which is how a renderer ends
+    # up drawing a crowd in a room nobody was described in.
+    ('populated says yes for silence', 'presence.py',
+     '        return self.state in (THRONGED, FREQUENTED)',
+     '        return self.state != UNREAD',
+     {'presence states'}),
+    # Busyness belonging to somewhere else starts counting as this room's, so
+    # "tucked away from the hustle and bustle" becomes the busiest room in town.
+    ('busy-elsewhere guard always says no', 'presence.py',
+     '    before = sentence[:at]',
+     '    return False\n    before = sentence[:at]',
+     {'busy elsewhere'}),
+    # ...and the same guard the other way, blocking everything. A guard that
+    # cannot pass carries exactly as much information as one that cannot fail.
+    ('busy-elsewhere guard blocks everything', 'presence.py',
+     '    return any(cue in before for cue in _ELSEWHERE)',
+     '    return True',
+     {'busy elsewhere', 'presence states', 'presence detected',
+      'presence trap', 'live contract'}),
+    # Word order stops mattering, so "far from the quiet gardens" reads as a
+    # denial of the traffic that precedes it.
+    ('busy-elsewhere ignores word order', 'presence.py',
+     '    before = sentence[:at]',
+     '    before = sentence',
+     {'busy elsewhere'}),
+    # The guard word goes back to being read by containment. 'presence trap' is
+    # entangled with this on purpose and it is declared: three of its cases are
+    # guard cases ("a banister guards", "a guard tower is a building", "a guard
+    # tower with a guard in it"), because the guard word is the trap this table
+    # works hardest to avoid and belongs in the trap list as well as its own.
+    ('guard is read as a person everywhere', 'presence.py',
+     '    if term not in _OCCURRENCE_GUARDED:\n        return False',
+     '    return False\n    if term not in _OCCURRENCE_GUARDED:\n        return False',
+     {'guard sense', 'presence trap'}),
+    ('guard is read as a verb everywhere', 'presence.py',
+     '    tail = sentence[end:end + 14]',
+     '    return True\n    tail = sentence[end:end + 14]',
+     {'guard sense', 'presence trap'}),
+    # Read per sentence instead of per occurrence: one verb anywhere in the
+    # sentence would then wipe out a person named in the same breath.
+    ('guard is read per sentence, not per occurrence', 'presence.py',
+     '    return all(_guard_is_a_verb(sentence, a, b) for a, b in spans)',
+     '    return any(_guard_is_a_verb(sentence, a, b) for a, b in spans)',
+     {'guard sense', 'presence trap'}),
+    # A matcher that finds nothing starts inventing a verdict instead of saying
+    # the caller and the pattern disagree.
+    ('a disagreeing matcher guesses instead of raising', 'presence.py',
+     '        raise ValueError(',
+     '        return False\n        raise ValueError(',
+     {'guard sense'}),
+    # The conflict between named people and an emptiness word stops being
+    # recorded, so 44 rooms where the text argues with itself look decided.
+    ('a self-contradicting description stops saying so', 'presence.py',
+     "            conflict = (f'the description names people ({\", \".join(terms[:3])}) '",
+     "            conflict = None if True else (f'names people '",
+     {'presence conflict'}),
+    # The live contract breached the only way it realistically would be: a
+    # convenient field on the static spec. Appended at the end of the dataclass,
+    # because the first version of this case inserted it after `room_id` and
+    # broke the class definition outright - which every suite then failed to
+    # import, printing no FAIL line, and `run()` read as "red: nothing". That
+    # blind spot in this file was found by this case and is fixed above.
+    ('occupancy is baked into the spec', 'compose.py',
+     '    varied: list[str] = field(default_factory=list)\n    unplaced: int = 0',
+     '    varied: list[str] = field(default_factory=list)\n    unplaced: int = 0\n'
+     '    room_uid: int | None = None\n    stale_after: float = 30.0',
+     {'live contract'}),
+    # The list splitter stops splitting, which would collapse a room's whole
+    # contents into one occupant.
+    ('the also-see splitter stops splitting', 'presence.py',
+     "    chunks = text.split(',')",
+     '    chunks = [text]',
+     {'also see'}),
+    # An empty list yields one empty item: a filter that empties its input
+    # looking like a filter that found something.
+    ('an empty also-see line yields one blank', 'presence.py',
+     '    if not text:\n        return []',
+     '    if not text:\n        return [text]',
+     {'also see'}),
 ]
 
 
@@ -141,7 +243,7 @@ SABOTAGE = [
 # the parser can redden a rulings guard and vice versa - that entanglement is
 # real and the exact-set assertions below are what make it visible instead of
 # letting it hide behind "something went red".
-SUITES = ('forge.test_extract', 'forge.test_escalate')
+SUITES = ('forge.test_extract', 'forge.test_escalate', 'forge.test_presence')
 
 
 def run(pkg_parent: pathlib.Path) -> tuple[int, set[str]]:
@@ -160,8 +262,18 @@ def run(pkg_parent: pathlib.Path) -> tuple[int, set[str]]:
                 red.add(line[6:].split('  ')[0].strip())
         # A suite that dies before printing anything reports no red guards,
         # which is indistinguishable from a clean run. Name it instead.
-        if proc.returncode not in (0, 1):
-            red.add(f'{suite} did not run')
+        #
+        # The condition used to be `returncode not in (0, 1)`, and that left the
+        # commonest crash invisible: an unhandled exception at import time exits
+        # **1**, prints no `FAIL` line, and was read as a clean run. Found by a
+        # sabotage that moved a field in a dataclass, broke every suite outright,
+        # and was reported as "red: nothing" - which looked like the sabotage
+        # having no effect rather than the harness having none. The honest
+        # question is not which exit code came back, it is whether a non-zero
+        # exit named anything, so that is what is asked.
+        if proc.returncode != 0 and not any(
+                line.startswith('FAIL  ') for line in proc.stdout.splitlines()):
+            red.add(f'{suite} died without naming a failure')
     return worst, red
 
 
@@ -216,7 +328,7 @@ def main() -> int:
                 print(f'        expected exactly: {sorted(expect)}')
 
     print(f'\n{len(SABOTAGE)} sabotages, {failures} not behaving as declared')
-    if len(SABOTAGE) < 19:
+    if len(SABOTAGE) < 33:
         print('REFUSING TO PASS: fewer sabotages than this file declares')
         return 2
     return 1 if failures else 0

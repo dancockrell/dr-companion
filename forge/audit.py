@@ -19,8 +19,10 @@ import json
 import pathlib
 import sys
 
+from . import presence as _presence
 from . import rulings as _rulings
-from .extract import read_room
+from .extract import _compiled, read_room
+from .lexicon import PRESENCE
 
 DEFAULT_DB = r'C:\Ruby4Lich5\Lich5\data\DR\map-1788915136.json'
 
@@ -28,6 +30,57 @@ DEFAULT_DB = r'C:\Ruby4Lich5\Lich5\data\DR\map-1788915136.json'
 def load(path: str) -> list[dict]:
     with open(path, encoding='utf-8') as handle:
         return json.load(handle)
+
+
+def _presence_terms(rooms: list[dict]) -> int:
+    """Count each PRESENCE term over the corpus on its own, and name the zeros.
+
+    This is the instrument behind the claim in `lexicon.py` that nothing in the
+    PRESENCE table is there because it seemed like a word a fantasy game would
+    use. Each term is counted independently - no first-match shadowing, no
+    kinds - so a term that has stopped earning its place shows up as a zero
+    instead of hiding behind a synonym.
+
+    A positive control runs first. It counts a term that is certainly in the
+    corpus and a term that is certainly not, and refuses to print anything if
+    either comes back wrong: a scanner whose matcher is broken reports every
+    term as zero, and a page of zeros reads exactly like a vocabulary that has
+    gone stale.
+    """
+    described = [(r.get('description') or [''])[0].lower() for r in rooms]
+    described = [text for text in described if text]
+
+    def rooms_with(term: str) -> int:
+        pattern = _compiled(term)
+        return sum(1 for text in described if pattern.search(text))
+
+    control_present = rooms_with('the')
+    control_absent = rooms_with('zzzznotaword')
+    if control_present < len(described) // 2 or control_absent != 0:
+        print(f'REFUSING TO REPORT: the control failed. {control_present:,} of '
+              f'{len(described):,} rooms contain "the" and {control_absent} '
+              f'contain a nonsense word. Every count below would be about this '
+              f'scanner rather than about the corpus.')
+        return 2
+    print(f'control: "the" matched {control_present:,} of {len(described):,} '
+          f'descriptions, a nonsense word matched {control_absent}\n')
+
+    total_terms = 0
+    zeros = []
+    for kind, terms in PRESENCE.items():
+        print(f'{kind}:')
+        for term in terms:
+            n = rooms_with(term)
+            total_terms += 1
+            if not n:
+                zeros.append(f'{kind}/{term}')
+            print(f'  {n:>7,}  {term!r}')
+    print(f'\n{total_terms} terms across {len(PRESENCE)} kinds, '
+          f'{len(zeros)} in no room at all')
+    if zeros:
+        print(f'these have stopped earning their place: {zeros}')
+        return 1
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -39,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--examples', type=int, default=0, help='show N doubted rooms')
     parser.add_argument('--rulings', action='store_true',
                         help='print every ruling in force and the open questions')
+    parser.add_argument('--presence-terms', action='store_true',
+                        help='count every PRESENCE term over the corpus '
+                             'independently, and print the zeros')
     args = parser.parse_args(argv)
 
     rooms = load(args.db)
@@ -51,12 +107,19 @@ def main(argv: list[str] | None = None) -> int:
         print('REFUSING TO REPORT: no rooms matched, so any percentage below would be a lie')
         return 2
 
+    if args.presence_terms:
+        return _presence_terms(rooms)
+
     read_ok, bare, doubted, refused, overridden = [], [], [], [], []
     enclosures = collections.Counter()
     grounds = collections.Counter()
     feature_counts = []
     placed, unplaced = 0, 0
     doubt_reasons = collections.Counter()
+    presence_states = collections.Counter()
+    presence_kinds = collections.Counter()
+    presence_terms = collections.Counter()
+    presence_conflicts = 0
 
     for record in rooms:
         reading = read_room(record)
@@ -92,6 +155,13 @@ def main(argv: list[str] | None = None) -> int:
 
         for reason in reading.doubts:
             doubt_reasons[reason.split(',')[0]] += 1
+
+        presence_states[reading.presence.state] += 1
+        presence_conflicts += reading.presence.conflict is not None
+        for kind in reading.presence.kinds:
+            presence_kinds[kind] += 1
+        for term in reading.presence.terms:
+            presence_terms[term] += 1
 
         if reading.enclosure:
             enclosures[reading.enclosure] += 1
@@ -147,6 +217,67 @@ def main(argv: list[str] | None = None) -> int:
     print('ground (top 10):')
     for kind, n in grounds.most_common(10):
         print(f'  {kind:<14} {n:>7,}  {pct(n)}')
+
+    # People. Five states and they are printed as five, because the whole
+    # reason this section exists is that a room described as busy, a room
+    # described as deserted, a room whose author never mentioned anybody, and a
+    # room with no readable description are four different facts that a single
+    # "occupants: 0" would destroy.
+    print()
+    print('people, as the descriptions account for them:')
+    for state in _presence.STATES:
+        n = presence_states.get(state, 0)
+        note = {
+            _presence.THRONGED: 'the text says many are habitually here',
+            _presence.FREQUENTED: 'the text names people or a role, not a crowd',
+            _presence.SOLITARY: 'the text positively says nobody is here',
+            _presence.UNSAID: 'readable, and silent about people - NOT empty',
+            _presence.UNREAD: 'no description to read',
+        }[state]
+        print(f'  {state:<12} {n:>7,}  {pct(n)}   {note}')
+
+    # The denominator, asserted rather than assumed. This is the number that
+    # goes to zero if `density()` stops being called or starts returning None,
+    # and without it a run in which nothing was classified would print five
+    # tidy zeros and look like a room population that simply has no people in
+    # it - which is the exact defect being fixed.
+    counted = sum(presence_states.values())
+    if counted != total:
+        print(f'  REFUSING TO REPORT: {counted:,} rooms carry a presence state '
+              f'but {total:,} were examined. Some room was never classified, '
+              f'and the percentages above are therefore wrong.')
+        return 2
+    unknown = set(presence_states) - set(_presence.STATES)
+    if unknown:
+        print(f'  REFUSING TO REPORT: unknown presence states {sorted(unknown)}')
+        return 2
+
+    described = presence_states.get(_presence.THRONGED, 0) + \
+        presence_states.get(_presence.FREQUENTED, 0)
+    print(f'  describes presence at all: {described:,}  {pct(described)}')
+    if presence_conflicts:
+        print(f'  descriptions that argue with themselves: {presence_conflicts:,} '
+              f'- see `conflict` on the reading for which of the two it is: '
+              f'people named alongside an emptiness word, or the only busyness '
+              f'word in the room belonging to somewhere else')
+
+    if presence_kinds:
+        print()
+        print('what kind of presence, rooms per kind (a room can have several):')
+        for kind, n in presence_kinds.most_common():
+            print(f'  {kind:<12} {n:>7,}  {pct(n)}')
+        print()
+        print('the terms behind it, top 15 as the parser saw them:')
+        for term, n in presence_terms.most_common(15):
+            print(f'  {n:>7,}  {term!r}')
+        # Why this is not the same as a per-term corpus count, and why the
+        # honest number lives behind `--presence-terms` instead: `_all_matches`
+        # takes the FIRST matching term in each kind and stops, so a room that
+        # says both 'merchant' and 'trader' is only ever credited to one of
+        # them. Reading a zero out of this list would be reading the shadowing,
+        # not the corpus, and a term at zero here may be in a thousand rooms.
+        print('  (first match per kind wins, so these under-count any term '
+              'that shares a kind - use --presence-terms for the real counts)')
 
     if doubt_reasons:
         print()

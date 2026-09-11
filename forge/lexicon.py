@@ -291,8 +291,158 @@ SCALE = {
     'long': ('long', 'lengthy'),
 }
 
+# People, as the room's own description accounts for them.
+#
+# This class exists because a live playtest bot walked 169 real rooms and filed
+# the same complaint twelve times: every scene was drawn empty of people. It was
+# right. Before this table the parser knew the word 'people' only well enough to
+# stop "the stream of customers" being read as a river.
+#
+# What is in here and what is deliberately not:
+#
+# **A description tells you who is USUALLY somewhere. Only the live game tells
+# you who is there NOW.** Both halves of that sentence are load-bearing. "A
+# place for merchant and customer to haggle" is a standing fact about a market
+# and is worth drawing on every visit; the shaggy mutt the game reports this
+# second is not, and nothing in this table is about it. `forge/presence.py`
+# carries the contract for the live half and says why it must never be baked in.
+#
+# Counts are rooms out of the 18,945 that carry a description, measured with the
+# same boundaried matcher `extract.py` uses, before any of these terms were
+# written down. Terms that were counted and REJECTED are listed at the bottom
+# with the reason, because a rejection nobody records gets re-proposed.
+PRESENCE = {
+    # Many, unnamed. These are the terms that make a place busy rather than
+    # merely occupied, so this kind is what sets the 'thronged' density.
+    # crowds 71, throng 28, bustle 132, bustling 61, traffic 194, hustle 26,
+    # passersby 63, passers-by 28, pedestrian 31, milling 14, jostle 11,
+    # teeming 9, people 217.
+    #
+    # 'crowd' is listed only with a determiner, and that is measured rather
+    # than fussy: of its 195 rooms, the bare word is a verb in a large share -
+    # "plain stone buildings crowd the narrow lane", "storefronts crowd their
+    # way toward the path". Same lesson the 'tunnel' entry above learned. The
+    # plural is kept bare: a building crowds nothing in this corpus.
+    # Known false positive, left in with its count rather than patched around:
+    # "a narrow byway slinks between crowds of shuttered buildings" is 2 rooms
+    # out of the 791 this kind fires in. Both happen to be discounted by the
+    # busy-elsewhere guard in `presence.py`, and that is an accident - the cue
+    # firing there is "curving away from the North Wall Road", which has nothing
+    # to do with buildings. Counted every "crowds of ..." in the corpus and the
+    # rest are people, so a guard for this would be two rooms of vocabulary
+    # against a new way to be wrong.
+    'crowd': ('a crowd', 'the crowd', 'crowds', 'throng', 'bustle', 'bustling',
+              'hustle', 'traffic', 'passersby', 'passers-by', 'pedestrian',
+              'milling', 'jostle', 'teeming', 'people'),
+    # Here to buy or to visit. customer 298, patron 184, visitor 192,
+    # shopper 128, guest 102, haggle 47, clientele 23.
+    'patron': ('customer', 'patron', 'visitor', 'shopper', 'guest', 'haggle',
+               'clientele'),
+    # Passing through. traveler 352, traveller 36. The largest single presence
+    # term in the corpus, and nearly always habitual - "a foreboding sign to
+    # travelers who dare disturb" is a claim about the road, not a headcount.
+    # wayfarer 11.
+    'traveler': ('traveler', 'traveller', 'wayfarer'),
+    # Sells here. merchant 235, trader 175, vendor 27, peddler 8, hawker 6.
+    # fishmonger 4.
+    'trader': ('merchant', 'trader', 'vendor', 'peddler', 'hawker',
+               'fishmonger'),
+    # Works here, in service rather than in trade. clerk 229, attendant 93,
+    # apprentice 50, proprietor 34, servant 28, teller 27, shopkeeper 21,
+    # innkeeper 5, barkeep 2.
+    # waiter 9. The bare word 'staff' is NOT here; see the rejections below.
+    'staff': ('clerk', 'attendant', 'apprentice', 'proprietor', 'servant',
+              'teller', 'shopkeeper', 'innkeeper', 'barkeep', 'waiter'),
+    # Armed watch. soldier 42, sentry 21, sentries 12, guardsmen 10, militia 8,
+    # guardsman 4, watchman 4, watchmen 4.
+    #
+    # 'guard' is here bare, at 359 rooms, and it is the one term in this table
+    # that cannot be read by containment: it is a verb in roughly a third of its
+    # 388 occurrences ("a mahogany banister guards the edge", "obelisks stand
+    # guard over the road"). The determined forms were tried first - 'a guard',
+    # 'the guards', 'armed guard' - and they measured 52 rooms out of the 251
+    # occurrences that really are people, because a determiner plus an adjective
+    # is how this corpus usually introduces one: "a beefy guard", "s'kra
+    # guards", "a stern-looking clan guard". So the word is read per occurrence
+    # instead, by `presence.every_occurrence_is_other`, which is where the
+    # evidence for the transitive/intransitive split is written down.
+    'guard': ('guard', 'guardsman', 'guardsmen', 'sentry', 'sentries',
+              'watchman', 'watchmen', 'soldier', 'militia'),
+    # Manual and craft labour. worker 123, farmer 50, artisan 42, crafter 37,
+    # sailor 29, builder 24, craftsmen 22, laborer 20, workmen 18, craftsman 12,
+    # miner 11, fisherman 9. 'workman' returned 0 rooms and is not listed;
+    # 'workmen' is what this corpus writes.
+    # 'labourer' was proposed and counted 0 rooms; this corpus spells it the
+    # American way throughout, and a term that matches nothing is dead weight
+    # the audit would have to keep reporting as a zero.
+    'worker': ('worker', 'farmer', 'artisan', 'crafter', 'sailor', 'builder',
+               'craftsmen', 'craftsman', 'laborer', 'workmen', 'miner',
+               'fisherman', 'fishermen', 'stevedore'),
+    # Devotional presence. monk 43, cleric 38, priest 26, worshipper 14,
+    # pilgrim 14, acolyte 9, worshiper 7, priestess 5.
+    'devout': ('monk', 'cleric', 'priest', 'priestess', 'worshipper',
+               'worshiper', 'pilgrim', 'acolyte'),
+    # student 57, scholar 21, scribe 11, teacher 10, librarian 5.
+    'scholar': ('student', 'scholar', 'scribe', 'teacher', 'librarian'),
+    # Lives here. resident 159, inhabitant 78, citizen 51, denizen 41,
+    # neighbor 41, folk 37, locals 30, townsfolk 19, dweller 14, villager 10.
+    'resident': ('resident', 'inhabitant', 'citizen', 'denizen', 'neighbor',
+                 'folk', 'locals', 'townsfolk', 'dweller', 'villager'),
+    # children 161, child 66, lad 20, youth 12, urchin 10.
+    'child': ('children', 'child', 'lad', 'youth', 'urchin'),
+    # Fighters who are not the watch. warrior 91, adventurer 60, hunter 36,
+    # archer 21, trapper 11. 'mercenary' counted 1 room and was dropped.
+    'martial': ('warrior', 'adventurer', 'hunter', 'trapper', 'archer'),
+    # performer 28, musician 19, dancer 18, bard 15, minstrel 8.
+    'performer': ('musician', 'performer', 'dancer', 'bard', 'minstrel'),
+    # People the room says you can hear but does not show you. Worth its own
+    # kind because it is drawn as sound and off-screen motion, not as a figure.
+    # conversation 86, voices 78, laughter 75, chatter 34, gossip 13.
+    #
+    # 'footstep' (172) was counted and left out: its commonest use by a wide
+    # margin is the reader's own - "footsteps echo along the passage" appears
+    # 29 times verbatim - which is presence of nobody. 'murmur' (53), 'babble'
+    # (16) and 'cries' (56) went the same way: running water and gulls.
+    'voices': ('voices', 'laughter', 'chatter', 'conversation', 'gossip'),
+}
+
+# Counted and rejected, so that nobody has to count them twice:
+#
+#   'face' 390 / 'faces' 119   a rock face, a cliff face, a building that
+#                              faces the bay. Almost never a person's.
+#   'figure' 61 / 'figures'    a carved figure, the figure of a god, figures
+#              115            engraved on a plaque. Roughly half.
+#   'body' 82 / 'bodies' 78    "a large body of water", and where they are
+#                              people they are corpses in a catacomb.
+#   'press' 78                 "senses press for attention", "brambles press
+#                              in on all sides".
+#   'multitude' 75            "a multitude of small flecks", "a multitude of
+#                              books". A quantity word, not a crowd.
+#   'sentinel' 72             metaphor in nearly every instance: a fir, a
+#                              cairn, a mooring, a gate "stands sentinel".
+#   'local' 233               an adjective. "the local name for this area",
+#                              "the local flora". Where it modifies a person
+#                              the head noun is already in the table.
+#   'owner' 105               commonest use is a possessive about somebody
+#                              absent or dead - "its former owner", "attesting
+#                              its owner's neglect".
+#   'man' 127 / 'men' 70      'man-made' alone is 22 rooms, and 'man and
+#                              beast' is a figure of speech. The specific role
+#                              nouns carry this weight already.
+#   'noble' 32               "noble lords" (the head noun is the person), but
+#                              also "this noble giant" of a tree and "a noble
+#                              effort".
+#   'staff' 51               the personnel sense and the walking stick, in one
+#                              word, at similar rates.
+#   'band' 37 / 'party' 15    a band of stained glass windows; a death party
+#                              of wax drippings.
+#   'master' 62              a modifier in nearly all of them - "master
+#                              trader", "master craftsman" - so the head noun
+#                              is what gets read.
+
 CATEGORIES = {
     'ground': GROUND,
+    'presence': PRESENCE,
     'enclosure': ENCLOSURE,
     'structure': STRUCTURE,
     'terrain': TERRAIN,
