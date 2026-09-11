@@ -23,6 +23,7 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 
+from . import presence as _presence
 from . import rulings as _rulings
 from .lexicon import CATEGORIES, DIRECTIONS, ENCLOSURE, SURFACE, SURFACE_MATERIAL
 
@@ -102,6 +103,18 @@ class RoomReading:
     location: str | None = None
     words: int = 0
     doubts: list[str] = field(default_factory=list)
+
+    # Who the description says is usually here. Never None: `presence.UNREAD`
+    # and `presence.UNSAID` are the two ways of saying "we do not know", and
+    # they are separate from `presence.SOLITARY`, which is the text saying
+    # nobody is here. Folding those three into one is exactly the placeholder
+    # this pipeline exists to refuse - see `forge/presence.py`.
+    #
+    # A room the parser never got to read keeps the UNREAD default, so a
+    # reading that was abandoned early cannot be mistaken for one that found
+    # nobody.
+    presence: '_presence.PresenceReading' = field(
+        default_factory=lambda: _presence.PresenceReading(state=_presence.UNREAD))
 
     # Where each field's value came from. 'parsed' means the parser read it out
     # of the description; anything else is a ruling id, and a room closed by a
@@ -347,12 +360,16 @@ def read_room(record: dict) -> RoomReading:
     categories, _ = _tables()
     lowered = text.lower()
     sentences = _SENTENCE.split(lowered)
+    # Crowd words the text handed to somewhere else. Collected rather than
+    # forgotten, so the presence reading can say what it discounted.
+    elsewhere: list[str] = []
 
     for index, sentence in enumerate(sentences):
         direction = _direction_in(sentence)
         scale = _first_match(sentence, categories['scale'])
         tint = _first_match(sentence, categories['tint'])
-        for category in ('structure', 'terrain', 'goods', 'flora', 'water', 'light'):
+        for category in ('structure', 'terrain', 'goods', 'flora', 'water',
+                         'light', 'presence'):
             for kind, term in _all_matches(sentence, categories[category]):
                 # A stream of customers is not a stream. Found live in #788,
                 # where "the stream of customers, though steady" put a river
@@ -363,6 +380,22 @@ def read_room(record: dict) -> RoomReading:
                     continue
                 # "may as well" is not a wellhead. Same shape as above.
                 if _other_sense(term, sentence):
+                    continue
+                # A few presence words have to be read per occurrence rather
+                # than per sentence, because the same word in the same sentence
+                # can be a person once and a verb twice. `_compiled(term)` is
+                # handed over rather than rebuilt there: one boundary rule, one
+                # place, or the two matchers drift.
+                if category == 'presence' and _presence.every_occurrence_is_other(
+                        term, sentence, _compiled(term)):
+                    continue
+                # "Tucked away from the hustle and bustle of the rest of the
+                # tower" is a room saying it is quiet. The word belongs to
+                # somewhere else, so neither the density nor a sprite may come
+                # of it - and it took a sabotage to notice the second half.
+                if category == 'presence' and _presence.attributed_elsewhere(
+                        kind, term, sentence):
+                    elsewhere.append(term)
                     continue
                 reading.detections.append(
                     Detection(
@@ -390,6 +423,16 @@ def read_room(record: dict) -> RoomReading:
     reading.enclosure = _decide_enclosure(lowered, reading)
     if reading.enclosure:
         reading.sources['enclosure'] = 'parsed'
+
+    # Decided after the detections exist, because it reads them. Note what is
+    # NOT recorded as a doubt: a description that says nothing about people is
+    # not a room the parser failed on, it is a room the author was silent
+    # about, and the state carries that on its own. Escalating it would put
+    # several thousand unanswerable items in a queue - the same mistake
+    # `escalate.py` already refuses to make about the ground.
+    reading.presence = _presence.density(lowered, reading.detections,
+                                         tuple(elsewhere))
+    reading.sources['presence'] = 'parsed'
 
     _apply_room_ruling(reading)
     return reading
