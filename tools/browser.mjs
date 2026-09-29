@@ -48,6 +48,7 @@ const BROWSERS = [
 ]
 
 export function findBrowser() {
+  if (process.env.DRC_BROWSER) return existsSync(process.env.DRC_BROWSER) ? process.env.DRC_BROWSER : null
   return BROWSERS.find((p) => existsSync(p)) ?? null
 }
 

@@ -18,6 +18,8 @@ var snapshot: Dictionary = {}
 var player_summary := Label.new()
 var roundtime_started_ms := 0
 var rendered_ids: Array = []
+var board_signature := ""
+var inspector_signature := ""
 
 func wants_live() -> bool:
 	return OS.get_cmdline_user_args().has(LIVE_FLAG)
@@ -156,9 +158,9 @@ func _label(parent: Node3D, at: Vector3, text: String) -> void:
 	parent.add_child(label)
 
 func _rebuild_board() -> void:
-	for child in geometry.get_children():
-		child.free()
 	if not WorldManifestLoader.has_cell(current_room):
+		for child in geometry.get_children():
+			child.free()
 		rendered_ids = []
 		return
 	var window: Dictionary = VisibilityPolicy.new().detail_window(current_room, WorldManifestLoader.cells)
@@ -168,6 +170,15 @@ func _rebuild_board() -> void:
 		ids.sort_custom(func(a, b): return _point(WorldManifestLoader.get_cell(a)).distance_squared_to(focus) < _point(WorldManifestLoader.get_cell(b)).distance_squared_to(focus))
 		ids = ids.slice(0, 400)
 	rendered_ids = ids
+	var visible_cells: Array = []
+	for id in ids:
+		visible_cells.append(WorldManifestLoader.get_cell(id))
+	var next_signature := JSON.stringify({"mode": view_mode, "room": current_room, "cells": visible_cells, "entities": snapshot.get("entities", []), "items": snapshot.get("groundItems", [])})
+	if next_signature == board_signature:
+		return
+	board_signature = next_signature
+	for child in geometry.get_children():
+		child.free()
 	var palette := {"street": Color("737e88"), "grass": Color("557450"), "water": Color("387e9c"), "cave": Color("625b71"), "forest": Color("385e48")}
 	for id in ids:
 		var cell := WorldManifestLoader.get_cell(id)
@@ -242,6 +253,11 @@ func _token(origin: Vector3, text: String, color: Color, index: int) -> void:
 		_label(geometry, at + Vector3(0, 1.35, 0), text)
 
 func _rebuild_details() -> void:
+	_update_player_summary()
+	var next_signature := JSON.stringify({"room": current_room, "exits": WorldManifestLoader.true_exits(current_room), "entities": snapshot.get("entities", []), "items": snapshot.get("groundItems", [])})
+	if next_signature == inspector_signature:
+		return
+	inspector_signature = next_signature
 	for child in details.get_children():
 		if child == player_summary:
 			details.remove_child(child)

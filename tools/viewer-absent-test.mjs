@@ -100,9 +100,10 @@ const client = load('src/lib/viewerClient.ts')
 writeFileSync(
   join(dir, 'src/lib/tauri.mjs'),
   [
-    'export const backend = { mode: "absent", value: undefined, error: "no backend" }',
+    'export const backend = { mode: "absent", value: undefined, error: "no backend", invoke: null }',
     'export function isTauri() { return backend.mode !== "absent" }',
-    'export async function invokeTauri(cmd) {',
+    'export async function invokeTauri(cmd, args) {',
+    '  if (backend.invoke) return backend.invoke(cmd, args)',,
     '  if (backend.mode === "absent") return undefined',
     '  if (backend.mode === "reject") throw new Error(backend.error)',
     '  return backend.value',
@@ -216,6 +217,38 @@ try {
   threw = e
 }
 ok('publishing with no world does not throw', threw === null)
+
+// Concurrent pushes must not reuse a sequence while the first native call
+// is still pending. Exercise both success and recovery after a rejected call.
+const calls = []
+let release
+backend.invoke = (_cmd, args) => {
+  calls.push(args.event)
+  if (calls.length === 1) return new Promise((resolve) => { release = resolve })
+  return Promise.resolve()
+}
+const before = m.presentationEventSequence()
+const first = m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'first' })
+const second = m.publishPresentationEvent({ kind: 'miss', roomId: '1-14', authoritativeText: 'second' })
+await new Promise((resolve) => setImmediate(resolve))
+ok('a pending native publish serializes later events', calls.length === 1)
+release()
+const accepted = await Promise.all([first, second])
+ok('concurrent events get consecutive unique sequences', accepted[0] === before + 1 && accepted[1] === before + 2)
+ok('native event order matches request order', calls.map((e) => e.authoritativeText).join(',') === 'first,second')
+let rejectNext = true
+backend.invoke = (_cmd, args) => {
+  calls.push(args.event)
+  if (rejectNext) { rejectNext = false; return Promise.reject(new Error('native publish failed')) }
+  return Promise.resolve()
+}
+const failed = m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'rejected' })
+const failedResult = failed.then(() => false, () => true)
+const recovered = m.publishPresentationEvent({ kind: 'miss', roomId: '1-14', authoritativeText: 'recovered' })
+ok('native publication failure stays visible to its caller', await failedResult)
+ok('publication queue recovers without skipping a sequence', await recovered === before + 3)
+ok('failed and recovered native calls use the same unconfirmed sequence', calls.at(-2).sequence === calls.at(-1).sequence)
+backend.invoke = null
 
 // The floor. Set well below the real count so a truncated or half-imported run
 // reports itself instead of passing for free.

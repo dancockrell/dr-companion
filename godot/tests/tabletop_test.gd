@@ -25,6 +25,13 @@ func _run() -> void:
 	scene.set_view("invented")
 	_ok("unknown camera modes are rejected", scene.camera.size == old_size)
 	scene.set_view("room")
+	var stable_geometry: int = scene.geometry.get_child(0).get_instance_id()
+	var stable_exit: int = scene.exits.get_child(0).get_instance_id()
+	var status_only: Dictionary = bridge.current_snapshot.duplicate(true)
+	status_only.player = {"health": 0.5, "roundtime": 0, "cannotAct": false}
+	scene.render_snapshot(status_only)
+	_ok("health updates retain terrain and keyboard exit focus", scene.geometry.get_child(0).get_instance_id() == stable_geometry and scene.exits.get_child(0).get_instance_id() == stable_exit)
+	_ok("retained board still updates player health", scene.player_summary.text.contains("50% health"))
 	var move: String = root.get_node("WorldManifestLoader").true_exits("1-14")[0].move
 	sender.request_walk("1-14", move)
 	_ok("confirmed mock movement updates camera and room", scene.current_room == str(bridge.current_snapshot.currentRoomId) and scene.current_room != "1-14")

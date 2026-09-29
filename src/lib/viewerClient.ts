@@ -132,6 +132,7 @@ export interface PresentationEvent {
  * look like a dropped message in the other.
  */
 let eventSequence = 0
+let eventPublishQueue: Promise<void> = Promise.resolve()
 
 /** The next sequence, without publishing. For a test that needs to know where
  * the counter is rather than inferring it from a publish. */
@@ -154,10 +155,18 @@ export function presentationEventSequence(): number {
 export async function publishPresentationEvent(
   event: Omit<PresentationEvent, 'protocol' | 'sequence'>
 ): Promise<number> {
-  const sequence = eventSequence + 1
-  await invokeTauri('publish_presentation_event', {
-    event: { protocol: 1, sequence, ...event },
+  // Several status changes can arrive in one pass. Serialize the native
+  // calls so each confirmed publication gets one unique sequence. A failed
+  // call leaves that sequence available and never poisons subsequent work.
+  const payload = { ...event }
+  const published = eventPublishQueue.then(async () => {
+    const sequence = eventSequence + 1
+    await invokeTauri('publish_presentation_event', {
+      event: { ...payload, protocol: 1, sequence },
+    })
+    eventSequence = sequence
+    return sequence
   })
-  eventSequence = sequence
-  return sequence
+  eventPublishQueue = published.then(() => undefined, () => undefined)
+  return await published
 }
