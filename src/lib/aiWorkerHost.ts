@@ -437,7 +437,7 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
   useEffect(() => {
     if (!enabled) return
     const pass = () => {
-      const { character, bridgeConnected, mapHere } = useAppStore.getState()
+      const { character, bridgeConnected, mapHere, mapZone } = useAppStore.getState()
       if (bridgeConnected) everConnected.current = true
       const now = Date.now()
 
@@ -458,10 +458,14 @@ export function useAiWorkerHost(enabled: boolean, override?: ModelProvider): voi
       // not break the host's pass over the alerts.
       const situation = character?.situation ?? []
       for (const change of situationChanges(lastSituation.current, situation)) {
+        // Use the same confirmed zone-prefixed cell identity as snapshots.
+        // A room absent from current topology cannot ground a viewer event.
+        if (!bridgeConnected || roomId === null || !mapZone?.ok || !mapZone.zone ||
+            !mapZone.rooms?.some((room) => room.id === roomId)) continue
         void publishPresentationEvent({
           kind: 'status-change',
-          roomId: roomId === null ? '' : `room:${roomId}`,
-          authoritativeText: change.flag,
+          roomId: `${mapZone.zone}-${roomId}`,
+          authoritativeText: `${change.flag}: ${change.on ? 'active' : 'cleared'}`,
         }).catch(() => {})
       }
       lastSituation.current = situation

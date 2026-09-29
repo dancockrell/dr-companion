@@ -26,7 +26,7 @@ const MAX_RECONNECT_ATTEMPTS: int = 5
 const RECONNECT_BASE_DELAY_MS: int = 250
 const TOKEN_FILE := "presentation-bridge.token"
 const PORT_FILE := "presentation-bridge.port"
-const EVENT_KINDS := ["enter", "leave", "advance", "retreat", "attack", "hit", "miss", "parry", "evade", "block", "cast", "death", "item-drop"]
+const EVENT_KINDS := ["enter", "leave", "advance", "retreat", "attack", "hit", "miss", "parry", "evade", "block", "cast", "death", "item-drop", "status-change"]
 
 ## True until a real Tauri/Rust WebSocket bridge is wired in. Nothing outside
 ## this file should ever need to branch on this — `request_snapshot`/
@@ -87,6 +87,13 @@ func _process(_delta: float) -> void:
 ## port/token files. The token is shape-checked and is never emitted or logged.
 func start_live(config_dir: String = "") -> bool:
 	disconnect_live()
+	# Selecting live mode must never retain a previous demo session, even
+	# when local configuration is missing and the connection cannot begin.
+	mock_mode = false
+	current_snapshot = {}
+	_current_room_id = ""
+	_sequence = 0
+	EventPlayer.reset_to(0)
 	var directory := config_dir
 	if directory.is_empty():
 		var local_data := OS.get_environment("LOCALAPPDATA")
@@ -282,7 +289,10 @@ func _accept_live_message(message: Dictionary) -> void:
 			current_snapshot = message.duplicate(true)
 			_sequence = int(message.get("sequence", 0))
 			_current_room_id = str(message.get("currentRoomId", ""))
-			EventPlayer.reset_to(_sequence)
+			# Snapshot versions and event playback are separate streams. The
+			# native bridge stamps the cursor atomically with delivery, including
+			# events accepted since its last stored snapshot on reconnect.
+			EventPlayer.reset_to(int(message.get("eventSequence", 0)))
 			_reconnect_attempt = 0
 			if _recovering:
 				_recovering = false

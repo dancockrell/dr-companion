@@ -1296,9 +1296,12 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
       escapeWatchdog.elapsed < 3000 + RUBY_GRACE_MS + 4000 && escapeWatchdog.spawn.error?.code === 'ETIMEDOUT',
       `killed after ${escapeWatchdog.elapsed}ms against a wall of ${escapeWatchdog.deadline}ms, spawn error ${escapeWatchdog.spawn.error?.code ?? 'none'}`
     )
+    // Unix termination may run at_exit and stamp a final child verdict;
+    // Windows hard termination may leave none. The parent's timeout must
+    // reject both, so verdict absence is not itself the safety property.
     ok(
-      'and a run that left no verdict is a FAIL naming that, never a pass',
-      escapeWatchdog.ledger.verdict === null &&
+      'the parent timeout overrides any child verdict emitted while terminating',
+      escapeWatchdog.spawn.error?.code === 'ETIMEDOUT' &&
         escapeWatchdog.ledger.started === true &&
         rubyVerdict(escapeWatchdog).pass === false &&
         /no verdict/.test(rubyVerdict(escapeWatchdog).why),
@@ -1306,9 +1309,11 @@ console.log('-- E7 containment for Ruby: the candidate runs out of process, in a
     )
     ok(
       'and it really did stop the clock, so this is the escape and not a slow fixture (denominator)',
-      (escapeWatchdog.ledger.verdict === null) &&
+      escapeWatchdog.spawn.error?.code === 'ETIMEDOUT' &&
+        (escapeWatchdog.ledger.verdict === null || echoed(escapeWatchdog).includes('clock stopped=true')) &&
+        !echoed(escapeWatchdog).includes('woke up, which should be unreachable') &&
         rubyEscaped().length === 0,
-      `nothing outside the sandbox; the fixture sleeps 25s past a 3s runner timeout and produced no verdict in ${escapeWatchdog.elapsed}ms`
+      `nothing outside the sandbox; clock-stop was reported and the parent ended the run in ${escapeWatchdog.elapsed}ms`
     )
 
     // 13. `Dir.new`, `Dir.home` and `File::Stat.new`: `Class#new` is inherited,

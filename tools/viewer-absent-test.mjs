@@ -71,6 +71,7 @@ function load(relative) {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
       })
       .outputText.replace(/from '(\.\.?\/[^']+)\.ts'/g, "from '$1.mjs'")
+      .replace(/import\('(\.\.?\/[^']+)\.ts'\)/g, "import('$1.mjs')")
   )
   return out
 }
@@ -100,9 +101,10 @@ const client = load('src/lib/viewerClient.ts')
 writeFileSync(
   join(dir, 'src/lib/tauri.mjs'),
   [
-    'export const backend = { mode: "absent", value: undefined, error: "no backend" }',
+    'export const backend = { mode: "absent", value: undefined, error: "no backend", invoke: null }',
     'export function isTauri() { return backend.mode !== "absent" }',
-    'export async function invokeTauri(cmd) {',
+    'export async function invokeTauri(cmd, args) {',
+    '  if (backend.invoke) return backend.invoke(cmd, args)',
     '  if (backend.mode === "absent") return undefined',
     '  if (backend.mode === "reject") throw new Error(backend.error)',
     '  return backend.value',
@@ -216,6 +218,82 @@ try {
   threw = e
 }
 ok('publishing with no world does not throw', threw === null)
+
+// Concurrent pushes must not reuse a sequence while the first native call
+// is still pending. Exercise both success and recovery after a rejected call.
+const calls = []
+let release
+backend.invoke = (_cmd, args) => {
+  calls.push(args.event)
+  if (calls.length === 1) return new Promise((resolve) => { release = resolve })
+  return Promise.resolve(args.event.sequence)
+}
+const before = m.presentationEventSequence()
+const first = m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'first' })
+const second = m.publishPresentationEvent({ kind: 'miss', roomId: '1-14', authoritativeText: 'second' })
+await new Promise((resolve) => setImmediate(resolve))
+ok('a pending native publish serializes later events', calls.length === 1)
+release(before + 1)
+const accepted = await Promise.all([first, second])
+ok('concurrent events get consecutive unique sequences', accepted[0] === before + 1 && accepted[1] === before + 2)
+ok('native event order matches request order', calls.map((e) => e.authoritativeText).join(',') === 'first,second')
+let rejectNext = true
+backend.invoke = (_cmd, args) => {
+  calls.push(args.event)
+  if (rejectNext) { rejectNext = false; return Promise.reject(new Error('native publish failed')) }
+  return Promise.resolve(args.event.sequence)
+}
+const failed = m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'rejected' })
+const failedResult = failed.then(() => false, () => true)
+const recovered = m.publishPresentationEvent({ kind: 'miss', roomId: '1-14', authoritativeText: 'recovered' })
+ok('native publication failure stays visible to its caller', await failedResult)
+ok('publication queue recovers without skipping a sequence', await recovered === before + 3)
+ok('failed and recovered native calls use the same unconfirmed sequence', calls.at(-2).sequence === calls.at(-1).sequence)
+backend.invoke = () => Promise.resolve(40)
+ok('a publisher reload adopts the native transport cursor', await m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'after reload' }) === 40)
+backend.invoke = () => Promise.resolve('invalid')
+ok('an invalid native cursor is rejected', await m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'bad reply' }).then(() => false, () => true))
+ok('a rejected cursor does not advance confirmed state', m.presentationEventSequence() === 40)
+backend.invoke = null
+backend.mode = 'absent'
+ok('a browser without a native bridge does not claim new publications', await m.publishPresentationEvent({ kind: 'hit', roomId: '1-14', authoritativeText: 'browser' }) === 40)
+
+// Delayed content loading must not reverse two confirmed room transitions.
+// Stub only the Vite content-loader seam; compilation and publication are real.
+writeFileSync(join(dir, 'src/lib/worldContent.mjs'), 'export const content = { load: async () => null }; export async function loadWorldContent(zone) { return await content.load(zone) }')
+const { content } = await import(pathToFileURL(join(dir, 'src/lib/worldContent.mjs')).href)
+const { LIVE_ZONE, LIVE_HERE } = await import('./live-zone-fixture.mjs')
+let releaseContent
+let loads = 0
+content.load = async () => {
+  loads++
+  if (loads === 1) await new Promise((resolve) => { releaseContent = resolve })
+  return null
+}
+const snapshots = []
+backend.invoke = (_cmd, args) => { snapshots.push(args.snapshot); return Promise.resolve() }
+m.resetPresentationBridgePublishState()
+const firstRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: LIVE_HERE, character: null })
+const secondRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: { ...LIVE_HERE, id: 13 }, character: null })
+await new Promise((resolve) => setImmediate(resolve))
+ok('a delayed zone load keeps the later room update queued', loads === 1 && snapshots.length === 0)
+releaseContent()
+await Promise.all([firstRoom, secondRoom])
+ok('room snapshots publish in observed order despite content latency', snapshots.map((s) => s.currentRoomId).join(',') === '1-14,1-13')
+ok('room publication maintains a separate consecutive snapshot counter', snapshots.map((s) => s.sequence).join(',') === '1,2')
+let rejectSnapshot = true
+backend.invoke = (_cmd, args) => {
+  snapshots.push(args.snapshot)
+  if (rejectSnapshot) { rejectSnapshot = false; return Promise.reject(new Error('snapshot failed')) }
+  return Promise.resolve()
+}
+const rejectedRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: LIVE_HERE, character: null })
+const rejectedResult = rejectedRoom.then(() => false, () => true)
+const retryRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: LIVE_HERE, character: null })
+ok('a native snapshot failure remains visible', await rejectedResult)
+await retryRoom
+ok('a failed snapshot retries without poisoning or advancing the queue', snapshots.at(-2).sequence === 3 && snapshots.at(-1).sequence === 3)
+backend.invoke = null
 
 // The floor. Set well below the real count so a truncated or half-imported run
 // reports itself instead of passing for free.

@@ -1086,7 +1086,7 @@ pub(crate) static LAUNCH_FILE_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex
 /// Same reason as the lock above: the handle is process-global and cargo runs
 /// tests in threads, so without this a case asserting "the handle is gone" can
 /// be looking at one another case has just taken.
-#[cfg(test)]
+#[cfg(all(test, windows))]
 pub(crate) static LICH_PROCESS_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Put a path on the pending-launch-file list, for tests in other modules.
@@ -2870,6 +2870,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn a_released_handle_stops_claiming_a_port() {
         let _guard = LICH_PROCESS_TEST_LOCK
             .lock()

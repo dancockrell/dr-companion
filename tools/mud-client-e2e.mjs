@@ -434,7 +434,9 @@ ok(
   SABOTAGE === 'no-godot-lie' ? viewerModules.length > 0 : viewerModules.length === 0,
   `${viewerModules.length} of ${chain.size} modules: ${viewerModules.map((f) => f.split(/[\\/]/).pop()).join(', ') || 'none'}`
 )
-ok('this run was given no Godot binary', !process.env.GODOT4, `GODOT4=${process.env.GODOT4 ?? '(unset)'}`)
+// GODOT4 configures the gate's engine tests, not this client's mocked backend.
+// Viewer absence is verified through viewerStatus below, even on a build
+// machine that also has Godot installed for the separate rendering checks.
 
 // Reported, deliberately not asserted. What other sessions are running is
 // their business - `tools/gate.mjs` starts engines itself - and a count of

@@ -60,7 +60,7 @@ func _run() -> void:
 	_ok("Godot presents the exact launch token", auth.get("token", "") == token)
 	_send(client, {"type": "auth_ok"})
 	_send(client, {
-		"type": "snapshot", "protocol": 1, "sequence": 4,
+		"type": "snapshot", "protocol": 1, "sequence": 40, "eventSequence": 4,
 		"worldId": "transport-test", "currentRoomId": "1-14",
 		"cells": [{"id": "1-14", "title": "Town Green North", "position": {"x": 0, "y": 0, "z": 0},
 			"exits": [{"move": "north", "direction": "north", "targetRoomId": 13, "targetCellId": null}]}],
@@ -96,7 +96,7 @@ func _run() -> void:
 		_ok("a recovered socket performs a fresh authentication", reconnect_auth == {"type": "auth", "token": token})
 		_send(reconnected_client, {"type": "auth_ok"})
 		_send(reconnected_client, {
-			"type": "snapshot", "protocol": 1, "sequence": 5,
+			"type": "snapshot", "protocol": 1, "sequence": 50, "eventSequence": 5,
 			"worldId": "transport-test", "currentRoomId": "1-14",
 			"cells": [{"id": "1-14", "title": "Town Green North", "position": {"x": 0, "y": 0, "z": 0},
 				"exits": [{"move": "north", "direction": "north", "targetRoomId": 13, "targetCellId": null}]}],
@@ -106,7 +106,7 @@ func _run() -> void:
 		while recovered_snapshots.is_empty() and Time.get_ticks_msec() < deadline:
 			await process_frame
 		_ok("a valid replacement snapshot completes recovery", recovered_snapshots.size() == 1)
-		_ok("recovery admits the fresh authoritative sequence", bridge.current_snapshot.get("sequence", -1) == 5)
+		_ok("recovery admits the fresh authoritative sequence", bridge.current_snapshot.get("sequence", -1) == 50)
 		var reconnect_count := _count_state_prefix(connection_states, "reconnecting-")
 		root.get_node("EventPlayer").offer({"sequence": 7, "kind": "hit"})
 		deadline = Time.get_ticks_msec() + 1000

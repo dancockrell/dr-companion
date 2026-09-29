@@ -21,7 +21,7 @@
 //!
 //! | Guarantee | Enforced by |
 //! |---|---|
-//! | The bytes are overwritten when it drops | [`Drop`] below, plus `drop_overwrites_the_bytes` |
+//! | The bytes are overwritten when it drops | [`Drop`] calls the eraser checked by `erase_overwrites_the_live_buffer` |
 //! | It cannot be printed by accident | its [`std::fmt::Debug`] prints `Secret(<redacted>)`; there is no `Display` |
 //! | It cannot be serialised | it derives nothing, and `NotSerializable` below turns an added `Serialize` into a *compile* error |
 //! | Every read of the plaintext is greppable | there is no `Deref`; the only accessor is [`Secret::expose_for_obscuring`] |
@@ -139,10 +139,8 @@ impl Secret {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
-}
 
-impl Drop for Secret {
-    fn drop(&mut self) {
+    fn erase(&mut self) {
         // In place, through the `String`'s own buffer, so no reallocation
         // leaves a copy behind. `write_volatile` and the fence stop the
         // compiler removing a write to memory it can prove is never read.
@@ -151,6 +149,12 @@ impl Drop for Secret {
             unsafe { std::ptr::write_volatile(byte, 0) };
         }
         compiler_fence(Ordering::SeqCst);
+    }
+}
+
+impl Drop for Secret {
+    fn drop(&mut self) {
+        self.erase();
     }
 }
 
@@ -206,33 +210,36 @@ mod tests {
         assert!(Secret::new(String::new()).is_empty());
     }
 
-    /// Reading freed memory is undefined behaviour, so this proves the erase
-    /// against a buffer it still owns: the `Drop` body is what is under test,
-    /// and it is run against a `Secret` whose bytes are then read back through
-    /// a pointer taken before the drop. `ManuallyDrop` keeps the allocation
-    /// alive so the read is of live memory.
+    /// Check the exact eraser Drop calls while its allocation is still alive.
+    /// ManuallyDrop::drop runs field destructors too, so reading a pointer after
+    /// that call would be use-after-free, not evidence of password erasure.
     #[test]
-    fn drop_overwrites_the_bytes() {
+    fn erase_overwrites_the_live_buffer() {
         let typed = fixture();
         let len = typed.len();
-        let mut held = std::mem::ManuallyDrop::new(Secret::new(typed));
+        let mut held = Secret::new(typed);
         let ptr = held.0.as_ptr();
 
         // Positive control: before the drop the plaintext is really there, so
         // an "all zero" result afterwards cannot be an empty buffer we never
         // wrote to in the first place.
-        let before = unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec();
+        let before = held.expose_for_obscuring().to_vec();
         assert!(
             before.iter().any(|&b| b != 0),
             "the fixture was already zero"
         );
 
-        unsafe { std::mem::ManuallyDrop::drop(&mut held) };
-
-        let after = unsafe { std::slice::from_raw_parts(ptr, len) };
+        held.erase();
+        assert_eq!(
+            held.0.as_ptr(),
+            ptr,
+            "erasure must not reallocate plaintext"
+        );
+        assert_eq!(held.len(), len);
+        let after = held.expose_for_obscuring();
         assert!(
             after.iter().all(|&b| b == 0),
-            "Drop left {} non-zero byte(s) of {len}",
+            "erasure left {} non-zero byte(s) of {len}",
             after.iter().filter(|&&b| b != 0).count()
         );
     }

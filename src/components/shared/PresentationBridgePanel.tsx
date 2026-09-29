@@ -30,16 +30,20 @@ export function PresentationBridgePanel() {
   const [info, setInfo] = useState<PresentationBridgeInfo | null>(null)
   const [viewer, setViewer] = useState<ViewerStatus | null>(null)
   const [checking, setChecking] = useState(false)
+  const [checkError, setCheckError] = useState<string | null>(null)
+  const [launching, setLaunching] = useState(false)
   const [launchNote, setLaunchNote] = useState<string | null>(null)
 
   const check = () => {
     if (!isTauri()) return
     setChecking(true)
+    setCheckError(null)
     void Promise.all([presentationBridgeInfo(), viewerStatus()])
       .then(([bridge, v]) => {
         setInfo(bridge)
         setViewer(v)
       })
+      .catch((e: unknown) => setCheckError(e instanceof Error ? e.message : String(e)))
       .finally(() => setChecking(false))
   }
 
@@ -47,13 +51,14 @@ export function PresentationBridgePanel() {
 
   const open = () => {
     setLaunchNote(null)
+    setLaunching(true)
     void launchViewer()
       // Both branches say what happened. A launch button that reports nothing
       // on failure is the reason "I pressed it and nothing happened" is the
       // hardest bug report to act on.
       .then((msg) => setLaunchNote(msg))
       .catch((e: unknown) => setLaunchNote(e instanceof Error ? e.message : String(e)))
-      .finally(check)
+      .finally(() => { setLaunching(false); check() })
   }
 
   const exitNote = viewerExitNote(viewer)
@@ -69,6 +74,7 @@ export function PresentationBridgePanel() {
 
   return (
     <div className="space-y-1.5">
+      {checkError && <p role="alert" className="text-xs text-danger">Could not check viewer: {checkError}</p>}
       <div className="flex items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5">
         <span className="text-xs text-ink-faint">Port</span>
         <span className="text-xs tabular-nums text-ink">
@@ -122,10 +128,10 @@ export function PresentationBridgePanel() {
           type="button"
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-ink-muted hover:text-ink disabled:opacity-50"
           onClick={open}
-          disabled={!viewer?.installed || (viewer?.runningKnown && viewer.running)}
+          disabled={launching || checking || !viewer?.installed || (viewer?.runningKnown && viewer.running)}
         >
           <Play className="h-3 w-3" />
-          {exitNote ? 'Relaunch viewer' : 'Open viewer'}
+          {launching ? 'Opening…' : exitNote ? 'Relaunch viewer' : 'Open viewer'}
         </button>
         <button
           type="button"
