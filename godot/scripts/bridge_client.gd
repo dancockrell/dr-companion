@@ -87,6 +87,12 @@ func _process(_delta: float) -> void:
 ## port/token files. The token is shape-checked and is never emitted or logged.
 func start_live(config_dir: String = "") -> bool:
 	disconnect_live()
+	# Selecting live mode must never retain a previous demo session, even
+	# when local configuration is missing and the connection cannot begin.
+	mock_mode = false
+	current_snapshot = {}
+	_current_room_id = ""
+	_sequence = 0
 	var directory := config_dir
 	if directory.is_empty():
 		var local_data := OS.get_environment("LOCALAPPDATA")
