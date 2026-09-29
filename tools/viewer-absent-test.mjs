@@ -103,7 +103,7 @@ writeFileSync(
     'export const backend = { mode: "absent", value: undefined, error: "no backend", invoke: null }',
     'export function isTauri() { return backend.mode !== "absent" }',
     'export async function invokeTauri(cmd, args) {',
-    '  if (backend.invoke) return backend.invoke(cmd, args)',,
+    '  if (backend.invoke) return backend.invoke(cmd, args)',
     '  if (backend.mode === "absent") return undefined',
     '  if (backend.mode === "reject") throw new Error(backend.error)',
     '  return backend.value',
