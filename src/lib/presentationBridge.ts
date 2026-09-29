@@ -548,38 +548,42 @@ export async function publishWorldSnapshotIfChanged(
   },
   force = false
 ): Promise<void> {
-  // Awaited before compiling, and cached per zone by `worldContent.ts`, so this
-  // is one fetch the first time a zone is entered and a Map lookup every time
-  // after. A zone with no content file resolves to null and the snapshot goes
-  // out without any, which is what happened for every zone before this existed.
-  //
-  // Imported here rather than at the top of the file, and that is not style.
-  // `worldContent.ts` calls `import.meta.glob`, which is a Vite build-time
-  // transform and a plain TypeError under bare Node. A static import would run
-  // it on module load and take `tools/presentation-bridge-test.mjs` — 40-odd
-  // checks over `compileWorldSnapshot`, `shouldPublish` and
-  // `gameCommandForIntent`, none of which need a zone file — down with it. The
-  // pure half of this module stays runnable outside Vite; only the publication
-  // path, which already needs Tauri, reaches for the loader.
-  //
-  // Guarded on there being a zone at all, which is not merely an optimisation:
-  // with no zone there is nothing to load, and `tools/viewer-absent-test.mjs`
-  // calls this with `{zone: null}` under bare Node to check that publishing
-  // with nothing to publish is a no-op rather than a throw. An unconditional
-  // import made that case throw on the glob.
-  const zoneId = params.zone?.zone ?? null
-  const content = zoneId
-    ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
-    : null
-  const snapshot = compileWorldSnapshot({ ...params, content, sequence: sequence + 1 })
-  if (!snapshot) return
-  const nextProjectionKey = projectionKey(snapshot)
-  const nextZone = params.zone
-  // Store updates can outpace a native invocation. Serialize publications so
-  // sequences stay strictly increasing and an older snapshot cannot finish
-  // after a newer one. Recover the queue before the next item so one rejected
-  // native call remains retryable instead of poisoning every future publish.
+  // Reserve publication order before loading zone content. Otherwise a slow
+  // earlier zone load can finish after a later room update and restore stale
+  // state in the viewer despite serialized native invocations.
+  const nextParams = { ...params }
   publishQueue = publishQueue.catch(() => undefined).then(async () => {
+    // Awaited before compiling, and cached per zone by `worldContent.ts`, so this
+    // is one fetch the first time a zone is entered and a Map lookup every time
+    // after. A zone with no content file resolves to null and the snapshot goes
+    // out without any, which is what happened for every zone before this existed.
+    //
+    // Imported here rather than at the top of the file, and that is not style.
+    // `worldContent.ts` calls `import.meta.glob`, which is a Vite build-time
+    // transform and a plain TypeError under bare Node. A static import would run
+    // it on module load and take `tools/presentation-bridge-test.mjs` — 40-odd
+    // checks over `compileWorldSnapshot`, `shouldPublish` and
+    // `gameCommandForIntent`, none of which need a zone file — down with it. The
+    // pure half of this module stays runnable outside Vite; only the publication
+    // path, which already needs Tauri, reaches for the loader.
+    //
+    // Guarded on there being a zone at all, which is not merely an optimisation:
+    // with no zone there is nothing to load, and `tools/viewer-absent-test.mjs`
+    // calls this with `{zone: null}` under bare Node to check that publishing
+    // with nothing to publish is a no-op rather than a throw. An unconditional
+    // import made that case throw on the glob.
+    const zoneId = nextParams.zone?.zone ?? null
+    const content = zoneId
+      ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
+      : null
+    const snapshot = compileWorldSnapshot({ ...nextParams, content, sequence: sequence + 1 })
+    if (!snapshot) return
+    const nextProjectionKey = projectionKey(snapshot)
+    const nextZone = nextParams.zone
+    // Store updates can outpace a native invocation. Serialize publications so
+    // sequences stay strictly increasing and an older snapshot cannot finish
+    // after a newer one. Recover the queue before the next item so one rejected
+    // native call remains retryable instead of poisoning every future publish.
     const zoneChanged = nextZone !== lastPublishedZone
     if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) return
     const nextSequence = sequence + 1

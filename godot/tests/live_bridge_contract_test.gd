@@ -13,7 +13,7 @@ func _initialize() -> void:
 	var snapshots: Array = []
 	bridge.snapshot_updated.connect(func(snapshot): snapshots.append(snapshot))
 	var snapshot := {
-		"type": "snapshot", "protocol": 1, "sequence": 9,
+		"type": "snapshot", "protocol": 1, "sequence": 90, "eventSequence": 9,
 		"worldId": "crossing-live", "currentRoomId": "1-14",
 		"cells": [{
 			"id": "1-14", "title": "The Crossing, Town Green North",
@@ -50,6 +50,13 @@ func _initialize() -> void:
 	bridge._accept_live_message({"type": "event", "protocol": 1, "sequence": 10, "roomId": "1-14", "kind": "attack", "sourceEntityId": "person-1", "authoritativeText": "confirmed attack"})
 	_ok("events naming an unknown room or entity are rejected", event_rejections.size() == 2)
 	_ok("only the fully snapshot-grounded event reaches ordered playback", played_events.size() == 1 and played_events[0].get("authoritativeText", "") == "confirmed attack")
+	bridge._accept_live_message(snapshot.merged({"sequence": 91, "eventSequence": 10}, true))
+	bridge._accept_live_message({"type": "event", "protocol": 1, "sequence": 11, "roomId": "1-14", "kind": "status-change", "authoritativeText": "stunned: active"})
+	_ok("frequent snapshots do not skip the next event in its independent stream", played_events.size() == 2 and played_events[1].get("sequence") == 11)
+	bridge._accept_live_message(snapshot.merged({"sequence": 91, "eventSequence": 40}, true))
+	bridge._accept_live_message({"type": "event", "protocol": 1, "sequence": 39, "roomId": "1-14", "kind": "status-change", "authoritativeText": "stale"})
+	bridge._accept_live_message({"type": "event", "protocol": 1, "sequence": 41, "roomId": "1-14", "kind": "status-change", "authoritativeText": "stunned: cleared"})
+	_ok("reconnect uses the current event watermark even with an unchanged snapshot version", played_events.size() == 3 and played_events[2].get("authoritativeText") == "stunned: cleared")
 	bridge.disconnect_live()
 	print("%d checked, %d failed" % [_checked, _failed])
 	quit(1 if _failed > 0 else 0)

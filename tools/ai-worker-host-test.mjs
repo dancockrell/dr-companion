@@ -611,7 +611,8 @@ console.log('\n-- the host is the caller publish_presentation_event never had --
   ok('the host imports the publisher', src.includes('publishPresentationEvent'), '')
   ok('and calls it on a status change', /situationChanges\(/.test(src))
   ok("with kind 'status-change'", src.includes("kind: 'status-change'"))
-  ok('carrying the flag as the authoritative text', src.includes('authoritativeText: change.flag'))
+  ok('carrying both active and cleared parsed status', src.includes("change.on ? 'active' : 'cleared'"))
+  ok('status events use the snapshot cell identity', src.includes('roomId: `${mapZone.zone}-${roomId}`'))
   const client = readFileSync('src/lib/viewerClient.ts', 'utf8')
   ok('and the publisher really invokes the Rust command',
     client.includes("invokeTauri('publish_presentation_event'"), '')
