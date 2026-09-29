@@ -138,6 +138,12 @@ func _material(color: Color) -> StandardMaterial3D:
 	material.roughness = 0.82
 	return material
 
+func _ground_kind(cell: Dictionary) -> String:
+	return str(cell.get("content", {}).get("groundKind", cell.get("groundKind", "unknown")))
+
+func _spatial_mode(cell: Dictionary) -> String:
+	return str(cell.get("content", {}).get("spatialMode", cell.get("spatialMode", "")))
+
 func _box(parent: Node3D, at: Vector3, size: Vector3, color: Color) -> void:
 	var mesh := MeshInstance3D.new()
 	var box := BoxMesh.new()
@@ -179,7 +185,7 @@ func _rebuild_board() -> void:
 	board_signature = next_signature
 	for child in geometry.get_children():
 		child.free()
-	var palette := {"street": Color("737e88"), "grass": Color("557450"), "water": Color("387e9c"), "cave": Color("625b71"), "forest": Color("385e48")}
+	var palette := {"street": Color("737e88"), "path": Color("91765a"), "grass": Color("557450"), "water": Color("387e9c"), "cave": Color("625b71"), "forest": Color("385e48"), "interior": Color("82716a"), "snow": Color("cbd8df"), "sand": Color("c5ab78"), "swamp": Color("506350"), "rock": Color("7b8088"), "farmland": Color("8c7954")}
 	for id in ids:
 		var cell := WorldManifestLoader.get_cell(id)
 		var at := _point(cell)
@@ -187,7 +193,7 @@ func _rebuild_board() -> void:
 		var footprint: Dictionary = board.get("footprint", {})
 		var width := float(footprint.get("width", 4.4))
 		var depth := float(footprint.get("depth", 4.4))
-		var color: Color = palette.get(cell.get("groundKind", ""), Color("7e735e"))
+		var color: Color = palette.get(_ground_kind(cell), Color("7e735e"))
 		_box(geometry, at + Vector3(0, -0.3, 0), Vector3(width, 0.6, depth), color)
 		if id == current_room:
 			# Small seams give the active board scale without implying invented props.
@@ -198,7 +204,7 @@ func _rebuild_board() -> void:
 			_box(geometry, at + Vector3(0, -0.64, 0), Vector3(width + 0.3, 0.12, depth + 0.3), Color("e7bd69"))
 		if view_mode != "room":
 			_label(geometry, at + Vector3(0, 1.7, 0), str(cell.get("title", id)))
-		if cell.get("spatialMode", "") == "interior-cutaway":
+		if _spatial_mode(cell) == "interior-cutaway":
 			_box(geometry, at + Vector3(0, 0.6, -depth / 2), Vector3(width, 1.2, 0.18), color.darkened(0.25))
 		for exit in cell.get("exits", []):
 			var target = exit.get("targetCellId")

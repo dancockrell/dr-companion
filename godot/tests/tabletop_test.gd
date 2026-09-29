@@ -17,6 +17,24 @@ func _run() -> void:
 	_ok("room camera centers on confirmed room", scene.focus == scene._point(root.get_node("WorldManifestLoader").get_cell("1-14")))
 	_ok("demo is clearly labeled", scene.status_label.text.contains("DEMO"))
 	_ok("confirmed exits are reachable buttons", scene.exits.get_child_count() > 0)
+	var original_snapshot: Dictionary = bridge.current_snapshot.duplicate(true)
+	var original_color: Color = scene.geometry.get_child(0).material_override.albedo_color
+	var live_content: Dictionary = original_snapshot.duplicate(true)
+	for cell in live_content.cells:
+		if cell.id == scene.current_room:
+			cell.groundKind = "grass"
+			cell.content = {"groundKind": "snow", "spatialMode": "interior-cutaway"}
+	root.get_node("WorldManifestLoader").load_from_snapshot(live_content)
+	scene.render_snapshot(live_content)
+	_ok("live classified terrain changes the rendered material", scene.geometry.get_child(0).material_override.albedo_color == Color("cbd8df"))
+	var has_wall := false
+	for mesh in scene.geometry.get_children():
+		if mesh is MeshInstance3D and mesh.mesh is BoxMesh and is_equal_approx(mesh.mesh.size.y, 1.2):
+			has_wall = true
+	_ok("live interior classification builds cutaway wall geometry", has_wall)
+	root.get_node("WorldManifestLoader").load_from_snapshot(original_snapshot)
+	scene.render_snapshot(original_snapshot)
+	_ok("legacy mock content still renders after a live content update", scene.geometry.get_child(0).material_override.albedo_color == original_color)
 	scene.set_view("route")
 	_ok("route mode changes framing only", scene.camera.size > 12.0 and scene.current_room == "1-14")
 	scene.set_view("world")

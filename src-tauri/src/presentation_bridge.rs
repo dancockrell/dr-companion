@@ -91,6 +91,9 @@ pub struct Exit {
     pub direction: String,
     pub target_room_id: Value,
     pub target_cell_id: Option<String>,
+    /// Carry renderer enrichment such as tetherKind and boardAnchor intact.
+    #[serde(flatten)]
+    pub presentation: serde_json::Map<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +103,10 @@ pub struct WorldCell {
     pub title: String,
     pub position: Vec3,
     pub exits: Vec<Exit>,
+    /// Board dimensions and classified content belong to the frontend. The
+    /// native topology validator must preserve them without re-deriving them.
+    #[serde(flatten)]
+    pub presentation: serde_json::Map<String, Value>,
 }
 
 /// Deliberately loose (`serde_json::Value`) rather than a fully-typed struct
@@ -744,8 +751,10 @@ mod tests {
                     direction: mv.to_string(),
                     target_room_id: Value::String(target.to_string()),
                     target_cell_id: Some(target.to_string()),
+                    presentation: serde_json::Map::new(),
                 })
                 .collect(),
+            presentation: serde_json::Map::new(),
         }
     }
 
@@ -967,6 +976,24 @@ mod tests {
         );
         assert!(v.get("groundItems").is_some(), "missing groundItems: {v}");
         assert!(v.get("world_id").is_none(), "leaked snake_case field: {v}");
+    }
+
+    #[test]
+    fn live_board_content_and_exit_enrichment_survive_native_transport() {
+        let incoming = json!({
+            "id": "1-14", "title": "A stone chamber",
+            "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+            "board": {"footprint": {"width": 4.4, "depth": 4.4}, "spawnPoints": [{"role": "player", "rigSocket": "humanoid-root"}]},
+            "content": {"groundKind": "interior", "spatialMode": "interior-cutaway", "primitives": [{"kind": "tree", "offset": {"x": 1, "z": 1}}]},
+            "exits": [{"move": "north", "direction": "north", "targetRoomId": 13, "targetCellId": "1-13", "tetherKind": "road", "boardAnchor": {"x": 0, "z": -2.5}}]
+        });
+        let parsed: WorldCell = serde_json::from_value(incoming.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&parsed).unwrap(), incoming);
+        let snap = snapshot("1-14", vec![parsed]);
+        let frame = snapshot_frame(&snap, 3).unwrap();
+        assert_eq!(frame["cells"][0], incoming);
+        assert!(validate_walk(&snap, "1-14", "north").is_ok());
+        assert!(validate_walk(&snap, "1-14", "invented").is_err());
     }
 
     /// The publish path deserializes a snapshot into this struct and then
