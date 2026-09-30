@@ -1,7 +1,7 @@
 extends RefCounted
 ## Original, deterministic surface art. These small repeating textures decorate
 ## confirmed board cells; they contain no props, routes, elevation, or game state.
-const TEXTURE_SIZE := 96
+const TEXTURE_SIZE := 256
 var textures: Dictionary = {}
 var materials: Dictionary = {}
 
@@ -14,6 +14,7 @@ func terrain(kind: String, color: Color) -> StandardMaterial3D:
 	material.albedo_texture = surface_texture(kind)
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	material.roughness = 0.93
+	material.metallic_specular = 0.16
 	if kind == "water":
 		material.roughness = 0.3
 		material.metallic = 0.12
@@ -61,7 +62,11 @@ func surface_texture(kind: String) -> ImageTexture:
 					value += noise.get_noise_2d(x * 5.0, y * 1.5) * 0.08
 				"snow", "sand":
 					value = 0.96 + fine * 0.04 + broad * 0.025
-			image.set_pixel(x, y, Color(value, value, value, 1.0))
+			var tint := Color(value, value, value, 1.0)
+			if kind in ["grass", "forest", "swamp", "farmland"]:
+				var dry := clampf((broad + 0.15) * 1.5, 0.0, 1.0)
+				tint = Color(value, value * (1.0 - dry * 0.08), value * (0.94 - dry * 0.1), 1.0)
+			image.set_pixel(x, y, tint)
 	image.generate_mipmaps()
 	var texture := ImageTexture.create_from_image(image)
 	textures[kind] = texture

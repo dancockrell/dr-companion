@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
-import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, relative, resolve, sep } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
+import { readViewerPackage, VIEWER_DATA_FILES } from './godot-viewer-package.mjs'
+import { checkViewerPackageReader } from './godot-viewer-package-test.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const projectDir = resolve(root, 'godot')
@@ -52,24 +54,11 @@ if (namedCommands === 0) {
   process.exit(1)
 }
 
-// The export used to admit a reviewed list of shared-asset paths, read from
-// `godot/assets/shared_asset_selections.json` and required to match
-// `include_filter` exactly. 3D is cancelled (docs/NO-3D.md): PR #517 deleted
-// that manifest and Lane V's V3 removed the `godot/shared-assets` submodule
-// the paths pointed into, so there is nothing left outside the project for the
-// export to pull in.
-//
-// This file kept reading the deleted manifest and therefore *crashed* with
-// ENOENT — `npm run test:godot-export` had been dead since #517 and nothing
-// said so, because the script needed an environment the build box does not
-// have and so nothing ran it. It runs everywhere now (it is in
-// tools/test-suites.json) and the property it asserts is the one that is left:
-//
-//   the Windows preset admits nothing from outside godot/.
-//
-// A non-empty `include_filter` is not automatically wrong for ever — but it
-// would mean the project ships an asset from somewhere, and after NO-3D that
-// is a decision somebody has to make on purpose rather than inherit.
+// include_filter names extra project-local files, not outside-project assets.
+// Godot 4.3 already exports these JSON resources with all_resources, so an
+// empty filter is valid. Explicitly listing the same data is valid too. Keep
+// this guard narrow: unknown assets need review, while the built PCK below
+// must actually contain the standalone data regardless of filter spelling.
 const preset = readFileSync(resolve(projectDir, 'export_presets.cfg'), 'utf8')
 const FILTER = /^include_filter="([^"]*)"\r?$/m
 const filterLine = preset.match(FILTER)
@@ -81,12 +70,9 @@ if (!filterLine) {
   process.exit(1)
 }
 const included = filterLine[1].split(',').filter(Boolean)
-if (included.length > 0) {
-  console.error(
-    `Windows export include_filter admits ${included.length} path(s) from outside the project: ` +
-      `${included.join(', ')}. 3D is cancelled (docs/NO-3D.md) and godot/shared-assets is gone; ` +
-      'nothing should be pulled in from outside godot/.',
-  )
+const unreviewed = included.filter((path) => !VIEWER_DATA_FILES.includes(path))
+if (unreviewed.length > 0) {
+  console.error(`Windows export include_filter contains unreviewed project assets: ${unreviewed.join(', ')}`)
   process.exit(1)
 }
 // The positive control on the parser, run every time. Without it "the filter
@@ -109,9 +95,10 @@ if (args.includes('--check')) {
   // the work visible to the runner and to a reader.
   console.log(`OK   the include_filter line is present and parseable`)
   console.log(`OK   control: the parser reads ${seen.length} of 2 paths out of a two-path filter`)
-  console.log(`OK   the Windows export admits nothing from outside godot/  (include_filter is empty)`)
+  console.log(`OK   the Windows include_filter contains only reviewed project-local assets`)
   console.log(`OK   ${namedCommands} npm command(s) named in app-facing messages all exist`)
-  console.log(`\n4 checked, 0 failed`)
+  const packageChecks = checkViewerPackageReader()
+  console.log(`\n${4 + packageChecks} checked, 0 failed`)
   console.log('all passed')
   process.exit(0)
 }
@@ -121,9 +108,12 @@ const output = resolve(option('--output') || resolve(projectDir, 'build', 'DRCom
 mkdirSync(dirname(output), { recursive: true })
 
 const stage = mkdtempSync(resolve(tmpdir(), 'drc-godot-export-'))
-let result
+const stagedProject = resolve(stage, 'project')
+const stagedOutput = resolve(stage, 'DRCompanionWorldViewer.exe')
+let packaged
+let exportError
 try {
-  cpSync(projectDir, stage, {
+  cpSync(projectDir, stagedProject, {
     recursive: true,
     filter(source) {
       const local = relative(projectDir, source)
@@ -132,33 +122,37 @@ try {
       return top !== '.godot' && top !== 'build'
     },
   })
-  result = spawnSync(requestedGodot, [
+  const result = spawnSync(requestedGodot, [
     '--headless',
-    '--path', stage,
+    '--path', stagedProject,
     '--export-release', 'Windows Desktop',
-    output,
+    stagedOutput,
   ], { cwd: root, encoding: 'utf8', stdio: 'pipe', maxBuffer: 16 * 1024 * 1024 })
+  if (result.stdout) process.stdout.write(result.stdout)
+  if (result.stderr) process.stderr.write(result.stderr)
+  if (result.error) throw new Error(`Unable to start Godot at ${requestedGodot}: ${result.error.message}`)
+  if (result.status !== 0 || !existsSync(stagedOutput)) {
+    throw new Error(`Godot returned status ${result.status ?? 'unknown'} without a successful fresh export.`)
+  }
+  if (/^(?:SCRIPT )?ERROR:/m.test(`${result.stdout}\n${result.stderr}`)) {
+    throw new Error('Godot reported errors during export.')
+  }
+  packaged = readViewerPackage(readFileSync(stagedOutput))
+  for (const local of VIEWER_DATA_FILES) {
+    if (!packaged.files.get(`res://${local}`).equals(readFileSync(resolve(stagedProject, local)))) {
+      throw new Error(`Exported ${local} does not match the checked-in standalone data.`)
+    }
+  }
+  // Only a verified fresh export replaces the destination. A zero-exit engine
+  // failure cannot accidentally validate last week's executable or receipt.
+  copyFileSync(stagedOutput, output)
+} catch (error) {
+  exportError = error
 } finally {
   rmSync(stage, { recursive: true, force: true })
 }
-
-if (result.stdout) process.stdout.write(result.stdout)
-if (result.stderr) process.stderr.write(result.stderr)
-if (result.error) {
-  console.error(`Unable to start Godot at ${requestedGodot}: ${result.error.message}`)
-  process.exit(1)
-}
-if (result.status !== 0 || !existsSync(output)) {
-  console.error(`Godot viewer export failed with status ${result.status ?? 'unknown'}.`)
-  process.exit(result.status || 1)
-}
-
-const descriptor = openSync(output, 'r')
-const header = Buffer.alloc(2)
-readSync(descriptor, header, 0, header.length, 0)
-closeSync(descriptor)
-if (header.toString('ascii') !== 'MZ') {
-  console.error('Godot reported success but the viewer output is not a Windows executable.')
+if (exportError) {
+  console.error(`Godot viewer export failed: ${exportError.message}`)
   process.exit(1)
 }
 
@@ -181,6 +175,9 @@ const receipt = {
   output,
   bytes,
   sha256: hash.digest('hex'),
+  engine: packaged.engine,
+  packagedFiles: packaged.files.size,
+  verifiedDataFiles: VIEWER_DATA_FILES,
 }
 writeFileSync(resolve(dirname(output), 'viewer-build.json'), `${JSON.stringify(receipt, null, 2)}\n`)
-console.log(`Verified Windows viewer export: ${bytes} bytes, sha256 ${receipt.sha256}`)
+console.log(`Verified Windows viewer export: ${bytes} bytes, ${packaged.files.size} packaged resources, sha256 ${receipt.sha256}`)

@@ -5,21 +5,26 @@ const LIVE_FLAG := "--live-presentation"
 const VisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 const CombatPresentation := preload("res://scripts/combat_presentation.gd")
 const TabletopMaterials := preload("res://scripts/tabletop_materials.gd")
+const RoomDiorama := preload("res://scripts/room_diorama.gd")
 const GOLD := Color("edc578")
 const INK := Color("101923")
 const MUTED := Color("a8bdca")
-const TERRAIN := {"street": Color("737e88"), "path": Color("91765a"), "grass": Color("557450"), "water": Color("387e9c"), "cave": Color("625b71"), "forest": Color("385e48"), "interior": Color("82716a"), "snow": Color("cbd8df"), "sand": Color("c5ab78"), "swamp": Color("506350"), "rock": Color("7b8088"), "farmland": Color("8c7954")}
+const TERRAIN := {"street": Color("737e88"), "path": Color("91765a"), "grass": Color("2d3927"), "water": Color("387e9c"), "cave": Color("625b71"), "forest": Color("283d2b"), "interior": Color("82716a"), "snow": Color("cbd8df"), "sand": Color("c5ab78"), "swamp": Color("506350"), "rock": Color("7b8088"), "farmland": Color("8c7954")}
 var surface_art := TabletopMaterials.new()
+var diorama_art := RoomDiorama.new()
+var token_stands: Array[Node3D] = []
 var geometry := Node3D.new()
 var effects := Node3D.new()
 var camera := Camera3D.new()
 var focus := Vector3.ZERO
-var camera_size := 12.0
+var camera_size := 8.7
 var yaw := PI / 4.0
 var current_room := ""
 var view_mode := "room"
 var title_label := Label.new()
 var status_label := Label.new()
+var source_badge := Label.new()
+var source_signature := ""
 var mode_hint := Label.new()
 var details := VBoxContainer.new()
 var exits := HBoxContainer.new()
@@ -76,20 +81,20 @@ func _ready() -> void:
 	settings.background_color = INK
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	settings.ambient_light_color = Color("a9c4de")
-	settings.ambient_light_energy = 0.55
+	settings.ambient_light_energy = 0.32
 	settings.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.environment = settings
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55, -30, 0)
 	sun.light_color = Color("fff0d9")
-	sun.light_energy = 1.5
+	sun.light_energy = 0.85
 	sun.shadow_enabled = true
 	add_child(sun)
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-25, 145, 0)
 	fill.light_color = Color("86b6d9")
-	fill.light_energy = 0.45
+	fill.light_energy = 0.18
 	add_child(fill)
 	_build_hud()
 	BridgeClient.snapshot_updated.connect(render_snapshot)
@@ -110,7 +115,7 @@ func _ready() -> void:
 
 func _connection_changed(state: String) -> void:
 	connection_state = state
-	status_label.text = "Live bridge: %s" % state
+	_update_source_status()
 	_update_action_availability()
 
 func _reconnected(next: Dictionary) -> void:
@@ -118,7 +123,32 @@ func _reconnected(next: Dictionary) -> void:
 	render_snapshot(next)
 
 func _actions_available() -> bool:
-	return connection_state == "authenticated" or (connection_state == "demo" and BridgeClient.mock_mode)
+	if BridgeClient.mock_mode:
+		return connection_state in ["demo", "authenticated"]
+	return connection_state == "authenticated" and BridgeClient.can_send_live_intents()
+
+func _update_source_status() -> void:
+	var source = snapshot.get("source")
+	var signature := JSON.stringify([source, connection_state, BridgeClient.mock_mode])
+	if signature == source_signature:
+		return
+	source_signature = signature
+	if BridgeClient.mock_mode:
+		source_badge.text = "DR COMPANION  /  DEMO SAMPLE WORLD"
+		status_label.text = "DEMO • illustrative sample state • no game connected"
+	elif source is Dictionary and source.get("kind") == "demo":
+		source_badge.text = "DR COMPANION  /  DEMO FROM APP"
+		status_label.text = "Demo from app • no live game • travel unavailable • bridge %s" % connection_state
+	elif source is Dictionary and source.get("kind") == "live" and source.get("connected") == true:
+		source_badge.text = "DR COMPANION  /  LIVE SOURCE"
+		status_label.text = "Live source connected • bridge %s" % connection_state
+	elif source is Dictionary and source.get("kind") == "live":
+		source_badge.text = "DR COMPANION  /  SOURCE DISCONNECTED"
+		var location_hint := "waiting for your game" if str(snapshot.get("currentRoomId", "")).is_empty() else "last known room"
+		status_label.text = "Disconnected • %s • bridge %s" % [location_hint, connection_state]
+	else:
+		source_badge.text = "DR COMPANION  /  SOURCE UNKNOWN"
+		status_label.text = "Source unverified • travel unavailable • bridge %s" % connection_state
 
 func _update_action_availability() -> void:
 	for child in exits.get_children():
@@ -194,7 +224,9 @@ func _build_hud() -> void:
 	var titles := VBoxContainer.new()
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(titles)
-	titles.add_child(_small_label("DR COMPANION  /  LIVE WORLD" if wants_live() else "DR COMPANION  /  DEMO SAMPLE WORLD"))
+	source_badge.add_theme_font_size_override("font_size", 12)
+	source_badge.add_theme_color_override("font_color", MUTED)
+	titles.add_child(source_badge)
 	title_label.text = "Waiting for confirmed room"
 	title_label.add_theme_font_size_override("font_size", 22)
 	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -309,11 +341,14 @@ func _build_hud() -> void:
 func render_snapshot(next: Dictionary) -> void:
 	roundtime_started_ms = CombatPresentation.roundtime_clock_start(snapshot.get("player"), next.get("player"), roundtime_started_ms, Time.get_ticks_msec(), Time.get_unix_time_from_system() * 1000.0)
 	snapshot = next.duplicate(true)
+	_update_source_status()
 	var moved := current_room != str(next.get("currentRoomId", ""))
 	current_room = str(next.get("currentRoomId", ""))
 	var cell := WorldManifestLoader.get_cell(current_room)
 	var active: Dictionary = next.get("activeRoom", {})
-	title_label.text = str(active.get("title", cell.get("title", "Location unresolved")))
+	title_label.text = str(active.get("title", cell.get("title", "Waiting for your game")))
+	if current_room.is_empty():
+		title_label.text = "Waiting for your game"
 	room_description.text = _description(active)
 	if room_description.text.is_empty():
 		room_description.text = _description(cell)
@@ -355,7 +390,7 @@ func _material(color: Color, glowing: bool = false) -> StandardMaterial3D:
 	if glowing:
 		material.emission_enabled = true
 		material.emission = color
-		material.emission_energy_multiplier = 0.45
+		material.emission_energy_multiplier = 0.08
 	return material
 
 func _ground_kind(cell: Dictionary) -> String:
@@ -447,7 +482,7 @@ func _rebuild_board() -> void:
 	var visible_cells: Array = []
 	for id in ids:
 		visible_cells.append(WorldManifestLoader.get_cell(id))
-	var next_signature := JSON.stringify({"mode": view_mode, "room": current_room, "cells": visible_cells, "entities": snapshot.get("entities", []), "items": snapshot.get("groundItems", [])})
+	var next_signature := JSON.stringify({"mode": view_mode, "demo": BridgeClient.mock_mode, "room": current_room, "cells": visible_cells, "entities": snapshot.get("entities", []), "items": snapshot.get("groundItems", [])})
 	if next_signature == board_signature:
 		return
 	board_signature = next_signature
@@ -460,20 +495,24 @@ func _rebuild_board() -> void:
 		var width := float(footprint.get("width", 4.4))
 		var depth := float(footprint.get("depth", 4.4))
 		var color: Color = TERRAIN.get(_ground_kind(cell), Color("7e735e"))
-		# Layered plinths and restrained surface seams read as a tabletop,
-		# without inventing buildings, terrain features, or tactical positions.
-		var ground := _box(geometry, at + Vector3(0, -0.3, 0), Vector3(width, 0.6, depth), color)
+		# A continuous earth/stone surface on a dark presentation plinth.
+		# No checkerboard or painted paths imply unsupported movement cells.
+		var ground := MeshInstance3D.new()
+		ground.mesh = diorama_art.surface(width, depth, _ground_kind(cell), id == current_room and view_mode == "room")
+		ground.position = at
 		ground.material_override = surface_art.terrain(_ground_kind(cell), color)
-		_box(geometry, at + Vector3(0, -0.64, 0), Vector3(width + 0.18, 0.12, depth + 0.18), GOLD.darkened(0.18) if id == current_room else Color("243a46"))
-		_pick_body(at + Vector3(0, -0.25, 0), Vector3(width, 0.65, depth), "room", id)
+		geometry.add_child(ground)
+		var earth := Color("3a3028") if _ground_kind(cell) in ["grass", "forest", "swamp", "farmland", "path"] else color.darkened(0.5)
+		_box(geometry, at + Vector3(0, -0.15, 0), Vector3(width, 0.3, depth), earth)
+		_box(geometry, at + Vector3(0, -0.36, 0), Vector3(width + 0.15, 0.14, depth + 0.15), Color("232a2c"))
+		_box(geometry, at + Vector3(0, -0.47, 0), Vector3(width + 0.28, 0.08, depth + 0.28), Color("141e24"))
 		if id == current_room:
-			for x in range(4):
-				for z in range(4):
-					var tile_at := at + Vector3((float(x) - 1.5) * width / 4.0, 0.018, (float(z) - 1.5) * depth / 4.0)
-					var tile_color := color.lightened(0.055 if (x + z) % 2 == 0 else 0.015)
-					var tile := _box(geometry, tile_at, Vector3(width / 4.0 - 0.025, 0.036, depth / 4.0 - 0.025), tile_color)
-					tile.material_override = surface_art.terrain(_ground_kind(cell), tile_color)
-			_ring(geometry, at + Vector3(0, 0.06, 0), 0.55, GOLD)
+			# Thin antique-metal trim belongs to the display base, not the room.
+			_box(geometry, at + Vector3(0, -0.41, depth / 2 + 0.085), Vector3(width + 0.15, 0.018, 0.02), Color("817253"))
+			_box(geometry, at + Vector3(width / 2 + 0.085, -0.41, 0), Vector3(0.02, 0.018, depth + 0.15), Color("817253"))
+			if view_mode == "room":
+				diorama_art.ground_details(geometry, at, width, depth, _ground_kind(cell), int(str(id).hash()))
+		_pick_body(at + Vector3(0, -0.15, 0), Vector3(width, 0.4, depth), "room", id)
 		if view_mode != "room":
 			_overview_marker(at, str(id), GOLD if id == current_room else Color("8ab8cc"))
 			var graph_label := Label.new()
@@ -516,9 +555,17 @@ func _rebuild_board() -> void:
 		if str(item.get("roomId", "")) != current_room or str(item.get("id", "")).is_empty():
 			continue
 		var at := origin + Vector3(-1.5 + float(item_index % 6) * 0.5, 0.16, 1.5 + float(item_index / 6) * 0.3)
-		var item_mesh := _box(geometry, at, Vector3(0.28, 0.24, 0.28), Color("bca287"))
-		item_mesh.rotation_degrees.y = 45
-		_ring(geometry, at - Vector3(0, 0.08, 0), 0.22, Color("bca287"))
+		var item_mesh := MeshInstance3D.new()
+		var marker := CylinderMesh.new()
+		marker.top_radius = 0.18
+		marker.bottom_radius = 0.2
+		marker.height = 0.045
+		marker.radial_segments = 8
+		item_mesh.mesh = marker
+		item_mesh.position = at - Vector3(0, 0.1, 0)
+		item_mesh.material_override = _material(Color("82745d"))
+		geometry.add_child(item_mesh)
+		_ring(geometry, at - Vector3(0, 0.07, 0), 0.15, Color("af9870"))
 		_pick_body(at, Vector3(0.4, 0.4, 0.4), "item", str(item.id))
 		token_positions["item:" + str(item.id)] = at
 		item_index += 1
@@ -541,6 +588,7 @@ func _clear_geometry() -> void:
 	selection_ring = null
 	token_positions.clear()
 	token_labels.clear()
+	token_stands.clear()
 	pick_bodies.clear()
 	for child in geometry.get_children():
 		child.free()
@@ -565,45 +613,34 @@ func _token(origin: Vector3, text: String, color: Color, index: int, kind: Strin
 	if index > 0:
 		var angle := float(index) * 2.4
 		at += Vector3(cos(angle), 0, sin(angle)) * (1.0 + float(index / 6) * 0.55)
-	var base := MeshInstance3D.new()
-	var pedestal := CylinderMesh.new()
-	pedestal.top_radius = 0.31
-	pedestal.bottom_radius = 0.35
-	pedestal.height = 0.14
-	pedestal.radial_segments = 32
-	base.mesh = pedestal
-	base.position = at + Vector3(0, 0.11, 0)
-	base.material_override = surface_art.pawn(color.darkened(0.35))
-	geometry.add_child(base)
-	# Abstract lacquered pawns stay readable without claiming a person's body,
-	# equipment, precise position, or a creature species we have not received.
-	var body := MeshInstance3D.new()
-	var taper := CylinderMesh.new()
-	taper.top_radius = 0.11
-	taper.bottom_radius = 0.23
-	taper.height = 0.42
-	taper.radial_segments = 24
-	body.mesh = taper
-	body.position = at + Vector3(0, 0.39, 0)
-	body.material_override = surface_art.pawn(color)
-	geometry.add_child(body)
-	var head := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.18
-	sphere.height = 0.36
-	sphere.radial_segments = 24
-	sphere.rings = 12
-	head.mesh = sphere
-	head.position = at + Vector3(0, 0.74, 0)
-	head.material_override = surface_art.pawn(color.lightened(0.08))
-	geometry.add_child(head)
-	_ring(geometry, at + Vector3(0, 0.19, 0), 0.29, color)
+	# Upright illustration/sigil stands are deliberately representative tokens.
+	# Only the opt-in demo may display the sample portrait assets.
+	var muted := color.lerp(Color("737b79"), 0.52)
+	_box(geometry, at + Vector3(0, 0.08, 0), Vector3(0.7, 0.13, 0.36), Color("242e33"))
+	var stand := Node3D.new()
+	stand.position = at + Vector3(0, 0.77, 0)
+	stand.rotation.y = atan2(camera.position.x - at.x, camera.position.z - at.z)
+	geometry.add_child(stand)
+	token_stands.append(stand)
+	_box(stand, Vector3.ZERO, Vector3(0.77, 1.22, 0.075), Color("74684e") if kind == "player" else Color("384247"))
+	var card := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.7, 1.14)
+	card.mesh = quad
+	card.position.z = 0.045
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = diorama_art.marker_texture(id, BridgeClient.mock_mode, kind == "player")
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.roughness = 1.0
+	card.material_override = material
+	stand.add_child(card)
+	_box(stand, Vector3(0, -0.57, 0.055), Vector3(0.7, 0.042, 0.015), muted)
 	if kind == "entity":
-		_ring(geometry, at + Vector3(0, 0.08, 0), 0.39, CombatPresentation.assessment_color(CombatPresentation.assessment_state(entity)))
+		_box(stand, Vector3(0.3, -0.51, 0.065), Vector3(0.055, 0.055, 0.018), CombatPresentation.assessment_color(CombatPresentation.assessment_state(entity)))
 	token_positions["%s:%s" % [kind, id]] = at
-	_pick_body(at + Vector3(0, 0.55, 0), Vector3(0.55, 1.1, 0.55), kind, id)
+	_pick_body(at + Vector3(0, 0.77, 0), Vector3(0.8, 1.3, 0.8), kind, id)
 	if view_mode == "room":
-		var name_label := _label(geometry, at + Vector3(0, 1.3, 0), text, color.lightened(0.2))
+		var name_label := _label(geometry, at + Vector3(0, 1.57, 0), text, color.lightened(0.2))
 		name_label.visible = kind == "player"
 		token_labels["%s:%s" % [kind, id]] = name_label
 
@@ -712,7 +749,7 @@ func clear_selection() -> void:
 	_update_selection()
 
 func can_request_selected_travel() -> bool:
-	return connection_state == "authenticated" and not BridgeClient.mock_mode and selected_kind == "room" and selected_id != current_room and WorldManifestLoader.has_cell(current_room) and WorldManifestLoader.has_cell(selected_id) and rendered_ids.has(selected_id)
+	return _actions_available() and not BridgeClient.mock_mode and selected_kind == "room" and selected_id != current_room and WorldManifestLoader.has_cell(current_room) and WorldManifestLoader.has_cell(selected_id) and rendered_ids.has(selected_id)
 
 func request_selected_travel() -> bool:
 	if not can_request_selected_travel():
@@ -790,7 +827,7 @@ func set_view(mode: String) -> void:
 		return
 	view_mode = mode
 	focus = _point(WorldManifestLoader.get_cell(current_room))
-	camera_size = 12.0 if mode == "room" else 42.0 if mode == "route" else 140.0
+	camera_size = 8.7 if mode == "room" else 42.0 if mode == "route" else 140.0
 	_rebuild_board()
 	if mode != "room" and not rendered_ids.is_empty():
 		var low := _point(WorldManifestLoader.get_cell(rendered_ids[0]))
@@ -824,6 +861,8 @@ func _update_camera() -> void:
 	camera.look_at(focus)
 	# Leave visual breathing room for the inspector without changing board truth.
 	camera.h_offset = camera_size * 0.19
+	for stand in token_stands:
+		stand.rotation.y = atan2(camera.position.x - stand.position.x, camera.position.z - stand.position.z)
 	_update_overview()
 
 func zoom_by(factor: float) -> void:

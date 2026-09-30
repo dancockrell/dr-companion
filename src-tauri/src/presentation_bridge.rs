@@ -126,11 +126,19 @@ pub struct EntitySnapshot(pub Value);
 pub struct GroundItemSnapshot(pub Value);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresentationSource {
+    pub kind: String,
+    pub connected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorldSnapshot {
     pub protocol: u32,
     pub sequence: u64,
     pub world_id: String,
+    #[serde(default)]
+    pub source: Option<PresentationSource>,
     pub current_room_id: String,
     pub cells: Vec<WorldCell>,
     pub active_room: RoomSnapshot,
@@ -295,11 +303,21 @@ fn broadcast_value(clients: &ClientList, v: &Value) {
 /// whole module exists to run. Every other intent kind is read-only and
 /// cannot mutate game state, so it is forwarded once the room/entity/item id
 /// it names is confirmed to exist in the snapshot, with no further gate.
+fn source_allows_actions(snapshot: &WorldSnapshot) -> bool {
+    snapshot
+        .source
+        .as_ref()
+        .is_some_and(|source| source.kind == "live" && source.connected)
+}
+
 fn validate_walk<'a>(
     snapshot: &'a WorldSnapshot,
     from_room_id: &str,
     exit_move: &str,
 ) -> Result<&'a Exit, &'static str> {
+    if !source_allows_actions(snapshot) {
+        return Err("live game source is not connected");
+    }
     if from_room_id != snapshot.current_room_id {
         return Err("intent's fromRoomId does not match the current room");
     }
@@ -378,10 +396,18 @@ fn handle_intent(v: &Value, state: &PresentationBridgeState, app: &AppHandle, ou
             // has no exit of the current room to be one of - and the walking
             // itself is refused or performed downstream by Lich.
             let guard = state.latest_snapshot.lock().unwrap();
+            let source_ready = guard.as_ref().is_some_and(source_allows_actions);
             let known = guard
                 .as_ref()
                 .is_some_and(|s| s.cells.iter().any(|c| c.id == room_id));
             drop(guard);
+            if !source_ready {
+                let _ = send_json(
+                    out,
+                    &json!({"type": "intent_rejected", "reason": "live game source is not connected"}),
+                );
+                return;
+            }
             if !known {
                 let _ = send_json(
                     out,
@@ -763,6 +789,10 @@ mod tests {
             protocol: PROTOCOL,
             sequence: 1,
             world_id: "test-world".into(),
+            source: Some(PresentationSource {
+                kind: "live".into(),
+                connected: true,
+            }),
             current_room_id: current_room_id.into(),
             cells,
             active_room: RoomSnapshot(json!({})),
@@ -770,6 +800,29 @@ mod tests {
             ground_items: vec![],
             player: None,
         }
+    }
+
+    #[test]
+    fn source_state_survives_transport_and_gates_game_actions() {
+        let mut snap = snapshot("1-14", vec![cell("1-14", vec![("north", "1-13")])]);
+        assert!(source_allows_actions(&snap));
+        assert!(validate_walk(&snap, "1-14", "north").is_ok());
+        let value = serde_json::to_value(&snap).unwrap();
+        assert_eq!(value["source"]["kind"], "live");
+        assert_eq!(value["source"]["connected"], true);
+        for (kind, connected) in [("demo", true), ("live", false), ("unknown", true)] {
+            snap.source = Some(PresentationSource {
+                kind: kind.into(),
+                connected,
+            });
+            assert!(!source_allows_actions(&snap));
+            assert_eq!(
+                validate_walk(&snap, "1-14", "north").unwrap_err(),
+                "live game source is not connected"
+            );
+        }
+        snap.source = None;
+        assert!(!source_allows_actions(&snap));
     }
 
     fn event() -> PresentationEvent {

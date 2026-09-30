@@ -13,6 +13,7 @@ func _initialize() -> void:
 	var snapshots: Array = []
 	bridge.snapshot_updated.connect(func(snapshot): snapshots.append(snapshot))
 	var snapshot := {
+		"source": {"kind": "live", "connected": true},
 		"type": "snapshot", "protocol": 1, "sequence": 90, "eventSequence": 9,
 		"worldId": "crossing-live", "currentRoomId": "1-14",
 		"cells": [{

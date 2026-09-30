@@ -8,7 +8,7 @@ func _initialize() -> void:
 	var color := Color("557450")
 	var grass: StandardMaterial3D = art.terrain("grass", color)
 	_ok("terrain retains its confirmed classification palette", grass.albedo_color == color)
-	_ok("surface art has a bounded texture footprint and mipmaps", grass.albedo_texture.get_width() == 96 and grass.albedo_texture.get_image().has_mipmaps())
+	_ok("surface art has a bounded texture footprint and mipmaps", grass.albedo_texture.get_width() == 256 and grass.albedo_texture.get_image().has_mipmaps())
 	_ok("identical terrain surfaces reuse one material", art.terrain("grass", color) == grass)
 	_ok("palette variants share the same generated surface texture", art.terrain("grass", color.lightened(0.1)).albedo_texture == grass.albedo_texture)
 	var water: StandardMaterial3D = art.terrain("water", Color("387e9c"))

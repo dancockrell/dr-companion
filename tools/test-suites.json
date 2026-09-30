@@ -176,5 +176,6 @@
   "test:world-viewer-control",
   "test:mindstate-board",
   "test:idle-warning",
-  "test:setup-lifecycle"
+  "test:setup-lifecycle",
+  "test:presentation-source"
 ]

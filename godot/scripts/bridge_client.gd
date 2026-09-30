@@ -199,10 +199,17 @@ func simulate_reconnect() -> Dictionary:
 ## of applying anything locally and waits for the game's own confirmation;
 ## this function's signature and return shape are what stays the same
 ## across that swap.
+func can_send_live_intents() -> bool:
+	var source = current_snapshot.get("source")
+	return not mock_mode and _authenticated and source is Dictionary and source.get("kind") == "live" and source.get("connected") == true
+
 func send_intent(intent: Dictionary) -> Dictionary:
 	if not mock_mode:
 		if not _authenticated:
 			intent_rejected.emit(intent, "presentation bridge is not authenticated")
+			return current_snapshot
+		if intent.get("kind") in ["walk", "travel-to-room"] and not can_send_live_intents():
+			intent_rejected.emit(intent, "live game source is not connected")
 			return current_snapshot
 		if not _send_live_json(intent):
 			intent_rejected.emit(intent, "presentation bridge write failed")
@@ -397,6 +404,7 @@ func _build_snapshot(world_id: String, room_id: String) -> Dictionary:
 		"protocol": PROTOCOL,
 		"sequence": _sequence,
 		"worldId": world_id,
+		"source": {"kind": "demo", "connected": false},
 		"currentRoomId": room_id,
 		"cells": WorldManifestLoader.cells.values(),
 		"activeRoom": active_room,

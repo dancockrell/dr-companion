@@ -44,6 +44,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useAppStore } from '../store/useAppStore.ts'
 import { justReconnected, publishWorldSnapshotIfChanged } from './presentationBridge.ts'
+import { presentationSourceForState } from './presentationSource.ts'
 import { subscribeGame, streamCharacterState } from './gameLink.ts'
 import { sceneOverridesRevision, subscribeSceneOverrides } from './sceneOverrides.ts'
 
@@ -60,6 +61,10 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
   // would otherwise draw an undressed figure until the next room change.
   const inventory = useAppStore((s) => s.inventory)
   const bridgeConnected = useAppStore((s) => s.bridgeConnected)
+  const bridgeMode = useAppStore((s) => s.bridgeMode)
+  const bridgeStaleSince = useAppStore((s) => s.bridgeStaleSince)
+  const bridgeSourceGeneration = useAppStore((s) => s.bridgeSourceGeneration)
+  const characterSourceGeneration = useAppStore((s) => s.characterSourceGeneration)
 
   // Starts false rather than undefined so a session that mounts already
   // connected is not itself mistaken for a reconnect - there is no prior
@@ -85,6 +90,7 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
     publishedRevision.current = sceneRevision
     const force = justReconnected(bridgeConnected, wasConnected.current) || sceneEdited
     wasConnected.current = bridgeConnected
-    void publishWorldSnapshotIfChanged({ zone, here, character, characterAt, inventory, liveRoom }, force)
-  }, [enabled, zone, here, character, characterAt, inventory, liveRoom, bridgeConnected, sceneRevision])
+    const source = presentationSourceForState({ mode: bridgeMode, connected: bridgeConnected, hasCharacter: character !== null, staleSince: bridgeStaleSince, bridgeGeneration: bridgeSourceGeneration, characterGeneration: characterSourceGeneration })
+    void publishWorldSnapshotIfChanged({ zone, here, character, characterAt, inventory, liveRoom, source }, force)
+  }, [enabled, zone, here, character, characterAt, inventory, liveRoom, bridgeConnected, bridgeMode, bridgeStaleSince, bridgeSourceGeneration, characterSourceGeneration, sceneRevision])
 }

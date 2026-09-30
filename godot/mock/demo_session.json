@@ -3,7 +3,7 @@
   "player": { "health": 0.82, "roundtime": 0, "cannotAct": false, "situation": [] },
   "rooms": {
     "1-14": {
-      "description": "Demo scene: select either sample pawn or the sample coin to explore the inspector. Use the real fixture exits below to explore the board. No game is connected.",
+      "description": "Demo scene: select either character marker or the sample coin to explore the inspector. Use the real fixture exits below to explore the board. No game is connected.",
       "entities": [
         {
           "id": "demo:town-guard", "roomId": "1-14", "name": "Sample town guard", "deck": "allied",

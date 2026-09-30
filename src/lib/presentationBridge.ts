@@ -97,6 +97,7 @@ import {
 import { invokeTauri } from './tauri.ts'
 import type { LiveRoomPresentation } from '../types/stream.ts'
 import type {
+  PresentationSource,
   Vec3,
   WorldExit,
   WorldCell,
@@ -248,6 +249,7 @@ export function compileWorldSnapshot(params: {
   character: CharacterStatus | null
   liveRoom?: LiveRoomPresentation | null
   characterAt?: number
+  source?: PresentationSource
   /**
    * Optional because appearance is enrichment: what the character is wearing
    * comes from `InventorySummary.worn`, which is a separate store field and a
@@ -411,6 +413,11 @@ export function compileWorldSnapshot(params: {
     protocol: 1,
     sequence,
     worldId: zoneId,
+    ...(params.source ? { source: {
+      ...params.source,
+      connected: params.source.connected && (params.source.kind === 'demo' ||
+        (character !== null && String(character.location?.roomId ?? '') === String(hereId))),
+    } } : {}),
     currentRoomId: currentCellId,
     cells,
     activeRoom: {
@@ -431,6 +438,16 @@ export function compileWorldSnapshot(params: {
       { id: zoneId, roomIds: new Set(cells.map((cell) => cell.id)) },
       sceneOverrides
     ),
+  }
+}
+
+/** Explicitly clear stale/demo geometry when no coherent room is available. */
+export function unavailableWorldSnapshot(source: PresentationSource, sequence: number): CompiledWorldSnapshot {
+  return {
+    protocol: 1, sequence, worldId: '', currentRoomId: '', cells: [],
+    source: { ...source, connected: false },
+    activeRoom: { id: '', title: source.kind === 'demo' ? 'Waiting for demo world' : 'Waiting for your game' },
+    entities: [], groundItems: [], player: null, diagnostics: [],
   }
 }
 
@@ -465,6 +482,7 @@ export function shouldPublish(nextProjectionKey: string, lastProjectionKey: stri
 export function projectionKey(snapshot: WorldSnapshot): string {
   return JSON.stringify({
     worldId: snapshot.worldId,
+    source: snapshot.source,
     currentRoomId: snapshot.currentRoomId,
     activeRoom: snapshot.activeRoom,
     entities: snapshot.entities,
@@ -558,6 +576,7 @@ export async function publishWorldSnapshotIfChanged(
     character: CharacterStatus | null
   liveRoom?: LiveRoomPresentation | null
   characterAt?: number
+  source?: PresentationSource
     inventory?: InventorySummary | null
   },
   force = false
@@ -591,6 +610,7 @@ export async function publishWorldSnapshotIfChanged(
       ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
       : null
     const snapshot = compileWorldSnapshot({ ...nextParams, content, sequence: sequence + 1 })
+      ?? (nextParams.source ? unavailableWorldSnapshot(nextParams.source, sequence + 1) : null)
     if (!snapshot) return
     const nextProjectionKey = projectionKey(snapshot)
     const nextZone = nextParams.zone

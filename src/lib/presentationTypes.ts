@@ -187,10 +187,16 @@ export interface GroundItemSnapshot {
   name: string
 }
 
+export interface PresentationSource {
+  kind: 'demo' | 'live'
+  connected: boolean
+}
+
 export interface WorldSnapshot {
   protocol: 1
   sequence: number
   worldId: string
+  source?: PresentationSource
   currentRoomId: string
   cells: WorldCell[]
   activeRoom: { id: string; title: string; description?: string }

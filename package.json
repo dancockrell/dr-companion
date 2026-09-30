@@ -247,7 +247,8 @@
     "test:world-viewer-control": "node --experimental-test-module-mocks tools/world-viewer-control-test.mjs",
     "test:mindstate-board": "node tools/mindstate-board-test.mjs",
     "test:idle-warning": "node --experimental-strip-types --experimental-test-module-mocks tools/idle-warning-test.mjs",
-    "test:setup-lifecycle": "node --experimental-test-module-mocks tools/setup-lifecycle-test.mjs"
+    "test:setup-lifecycle": "node --experimental-test-module-mocks tools/setup-lifecycle-test.mjs",
+    "test:presentation-source": "node --experimental-test-module-mocks tools/presentation-source-test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

@@ -12,7 +12,7 @@
  *
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
-import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish } from '../src/lib/presentationBridge.ts'
+import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish, unavailableWorldSnapshot } from '../src/lib/presentationBridge.ts'
 // Imported rather than retyped: a test that hardcodes the number it checks
 // only proves somebody remembered to edit two places.
 import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES } from '../src/lib/isometric-board-layout.mjs'
@@ -81,6 +81,21 @@ console.log('-- compileWorldSnapshot: the honest-null cases --')
   const unrelated = compileWorldSnapshot({ ...input, characterAt: 1000, liveRoom: { title: 'The Crossing, Town Green North', description: 'More text.' } })
   ok('unrelated room update preserves roundtime observation', unrelated?.player.roundtimeObservedAt === observed?.player.roundtimeObservedAt)
   ok('unknown observation time stays absent', compileWorldSnapshot(input)?.player.roundtimeObservedAt === undefined)
+}
+
+{
+  const input = { zone: ZONE, here: HERE, character: { ...CHARACTER, location: { roomId: '14' } }, sequence: 1 }
+  const live = compileWorldSnapshot({ ...input, source: { kind: 'live', connected: true } })
+  const dropped = compileWorldSnapshot({ ...input, source: { kind: 'live', connected: false } })
+  const demo = compileWorldSnapshot({ ...input, source: { kind: 'demo', connected: true } })
+  ok('game-source state is independent of authenticated viewer transport', live?.source.kind === 'live' && live.source.connected)
+  ok('retained map without character cannot claim ready source', !compileWorldSnapshot({ ...input, character: null, source: { kind: 'live', connected: true } })?.source.connected)
+  ok('fresh character in another room cannot authorize old map exits', !compileWorldSnapshot({ ...input, character: { ...input.character, location: { roomId: '99' } }, source: { kind: 'live', connected: true } })?.source.connected)
+  ok('source disconnect changes publication even with unchanged room', projectionKey(live) !== projectionKey(dropped))
+  ok('switching demo/live changes publication without inventing a movement', projectionKey(live) !== projectionKey(demo))
+  const unavailable = unavailableWorldSnapshot({ kind: 'live', connected: true }, 2)
+  ok('missing topology clears prior demo geometry explicitly', unavailable.cells.length === 0 && unavailable.currentRoomId === '' && unavailable.entities.length === 0)
+  ok('unavailable world cannot advertise a ready source', unavailable.source.connected === false && unavailable.player === null)
 }
 
 console.log('\n-- compileWorldSnapshot: a real snapshot --')

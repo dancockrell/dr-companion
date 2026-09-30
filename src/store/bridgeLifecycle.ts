@@ -45,6 +45,7 @@ export function applyLiveStatus(
   const state = get()
   set({
     ...mapped,
+    bridgeSourceGeneration: (state.bridgeSourceGeneration ?? 0) + (mapped.bridgeConnected && !state.bridgeConnected ? 1 : 0),
     bridgeAttempt: bridge.getLiveAttempt(),
     bridgeMaxAttempts: bridge.getLiveMaxAttempts(),
     // `??` and not `||`: `false` is a legitimate override, and `||` would
@@ -75,6 +76,8 @@ export function setBridgeMode(
   persistMode(mode)
   set({
     bridgeMode: mode,
+    bridgeSourceGeneration: (get().bridgeSourceGeneration ?? 0) + 1,
+    characterSourceGeneration: -1,
     bridgeConnected: false,
     bridgeStatus: 'disconnected',
     bridgeAttempt: 0,
@@ -87,6 +90,10 @@ export function setBridgeMode(
     bridgeIntents: null,
     character: null,
     characterAt: 0,
+    // Map/gear evidence belongs to the old source too, especially demo data.
+    mapHere: null,
+    mapZone: null,
+    inventory: null,
     // Cleared with the data it qualifies. A mark left standing over a `null`
     // character would make the next panel to mount say "last known, 0s ago"
     // about nothing at all.

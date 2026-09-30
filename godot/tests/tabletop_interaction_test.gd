@@ -72,6 +72,9 @@ func _run() -> void:
 	_ok("route mode explains its authority boundary", scene.mode_hint.text.contains("not a confirmed route") and scene.mode_hint.text.contains("Lich"))
 	_ok("view modes visibly indicate the active selection", scene.mode_buttons.route.button_pressed and not scene.mode_buttons.room.button_pressed)
 	bridge.mock_mode = false
+	bridge._authenticated = true
+	bridge.current_snapshot.source = {"kind": "live", "connected": true}
+	before = bridge.current_snapshot.duplicate(true)
 	scene._connection_changed("authenticated")
 	_ok("live destination enables explicit travel request", not scene.travel_button.disabled and scene.request_selected_travel() and intents[-1] == {"kind": "travel-to-room", "roomId": destination})
 	_ok("requesting travel never speculates a room or player update", scene.current_room == before.currentRoomId and bridge.current_snapshot == before)
@@ -142,6 +145,9 @@ func _run() -> void:
 	_ok("route view retains a distant selected destination", scene.rendered_ids.has("cell-7") and scene.selected_id == "cell-7")
 	_ok("camera-only changes never create travel requests", intents.size() == count + 1)
 	bridge.mock_mode = false
+	bridge._authenticated = true
+	bridge.current_snapshot.source = {"kind": "live", "connected": true}
+	before = bridge.current_snapshot.duplicate(true)
 	scene._connection_changed("authenticated")
 	_ok("visible distant selection has an enabled live travel action", scene.travel_button.visible and not scene.travel_button.disabled)
 	scene.set_view("room")
