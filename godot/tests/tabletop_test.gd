@@ -53,6 +53,31 @@ func _run() -> void:
 	var move: String = root.get_node("WorldManifestLoader").true_exits("1-14")[0].move
 	sender.request_walk("1-14", move)
 	_ok("confirmed mock movement updates camera and room", scene.current_room == str(bridge.current_snapshot.currentRoomId) and scene.current_room != "1-14")
+	for click_index in range(2):
+		var before_click: String = scene.current_room
+		var visible_button: Button = null
+		var expected_room := ""
+		for true_exit in root.get_node("WorldManifestLoader").true_exits(before_click):
+			if true_exit.get("targetCellId") is String and root.get_node("WorldManifestLoader").has_cell(true_exit.targetCellId):
+				for button in scene.exits.get_children():
+					if button.text == str(true_exit.move).capitalize():
+						visible_button = button
+						expected_room = true_exit.targetCellId
+						break
+				if visible_button != null:
+					break
+		if visible_button != null:
+			visible_button.pressed.emit()
+		_ok("pressed signal movement %d rebuilds room and keeps summary" % click_index, visible_button != null and scene.current_room == expected_room and player_summary_parent(scene))
+		var expected_moves: Array = []
+		for true_exit in root.get_node("WorldManifestLoader").true_exits(scene.current_room):
+			var label := str(true_exit.get("move", "")).strip_edges().capitalize()
+			if not label.is_empty() and not expected_moves.has(label):
+				expected_moves.append(label)
+		var actual_moves: Array = []
+		for button in scene.exits.get_children():
+			actual_moves.append(button.text)
+		_ok("pressed signal movement %d replaces stale exit controls" % click_index, actual_moves == expected_moves and visible_button.get_parent() == null)
 	var confirmed: String = scene.current_room
 	sender.request_walk(confirmed, "invented exit")
 	_ok("invented movement never changes the rendered room", scene.current_room == confirmed)
@@ -97,3 +122,6 @@ func _ok(label: String, condition: bool) -> void:
 	else:
 		failed += 1
 		print("FAIL %s" % label)
+
+func player_summary_parent(scene: Node3D) -> bool:
+	return scene.player_summary.get_parent() == scene.details

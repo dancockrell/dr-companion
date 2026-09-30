@@ -53,6 +53,7 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
   const zone = useAppStore((s) => s.mapZone)
   const here = useAppStore((s) => s.mapHere)
   const character = useAppStore((s) => s.character)
+  const characterAt = useAppStore((s) => s.characterAt)
   // Appearance's worn half comes from here (see `appearance.ts`); the hands
   // half is already on `character`. Subscribed rather than read once, because
   // an inventory scan lands well after the first snapshot and the viewer
@@ -84,6 +85,6 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
     publishedRevision.current = sceneRevision
     const force = justReconnected(bridgeConnected, wasConnected.current) || sceneEdited
     wasConnected.current = bridgeConnected
-    void publishWorldSnapshotIfChanged({ zone, here, character, inventory, liveRoom }, force)
-  }, [enabled, zone, here, character, inventory, liveRoom, bridgeConnected, sceneRevision])
+    void publishWorldSnapshotIfChanged({ zone, here, character, characterAt, inventory, liveRoom }, force)
+  }, [enabled, zone, here, character, characterAt, inventory, liveRoom, bridgeConnected, sceneRevision])
 }

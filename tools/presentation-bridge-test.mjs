@@ -72,6 +72,17 @@ console.log('-- compileWorldSnapshot: the honest-null cases --')
   ok('description changes participate in snapshot deduplication', projectionKey(matched) !== projectionKey(cleared))
 }
 
+{
+  const input = { zone: ZONE, here: HERE, character: { ...CHARACTER, roundtime: 5 }, sequence: 1 }
+  const observed = compileWorldSnapshot({ ...input, characterAt: 1000 })
+  const refreshed = compileWorldSnapshot({ ...input, characterAt: 2000 })
+  ok('viewer roundtime carries the original observation time', observed?.player.roundtimeObservedAt === 1000)
+  ok('same-value roundtime re-observation is not deduplicated', projectionKey(observed) !== projectionKey(refreshed))
+  const unrelated = compileWorldSnapshot({ ...input, characterAt: 1000, liveRoom: { title: 'The Crossing, Town Green North', description: 'More text.' } })
+  ok('unrelated room update preserves roundtime observation', unrelated?.player.roundtimeObservedAt === observed?.player.roundtimeObservedAt)
+  ok('unknown observation time stays absent', compileWorldSnapshot(input)?.player.roundtimeObservedAt === undefined)
+}
+
 console.log('\n-- compileWorldSnapshot: a real snapshot --')
 {
   const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 5 })

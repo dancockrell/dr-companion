@@ -25,6 +25,7 @@ var _visible_entities: Dictionary = {}
 var _visible_items: Dictionary = {}
 var _player_view: Dictionary = CombatPresentation.player_view(null)
 var _roundtime_started_ms := 0
+var _previous_player = null
 
 func _ready() -> void:
 	collapse_button.pressed.connect(_toggle_collapsed)
@@ -38,8 +39,9 @@ func render_snapshot(snapshot: Dictionary) -> void:
 		_current_title = "Location unresolved"
 	_visible_entities = _collect_current(snapshot.get("entities", []))
 	_visible_items = _collect_current(snapshot.get("groundItems", []))
+	_roundtime_started_ms = CombatPresentation.roundtime_clock_start(_previous_player, snapshot.get("player"), _roundtime_started_ms, Time.get_ticks_msec(), Time.get_unix_time_from_system() * 1000.0)
+	_previous_player = snapshot.get("player").duplicate(true) if snapshot.get("player") is Dictionary else null
 	_player_view = CombatPresentation.player_view(snapshot.get("player"))
-	_roundtime_started_ms = Time.get_ticks_msec()
 	set_process(_player_view.get("roundtime") != null and float(_player_view.get("roundtime")) > 0.0)
 	if is_node_ready():
 		_rebuild()

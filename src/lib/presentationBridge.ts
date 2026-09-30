@@ -247,6 +247,7 @@ export function compileWorldSnapshot(params: {
   here: MapRoom | null
   character: CharacterStatus | null
   liveRoom?: LiveRoomPresentation | null
+  characterAt?: number
   /**
    * Optional because appearance is enrichment: what the character is wearing
    * comes from `InventorySummary.worn`, which is a separate store field and a
@@ -391,6 +392,8 @@ export function compileWorldSnapshot(params: {
         situation: character.situation ?? [],
         cannotAct: cannotAct(character.situation),
         roundtime: character.roundtime ?? null,
+        ...(Number.isFinite(params.characterAt) && params.characterAt! > 0 && character.roundtime != null
+          ? { roundtimeObservedAt: params.characterAt } : {}),
         health: maxHealth > 0
           ? Math.max(0, Math.min(1, character.vitals.health / maxHealth))
           : null,
@@ -554,6 +557,7 @@ export async function publishWorldSnapshotIfChanged(
     here: MapRoom | null
     character: CharacterStatus | null
   liveRoom?: LiveRoomPresentation | null
+  characterAt?: number
     inventory?: InventorySummary | null
   },
   force = false

@@ -171,7 +171,7 @@ const signals = readFileSync('src/components/shared/GameSignals.tsx', 'utf8')
 const app = readFileSync('src/App.tsx', 'utf8')
 check('mounted GameSignals passes raw ungagged lines to the banner', () => {
   assert.match(signals, /const lines = useRawGameLines\(\)/)
-  assert.match(signals, /<IdleWarningBanner lines=\{lines\} connected=\{link.connected\}/)
+  assert.match(signals, /<IdleWarningBanner lines=\{lines\} connected=\{linkPhase\(link\) === 'connected'\}/)
 })
 check('warning is reachable at app root independently of AI enablement', () => assert.match(app, /\{setupComplete && <GameSignals\s*\/>\}/))
 console.log(`idle warning: ${checks} checks passed`)

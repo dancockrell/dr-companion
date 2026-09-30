@@ -26,7 +26,7 @@
  * nothing, regardless of whether anything is attached.
  */
 import { useEffect, useRef } from 'react'
-import { gameState, subscribeGame } from '../../lib/gameLink.ts'
+import { gameState, subscribeGame, linkPhase } from '../../lib/gameLink.ts'
 import { useSyncExternalStore } from 'react'
 import { useRawGameLines } from '../../lib/useGameLines.ts'
 import { paint } from '../../lib/highlights.ts'
@@ -158,5 +158,5 @@ export function GameSignals() {
   // this being explicit that it is genuinely unused now.
   void hlNote
 
-  return <IdleWarningBanner lines={lines} connected={link.connected} />
+  return <IdleWarningBanner lines={lines} connected={linkPhase(link) === 'connected'} />
 }

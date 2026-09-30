@@ -202,9 +202,13 @@ if (!ruby) {
       file: SUITE,
       from: '  const deadline = wall ?? timeout * 1000 + RUBY_GRACE_MS',
       to: '  const deadline = wall ?? 60000',
+      // The fixture wakes after 25s, before this sabotaged 60s wall. It exits
+      // without ETIMEDOUT on every platform, so all three parent-timeout
+      // checks must fail. Whether a terminated child can leave a final verdict
+      // differs by platform; that must not change this exact expected set.
       red: [
         'a candidate that stops the clock is killed by the parent inside its own grace window',
-        'and a run that left no verdict is a FAIL naming that, never a pass',
+        'the parent timeout overrides any child verdict emitted while terminating',
         'and it really did stop the clock, so this is the escape and not a slow fixture (denominator)',
       ],
     },

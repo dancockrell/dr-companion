@@ -237,6 +237,8 @@ export interface PlayerSnapshot {
   /** Seconds left of roundtime, or null when unknown. The only real clock
    * in this snapshot - no other state here has a duration. */
   roundtime: number | null
+  /** Local epoch milliseconds when the bridge status was received. */
+  roundtimeObservedAt?: number
   /** Health as a 0-1 fraction, or null when `healthMax` is missing or zero
    * (absent, not "full"). */
   health: number | null

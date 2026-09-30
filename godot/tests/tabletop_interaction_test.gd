@@ -37,6 +37,24 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	_ok("confirmed room description is visible", scene.room_description.text == fixture.activeRoom.description)
+	var timed: Dictionary = fixture.duplicate(true)
+	timed.player.roundtime = 5
+	scene.render_snapshot(timed)
+	scene.roundtime_started_ms = Time.get_ticks_msec() - 4000
+	var measured_start: int = scene.roundtime_started_ms
+	timed.activeRoom.description = "A later description, with the same status measurement."
+	scene.render_snapshot(timed)
+	_ok("unrelated snapshots preserve the measured roundtime deadline", scene.roundtime_started_ms == measured_start and scene.player_summary.text.contains("ROUND TIME 1.0s"))
+	scene.roundtime_started_ms = Time.get_ticks_msec() - 6000
+	scene.render_snapshot(timed)
+	_ok("expired roundtime does not restart on a repeated snapshot", scene.player_summary.text.contains("READY"))
+	timed.player.roundtimeObservedAt = Time.get_unix_time_from_system() * 1000.0
+	scene.render_snapshot(timed)
+	_ok("a new source observation restarts an equal-valued roundtime", scene.player_summary.text.contains("ROUND TIME 5.0s"))
+	timed.player.roundtimeObservedAt -= 4000.0
+	scene.render_snapshot(timed)
+	_ok("late source observations subtract their delivery age", scene.player_summary.text.contains("ROUND TIME 1.0s"))
+	scene.render_snapshot(fixture)
 	_ok("board has pick bodies for rooms, occupants, items, and player", scene.pick_bodies.has("room:1-14") and scene.pick_bodies.has("entity:guard-1") and scene.pick_bodies.has("item:coin-1") and scene.pick_bodies.has("player:player"))
 	_ok("absent occupants never get pick bodies", not scene.pick_bodies.has("entity:away"))
 	var token: Vector3 = scene.token_positions["entity:guard-1"] + Vector3(0, 0.55, 0)
@@ -123,6 +141,15 @@ func _run() -> void:
 	scene.set_view("route")
 	_ok("route view retains a distant selected destination", scene.rendered_ids.has("cell-7") and scene.selected_id == "cell-7")
 	_ok("camera-only changes never create travel requests", intents.size() == count + 1)
+	bridge.mock_mode = false
+	scene._connection_changed("authenticated")
+	_ok("visible distant selection has an enabled live travel action", scene.travel_button.visible and not scene.travel_button.disabled)
+	scene.set_view("room")
+	_ok("switching to room view hides and disables off-board travel", not scene.rendered_ids.has("cell-7") and not scene.travel_button.visible and scene.travel_button.disabled and not scene.can_request_selected_travel())
+	_ok("off-board selection explains how to recover the destination", scene.selection_description.text.contains("Switch to Route or World"))
+	_ok("a stale travel callback cannot act on an off-board room", not scene.request_selected_travel())
+	scene.set_view("route")
+	_ok("returning to route restores the visible destination action", scene.rendered_ids.has("cell-7") and scene.travel_button.visible and not scene.travel_button.disabled)
 	scene.free()
 	print("%d checked, %d failed" % [checked, failed])
 	quit(1 if failed > 0 else 0)

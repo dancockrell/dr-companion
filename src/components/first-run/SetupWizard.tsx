@@ -89,12 +89,18 @@ export function SetupWizard() {
     running: false,
     known: false,
   })
+  const checksAllowed = useRef(true)
   const checkGeneration = useRef(0)
   const pendingEntry = useRef<number | undefined>(undefined)
   const cancelCheck = useCallback(() => {
     checkGeneration.current++
     window.clearTimeout(pendingEntry.current)
   }, [])
+
+  const stopChecks = useCallback(() => {
+    checksAllowed.current = false
+    cancelCheck()
+  }, [cancelCheck])
 
   /**
    * Leave setup and attach the bridge in whatever mode is configured.
@@ -111,12 +117,13 @@ export function SetupWizard() {
    * behaviour change: it called exactly this.
    */
   const enter = useCallback(() => {
-    cancelCheck()
+    stopChecks()
     setSetupComplete(true)
     connectBridge()
-  }, [setSetupComplete, connectBridge, cancelCheck])
+  }, [setSetupComplete, connectBridge, stopChecks])
 
   const check = useCallback(async () => {
+    if (!checksAllowed.current) return
     if (!isTauri()) {
       setPhase('browser')
       return
@@ -167,9 +174,10 @@ export function SetupWizard() {
   }, [addLog, enter, reopened, cancelCheck])
 
   useEffect(() => {
+    checksAllowed.current = true
     void check()
-    return cancelCheck
-  }, [check, cancelCheck])
+    return stopChecks
+  }, [check, stopChecks])
 
   // Progress events from the native downloader.
   useEffect(() => {

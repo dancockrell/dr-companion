@@ -113,6 +113,23 @@ static func player_view(player_value) -> Dictionary:
 		"flags": _clean_strings(player.get("situation", [])),
 	}
 
+## Observe roundtime once, then run a monotonic clock. Description, inventory,
+## or map publishes must not restart the same measurement. An optional source
+## timestamp distinguishes a genuinely new status carrying the same RT value.
+static func roundtime_clock_start(previous, following, started_ms: int, now_ms: int, unix_ms: float) -> int:
+	if not following is Dictionary:
+		return now_ms
+	if previous is Dictionary and previous.get("roundtime") == following.get("roundtime") and previous.get("roundtimeObservedAt") == following.get("roundtimeObservedAt"):
+		return started_ms
+	var observed = following.get("roundtimeObservedAt")
+	var duration = following.get("roundtime")
+	if (observed is int or observed is float) and float(observed) > 0.0 and duration != null:
+		# Cap at the measured duration: an expired observation is simply ready,
+		# and a future timestamp (clock skew) starts at the measured duration.
+		var age_ms := clampf(unix_ms - float(observed), 0.0, maxf(0.0, float(duration) * 1000.0))
+		return now_ms - int(age_ms)
+	return now_ms
+
 static func elanthipedia_search_url(name: String) -> String:
 	var query := name.strip_edges()
 	return "" if query.is_empty() else ELANTHIPEDIA_SEARCH + query.uri_encode()

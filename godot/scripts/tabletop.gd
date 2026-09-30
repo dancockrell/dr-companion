@@ -30,6 +30,16 @@ var selection_title := Label.new()
 var selection_description := Label.new()
 var travel_button := Button.new()
 var event_label := Label.new()
+var graph_overlay := Control.new()
+var graph_labels: Dictionary = {}
+var overview_markers: Dictionary = {}
+var overview_pick_bodies: Dictionary = {}
+var overview_links: Array[MeshInstance3D] = []
+var destination_filter := LineEdit.new()
+var destination_list := ItemList.new()
+var destination_hint := Label.new()
+var destination_signature := ""
+var focus_button := Button.new()
 var mode_buttons: Dictionary = {}
 var hud_theme := Theme.new()
 var roundtime_started_ms := 0
@@ -168,6 +178,10 @@ func _build_hud() -> void:
 	_build_theme()
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	graph_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	graph_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	graph_overlay.theme = hud_theme
+	layer.add_child(graph_overlay)
 	var header := _panel(layer, Control.PRESET_TOP_WIDE, Vector4(16, 16, -16, 112))
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 6)
@@ -199,6 +213,17 @@ func _build_hud() -> void:
 	reset.tooltip_text = "Recenter the current view (R)"
 	reset.pressed.connect(func(): set_view(view_mode))
 	modes.add_child(reset)
+	for pair in [["−", 1.25], ["+", 0.8]]:
+		var zoom := Button.new()
+		zoom.text = pair[0]
+		zoom.custom_minimum_size.x = 36
+		zoom.tooltip_text = "Zoom out" if pair[1] > 1.0 else "Zoom in"
+		zoom.pressed.connect(zoom_by.bind(float(pair[1])))
+		modes.add_child(zoom)
+	focus_button.text = "Focus selected"
+	focus_button.tooltip_text = "Zoom to the selected room without travelling"
+	focus_button.pressed.connect(focus_selected_room)
+	modes.add_child(focus_button)
 	status_label.add_theme_color_override("font_color", GOLD)
 	status_label.add_theme_font_size_override("font_size", 12)
 	content.add_child(status_label)
@@ -207,6 +232,24 @@ func _build_hud() -> void:
 	side_content.add_theme_constant_override("separation", 10)
 	side.add_child(side_content)
 	side_content.add_child(_small_label("ROOM INTELLIGENCE"))
+	destination_filter.placeholder_text = "Find a room or room ID…"
+	destination_filter.add_theme_font_size_override("font_size", 14)
+	destination_filter.clear_button_enabled = true
+	destination_filter.text_changed.connect(func(_text): _rebuild_destinations())
+	side_content.add_child(destination_filter)
+	destination_list.custom_minimum_size.y = 112
+	destination_list.add_theme_font_size_override("font_size", 14)
+	destination_list.allow_reselect = true
+	destination_list.item_selected.connect(_destination_selected)
+	destination_list.item_activated.connect(func(index):
+		_destination_selected(index)
+		focus_selected_room()
+	)
+	side_content.add_child(destination_list)
+	destination_hint.add_theme_font_size_override("font_size", 11)
+	destination_hint.add_theme_color_override("font_color", MUTED)
+	destination_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side_content.add_child(destination_hint)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -259,8 +302,8 @@ func _build_hud() -> void:
 	_update_mode_controls()
 
 func render_snapshot(next: Dictionary) -> void:
+	roundtime_started_ms = CombatPresentation.roundtime_clock_start(snapshot.get("player"), next.get("player"), roundtime_started_ms, Time.get_ticks_msec(), Time.get_unix_time_from_system() * 1000.0)
 	snapshot = next.duplicate(true)
-	roundtime_started_ms = Time.get_ticks_msec()
 	var moved := current_room != str(next.get("currentRoomId", ""))
 	current_room = str(next.get("currentRoomId", ""))
 	var cell := WorldManifestLoader.get_cell(current_room)
@@ -281,6 +324,7 @@ func render_snapshot(next: Dictionary) -> void:
 		selected_id = ""
 	_rebuild_board()
 	_rebuild_details()
+	_rebuild_destinations()
 	_update_selection()
 	if moved:
 		set_view(view_mode)
@@ -425,10 +469,18 @@ func _rebuild_board() -> void:
 					var tile := _box(geometry, tile_at, Vector3(width / 4.0 - 0.025, 0.036, depth / 4.0 - 0.025), tile_color)
 					tile.material_override = surface_art.terrain(_ground_kind(cell), tile_color)
 			_ring(geometry, at + Vector3(0, 0.06, 0), 0.55, GOLD)
-		if view_mode != "room" and (ids.size() <= 40 or id == current_room):
-			# Full titles are in the inspector. Repeated zone prefixes and a
-			# forest of hundreds of labels would obscure the actual board.
-			_label(geometry, at + Vector3(0, 1.55, 0), _board_title(cell), GOLD if id == current_room else Color("cedce4"))
+		if view_mode != "room":
+			_overview_marker(at, str(id), GOLD if id == current_room else Color("8ab8cc"))
+			var graph_label := Label.new()
+			graph_label.text = _board_title(cell)
+			graph_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			graph_label.add_theme_font_size_override("font_size", 14)
+			graph_label.add_theme_color_override("font_color", GOLD if id == current_room else Color("e3edf2"))
+			graph_label.add_theme_color_override("font_shadow_color", INK)
+			graph_label.add_theme_constant_override("shadow_offset_x", 1)
+			graph_label.add_theme_constant_override("shadow_offset_y", 2)
+			graph_overlay.add_child(graph_label)
+			graph_labels[id] = graph_label
 		if _spatial_mode(cell) == "interior-cutaway":
 			_box(geometry, at + Vector3(0, 0.6, -depth / 2), Vector3(width, 1.2, 0.18), color.darkened(0.25))
 		if view_mode == "room":
@@ -471,6 +523,13 @@ func _board_title(cell: Dictionary) -> String:
 	return title if title.length() <= 28 else title.left(25) + "…"
 
 func _clear_geometry() -> void:
+	for label in graph_labels.values():
+		graph_overlay.remove_child(label)
+		label.queue_free()
+	graph_labels.clear()
+	overview_markers.clear()
+	overview_pick_bodies.clear()
+	overview_links.clear()
 	selection_ring = null
 	token_positions.clear()
 	pick_bodies.clear()
@@ -490,6 +549,7 @@ func _link(start: Vector3, end: Vector3, color: Color) -> void:
 	geometry.add_child(line)
 	line.position = (start + end) / 2.0 - Vector3(0, 0.18, 0)
 	line.quaternion = Quaternion(Vector3.UP, (end - start).normalized())
+	overview_links.append(line)
 
 func _token(origin: Vector3, text: String, color: Color, index: int, kind: String, id: String, entity: Dictionary = {}) -> void:
 	var at := origin
@@ -547,9 +607,13 @@ func _rebuild_details() -> void:
 		if child == player_summary:
 			details.remove_child(child)
 		else:
-			child.free()
+			details.remove_child(child)
+			child.queue_free()
 	for child in exits.get_children():
-		child.free()
+		# Mock requests can synchronously publish during this button's pressed
+		# signal. Detach now, but never free a still-emitting Control.
+		exits.remove_child(child)
+		child.queue_free()
 	details.add_child(player_summary)
 	player_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	player_summary.add_theme_font_size_override("font_size", 13)
@@ -640,7 +704,8 @@ func request_selected_travel() -> bool:
 	return IntentSender.request_travel_to_room(selected_id)
 
 func _update_selection() -> void:
-	travel_button.visible = selected_kind == "room" and selected_id != current_room
+	focus_button.disabled = selected_kind != "room" or not WorldManifestLoader.has_cell(selected_id)
+	travel_button.visible = selected_kind == "room" and selected_id != current_room and rendered_ids.has(selected_id)
 	if selected_kind.is_empty():
 		selection_title.text = "Select something to inspect"
 		selection_description.text = "Click a room, person, or item on the board. Selecting a room does not move you."
@@ -651,6 +716,8 @@ func _update_selection() -> void:
 		selection_description.text = "%s • %d known exits\n%s" % [selected_id, exit_count, _description(cell)]
 		if selected_id == current_room:
 			selection_description.text += "\nYour confirmed location."
+		elif not rendered_ids.has(selected_id):
+			selection_description.text += "\nOutside this view. Switch to Route or World to see this destination."
 		elif BridgeClient.mock_mode:
 			selection_description.text += "\nTravel needs a live connection. Demo exits can be explored below."
 		else:
@@ -665,6 +732,7 @@ func _update_selection() -> void:
 		selection_description.text = CombatPresentation.tactical_tooltip(entry) if selected_kind == "entity" else "Confirmed on the floor in %s.\nInspection is read-only." % current_room
 	_update_action_availability()
 	_update_selection_ring()
+	_update_overview()
 
 func _update_selection_ring() -> void:
 	if is_instance_valid(selection_ring):
@@ -674,8 +742,7 @@ func _update_selection_ring() -> void:
 		var cell := WorldManifestLoader.get_cell(selected_id)
 		var width := float(cell.get("board", {}).get("footprint", {}).get("width", 4.4))
 		selection_ring = _ring(geometry, _point(cell) + Vector3(0, 0.08, 0), width * 0.53, Color("91deed"))
-		if view_mode != "room" and rendered_ids.size() > 40 and selected_id != current_room:
-			_label(selection_ring, Vector3(0, 1.6, 0), _board_title(cell), Color("91deed"))
+
 	elif token_positions.has("%s:%s" % [selected_kind, selected_id]):
 		selection_ring = _ring(geometry, token_positions["%s:%s" % [selected_kind, selected_id]] + Vector3(0, 0.23, 0), 0.42, Color("91deed"))
 
@@ -708,17 +775,21 @@ func set_view(mode: String) -> void:
 			high = high.max(at)
 		focus = (low + high) / 2.0
 		camera_size = maxf(24.0, (high - low).length() * 1.25 + 12.0)
+	_update_selection()
+	_rebuild_destinations()
 	_update_mode_controls()
 	_update_camera()
 
 func _update_mode_controls() -> void:
+	for control in [destination_filter, destination_list, destination_hint]:
+		control.visible = view_mode != "room"
 	for mode in mode_buttons:
 		mode_buttons[mode].set_pressed_no_signal(mode == view_mode)
 	var hint := "Click to inspect • Wheel zoom • Right drag orbit • Middle drag pan • 1/2/3 views • Esc clear"
 	if view_mode == "route":
-		hint = "Route planning: select a destination • Lines are known exits, not a confirmed route • Travel uses Lich"
+		hint = "Route graph • Lines are known exits, not a confirmed route • Search or select a room, then Focus selected • Travel uses Lich"
 	elif view_mode == "world":
-		hint = "World overview • %d of %d rooms shown • Click a tile to select a destination" % [rendered_ids.size(), WorldManifestLoader.cells.size()]
+		hint = "World graph • %d of %d rooms drawn • Search rooms to resolve overlapping nodes • Double-click a list row to focus" % [rendered_ids.size(), WorldManifestLoader.cells.size()]
 	mode_hint.text = hint
 
 func _update_camera() -> void:
@@ -727,15 +798,139 @@ func _update_camera() -> void:
 	camera.look_at(focus)
 	# Leave visual breathing room for the inspector without changing board truth.
 	camera.h_offset = camera_size * 0.19
+	_update_overview()
+
+func zoom_by(factor: float) -> void:
+	camera_size = clampf(camera_size * factor, 6.0, 10000.0)
+	_update_camera()
+
+func focus_selected_room() -> bool:
+	if selected_kind != "room" or not WorldManifestLoader.has_cell(selected_id):
+		return false
+	focus = _point(WorldManifestLoader.get_cell(selected_id))
+	camera_size = 14.0
+	_update_camera()
+	return true
+
+func _rebuild_destinations() -> void:
+	var query := destination_filter.text.strip_edges().to_lower()
+	var rooms: Array = []
+	for id in WorldManifestLoader.cells:
+		rooms.append([id, WorldManifestLoader.get_cell(id).get("title", id)])
+	var signature := JSON.stringify([view_mode != "room", query, rooms])
+	if signature == destination_signature:
+		return
+	destination_signature = signature
+	destination_list.clear()
+	if view_mode == "room":
+		return
+	var matching := 0
+	for id in WorldManifestLoader.cells:
+		var cell := WorldManifestLoader.get_cell(id)
+		var title := str(cell.get("title", id))
+		if not query.is_empty() and not (title + " " + str(id)).to_lower().contains(query):
+			continue
+		matching += 1
+		if destination_list.item_count >= 200:
+			continue
+		var index := destination_list.add_item("%s  · %s" % [_board_title(cell), id])
+		destination_list.set_item_metadata(index, id)
+		destination_list.set_item_tooltip(index, "%s [%s]\nSelect to inspect; double-click to focus. No movement." % [title, id])
+		if selected_kind == "room" and selected_id == id:
+			destination_list.select(index)
+	destination_hint.text = "%d matching rooms • Double-click to focus" % matching if matching <= 200 else "First 200 of %d matches • Narrow your search" % matching
+
+func _destination_selected(index: int) -> void:
+	if index < 0 or index >= destination_list.item_count:
+		return
+	var id := str(destination_list.get_item_metadata(index))
+	if not WorldManifestLoader.has_cell(id):
+		return
+	# The searchable list can reach known rooms outside the geometry budget.
+	# Selection mounts that room; only the explicit travel button sends intent.
+	selected_kind = "room"
+	selected_id = id
+	_rebuild_board()
+	_update_selection()
+	_update_mode_controls()
+
+func _overview_marker(at: Vector3, id: String, color: Color) -> void:
+	var marker := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.5
+	sphere.height = 1.0
+	sphere.radial_segments = 16
+	sphere.rings = 8
+	marker.mesh = sphere
+	marker.material_override = _material(color, true)
+	marker.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	marker.position = at + Vector3(0, 0.55, 0)
+	geometry.add_child(marker)
+	overview_markers[id] = marker
+	var body := StaticBody3D.new()
+	body.position = marker.position
+	body.set_meta("kind", "room")
+	body.set_meta("id", id)
+	var collision := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.5
+	collision.shape = shape
+	body.add_child(collision)
+	geometry.add_child(body)
+	overview_pick_bodies[id] = body
+
+func _update_overview() -> void:
+	if view_mode == "room" or overview_markers.is_empty():
+		return
+	var canvas := get_viewport().get_visible_rect().size
+	var units_per_pixel := camera_size / maxf(1.0, canvas.y)
+	var diameter := maxf(0.5, units_per_pixel * 20.0)
+	for id in overview_markers:
+		var marker: MeshInstance3D = overview_markers[id]
+		marker.scale = Vector3.ONE * diameter
+		var body: StaticBody3D = overview_pick_bodies[id]
+		body.get_child(0).shape.radius = diameter * 0.65
+		marker.material_override.albedo_color = Color("91deed") if selected_kind == "room" and id == selected_id else GOLD if id == current_room else Color("8ab8cc")
+	for line in overview_links:
+		var thickness := maxf(1.0, units_per_pixel * 0.75 / 0.035)
+		line.scale = Vector3(thickness, 1.0, thickness)
+	var order := graph_labels.keys()
+	order.sort_custom(func(a, b):
+		var rank_a := 0 if a == selected_id else 1 if a == current_room else 2
+		var rank_b := 0 if b == selected_id else 1 if b == current_room else 2
+		return rank_a < rank_b if rank_a != rank_b else str(a) < str(b)
+	)
+	var placed: Array[Rect2] = []
+	var safe := Rect2(20, 132, maxf(1, canvas.x - 352), maxf(1, canvas.y - 270))
+	for id in order:
+		var label: Label = graph_labels[id]
+		label.visible = false
+		var screen := camera.unproject_position(overview_markers[id].position)
+		var size := label.get_combined_minimum_size()
+		for offset in [Vector2(15, -size.y / 2), Vector2(-size.x - 15, -size.y / 2), Vector2(-size.x / 2, -size.y - 15), Vector2(-size.x / 2, 15)]:
+			var rect := Rect2(screen + offset, size)
+			if not safe.encloses(rect):
+				continue
+			var overlaps := false
+			for other in placed:
+				if rect.grow(4).intersects(other):
+					overlaps = true
+					break
+			if overlaps:
+				continue
+			label.position = rect.position
+			label.visible = true
+			placed.append(rect)
+			break
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			pick_at(event.position)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			camera_size = maxf(6.0, camera_size * 0.88)
+			zoom_by(0.88)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			camera_size = minf(500.0, camera_size / 0.88)
+			zoom_by(1.0 / 0.88)
 	if event is InputEventMouseMotion:
 		if event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
 			yaw -= event.relative.x * 0.008
