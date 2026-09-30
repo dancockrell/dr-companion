@@ -90,7 +90,9 @@ func load_from_snapshot(snapshot: Dictionary) -> bool:
 			return false
 		next_cells[cell_id] = raw_cell
 	var current_room_id := str(snapshot.get("currentRoomId", ""))
-	if current_room_id.is_empty() or not next_cells.has(current_room_id):
+	var source = snapshot.get("source")
+	var unavailable: bool = source is Dictionary and source.get("kind") in ["demo", "live"] and source.get("connected") == false and current_room_id.is_empty() and next_cells.is_empty()
+	if not unavailable and (current_room_id.is_empty() or not next_cells.has(current_room_id)):
 		manifest_load_failed.emit("live snapshot current room is absent from its cells")
 		return false
 	cells = next_cells

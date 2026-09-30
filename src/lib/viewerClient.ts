@@ -125,13 +125,12 @@ export interface PresentationEvent {
 /**
  * The sequence every published event carries.
  *
- * Module-level and monotonic, because the stream is ordered and a consumer
- * that cannot tell two events apart cannot replay them. Separate from
- * `presentationBridge.ts`'s snapshot sequence on purpose - snapshots and
- * events are two streams, and sharing one counter would make a gap in either
- * look like a dropped message in the other.
+ * Last event sequence accepted by the native bridge. Rust owns the transport
+ * counter across webview reloads and stamps snapshots with its event cursor;
+ * the snapshot version remains an independent counter.
  */
 let eventSequence = 0
+let eventPublishQueue: Promise<void> = Promise.resolve()
 
 /** The next sequence, without publishing. For a test that needs to know where
  * the counter is rather than inferring it from a publish. */
@@ -154,10 +153,23 @@ export function presentationEventSequence(): number {
 export async function publishPresentationEvent(
   event: Omit<PresentationEvent, 'protocol' | 'sequence'>
 ): Promise<number> {
-  const sequence = eventSequence + 1
-  await invokeTauri('publish_presentation_event', {
-    event: { protocol: 1, sequence, ...event },
+  // Several status changes can arrive in one pass. Serialize the native
+  // calls so each confirmed publication gets one unique sequence. A failed
+  // call leaves that sequence available and never poisons subsequent work.
+  const payload = { ...event }
+  const published = eventPublishQueue.then(async () => {
+    const accepted = await invokeTauri('publish_presentation_event', {
+      event: { ...payload, protocol: 1, sequence: eventSequence + 1 },
+    })
+    // A browser has no transport and must not claim that an event was sent.
+    if (accepted === undefined) return eventSequence
+    if (typeof accepted !== 'number' || !Number.isSafeInteger(accepted) || accepted < 1) {
+      throw new Error('The presentation bridge returned an invalid event sequence.')
+    }
+    const sequence = accepted
+    eventSequence = sequence
+    return sequence
   })
-  eventSequence = sequence
-  return sequence
+  eventPublishQueue = published.then(() => undefined, () => undefined)
+  return await published
 }

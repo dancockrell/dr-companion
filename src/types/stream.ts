@@ -151,6 +151,8 @@ export interface RoomItem {
 
 /** Authoritative presentation text from the game's current room component. */
 export interface LiveRoomPresentation {
+  /** DragonRealms game UID from the main streamWindow subtitle, not nav rm. */
+  roomUid?: string | null
   title: string | null
   description: string
 }

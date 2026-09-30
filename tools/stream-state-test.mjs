@@ -174,13 +174,15 @@ console.log('\n-- live room presentation follows authoritative component boundar
   const s = newStreamState()
   const rendered = feed(
     s,
-    "<nav rm='123'/><streamWindow id='main' subtitle=' - [River Road] (123)'/>" +
+    "<nav rm='999'/><streamWindow id='main' subtitle=' - [River Road] (123)'/>" +
       "<component id='room desc'>Rain stipples the <a noun='road'>muddy road</a>.</component>\r\n"
   )
   eq('title and nested-tag description are captured', characterState(s).roomPresentation?.value, {
     title: 'River Road',
+    roomUid: '123',
     description: 'Rain stipples the muddy road.',
   })
+  ok('DR identity comes from subtitle UID, not differing nav rm', characterState(s).roomPresentation?.value.roomUid === '123')
   ok('live presentation carries stream provenance', characterState(s).roomPresentation?.from === 'stream')
   ok('live presentation is timestamped', (characterState(s).roomPresentation?.at ?? 0) > 0)
   eq('capturing structured state does not remove rendered text', rendered.map((line) => line.text), [
@@ -189,11 +191,19 @@ console.log('\n-- live room presentation follows authoritative component boundar
 
   feed(s, "<nav rm='124'/>")
   ok('navigation clears the prior room before the next description arrives', characterState(s).roomPresentation === undefined)
+  ok('navigation also clears the prior game UID', s.roomUid === null)
   feed(s, "<streamWindow id='main' subtitle=' - [Stone Bridge] (124)'/><component id='room desc'>A cold bridge.</component>\r\n")
   eq('the next arrival replaces rather than merges live room text', characterState(s).roomPresentation?.value, {
     title: 'Stone Bridge',
+    roomUid: '124',
     description: 'A cold bridge.',
   })
+}
+
+{
+  const s = newStreamState()
+  feed(s, "<nav rm='888'/><streamWindow id='main' subtitle=' - [Unnamed Passage]'/><component id='room desc'>Stone.</component>")
+  ok('nav rm alone never fabricates a DragonRealms UID', characterState(s).roomPresentation?.value.roomUid === undefined)
 }
 
 console.log('\n-- room players: ported line-for-line from Lich, not re-derived --')

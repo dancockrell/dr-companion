@@ -715,10 +715,21 @@ mod tests {
     fn a_real_child_is_held_then_killed_and_the_status_follows() {
         // The whole B5 behaviour against an actual process, because the pure
         // mapping above cannot show that `try_wait` reports what this module
-        // thinks it does. `cmd /c pause` waits on stdin forever and is on
-        // every Windows machine.
-        let child = Command::new("cmd")
-            .args(["/c", "pause"])
+        // thinks it does. Both stand-ins wait on the piped stdin, without
+        // launching a real viewer or relying on an arbitrary sleep.
+        #[cfg(windows)]
+        let mut command = {
+            let mut command = Command::new("cmd");
+            command.args(["/c", "pause"]);
+            command
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut command = Command::new("sh");
+            command.args(["-c", "read ignored"]);
+            command
+        };
+        let child = command
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::null())
             .spawn()

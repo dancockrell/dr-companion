@@ -95,7 +95,9 @@ import {
   type SceneRefusal,
 } from './sceneOverrides.ts'
 import { invokeTauri } from './tauri.ts'
+import type { LiveRoomPresentation } from '../types/stream.ts'
 import type {
+  PresentationSource,
   Vec3,
   WorldExit,
   WorldCell,
@@ -241,10 +243,24 @@ export interface CompiledWorldSnapshot extends WorldSnapshot {
  * publish one honestly (see each guard's own comment). Never throws, never
  * fills a gap with a guess.
  */
+/** Match the game's room UID to the bridge's game UID, never its Lich map ID.
+ * Legacy sources with neither UID retain exact-title matching; one-sided or
+ * conflicting identity stays unresolved rather than attaching prose to a room. */
+export function confirmedRoomDescription(live: LiveRoomPresentation | null | undefined, here: MapRoom | null, mappedTitle: string): string | undefined {
+  if (!live?.description.trim()) return undefined
+  const liveUid = live.roomUid?.trim() || null
+  const mapUid = here?.uid == null ? null : String(here.uid)
+  if (liveUid !== null || mapUid !== null) return liveUid !== null && liveUid === mapUid ? live.description : undefined
+  return live.title?.trim() === mappedTitle.trim() ? live.description : undefined
+}
+
 export function compileWorldSnapshot(params: {
   zone: MapZone | null
   here: MapRoom | null
   character: CharacterStatus | null
+  liveRoom?: LiveRoomPresentation | null
+  characterAt?: number
+  source?: PresentationSource
   /**
    * Optional because appearance is enrichment: what the character is wearing
    * comes from `InventorySummary.worn`, which is a separate store field and a
@@ -389,6 +405,8 @@ export function compileWorldSnapshot(params: {
         situation: character.situation ?? [],
         cannotAct: cannotAct(character.situation),
         roundtime: character.roundtime ?? null,
+        ...(Number.isFinite(params.characterAt) && params.characterAt! > 0 && character.roundtime != null
+          ? { roundtimeObservedAt: params.characterAt } : {}),
         health: maxHealth > 0
           ? Math.max(0, Math.min(1, character.vitals.health / maxHealth))
           : null,
@@ -402,13 +420,24 @@ export function compileWorldSnapshot(params: {
       }
     : null
 
+  const liveDescription = confirmedRoomDescription(params.liveRoom, here, currentCell.title)
+
   return {
     protocol: 1,
     sequence,
     worldId: zoneId,
+    ...(params.source ? { source: {
+      ...params.source,
+      connected: params.source.connected && (params.source.kind === 'demo' ||
+        (character !== null && String(character.location?.roomId ?? '') === String(hereId))),
+    } } : {}),
     currentRoomId: currentCellId,
     cells,
-    activeRoom: { id: currentCellId, title: currentCell.title },
+    activeRoom: {
+      id: currentCellId,
+      title: liveDescription !== undefined ? (params.liveRoom?.title ?? currentCell.title) : currentCell.title,
+      ...(liveDescription !== undefined ? { description: liveDescription } : {}),
+    },
     entities,
     groundItems,
     player,
@@ -419,6 +448,16 @@ export function compileWorldSnapshot(params: {
       { id: zoneId, roomIds: new Set(cells.map((cell) => cell.id)) },
       sceneOverrides
     ),
+  }
+}
+
+/** Explicitly clear stale/demo geometry when no coherent room is available. */
+export function unavailableWorldSnapshot(source: PresentationSource, sequence: number): CompiledWorldSnapshot {
+  return {
+    protocol: 1, sequence, worldId: '', currentRoomId: '', cells: [],
+    source: { ...source, connected: false },
+    activeRoom: { id: '', title: source.kind === 'demo' ? 'Waiting for demo world' : 'Waiting for your game' },
+    entities: [], groundItems: [], player: null, diagnostics: [],
   }
 }
 
@@ -453,6 +492,7 @@ export function shouldPublish(nextProjectionKey: string, lastProjectionKey: stri
 export function projectionKey(snapshot: WorldSnapshot): string {
   return JSON.stringify({
     worldId: snapshot.worldId,
+    source: snapshot.source,
     currentRoomId: snapshot.currentRoomId,
     activeRoom: snapshot.activeRoom,
     entities: snapshot.entities,
@@ -544,44 +584,56 @@ export async function publishWorldSnapshotIfChanged(
     zone: MapZone | null
     here: MapRoom | null
     character: CharacterStatus | null
+  liveRoom?: LiveRoomPresentation | null
+  characterAt?: number
+  source?: PresentationSource
     inventory?: InventorySummary | null
   },
-  force = false
-): Promise<void> {
-  // Awaited before compiling, and cached per zone by `worldContent.ts`, so this
-  // is one fetch the first time a zone is entered and a Map lookup every time
-  // after. A zone with no content file resolves to null and the snapshot goes
-  // out without any, which is what happened for every zone before this existed.
-  //
-  // Imported here rather than at the top of the file, and that is not style.
-  // `worldContent.ts` calls `import.meta.glob`, which is a Vite build-time
-  // transform and a plain TypeError under bare Node. A static import would run
-  // it on module load and take `tools/presentation-bridge-test.mjs` — 40-odd
-  // checks over `compileWorldSnapshot`, `shouldPublish` and
-  // `gameCommandForIntent`, none of which need a zone file — down with it. The
-  // pure half of this module stays runnable outside Vite; only the publication
-  // path, which already needs Tauri, reaches for the loader.
-  //
-  // Guarded on there being a zone at all, which is not merely an optimisation:
-  // with no zone there is nothing to load, and `tools/viewer-absent-test.mjs`
-  // calls this with `{zone: null}` under bare Node to check that publishing
-  // with nothing to publish is a no-op rather than a throw. An unconditional
-  // import made that case throw on the glob.
-  const zoneId = params.zone?.zone ?? null
-  const content = zoneId
-    ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
-    : null
-  const snapshot = compileWorldSnapshot({ ...params, content, sequence: sequence + 1 })
-  if (!snapshot) return
-  const nextProjectionKey = projectionKey(snapshot)
-  const nextZone = params.zone
-  // Store updates can outpace a native invocation. Serialize publications so
-  // sequences stay strictly increasing and an older snapshot cannot finish
-  // after a newer one. Recover the queue before the next item so one rejected
-  // native call remains retryable instead of poisoning every future publish.
+  force = false,
+  stillCurrent: () => boolean = () => true
+): Promise<boolean> {
+  // Reserve publication order before loading zone content. Otherwise a slow
+  // earlier zone load can finish after a later room update and restore stale
+  // state in the viewer despite serialized native invocations.
+  const nextParams = { ...params }
+  let delivered = false
   publishQueue = publishQueue.catch(() => undefined).then(async () => {
+    if (!stillCurrent()) return
+    // Awaited before compiling, and cached per zone by `worldContent.ts`, so this
+    // is one fetch the first time a zone is entered and a Map lookup every time
+    // after. A zone with no content file resolves to null and the snapshot goes
+    // out without any, which is what happened for every zone before this existed.
+    //
+    // Imported here rather than at the top of the file, and that is not style.
+    // `worldContent.ts` calls `import.meta.glob`, which is a Vite build-time
+    // transform and a plain TypeError under bare Node. A static import would run
+    // it on module load and take `tools/presentation-bridge-test.mjs` — 40-odd
+    // checks over `compileWorldSnapshot`, `shouldPublish` and
+    // `gameCommandForIntent`, none of which need a zone file — down with it. The
+    // pure half of this module stays runnable outside Vite; only the publication
+    // path, which already needs Tauri, reaches for the loader.
+    //
+    // Guarded on there being a zone at all, which is not merely an optimisation:
+    // with no zone there is nothing to load, and `tools/viewer-absent-test.mjs`
+    // calls this with `{zone: null}` under bare Node to check that publishing
+    // with nothing to publish is a no-op rather than a throw. An unconditional
+    // import made that case throw on the glob.
+    const zoneId = nextParams.zone?.zone ?? null
+    const content = zoneId
+      ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
+      : null
+    if (!stillCurrent()) return
+    const snapshot = compileWorldSnapshot({ ...nextParams, content, sequence: sequence + 1 })
+      ?? (nextParams.source ? unavailableWorldSnapshot(nextParams.source, sequence + 1) : null)
+    if (!snapshot) return
+    const nextProjectionKey = projectionKey(snapshot)
+    const nextZone = nextParams.zone
+    // Store updates can outpace a native invocation. Serialize publications so
+    // sequences stay strictly increasing and an older snapshot cannot finish
+    // after a newer one. Recover the queue before the next item so one rejected
+    // native call remains retryable instead of poisoning every future publish.
     const zoneChanged = nextZone !== lastPublishedZone
-    if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) return
+    if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) { delivered = true; return }
     const nextSequence = sequence + 1
     // `diagnostics` is the compiler's report to the panel and not part of the
     // wire protocol, so it is dropped here by name rather than carried and
@@ -589,7 +641,10 @@ export async function publishWorldSnapshotIfChanged(
     // and an undeclared field there would be dropped in transit anyway, which
     // is a thing that looks like a delivery.
     const { diagnostics: _diagnostics, ...wire } = snapshot
-    await invokeTauri('publish_world_snapshot', { snapshot: { ...wire, sequence: nextSequence } })
+    if (!stillCurrent()) return
+    const accepted = await invokeTauri('publish_world_snapshot', { snapshot: { ...wire, sequence: nextSequence } })
+    if (accepted === undefined) return
+    delivered = true
     // A failed native call throws. Only advance the deduplication state after
     // the bridge accepted the publish, so the next update can retry honestly.
     sequence = nextSequence
@@ -597,6 +652,7 @@ export async function publishWorldSnapshotIfChanged(
     lastPublishedZone = nextZone
   })
   await publishQueue
+  return delivered
 }
 
 /** Test-only: lets `tools/presentation-bridge-test.mjs` (and, if it's ever

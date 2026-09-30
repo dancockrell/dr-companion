@@ -268,6 +268,7 @@ mod tests {
     ///
     /// A concurrent `cargo test` process is minutes old at most, so an hour
     /// is far outside anything live and far inside anything abandoned.
+    #[cfg(windows)]
     const STALE_AFTER: std::time::Duration = std::time::Duration::from_secs(3600);
 
     /// A service name no player's credentials can be under.
@@ -295,6 +296,7 @@ mod tests {
     /// `windows-latest` has Credential Manager, so on CI this never fires and
     /// the round-trip below is really run. If it ever does fire, the message
     /// is the diagnosis rather than a green run with nothing behind it.
+    #[cfg(windows)]
     fn require_store() {
         if let Some(why) = unavailable_reason() {
             panic!(
@@ -309,6 +311,7 @@ mod tests {
     /// store -> has -> forget -> has false, which is the increment's own
     /// `done-when` (0, 1, 0) run against a service name of this test's own.
     #[test]
+    #[cfg(windows)]
     fn store_then_has_then_forget() {
         require_store();
         let service = test_service("roundtrip");
@@ -343,6 +346,7 @@ mod tests {
     /// What is read back is what was typed. The only test in the tree that
     /// looks at a stored plaintext, and it does so through the one accessor.
     #[test]
+    #[cfg(windows)]
     fn what_comes_back_is_what_went_in() {
         require_store();
         let service = test_service("roundtrip-value");

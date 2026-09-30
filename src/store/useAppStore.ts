@@ -145,6 +145,8 @@ export const useAppStore = create<AppState>((rawSet, get) => {
   // 'disconnected' rather than 'error': nothing has been tried yet, and a
   // default that reads as a failure is a claim about a dial nobody made.
   bridgeStatus: 'disconnected' as BridgeTransportStatus,
+  bridgeSourceGeneration: 0,
+  characterSourceGeneration: -1,
   bridgeAttempt: 0,
   bridgeMaxAttempts: MAX_RECONNECT_ATTEMPTS,
   bridgeEverConnected: false,

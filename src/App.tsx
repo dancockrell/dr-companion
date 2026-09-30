@@ -657,7 +657,7 @@ function AppViews() {
                       genuinely better for being taller. */}
                   <div className="min-h-24 flex-1">
                     <PanelBoundary label="Experience">
-                      <ExperienceStrip skills={character?.skills ?? []} />
+                      <ExperienceStrip skills={character?.skills ?? []} skillsReady={character?.skillsReady} />
                     </PanelBoundary>
                   </div>
                   {/* Not moved to the icon bar: a background worker whose

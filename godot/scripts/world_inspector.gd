@@ -25,6 +25,7 @@ var _visible_entities: Dictionary = {}
 var _visible_items: Dictionary = {}
 var _player_view: Dictionary = CombatPresentation.player_view(null)
 var _roundtime_started_ms := 0
+var _previous_player = null
 
 func _ready() -> void:
 	collapse_button.pressed.connect(_toggle_collapsed)
@@ -38,8 +39,9 @@ func render_snapshot(snapshot: Dictionary) -> void:
 		_current_title = "Location unresolved"
 	_visible_entities = _collect_current(snapshot.get("entities", []))
 	_visible_items = _collect_current(snapshot.get("groundItems", []))
+	_roundtime_started_ms = CombatPresentation.roundtime_clock_start(_previous_player, snapshot.get("player"), _roundtime_started_ms, Time.get_ticks_msec(), Time.get_unix_time_from_system() * 1000.0)
+	_previous_player = snapshot.get("player").duplicate(true) if snapshot.get("player") is Dictionary else null
 	_player_view = CombatPresentation.player_view(snapshot.get("player"))
-	_roundtime_started_ms = Time.get_ticks_msec()
 	set_process(_player_view.get("roundtime") != null and float(_player_view.get("roundtime")) > 0.0)
 	if is_node_ready():
 		_rebuild()
@@ -139,13 +141,11 @@ func _update_player_status() -> void:
 	var flags: Array = _player_view.get("flags", [])
 	player_flags.text = "Status: %s" % ", ".join(flags) if not flags.is_empty() else "No status flags reported"
 	var initial_roundtime = _player_view.get("roundtime")
-	if initial_roundtime == null:
-		return
 	var elapsed := float(Time.get_ticks_msec() - _roundtime_started_ms) / 1000.0
-	var remaining := maxf(0.0, float(initial_roundtime) - elapsed)
+	var remaining := maxf(0.0, float(initial_roundtime) - elapsed) if initial_roundtime != null else 0.0
 	if remaining > 0.0 and not bool(_player_view.get("state") == "CANNOT ACT"):
 		player_state.text = "ROUND TIME %.1fs" % remaining
-	elif remaining <= 0.0:
+	elif initial_roundtime != null and remaining <= 0.0:
 		set_process(false)
 		if not bool(_player_view.get("state") == "CANNOT ACT"):
 			player_state.text = "READY"
@@ -153,7 +153,7 @@ func _update_player_status() -> void:
 		"CANNOT ACT": player_state.add_theme_color_override("font_color", Color(1.0, 0.34, 0.28))
 		"READY": player_state.add_theme_color_override("font_color", Color(0.34, 0.88, 0.58))
 		_:
-			var active_roundtime := initial_roundtime != null and float(initial_roundtime) > 0.0
+			var active_roundtime := remaining > 0.0
 			player_state.add_theme_color_override("font_color", Color(1.0, 0.76, 0.28) if active_roundtime else Color(0.65, 0.65, 0.68))
 
 func _toggle_collapsed() -> void:

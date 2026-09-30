@@ -12,7 +12,7 @@
  *
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
-import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish } from '../src/lib/presentationBridge.ts'
+import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish, unavailableWorldSnapshot, confirmedRoomDescription } from '../src/lib/presentationBridge.ts'
 // Imported rather than retyped: a test that hardcodes the number it checks
 // only proves somebody remembered to edit two places.
 import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES } from '../src/lib/isometric-board-layout.mjs'
@@ -59,6 +59,55 @@ console.log('-- compileWorldSnapshot: the honest-null cases --')
   ok('no current room id anywhere compiles to null', compileWorldSnapshot({ zone: { ...ZONE, here: undefined }, here: null, character: null, sequence: 1 }) === null)
   ok('a current room id that is not among the zone\'s own cells compiles to null (not a snapshot claiming a room it cannot find)',
     compileWorldSnapshot({ zone: { ...ZONE, rooms: [ZONE.rooms[1]] }, here: HERE, character: null, sequence: 1 }) === null)
+}
+
+{
+  const input = { zone: ZONE, here: HERE, character: CHARACTER, sequence: 1 }
+  const matched = compileWorldSnapshot({ ...input, liveRoom: { title: 'The Crossing, Town Green North', description: 'A confirmed description.' } })
+  ok('matching authoritative room description reaches viewer', matched?.activeRoom.description === 'A confirmed description.')
+  const transitioning = compileWorldSnapshot({ ...input, liveRoom: { title: 'Another room', description: 'Wrong room.' } })
+  ok('room transition with mismatched title withholds stale description', transitioning?.activeRoom.description === undefined)
+  const cleared = compileWorldSnapshot({ ...input, liveRoom: null })
+  ok('navigation clear removes old room description', cleared?.activeRoom.description === undefined)
+  ok('description changes participate in snapshot deduplication', projectionKey(matched) !== projectionKey(cleared))
+}
+
+{
+  const input = { zone: ZONE, here: HERE, character: { ...CHARACTER, roundtime: 5 }, sequence: 1 }
+  const observed = compileWorldSnapshot({ ...input, characterAt: 1000 })
+  const refreshed = compileWorldSnapshot({ ...input, characterAt: 2000 })
+  ok('viewer roundtime carries the original observation time', observed?.player.roundtimeObservedAt === 1000)
+  ok('same-value roundtime re-observation is not deduplicated', projectionKey(observed) !== projectionKey(refreshed))
+  const unrelated = compileWorldSnapshot({ ...input, characterAt: 1000, liveRoom: { title: 'The Crossing, Town Green North', description: 'More text.' } })
+  ok('unrelated room update preserves roundtime observation', unrelated?.player.roundtimeObservedAt === observed?.player.roundtimeObservedAt)
+  ok('unknown observation time stays absent', compileWorldSnapshot(input)?.player.roundtimeObservedAt === undefined)
+}
+
+{
+  const input = { zone: ZONE, here: HERE, character: { ...CHARACTER, location: { roomId: '14' } }, sequence: 1 }
+  const live = compileWorldSnapshot({ ...input, source: { kind: 'live', connected: true } })
+  const dropped = compileWorldSnapshot({ ...input, source: { kind: 'live', connected: false } })
+  const demo = compileWorldSnapshot({ ...input, source: { kind: 'demo', connected: true } })
+  ok('game-source state is independent of authenticated viewer transport', live?.source.kind === 'live' && live.source.connected)
+  ok('retained map without character cannot claim ready source', !compileWorldSnapshot({ ...input, character: null, source: { kind: 'live', connected: true } })?.source.connected)
+  ok('fresh character in another room cannot authorize old map exits', !compileWorldSnapshot({ ...input, character: { ...input.character, location: { roomId: '99' } }, source: { kind: 'live', connected: true } })?.source.connected)
+  ok('source disconnect changes publication even with unchanged room', projectionKey(live) !== projectionKey(dropped))
+  ok('switching demo/live changes publication without inventing a movement', projectionKey(live) !== projectionKey(demo))
+  const unavailable = unavailableWorldSnapshot({ kind: 'live', connected: true }, 2)
+  ok('missing topology clears prior demo geometry explicitly', unavailable.cells.length === 0 && unavailable.currentRoomId === '' && unavailable.entities.length === 0)
+  ok('unavailable world cannot advertise a ready source', unavailable.source.connected === false && unavailable.player === null)
+}
+
+{
+  const look = { roomUid: '230008', title: 'Game title variation', description: 'Current game prose.' }
+  ok('matching game UID permits genuine live title variation', confirmedRoomDescription(look, { ...HERE, uid: 230008 }, 'Cartographic title') === look.description)
+  const matchedLook = compileWorldSnapshot({ zone: ZONE, here: { ...HERE, uid: 230008 }, character: CHARACTER, liveRoom: look, sequence: 1 })
+  ok('confirmed live title and prose travel together', matchedLook?.activeRoom.title === look.title && matchedLook?.activeRoom.description === look.description)
+  ok('matching Lich map id is not mistaken for game UID', confirmedRoomDescription(look, { ...HERE, id: 230008, uid: 7 }, look.title) === undefined)
+  ok('conflicting UID rejects even matching titles', confirmedRoomDescription(look, { ...HERE, uid: 7 }, look.title) === undefined)
+  ok('one-sided game identity waits for correlation', confirmedRoomDescription(look, { ...HERE, uid: null }, look.title) === undefined)
+  ok('missing live UID cannot reuse a known mapped UID', confirmedRoomDescription({ title: look.title, description: look.description }, { ...HERE, uid: 230008 }, look.title) === undefined)
+  ok('navigation clear cannot carry old live prose', confirmedRoomDescription(null, { ...HERE, uid: 230008 }, look.title) === undefined)
 }
 
 console.log('\n-- compileWorldSnapshot: a real snapshot --')

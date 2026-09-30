@@ -293,6 +293,9 @@ console.log('\n-- 4. leaving the demo takes the invented character with it --')
     bridgeConnected: true,
     character: { name: 'Dan the Bold', health: 84, situation: ['in_combat'] },
     characterAt: 1_725_000_000,
+    mapHere: { id: 14, title: 'Invented demo room' },
+    mapZone: { zone: 'demo-zone', rooms: [] },
+    inventory: { hands: ['demo sword'] },
     scriptStates: [{ id: 'demo' }],
     runningScripts: ['demo'],
     logs: [],
@@ -318,6 +321,7 @@ console.log('\n-- 4. leaving the demo takes the invented character with it --')
     JSON.stringify(state).slice(0, 120)
   )
   ok('the invented script list is gone too', state.runningScripts.length === 0)
+  ok('the old source map and inventory are cleared together', state.mapHere === null && state.mapZone === null && state.inventory === null)
   ok('and the app is not claiming a connection', state.bridgeConnected === false)
 
   // Positive control on the instrument: the same search over the state as it

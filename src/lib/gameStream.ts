@@ -174,6 +174,7 @@ export interface StreamState {
   roomDescriptionCapture: string | null
   /** Title from the current main streamWindow subtitle. */
   roomTitle: string | null
+  roomUid: string | null
   /**
    * How many state-only lines have been dropped, per stream (issue #537).
    *
@@ -217,7 +218,7 @@ export function newStreamState(): StreamState {
     afterPrompt: false, afterTagBreak: false, partial: '',
     partialWasStateOnly: false, roomPlayersCapture: null,
     inRoomObjsComponent: false, roomItemsBuilding: null, roomItemCapture: null,
-    roomDescriptionCapture: null, roomTitle: null, stateOnly: {}, partialStateStream: null,
+    roomDescriptionCapture: null, roomTitle: null, roomUid: null, stateOnly: {}, partialStateStream: null,
     // Empty rather than absent, and the two are different on purpose: an
     // empty indicator map means no icon has ever been reported, which a
     // reader must be able to tell from an icon reported as 'unknown'.
@@ -590,14 +591,18 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         state.character.roomPresentation = undefined
         state.roomDescriptionCapture = null
         state.roomTitle = null
+        state.roomUid = null
         markStateOnly(state)
       } else if (name === 'streamwindow' && !closing) {
         const a = attrs(tag)
         if ((a.id ?? '').toLowerCase() === 'main' && a.subtitle) {
           // DragonRealms subtitles are " - [Room title] (optional uid)".
-          // Preserve only the bracketed game title; nav remains the identity
-          // boundary and room ids continue to come from the map bridge.
+          // Lich's official XMLParser uses this subtitle UID for DR and
+          // deliberately ignores nav rm as identity for this game. nav still
+          // clears previous presentation. Keep game UID separate from Lich ID.
+          // https://github.com/elanthia-online/lich-5/blob/master/lib/common/xmlparser.rb
           state.roomTitle = a.subtitle.match(/\[([^\]]+)\]/)?.[1] ?? (a.subtitle.trim() || null)
+          state.roomUid = a.subtitle.match(/\]\s*\((\d+)\)\s*$/)?.[1] ?? null
         }
       } else if (name === 'progressbar') {
         // State, not text. See vitalFromText for why this reads `text` and
@@ -680,6 +685,7 @@ export function feed(state: StreamState, chunk: string): StreamLine[] {
         } else if (state.roomDescriptionCapture !== null) {
           const value: LiveRoomPresentation = {
             title: state.roomTitle,
+            ...(state.roomUid ? { roomUid: state.roomUid } : {}),
             description: state.roomDescriptionCapture.trim(),
           }
           state.character.roomPresentation = { value, from: 'stream', at: Date.now() }

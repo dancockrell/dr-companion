@@ -806,6 +806,9 @@ export interface AppState {
    * a thing that has no transport.
    */
   bridgeStatus: BridgeTransportStatus
+  /** Connection epoch that supplied the current character observation. */
+  bridgeSourceGeneration: number
+  characterSourceGeneration: number
   /** Which re-dial the bridge is on; 0 when it is not reconnecting. */
   bridgeAttempt: number
   /** The bound, carried from the transport so the bar can say "3 of 8". */

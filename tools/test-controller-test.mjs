@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
 const suites = JSON.parse(readFileSync('tools/test-suites.json', 'utf8'))
@@ -20,6 +21,12 @@ check('every listed suite has an npm script', suites.every((name) => typeof pkg.
 check('the controller cannot schedule itself recursively', !suites.includes('test') && !suites.includes('test:all'))
 check('the controller reads the explicit manifest', /test-suites\.json/.test(runner))
 check('the obsolete stop-on-first-failure chain is gone', !pkg.scripts.test.includes('&&'))
+const stages = spawnSync(process.execPath, ['tools/gate.mjs', '--list'], { encoding: 'utf8' })
+check('gate stage registry is valid', stages.status === 0, stages.stderr)
+const active = stages.stdout.split('\n').filter((line) => !line.includes('(not covered)'))
+const scripts = active.flatMap((line) => line.match(/\S+\.mjs(?=\s|$)/g) ?? [])
+check('every active gate script exists', scripts.length >= 8 && scripts.every(existsSync), scripts.filter((file) => !existsSync(file)).join(', '))
+
 
 console.log('')
 // Far below the real count on purpose: a tripwire for a truncated or

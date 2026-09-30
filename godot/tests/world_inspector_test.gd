@@ -38,6 +38,10 @@ func _initialize() -> void:
 	_ok("entity detail retains exact assessed relation and target", inspector.entity_tooltip("person-1").contains("Position: across the room") and inspector.entity_tooltip("person-1").contains("Engaging: a goblin"))
 	var player: Dictionary = inspector.player_view()
 	_ok("player urgency, health, roundtime, and flags are retained", player.state == "CANNOT ACT" and player.healthPercent == 62.0 and player.roundtime == 5.0 and player.flags == ["in_combat", "webbed"])
+	inspector._roundtime_started_ms = Time.get_ticks_msec() - 4000
+	var measured_start: int = inspector._roundtime_started_ms
+	inspector.render_snapshot({"currentRoomId": "1-14", "activeRoom": {"description": "New description"}, "player": {"cannotAct": true, "roundtime": 5, "health": 0.62}})
+	_ok("inspector shares the unchanged-observation roundtime clock", inspector._roundtime_started_ms == measured_start)
 	inspector.render_snapshot({"currentRoomId": "1-15", "activeRoom": {}, "entities": [], "groundItems": []})
 	_ok("a new snapshot clears stale accessible tokens", inspector.visible_entity_ids().is_empty() and inspector.visible_item_ids().is_empty())
 	_ok("a snapshot without player state clears the old combat state", not inspector.player_view().known)

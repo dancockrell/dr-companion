@@ -124,7 +124,7 @@ export function handleBridgeMessage(
       // the reconnect in DragonRealms, and clearing the mark on `connected`
       // would put full contrast back over pre-drop numbers for that whole
       // window. See src/store/staleMark.ts and issue #506.
-      set({ character: msg.payload, characterAt: Date.now(), bridgeStaleSince: clearedByFreshData() })
+      set({ character: msg.payload, characterAt: Date.now(), characterSourceGeneration: get().bridgeSourceGeneration, bridgeStaleSince: clearedByFreshData() })
       // Adopt this character's own settings the moment we learn who they are.
       const p = msg.payload
       if (p.name) get().syncProfile(p.name, p.instance, p.guild)

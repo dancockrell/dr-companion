@@ -91,6 +91,9 @@ pub struct Exit {
     pub direction: String,
     pub target_room_id: Value,
     pub target_cell_id: Option<String>,
+    /// Carry renderer enrichment such as tetherKind and boardAnchor intact.
+    #[serde(flatten)]
+    pub presentation: serde_json::Map<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +103,10 @@ pub struct WorldCell {
     pub title: String,
     pub position: Vec3,
     pub exits: Vec<Exit>,
+    /// Board dimensions and classified content belong to the frontend. The
+    /// native topology validator must preserve them without re-deriving them.
+    #[serde(flatten)]
+    pub presentation: serde_json::Map<String, Value>,
 }
 
 /// Deliberately loose (`serde_json::Value`) rather than a fully-typed struct
@@ -119,11 +126,19 @@ pub struct EntitySnapshot(pub Value);
 pub struct GroundItemSnapshot(pub Value);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresentationSource {
+    pub kind: String,
+    pub connected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorldSnapshot {
     pub protocol: u32,
     pub sequence: u64,
     pub world_id: String,
+    #[serde(default)]
+    pub source: Option<PresentationSource>,
     pub current_room_id: String,
     pub cells: Vec<WorldCell>,
     pub active_room: RoomSnapshot,
@@ -204,6 +219,10 @@ type ClientList = Arc<Mutex<Vec<(u64, TcpStream)>>>;
 
 #[derive(Default)]
 pub struct PresentationBridgeState {
+    /// Transport event cursor, independent of the frontend snapshot counter.
+    /// Hold this lock through broadcasts and initial client registration so a
+    /// reconnect's snapshot watermark cannot race with the next live event.
+    event_sequence: Mutex<u64>,
     latest_snapshot: Mutex<Option<WorldSnapshot>>,
     /// Shared with `start`'s listener thread so a snapshot published *after*
     /// a client has already connected still reaches it. A snapshot handed to
@@ -284,11 +303,21 @@ fn broadcast_value(clients: &ClientList, v: &Value) {
 /// whole module exists to run. Every other intent kind is read-only and
 /// cannot mutate game state, so it is forwarded once the room/entity/item id
 /// it names is confirmed to exist in the snapshot, with no further gate.
+fn source_allows_actions(snapshot: &WorldSnapshot) -> bool {
+    snapshot
+        .source
+        .as_ref()
+        .is_some_and(|source| source.kind == "live" && source.connected)
+}
+
 fn validate_walk<'a>(
     snapshot: &'a WorldSnapshot,
     from_room_id: &str,
     exit_move: &str,
 ) -> Result<&'a Exit, &'static str> {
+    if !source_allows_actions(snapshot) {
+        return Err("live game source is not connected");
+    }
     if from_room_id != snapshot.current_room_id {
         return Err("intent's fromRoomId does not match the current room");
     }
@@ -367,10 +396,18 @@ fn handle_intent(v: &Value, state: &PresentationBridgeState, app: &AppHandle, ou
             // has no exit of the current room to be one of - and the walking
             // itself is refused or performed downstream by Lich.
             let guard = state.latest_snapshot.lock().unwrap();
+            let source_ready = guard.as_ref().is_some_and(source_allows_actions);
             let known = guard
                 .as_ref()
                 .is_some_and(|s| s.cells.iter().any(|c| c.id == room_id));
             drop(guard);
+            if !source_ready {
+                let _ = send_json(
+                    out,
+                    &json!({"type": "intent_rejected", "reason": "live game source is not connected"}),
+                );
+                return;
+            }
             if !known {
                 let _ = send_json(
                     out,
@@ -444,20 +481,21 @@ fn handle_client(
     // does not sit with nothing until the next room change. This is also
     // exactly the reconnect path: a fresh connection always gets a fresh
     // snapshot, never a diff against whatever it had before.
-    if let Some(snapshot) = state.latest_snapshot.lock().unwrap().as_ref() {
-        if let Ok(v) = serde_json::to_value(snapshot) {
-            let mut framed = v;
-            if let Value::Object(ref mut map) = framed {
-                map.insert("type".into(), Value::String("snapshot".into()));
+    let id = next_id.fetch_add(1, Ordering::Relaxed);
+    {
+        let event_sequence = state.event_sequence.lock().unwrap();
+        if let Some(snapshot) = state.latest_snapshot.lock().unwrap().as_ref() {
+            if let Ok(framed) = snapshot_frame(snapshot, *event_sequence) {
+                if send_json(&mut out, &framed).is_err() {
+                    return;
+                }
             }
-            let _ = send_json(&mut out, &framed);
         }
+        let Ok(client) = out.try_clone() else { return };
+        clients.lock().unwrap().push((id, client));
     }
 
     let _ = reader.get_ref().set_read_timeout(None);
-
-    let id = next_id.fetch_add(1, Ordering::Relaxed);
-    clients.lock().unwrap().push((id, out.try_clone().unwrap()));
 
     let mut buf = String::new();
     loop {
@@ -532,14 +570,8 @@ pub fn publish_world_snapshot(
     state: tauri::State<'_, Arc<PresentationBridgeState>>,
     snapshot: WorldSnapshot,
 ) -> Result<(), String> {
-    // This file's authority boundary is the mirror image of `validate_walk`'s:
-    // it never edits a snapshot the frontend handed it, so nothing here can
-    // silently drift what "the current room" means from what the parser
-    // actually reported.
-    let mut value = serde_json::to_value(&snapshot).map_err(|e| e.to_string())?;
-    if let Value::Object(ref mut map) = value {
-        map.insert("type".into(), Value::String("snapshot".into()));
-    }
+    let event_sequence = state.event_sequence.lock().unwrap();
+    let value = snapshot_frame(&snapshot, *event_sequence)?;
     *state.latest_snapshot.lock().unwrap() = Some(snapshot);
     broadcast_value(&state.clients, &value);
     Ok(())
@@ -554,13 +586,35 @@ pub fn publish_world_snapshot(
 pub fn publish_presentation_event(
     state: tauri::State<'_, Arc<PresentationBridgeState>>,
     event: PresentationEvent,
-) -> Result<(), String> {
+) -> Result<u64, String> {
+    publish_event(&state, event)
+}
+
+fn snapshot_frame(snapshot: &WorldSnapshot, event_sequence: u64) -> Result<Value, String> {
+    let mut value = serde_json::to_value(snapshot).map_err(|e| e.to_string())?;
+    if let Value::Object(ref mut map) = value {
+        map.insert("type".into(), Value::String("snapshot".into()));
+        map.insert("eventSequence".into(), Value::from(event_sequence));
+    }
+    Ok(value)
+}
+
+fn publish_event(
+    state: &PresentationBridgeState,
+    mut event: PresentationEvent,
+) -> Result<u64, String> {
+    let mut sequence = state.event_sequence.lock().unwrap();
+    let next = sequence.checked_add(1).ok_or("event sequence exhausted")?;
+    // The native process owns ordering across frontend reloads and webviews.
+    // A publisher's local counter is not a transport identity.
+    event.sequence = next;
     let mut value = serde_json::to_value(&event).map_err(|e| e.to_string())?;
     if let Value::Object(ref mut map) = value {
         map.insert("type".into(), Value::String("event".into()));
     }
     broadcast_value(&state.clients, &value);
-    Ok(())
+    *sequence = next;
+    Ok(next)
 }
 
 /// What the frontend needs to know the bridge is even running - the token
@@ -723,8 +777,10 @@ mod tests {
                     direction: mv.to_string(),
                     target_room_id: Value::String(target.to_string()),
                     target_cell_id: Some(target.to_string()),
+                    presentation: serde_json::Map::new(),
                 })
                 .collect(),
+            presentation: serde_json::Map::new(),
         }
     }
 
@@ -733,6 +789,10 @@ mod tests {
             protocol: PROTOCOL,
             sequence: 1,
             world_id: "test-world".into(),
+            source: Some(PresentationSource {
+                kind: "live".into(),
+                connected: true,
+            }),
             current_room_id: current_room_id.into(),
             cells,
             active_room: RoomSnapshot(json!({})),
@@ -740,6 +800,121 @@ mod tests {
             ground_items: vec![],
             player: None,
         }
+    }
+
+    #[test]
+    fn source_state_survives_transport_and_gates_game_actions() {
+        let mut snap = snapshot("1-14", vec![cell("1-14", vec![("north", "1-13")])]);
+        assert!(source_allows_actions(&snap));
+        assert!(validate_walk(&snap, "1-14", "north").is_ok());
+        let value = serde_json::to_value(&snap).unwrap();
+        assert_eq!(value["source"]["kind"], "live");
+        assert_eq!(value["source"]["connected"], true);
+        for (kind, connected) in [("demo", true), ("live", false), ("unknown", true)] {
+            snap.source = Some(PresentationSource {
+                kind: kind.into(),
+                connected,
+            });
+            assert!(!source_allows_actions(&snap));
+            assert_eq!(
+                validate_walk(&snap, "1-14", "north").unwrap_err(),
+                "live game source is not connected"
+            );
+        }
+        snap.source = None;
+        assert!(!source_allows_actions(&snap));
+    }
+
+    fn event() -> PresentationEvent {
+        PresentationEvent {
+            protocol: PROTOCOL,
+            sequence: 1,
+            room_id: "1-14".into(),
+            kind: "status-change".into(),
+            source_entity_id: None,
+            target_entity_id: None,
+            authoritative_text: "stunned: active".into(),
+            range: None,
+        }
+    }
+
+    #[test]
+    fn concurrent_publishers_deliver_one_native_order_even_after_frontend_reload() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let (_, mut reader) = connect(listener.local_addr().unwrap().port());
+        reader
+            .get_ref()
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        let (writer, _) = listener.accept().unwrap();
+        let state = Arc::new(PresentationBridgeState::default());
+        state.clients.lock().unwrap().push((1, writer));
+        let publishers: Vec<_> = (0..16)
+            .map(|_| {
+                let state = Arc::clone(&state);
+                std::thread::spawn(move || publish_event(&state, event()).unwrap())
+            })
+            .collect();
+        for sequence in 1..=16 {
+            let received = read_json(&mut reader);
+            assert_eq!(received["sequence"], sequence);
+            assert_eq!(received["type"], "event");
+        }
+        let mut accepted: Vec<_> = publishers
+            .into_iter()
+            .map(|thread| thread.join().unwrap())
+            .collect();
+        accepted.sort();
+        assert_eq!(accepted, (1..=16).collect::<Vec<_>>());
+        assert_eq!(publish_event(&state, event()).unwrap(), 17);
+        assert_eq!(read_json(&mut reader)["sequence"], 17);
+    }
+
+    #[test]
+    fn reconnect_snapshot_carries_current_event_cursor_not_its_snapshot_version() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let (mut client, mut reader) = connect(listener.local_addr().unwrap().port());
+        reader
+            .get_ref()
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        let state = Arc::new(PresentationBridgeState::default());
+        let mut snap = snapshot("1-14", vec![cell("1-14", vec![])]);
+        snap.sequence = 90;
+        *state.latest_snapshot.lock().unwrap() = Some(snap);
+        for _ in 0..4 {
+            publish_event(&state, event()).unwrap();
+        }
+        let server = std::thread::spawn({
+            let state = Arc::clone(&state);
+            move || {
+                let (stream, _) = listener.accept().unwrap();
+                handle_client(
+                    stream,
+                    Arc::clone(&state.clients),
+                    state,
+                    "test-token",
+                    &AtomicU64::new(1),
+                    |_, _| {},
+                );
+            }
+        });
+        assert_eq!(read_json(&mut reader)["type"], "hello");
+        send_json(&mut client, &json!({"type": "auth", "token": "test-token"})).unwrap();
+        assert_eq!(read_json(&mut reader)["type"], "auth_ok");
+        let received = read_json(&mut reader);
+        assert_eq!(received["sequence"], 90);
+        assert_eq!(received["eventSequence"], 4);
+        // The publication lock makes registration follow the watermark write.
+        // Wait by taking that same lock, never an arbitrary sleep.
+        {
+            let _cursor = state.event_sequence.lock().unwrap();
+            assert_eq!(state.clients.lock().unwrap().len(), 1);
+        }
+        assert_eq!(publish_event(&state, event()).unwrap(), 5);
+        assert_eq!(read_json(&mut reader)["sequence"], 5);
+        client.shutdown(std::net::Shutdown::Both).unwrap();
+        server.join().unwrap();
     }
 
     /// The one real check this whole module exists to run, per the module
@@ -854,6 +1029,24 @@ mod tests {
         );
         assert!(v.get("groundItems").is_some(), "missing groundItems: {v}");
         assert!(v.get("world_id").is_none(), "leaked snake_case field: {v}");
+    }
+
+    #[test]
+    fn live_board_content_and_exit_enrichment_survive_native_transport() {
+        let incoming = json!({
+            "id": "1-14", "title": "A stone chamber",
+            "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+            "board": {"footprint": {"width": 4.4, "depth": 4.4}, "spawnPoints": [{"role": "player", "rigSocket": "humanoid-root"}]},
+            "content": {"groundKind": "interior", "spatialMode": "interior-cutaway", "primitives": [{"kind": "tree", "offset": {"x": 1, "z": 1}}]},
+            "exits": [{"move": "north", "direction": "north", "targetRoomId": 13, "targetCellId": "1-13", "tetherKind": "road", "boardAnchor": {"x": 0, "z": -2.5}}]
+        });
+        let parsed: WorldCell = serde_json::from_value(incoming.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&parsed).unwrap(), incoming);
+        let snap = snapshot("1-14", vec![parsed]);
+        let frame = snapshot_frame(&snap, 3).unwrap();
+        assert_eq!(frame["cells"][0], incoming);
+        assert!(validate_walk(&snap, "1-14", "north").is_ok());
+        assert!(validate_walk(&snap, "1-14", "invented").is_err());
     }
 
     /// The publish path deserializes a snapshot into this struct and then

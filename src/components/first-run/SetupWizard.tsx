@@ -89,8 +89,18 @@ export function SetupWizard() {
     running: false,
     known: false,
   })
-  // Stamped when the check starts, not during render.
-  const startedAt = useRef(0)
+  const checksAllowed = useRef(true)
+  const checkGeneration = useRef(0)
+  const pendingEntry = useRef<number | undefined>(undefined)
+  const cancelCheck = useCallback(() => {
+    checkGeneration.current++
+    window.clearTimeout(pendingEntry.current)
+  }, [])
+
+  const stopChecks = useCallback(() => {
+    checksAllowed.current = false
+    cancelCheck()
+  }, [cancelCheck])
 
   /**
    * Leave setup and attach the bridge in whatever mode is configured.
@@ -107,32 +117,43 @@ export function SetupWizard() {
    * behaviour change: it called exactly this.
    */
   const enter = useCallback(() => {
+    stopChecks()
     setSetupComplete(true)
     connectBridge()
-  }, [setSetupComplete, connectBridge])
+  }, [setSetupComplete, connectBridge, stopChecks])
 
   const check = useCallback(async () => {
+    if (!checksAllowed.current) return
     if (!isTauri()) {
       setPhase('browser')
       return
     }
+    cancelCheck()
+    const request = checkGeneration.current
+    const current = () => request === checkGeneration.current
+    const startedAt = Date.now()
     setPhase('checking')
     setCheckError(null)
-    startedAt.current = Date.now()
     try {
       const p = await planSetup()
-      setPlan(p)
-      setDataDir(await appDataPath())
+      if (!current()) return
+      const directory = await appDataPath()
+      if (!current()) return
       // E11. One tasklist call, so it rides along with the check rather than
       // getting its own button. Its own command, not a field on lich_status,
       // because that one takes about five seconds.
-      setConflict(await frontendConflictStatus())
+      const conflictStatus = await frontendConflictStatus()
+      if (!current()) return
+      setPlan(p)
+      setDataDir(directory)
+      setConflict(conflictStatus)
 
       // Do not flash the title screen. If the check was instant, let it be
       // seen for a beat rather than blinking past.
-      const elapsed = Date.now() - startedAt.current
+      const elapsed = Date.now() - startedAt
       const wait = Math.max(0, 900 - elapsed)
-      window.setTimeout(() => {
+      pendingEntry.current = window.setTimeout(() => {
+        if (!current()) return
         if (p?.ready && !reopened) {
           addLog('All dependencies found. Connecting.')
           enter()
@@ -141,6 +162,7 @@ export function SetupWizard() {
         }
       }, wait)
     } catch (e) {
+      if (!current()) return
       // Keep the reason. Without it this screen has nothing to say beyond a
       // count of zero, which is what it used to show.
       const msg = e instanceof Error ? e.message : String(e)
@@ -149,11 +171,13 @@ export function SetupWizard() {
       setCheckError(msg)
       setPhase('plan')
     }
-  }, [addLog, enter, reopened])
+  }, [addLog, enter, reopened, cancelCheck])
 
   useEffect(() => {
+    checksAllowed.current = true
     void check()
-  }, [check])
+    return stopChecks
+  }, [check, stopChecks])
 
   // Progress events from the native downloader.
   useEffect(() => {

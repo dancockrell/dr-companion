@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { WorldViewerControl } from './WorldViewerControl.tsx'
 import { RoomScene, sceneMaxWidthVh } from './RoomScene.tsx'
 
 /**
@@ -257,6 +258,7 @@ export function BattleColumn() {
       onPointerUp={battleScroll.onPointerUp}
       onPointerCancel={battleScroll.onPointerCancel}
     >
+      <WorldViewerControl />
       {/* The pulse lives on this wrapper, not inside RoomScene — RoomScene
           is shared with the legacy composed column and a caller that only
           wants a picture should not have to know about room-transition

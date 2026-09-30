@@ -26,7 +26,7 @@ const MAX_RECONNECT_ATTEMPTS: int = 5
 const RECONNECT_BASE_DELAY_MS: int = 250
 const TOKEN_FILE := "presentation-bridge.token"
 const PORT_FILE := "presentation-bridge.port"
-const EVENT_KINDS := ["enter", "leave", "advance", "retreat", "attack", "hit", "miss", "parry", "evade", "block", "cast", "death", "item-drop"]
+const EVENT_KINDS := ["enter", "leave", "advance", "retreat", "attack", "hit", "miss", "parry", "evade", "block", "cast", "death", "item-drop", "status-change"]
 
 ## True until a real Tauri/Rust WebSocket bridge is wired in. Nothing outside
 ## this file should ever need to branch on this — `request_snapshot`/
@@ -49,6 +49,8 @@ var _config_dir := ""
 var _retry_at_ms := 0
 var _reconnect_attempt := 0
 var _recovering := false
+# Opt-in sample data is never used by ordinary mock clients or live mode.
+var _demo_session: Dictionary = {}
 
 func _ready() -> void:
 	set_process(false)
@@ -87,6 +89,14 @@ func _process(_delta: float) -> void:
 ## port/token files. The token is shape-checked and is never emitted or logged.
 func start_live(config_dir: String = "") -> bool:
 	disconnect_live()
+	_demo_session.clear()
+	# Selecting live mode must never retain a previous demo session, even
+	# when local configuration is missing and the connection cannot begin.
+	mock_mode = false
+	current_snapshot = {}
+	_current_room_id = ""
+	_sequence = 0
+	EventPlayer.reset_to(0)
 	var directory := config_dir
 	if directory.is_empty():
 		var local_data := OS.get_environment("LOCALAPPDATA")
@@ -145,9 +155,14 @@ func _close_live_socket() -> void:
 ## is "connect and receive the first WorldSnapshot from Tauri" — this is the
 ## same event from the rest of the viewer's point of view, just sourced
 ## locally instead of over the socket.
-func start_mock(world_id: String, starting_room_id: String) -> bool:
+func start_mock(world_id: String, starting_room_id: String, demo_samples: bool = false) -> bool:
 	disconnect_live()
 	mock_mode = true
+	_demo_session.clear()
+	if demo_samples:
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string("res://mock/demo_session.json"))
+		if parsed is Dictionary:
+			_demo_session = parsed
 	if not WorldManifestLoader.is_loaded():
 		push_error("BridgeClient.start_mock called before a manifest was loaded")
 		return false
@@ -184,10 +199,17 @@ func simulate_reconnect() -> Dictionary:
 ## of applying anything locally and waits for the game's own confirmation;
 ## this function's signature and return shape are what stays the same
 ## across that swap.
+func can_send_live_intents() -> bool:
+	var source = current_snapshot.get("source")
+	return not mock_mode and _authenticated and source is Dictionary and source.get("kind") == "live" and source.get("connected") == true
+
 func send_intent(intent: Dictionary) -> Dictionary:
 	if not mock_mode:
 		if not _authenticated:
 			intent_rejected.emit(intent, "presentation bridge is not authenticated")
+			return current_snapshot
+		if intent.get("kind") in ["walk", "travel-to-room"] and not can_send_live_intents():
+			intent_rejected.emit(intent, "live game source is not connected")
 			return current_snapshot
 		if not _send_live_json(intent):
 			intent_rejected.emit(intent, "presentation bridge write failed")
@@ -282,7 +304,10 @@ func _accept_live_message(message: Dictionary) -> void:
 			current_snapshot = message.duplicate(true)
 			_sequence = int(message.get("sequence", 0))
 			_current_room_id = str(message.get("currentRoomId", ""))
-			EventPlayer.reset_to(_sequence)
+			# Snapshot versions and event playback are separate streams. The
+			# native bridge stamps the cursor atomically with delivery, including
+			# events accepted since its last stored snapshot on reconnect.
+			EventPlayer.reset_to(int(message.get("eventSequence", 0)))
 			_reconnect_attempt = 0
 			if _recovering:
 				_recovering = false
@@ -371,16 +396,21 @@ func _find_exit(cell_id: String, exit_move: String) -> Dictionary:
 
 func _build_snapshot(world_id: String, room_id: String) -> Dictionary:
 	_sequence += 1
-	var active_room: Dictionary = WorldManifestLoader.get_cell(room_id)
+	var active_room: Dictionary = WorldManifestLoader.get_cell(room_id).duplicate(true)
+	var sample: Dictionary = _demo_session.get("rooms", {}).get(room_id, {}) if mock_mode else {}
+	if sample.has("description"):
+		active_room.description = sample.description
 	return {
 		"protocol": PROTOCOL,
 		"sequence": _sequence,
 		"worldId": world_id,
+		"source": {"kind": "demo", "connected": false, "sample": not _demo_session.is_empty()},
 		"currentRoomId": room_id,
 		"cells": WorldManifestLoader.cells.values(),
 		"activeRoom": active_room,
-		# No live entity/ground-item source exists yet in this slice — an
-		# empty array is the honest state, never an invented occupant.
-		"entities": [],
-		"groundItems": [],
+		# Sample occupants are explicitly opted into by the standalone demo.
+		# Ordinary mock clients remain empty; live snapshots come from TCP.
+		"entities": sample.get("entities", []).duplicate(true),
+		"groundItems": sample.get("groundItems", []).duplicate(true),
+		"player": _demo_session.get("player") if mock_mode else null,
 	}

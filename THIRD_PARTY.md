@@ -57,10 +57,12 @@ bundler, the type system and the CSS toolchain all contribute to what ships.
 |---|---|---|
 | `@tailwindcss/vite` | 4.3.3 | MIT |
 | `@tauri-apps/cli` | 2.11.4 | Apache-2.0 OR MIT |
+| `@testing-library/react` | 16.3.3 | MIT |
 | `@types/node` | 26.4.1 | MIT |
 | `@types/react` | 19.2.18 | MIT |
 | `@types/react-dom` | 19.2.7 | MIT |
 | `@vitejs/plugin-react` | 6.1.1 | MIT |
+| `jsdom` | 30.1.1 | MIT |
 | `oxlint` | 1.81.0 | MIT |
 | `tailwindcss` | 4.3.3 | MIT |
 | `typescript` | 6.0.3 | Apache-2.0 |

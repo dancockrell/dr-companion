@@ -11,7 +11,8 @@
   "generatedFrom": {
     "source": "data/world/out/1-primitive-world.json",
     "generator": "tools/build-godot-mock-fixture.mjs",
-    "note": "Slice 0 mock fixture: The Crossing, Town Green North plus a depth-2 neighborhood, for the checked-in Godot mock mode. Not the full Crossing manifest."
+    "note": "Offline DragonRealms reference rooms. IDs, positions and exits come from the checked-in room graph; descriptions are reference prose, not a live game session.",
+    "descriptionSource": "data/art/room-prompts-priority.json: lore from source=description records only"
   },
   "cells": [
     {
@@ -239,7 +240,14 @@
           "targetRoomId": 467,
           "targetCellId": "1-467"
         }
-      ]
+      ],
+      "description": "A small path of bent grass leads to a narrow stretch of cobblestones between the grass and the privet hedge that stands before Milgrym the Weaponsmith's. The town's main source of serviceable arms, Milgrym does a good trade and has a solid reputation. The stream of customers, though steady, seems careful not to disturb the usual tranquility of the facing greensward.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Town Green North",
+        "sha256": "f73bd5e2ac6e412c02fb053987ead2987d48a2c87a25f8b4090fcf6301e9aab0"
+      }
     },
     {
       "id": "1-12",
@@ -434,7 +442,14 @@
           "targetRoomId": 13,
           "targetCellId": "1-13"
         }
-      ]
+      ],
+      "description": "This small lane off of Clanthew Boulevard narrows to the south and grows wider as it leads north into the main road, giving it a shape reminiscent of the blade of a huge greatsword. Due south you can see the verdant border of the Town Green and the shops of the Weaponsmith and Armorer. To the northeast is the dome of the Champions' Arena and to the west, the three-story colonnades of the Academy dominate the skyline.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Via Iltesh",
+        "sha256": "27e2f01461140dc47934727358e3e9d733016b37dcc794164154a510d01c5d52"
+      }
     },
     {
       "id": "1-13",
@@ -841,7 +856,14 @@
           "targetRoomId": 377,
           "targetCellId": "1-377"
         }
-      ]
+      ],
+      "description": "This tranquil corner of the Green has a small bower of entwined modwyn vines, laden with tempting, grape-like clusters. A limestone bench and some sawed-off sections of trees that serve as rustic stools make up an open-air performance space, where bards, musicians and poets can demonstrate their talents.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Town Green Southeast",
+        "sha256": "352586dc0dc77d00d07cccd8709d7f18b34829d6452bb7ff4bf7502c29e39009"
+      }
     },
     {
       "id": "1-16",
@@ -1056,7 +1078,14 @@
           "targetRoomId": 225,
           "targetCellId": "1-225"
         }
-      ]
+      ],
+      "description": "A gap in the stand of lunat trees leads south into Lunat Shade Road. In that general direction lie Berolt's Dry Goods, the Town Hall, the soaring presence of the Temple, the Provincial Bank and other key structures. A few loafers loll on the grass, watching those entering and leaving the Green. Sparrows, jays and other birds call to one another from the treetops, flitting back and forth between their nests and roosts in the dense hedges bordering the park.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Town Green South",
+        "sha256": "a0e1b5cd1070402bda4a3a8ec2e1e8e155edd885747b5bbc3c14099ea2dbf788"
+      }
     },
     {
       "id": "1-17",
@@ -1274,7 +1303,14 @@
           "targetRoomId": 853,
           "targetCellId": "1-853"
         }
-      ]
+      ],
+      "description": "The cool, welcome expanse of the Town Green is a pleasant place to gather and exchange news, gossip and adventuring pointers with all the folk and races of Elanthia who are drawn to town. A soft, spongy carpet of well-manicured grass underfoot affords a comfortable cushion for sitting or sprawling out to enjoy a rare moment of rest in the warm sun. An ancient oak tree provides shelter for those so inclined.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Town Green Northeast",
+        "sha256": "bf4bf4c9cfbd91f7ec4902bd632ceb315fd41477cd6d864beeae0b66be47f665"
+      }
     },
     {
       "id": "1-22",
@@ -1469,7 +1505,14 @@
           "targetRoomId": 20,
           "targetCellId": null
         }
-      ]
+      ],
+      "description": "This cobbled street connects the Town Green with the streets leading to Academy Asemath and the shops, inns and eateries that cluster around it. Old stone residences line the walkway, making it more like a court than a through street. Your footsteps echo off their unyielding, secretive facades.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Manciple Cobble",
+        "sha256": "ad07acd79b6a96794680cac4d6f4fa7b0b9185f42c31c110729ab0e38427e4c0"
+      }
     },
     {
       "id": "1-23",
@@ -1674,7 +1717,14 @@
           "targetRoomId": 22,
           "targetCellId": "1-22"
         }
-      ]
+      ],
+      "description": "The hedgerow to the west meets the row of tall lunat trees that separates the Town Green from the commercial traffic on Lunat Shade Road due south. The growth is especially dense here, with no way to slip past either of the living fences. The small thorns on the hedges, to keep out stray livestock in search of prime pasture, look daunting in any case.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Town Green Southwest",
+        "sha256": "a81dbac1f7408d93ed920e32b57805953fd8d6925bfe6ee35cc121b5bcfcb23e"
+      }
     },
     {
       "id": "1-24",
@@ -2675,7 +2725,14 @@
           "targetRoomId": 192,
           "targetCellId": "1-192"
         }
-      ]
+      ],
+      "description": "The entrance to Tembeg's Armory is through a hacked-out breach in the thick hedges that border the Green here. Tembeg, being a humble sort, has laid down a few planks leading into his establishment to serve as a walkway. Samples of his work are hung on hooks on the exterior of the unpainted wood structure but no sign or other eye-catching gimmicks are noticeable.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Town Green Northwest",
+        "sha256": "4b6facaa5a85d1462204a5dcf268f416ed5d9f5c0122aff520df511ceb89363e"
+      }
     },
     {
       "id": "1-264",
@@ -3075,7 +3132,14 @@
           "targetRoomId": 348,
           "targetCellId": null
         }
-      ]
+      ],
+      "description": "The roof of this small, quaint chapel reaches a steep peak overhead, its beams of blond ash polished to a loving glow. The floor is simply covered with a thin length of burgundy carpet that leads up to a square altar, located against the western wall. A shining window of multi-colored stained glass rises up behind the altar, catching the light to transmute it into a cascading glory of rainbowed light that spills over everything in its path like a gift from the heavens.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Chapel",
+        "sha256": "42112fec705e13a4b9dc0e5439989a9e2a0f27b6ddaba2f1bf79352205301706"
+      }
     },
     {
       "id": "1-371",
@@ -3271,7 +3335,14 @@
           "targetRoomId": 15,
           "targetCellId": "1-15"
         }
-      ]
+      ],
+      "description": "Trampled grass and a pair of lingering mud puddles mar the once lush lawn surrounding the amphitheater. Pickaxes and shovels lean against tables full of supplies, behind which sits a surly-looking Dwarf.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Supply Stand",
+        "sha256": "40ba1666ebd6b1490c65291f7329a55336f1f91ed6cb5f2ee00109596b0ea4b6"
+      }
     },
     {
       "id": "1-377",
@@ -3468,7 +3539,14 @@
           "targetRoomId": 15,
           "targetCellId": "1-15"
         }
-      ]
+      ],
+      "description": "A sprawling lawn provides seating for those individuals wishing to listen to the discussion in the amphitheater while not wanting to be limited to the restrictions of the seating area.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::The Back Lawn",
+        "sha256": "4941c1e4ab673537989affc8345ce2501abb091afb4a20b4c867d57faeed5b3b"
+      }
     },
     {
       "id": "1-379",
@@ -3683,7 +3761,14 @@
           "targetRoomId": 17,
           "targetCellId": "1-17"
         }
-      ]
+      ],
+      "description": "Some ramshackle stalls and tattered tents comprise the informal flea market known as Mongers' Bazaar. The springy grass of the Green has been trampled into foot-sucking muck by folk seeking bargains, black-market goods, or unusual trinkets. Exotic items of rare power and value are sometimes sold here by the itinerant vendors who flock to The Crossing from all corners of Elanthia.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Mongers' Bazaar",
+        "sha256": "d67e61bfe6e92faa725a575bcfadb8f1ae6e675dc8b9d3f4389f73470393c1de"
+      }
     },
     {
       "id": "1-467",
@@ -4062,7 +4147,14 @@
           "role": "shell"
         }
       ],
-      "exits": []
+      "exits": [],
+      "description": "This lengthy passageway is clogged with knife-sized bits of sharp debris. Overhead several massive boulders block out most of the light, and the din of town traffic is reduced to a surflike roar. No one stops to glance down between the chinks of rubble, leaving your travels unnoticed and undisturbed.",
+      "descriptionSource": {
+        "kind": "reference",
+        "game": "DragonRealms",
+        "sourceId": "1::Underground Passageway",
+        "sha256": "48afe6c14d28506fd215144a85743c4527a641c6adc527ab8942e23f92f26869"
+      }
     }
   ]
 }

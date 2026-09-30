@@ -42,6 +42,16 @@ func _initialize() -> void:
 	_ok("an action lock visibly outranks ordinary ready state", CombatPresentation.player_color({"cannotAct": true, "health": 1.0}) != CombatPresentation.player_color({"cannotAct": false, "health": 1.0}))
 	_ok("wiki action is an encoded Elanthipedia search", CombatPresentation.elanthipedia_search_url("a wild boar") == "https://elanthipedia.play.net/Special:Search?search=a%20wild%20boar")
 
+	var clock := CombatPresentation.roundtime_clock_start
+	_ok("an unchanged RT observation preserves monotonic start", clock.call({"roundtime": 5}, {"roundtime": 5, "health": 0.4}, 1000, 5000, 100000.0) == 1000)
+	_ok("a changed RT measurement starts a new local fallback clock", clock.call({"roundtime": 5}, {"roundtime": 3}, 1000, 5000, 100000.0) == 5000)
+	_ok("source observation age is subtracted once", clock.call(null, {"roundtime": 5, "roundtimeObservedAt": 96000}, 0, 5000, 100000.0) == 1000)
+	_ok("same-value fresh status starts its own observed deadline", clock.call({"roundtime": 5, "roundtimeObservedAt": 96000}, {"roundtime": 5, "roundtimeObservedAt": 100000}, 1000, 5000, 100000.0) == 5000)
+	_ok("a repeated observation ignores later wall-clock changes", clock.call({"roundtime": 5, "roundtimeObservedAt": 96000}, {"roundtime": 5, "roundtimeObservedAt": 96000}, 1000, 5500, 999000.0) == 1000)
+	_ok("expired source observations remain expired on reconnect", clock.call(null, {"roundtime": 5, "roundtimeObservedAt": 90000}, 0, 5000, 100000.0) == 0)
+	_ok("future clock skew cannot extend RT beyond its measured duration", clock.call(null, {"roundtime": 5, "roundtimeObservedAt": 101000}, 0, 5000, 100000.0) == 5000)
+	_ok("unknown player state discards the old clock", clock.call({"roundtime": 5}, null, 1000, 5000, 100000.0) == 5000)
+
 	print("%d checked, %d failed" % [_checked, _failed])
 	quit(1 if _failed > 0 else 0)
 

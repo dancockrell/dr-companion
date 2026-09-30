@@ -604,14 +604,17 @@ console.log('\n-- status changes: both directions, once each, in order --')
     situationChanges([], ['immobilized', 'stunned']).map((c) => c.flag).join(','))
 }
 
-console.log('\n-- the host is the caller publish_presentation_event never had --')
+console.log('\n-- confirmed presentation events are independent of the AI host --')
 {
   const { readFileSync } = await import('node:fs')
   const src = readFileSync(HOST_SRC, 'utf8')
-  ok('the host imports the publisher', src.includes('publishPresentationEvent'), '')
-  ok('and calls it on a status change', /situationChanges\(/.test(src))
-  ok("with kind 'status-change'", src.includes("kind: 'status-change'"))
-  ok('carrying the flag as the authoritative text', src.includes('authoritativeText: change.flag'))
+  const presentation = readFileSync('src/lib/usePresentationBridgePublisher.ts', 'utf8')
+  const normalizer = readFileSync('src/lib/presentationEvents.ts', 'utf8')
+  ok('the AI host no longer controls viewer event publication', !src.includes('publishPresentationEvent'))
+  ok('the main presentation path owns normalization and dispatch', presentation.includes('normalizeIndicatorEvents(') && presentation.includes('await publishPresentationEvent(event)'))
+  ok("confirmed indicator transitions use kind 'status-change'", normalizer.includes("kind: 'status-change'"))
+  ok('normalized indicator provenance covers active and cleared', normalizer.includes("after === 'on' ? 'active' : 'cleared'"))
+  ok('normalized events use the confirmed observation room', normalizer.includes('roomId: observation.roomId'))
   const client = readFileSync('src/lib/viewerClient.ts', 'utf8')
   ok('and the publisher really invokes the Rust command',
     client.includes("invokeTauri('publish_presentation_event'"), '')

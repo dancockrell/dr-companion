@@ -187,13 +187,19 @@ export interface GroundItemSnapshot {
   name: string
 }
 
+export interface PresentationSource {
+  kind: 'demo' | 'live'
+  connected: boolean
+}
+
 export interface WorldSnapshot {
   protocol: 1
   sequence: number
   worldId: string
+  source?: PresentationSource
   currentRoomId: string
   cells: WorldCell[]
-  activeRoom: { id: string; title: string }
+  activeRoom: { id: string; title: string; description?: string }
   entities: EntitySnapshot[]
   groundItems: GroundItemSnapshot[]
   /** The character's own combat state. Null before any status has been
@@ -237,6 +243,8 @@ export interface PlayerSnapshot {
   /** Seconds left of roundtime, or null when unknown. The only real clock
    * in this snapshot - no other state here has a duration. */
   roundtime: number | null
+  /** Local epoch milliseconds when the bridge status was received. */
+  roundtimeObservedAt?: number
   /** Health as a 0-1 fraction, or null when `healthMax` is missing or zero
    * (absent, not "full"). */
   health: number | null
