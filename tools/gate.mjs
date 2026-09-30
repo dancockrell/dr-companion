@@ -282,17 +282,11 @@ const STAGES = [
     args: [resolve(root, 'tools', 'first-screen-break-check.mjs')],
   },
   {
-    name: 'break-doc-claims',
-    shell: false,
-    cmd: process.execPath,
-    args: [resolve(root, 'tools', 'doc-claims-break-check.mjs')],
-  },
-  {
     // The negative suite for the rule that no string a player reads names a
     // Tauri command, a Rust internal or a retired route (#528). In the gate
     // rather than in NOT_COVERED because it is seconds rather than minutes and
     // runs no compiler between its edits, so the window in which another
-    // session could build a damaged file is the same one `break-doc-claims`
+    // session could build a damaged file is the same one `break-first-screen`
     // already accepts. It restores every file it touches and verifies the
     // restore by md5.
     name: 'break-ui-jargon',
@@ -418,7 +412,9 @@ const STAGES = [
  * and named in this file's own header: adding a stage should require saying so
  * here, and losing one must never be quiet.
  */
-const EXPECTED_STAGES = 16
+// Documentation-only claim checks were removed with the retired documentation.
+// Keep all executable product checks; do not invoke a deleted script.
+const EXPECTED_STAGES = 15
 
 /** Stages this gate knowingly does not cover, printed every run so the gap is
  * a stated fact rather than something a reader has to notice is missing. */

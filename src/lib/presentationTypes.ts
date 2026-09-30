@@ -193,7 +193,7 @@ export interface WorldSnapshot {
   worldId: string
   currentRoomId: string
   cells: WorldCell[]
-  activeRoom: { id: string; title: string }
+  activeRoom: { id: string; title: string; description?: string }
   entities: EntitySnapshot[]
   groundItems: GroundItemSnapshot[]
   /** The character's own combat state. Null before any status has been

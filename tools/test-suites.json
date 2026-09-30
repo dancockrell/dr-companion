@@ -172,5 +172,9 @@
   "test:game-connection-owner",
   "test:session-source",
   "test:attach-states",
-  "test:sound-actions"
+  "test:sound-actions",
+  "test:world-viewer-control",
+  "test:mindstate-board",
+  "test:idle-warning",
+  "test:setup-lifecycle"
 ]

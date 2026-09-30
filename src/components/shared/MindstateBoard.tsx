@@ -106,11 +106,16 @@ function band(mindstate: number) {
 // prop stays rather than becoming a type error in an already-orphaned file.
 export function MindstateBoard({
   skills,
+  skillsReady,
   dense: _dense = false,
 }: {
   skills: SkillState[]
+  skillsReady?: boolean
   dense?: boolean
 }) {
+  if (skillsReady === false) {
+    return <p role="status" className="p-1 text-xs text-ink-muted">Waiting for skills from the game…</p>
+  }
   if (!skills.length) {
     return <p className="text-sm text-ink-faint">No skills reported yet.</p>
   }
@@ -124,6 +129,11 @@ export function MindstateBoard({
 
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-1 px-1 text-xs text-ink-faint" aria-hidden="true">
+        <span className="min-w-0 flex-1">Skill</span><span className="w-10 text-right">Rank</span><span className="w-10 text-right">Pool</span>
+      </div>
+      <p className="px-1 text-xs leading-snug text-ink-muted">Pool 0–34 · 34 = mind lock</p>
+      {ordered.every((skill) => skill.mindstate === 0) && <p role="status" className="px-1 text-xs leading-snug text-ink-muted">All learning pools are empty. Ranks are your permanent skill levels.</p>}
       {/* One column, always — not a grid that reflows into two or three
           depending on how much width the pane happens to have. This board
           reads top-to-bottom by skillset order (see `ordered` above); a
@@ -149,14 +159,15 @@ ${band(s.mindstate).why}`}
                   opacity: 0.32,
                 }}
               />
-              <span className="relative truncate text-xs text-ink">{s.name}</span>
+              <span className="relative min-w-0 flex-1 truncate text-xs text-ink">{s.name}</span>
+              <span className="relative w-10 shrink-0 text-right text-xs tabular-nums text-ink-muted" aria-label={`${s.name} rank ${Math.floor(s.ranks)}`}>{Math.floor(s.ranks)}</span>
               <span
                 className={cn(
-                  'relative shrink-0 text-xs tabular-nums',
+                  'relative w-10 shrink-0 text-right text-xs tabular-nums',
                   atLock ? 'text-danger' : 'text-ink-muted'
                 )}
               >
-                {s.mindstate}
+                {s.mindstate}/34
               </span>
             </div>
           )

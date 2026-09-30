@@ -44,9 +44,12 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useAppStore } from '../store/useAppStore.ts'
 import { justReconnected, publishWorldSnapshotIfChanged } from './presentationBridge.ts'
+import { subscribeGame, streamCharacterState } from './gameLink.ts'
 import { sceneOverridesRevision, subscribeSceneOverrides } from './sceneOverrides.ts'
 
 export function usePresentationBridgePublisher(enabled: boolean): void {
+  const stream = useSyncExternalStore(subscribeGame, streamCharacterState, streamCharacterState)
+  const liveRoom = stream.roomPresentation?.value ?? null
   const zone = useAppStore((s) => s.mapZone)
   const here = useAppStore((s) => s.mapHere)
   const character = useAppStore((s) => s.character)
@@ -81,6 +84,6 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
     publishedRevision.current = sceneRevision
     const force = justReconnected(bridgeConnected, wasConnected.current) || sceneEdited
     wasConnected.current = bridgeConnected
-    void publishWorldSnapshotIfChanged({ zone, here, character, inventory }, force)
-  }, [enabled, zone, here, character, inventory, bridgeConnected, sceneRevision])
+    void publishWorldSnapshotIfChanged({ zone, here, character, inventory, liveRoom }, force)
+  }, [enabled, zone, here, character, inventory, liveRoom, bridgeConnected, sceneRevision])
 }

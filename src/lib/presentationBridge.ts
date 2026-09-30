@@ -95,6 +95,7 @@ import {
   type SceneRefusal,
 } from './sceneOverrides.ts'
 import { invokeTauri } from './tauri.ts'
+import type { LiveRoomPresentation } from '../types/stream.ts'
 import type {
   Vec3,
   WorldExit,
@@ -245,6 +246,7 @@ export function compileWorldSnapshot(params: {
   zone: MapZone | null
   here: MapRoom | null
   character: CharacterStatus | null
+  liveRoom?: LiveRoomPresentation | null
   /**
    * Optional because appearance is enrichment: what the character is wearing
    * comes from `InventorySummary.worn`, which is a separate store field and a
@@ -408,7 +410,14 @@ export function compileWorldSnapshot(params: {
     worldId: zoneId,
     currentRoomId: currentCellId,
     cells,
-    activeRoom: { id: currentCellId, title: currentCell.title },
+    activeRoom: {
+      id: currentCellId,
+      title: currentCell.title,
+      // The stream clears at navigation. Withhold description while its title
+      // and the independently arriving map room disagree during a transition.
+      ...(params.liveRoom?.title?.trim() === currentCell.title.trim() && params.liveRoom.description.trim()
+        ? { description: params.liveRoom.description } : {}),
+    },
     entities,
     groundItems,
     player,
@@ -544,6 +553,7 @@ export async function publishWorldSnapshotIfChanged(
     zone: MapZone | null
     here: MapRoom | null
     character: CharacterStatus | null
+  liveRoom?: LiveRoomPresentation | null
     inventory?: InventorySummary | null
   },
   force = false

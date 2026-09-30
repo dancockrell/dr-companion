@@ -23,7 +23,7 @@ import { scrollableRegionProps } from '../../lib/scrollableRegion.ts'
  * pointer-capture/threshold logic) - "make it its own field grab and fling
  * up and down like our other scrolling."
  */
-export function ExperienceStrip({ skills }: { skills: SkillState[] }) {
+export function ExperienceStrip({ skills, skillsReady }: { skills: SkillState[]; skillsReady?: boolean }) {
   const { ref, dragging, onPointerDown, onPointerMove, onPointerUp, onPointerCancel } = useDragScroll()
 
   return (
@@ -39,7 +39,7 @@ export function ExperienceStrip({ skills }: { skills: SkillState[] }) {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      <MindstateBoard skills={skills} />
+      <MindstateBoard skills={skills} skillsReady={skillsReady} />
     </div>
   )
 }

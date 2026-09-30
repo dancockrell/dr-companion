@@ -21,9 +21,9 @@
  * their own - the kind of hidden dependency this app has been bitten by
  * before (see GamePane's own header on why the alert-sound effect exists in
  * the shape it does; the same effect is reproduced verbatim below). This
- * component renders nothing and costs nothing to keep mounted regardless of
- * whether anything is attached; it exists purely to make sure removing a
- * visible box was a layout change, not a feature deletion.
+ * component also owns the game's explicit idle warning (issue #546), which
+ * must remain visible even when no text panel is open. Otherwise it renders
+ * nothing, regardless of whether anything is attached.
  */
 import { useEffect, useRef } from 'react'
 import { gameState, subscribeGame } from '../../lib/gameLink.ts'
@@ -48,12 +48,10 @@ import { loadPrefs, savePrefs } from '../../lib/persistence.ts'
 import { getPlaylist } from '../../lib/playlists.ts'
 import { setMasterMuted } from '../../lib/audioMaster.ts'
 import { useAppStore } from '../../store/useAppStore.ts'
+import { IdleWarningBanner } from './IdleWarningBanner.tsx'
 
 export function GameSignals() {
-  // Kept for API parity with the effect this was copied from - not read
-  // directly, but the line subscription below already depends on the same
-  // underlying connection this establishes a view onto.
-  useSyncExternalStore(subscribeGame, gameState, gameState)
+  const link = useSyncExternalStore(subscribeGame, gameState, gameState)
   /**
    * The **raw** buffer, not the displayed one - issue #484.
    *
@@ -160,5 +158,5 @@ export function GameSignals() {
   // this being explicit that it is genuinely unused now.
   void hlNote
 
-  return null
+  return <IdleWarningBanner lines={lines} connected={link.connected} />
 }

@@ -61,6 +61,17 @@ console.log('-- compileWorldSnapshot: the honest-null cases --')
     compileWorldSnapshot({ zone: { ...ZONE, rooms: [ZONE.rooms[1]] }, here: HERE, character: null, sequence: 1 }) === null)
 }
 
+{
+  const input = { zone: ZONE, here: HERE, character: CHARACTER, sequence: 1 }
+  const matched = compileWorldSnapshot({ ...input, liveRoom: { title: 'The Crossing, Town Green North', description: 'A confirmed description.' } })
+  ok('matching authoritative room description reaches viewer', matched?.activeRoom.description === 'A confirmed description.')
+  const transitioning = compileWorldSnapshot({ ...input, liveRoom: { title: 'Another room', description: 'Wrong room.' } })
+  ok('room transition with mismatched title withholds stale description', transitioning?.activeRoom.description === undefined)
+  const cleared = compileWorldSnapshot({ ...input, liveRoom: null })
+  ok('navigation clear removes old room description', cleared?.activeRoom.description === undefined)
+  ok('description changes participate in snapshot deduplication', projectionKey(matched) !== projectionKey(cleared))
+}
+
 console.log('\n-- compileWorldSnapshot: a real snapshot --')
 {
   const snap = compileWorldSnapshot({ zone: ZONE, here: HERE, character: CHARACTER, sequence: 5 })
