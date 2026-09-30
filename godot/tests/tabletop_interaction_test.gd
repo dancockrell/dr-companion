@@ -27,6 +27,7 @@ func _run() -> void:
 	var intents: Array = []
 	sender.intent_created.connect(func(intent): intents.append(intent))
 	var original: Dictionary = bridge.current_snapshot.duplicate(true)
+	_ok("reference room renders description-backed features", scene.geometry.find_child("DescribedRoomFeatures", true, false) != null)
 	var fixture: Dictionary = original.duplicate(true)
 	fixture.activeRoom.description = "A confirmed green with a well-kept path."
 	fixture.player = {"health": 0.75, "roundtime": 0, "cannotAct": false}
@@ -37,6 +38,10 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	_ok("confirmed room description is visible", scene.room_description.text == fixture.activeRoom.description)
+	_ok("changed confirmed prose removes incompatible reference features", scene.geometry.find_child("DescribedRoomFeatures", true, false) == null)
+	scene.render_snapshot(original)
+	_ok("same-room reference recovery rebuilds grounded features", scene.geometry.find_child("DescribedRoomFeatures", true, false) != null)
+	scene.render_snapshot(fixture)
 	var timed: Dictionary = fixture.duplicate(true)
 	timed.player.roundtime = 5
 	scene.render_snapshot(timed)

@@ -70,6 +70,85 @@ func ground_details(parent: Node3D, origin: Vector3, width: float, depth: float,
 	parent.add_child(node)
 	return 72
 
+# A deliberately small verified recipe catalog. These dimensions and placements
+# are illustrative composition inside the display footprint, not game coordinates.
+const DESCRIBED_RECIPES := {
+	"1::Town Green North": {
+		"sha256": "f73bd5e2ac6e412c02fb053987ead2987d48a2c87a25f8b4090fcf6301e9aab0",
+		"features": ["cobblestones", "privet_hedge"],
+		"source": "data/art/room-prompts-priority.json:1::Town Green North:lore (source=description)",
+	}
+}
+
+func described_features(parent: Node3D, origin: Vector3, width: float, depth: float, cell: Dictionary) -> Array[String]:
+	var rendered: Array[String] = []
+	var provenance = cell.get("descriptionSource", {})
+	if not provenance is Dictionary or width <= 0.0 or depth <= 0.0:
+		return rendered
+	var source_id := str(provenance.get("sourceId", ""))
+	if not DESCRIBED_RECIPES.has(source_id):
+		return rendered
+	var recipe: Dictionary = DESCRIBED_RECIPES[source_id]
+	# Require both trustworthy provenance and the actual source prose. A stale
+	# source ID/hash must never apply a recipe to a changed live description.
+	if provenance.get("kind", "") != "reference" or provenance.get("game", "") != "DragonRealms":
+		return rendered
+	if provenance.get("sha256", "") != recipe.sha256 or str(cell.get("description", "")).sha256_text() != recipe.sha256:
+		return rendered
+	var root := Node3D.new()
+	root.name = "DescribedRoomFeatures"
+	root.position = origin
+	root.set_meta("presentation_only", true)
+	root.set_meta("source_id", source_id)
+	root.set_meta("source_sha256", recipe.sha256)
+	root.set_meta("source_record", recipe.source)
+	root.set_meta("arrangement", "representative cosmetic composition; no game coordinates")
+	parent.add_child(root)
+	var stones := Node3D.new()
+	stones.name = "DescribedCobblestones"
+	stones.set_meta("feature", "cobblestones")
+	root.add_child(stones)
+	# Presentation-only irregular flattened stones, in a narrow stretch.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 114
+	for row in range(3):
+		for column in range(12):
+			var position := Vector3((float(column) - 5.5) * width * 0.067 + rng.randf_range(-0.006, 0.006) * width, 0.055, depth * (0.23 + float(row) * 0.046) + rng.randf_range(-0.004, 0.004) * depth)
+			var tone := Color("555950").lightened(rng.randf_range(0.0, 0.065))
+			_cosmetic_cluster(stones, position, Vector3(width * rng.randf_range(0.058, 0.068), 0.065, depth * rng.randf_range(0.039, 0.048)), tone, 8)
+	var hedge := Node3D.new()
+	hedge.name = "DescribedPrivetHedge"
+	hedge.set_meta("feature", "privet_hedge")
+	root.add_child(hedge)
+	# Overlapping muted leaf masses read as one clipped hedge. Cluster texture
+	# is representative art, not additional vegetation facts from the source.
+	for section in range(12):
+		var height := minf(width, depth) * 0.135
+		for cluster in range(3):
+			var center := Vector3((float(section) - 5.5) * width * 0.067 + (float(cluster) - 1.0) * width * 0.019, height * (0.42 + float(cluster % 2) * 0.08) + 0.03, depth * (0.409 + float(cluster % 2) * 0.018))
+			_cosmetic_cluster(hedge, center, Vector3(width * 0.073, height * 0.94, depth * 0.092), Color("263b23").lightened(rng.randf_range(0.0, 0.04)), 9)
+	for feature in recipe.features:
+		rendered.append(str(feature))
+	root.set_meta("features", rendered.duplicate())
+	return rendered
+
+func _cosmetic_cluster(parent: Node3D, position: Vector3, size: Vector3, color: Color, segments: int) -> void:
+	var node := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.5
+	mesh.height = 1.0
+	mesh.radial_segments = segments
+	mesh.rings = 4
+	node.scale = size
+	node.mesh = mesh
+	node.position = position
+	node.set_meta("presentation_only", true)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 1.0
+	node.material_override = material
+	parent.add_child(node)
+
 func marker_texture(id: String, demo: bool, player: bool) -> Texture2D:
 	# A name/deck never guesses race, gender, equipment, or creature appearance.
 	# These existing portraits belong only to explicitly labelled sample IDs.

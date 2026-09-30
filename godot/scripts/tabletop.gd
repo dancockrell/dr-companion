@@ -486,7 +486,7 @@ func _rebuild_board() -> void:
 	var visible_cells: Array = []
 	for id in ids:
 		visible_cells.append(WorldManifestLoader.get_cell(id))
-	var next_signature := JSON.stringify({"mode": view_mode, "demo": BridgeClient.mock_mode, "room": current_room, "cells": visible_cells, "entities": snapshot.get("entities", []), "items": snapshot.get("groundItems", [])})
+	var next_signature := JSON.stringify({"mode": view_mode, "demo": BridgeClient.mock_mode, "room": current_room, "cells": visible_cells, "activeRoom": snapshot.get("activeRoom", {}), "entities": snapshot.get("entities", []), "items": snapshot.get("groundItems", [])})
 	if next_signature == board_signature:
 		return
 	board_signature = next_signature
@@ -515,7 +515,15 @@ func _rebuild_board() -> void:
 			_box(geometry, at + Vector3(0, -0.41, depth / 2 + 0.085), Vector3(width + 0.15, 0.018, 0.02), Color("817253"))
 			_box(geometry, at + Vector3(width / 2 + 0.085, -0.41, 0), Vector3(0.02, 0.018, depth + 0.15), Color("817253"))
 			if view_mode == "room":
-				diorama_art.ground_details(geometry, at, width, depth, _ground_kind(cell), int(str(id).hash()))
+				var described_cell: Dictionary = cell.duplicate(true)
+				var active: Dictionary = snapshot.get("activeRoom", {})
+				if str(active.get("id", "")) == current_room and not _description(active).is_empty():
+					# Current confirmed prose overrides reference art, including when
+					# its change invalidates a previously grounded scene recipe.
+					described_cell.description = _description(active)
+				var features: Array = diorama_art.described_features(geometry, at, width, depth, described_cell)
+				if features.is_empty():
+					diorama_art.ground_details(geometry, at, width, depth, _ground_kind(cell), int(str(id).hash()))
 		_pick_body(at + Vector3(0, -0.15, 0), Vector3(width, 0.4, depth), "room", id)
 		if view_mode != "room":
 			_overview_marker(at, str(id), GOLD if id == current_room else Color("8ab8cc"))
@@ -852,7 +860,7 @@ func _update_mode_controls() -> void:
 		control.visible = view_mode != "room"
 	for mode in mode_buttons:
 		mode_buttons[mode].set_pressed_no_signal(mode == view_mode)
-	var hint := "Click to inspect • Wheel zoom • Right drag orbit • Middle drag pan • 1/2/3 views • Esc clear"
+	var hint := "Scene layout illustrative • Click to inspect • Wheel zoom • Right drag orbit • Middle drag pan • 1/2/3 views"
 	if view_mode == "route":
 		hint = "Route graph • Lines are known exits, not a confirmed route • Search or select a room, then Focus selected • Travel uses Lich"
 	elif view_mode == "world":
