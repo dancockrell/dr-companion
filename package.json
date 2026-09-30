@@ -248,7 +248,10 @@
     "test:mindstate-board": "node tools/mindstate-board-test.mjs",
     "test:idle-warning": "node --experimental-strip-types --experimental-test-module-mocks tools/idle-warning-test.mjs",
     "test:setup-lifecycle": "node --experimental-test-module-mocks tools/setup-lifecycle-test.mjs",
-    "test:presentation-source": "node --experimental-test-module-mocks tools/presentation-source-test.mjs"
+    "test:presentation-source": "node --experimental-test-module-mocks tools/presentation-source-test.mjs",
+    "test:presentation-events": "node --experimental-strip-types tools/presentation-events-test.ts",
+    "test:presentation-publisher": "node --experimental-test-module-mocks tools/presentation-publisher-test.mjs",
+    "test:dr-room-reference": "node tools/dr-room-reference-test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

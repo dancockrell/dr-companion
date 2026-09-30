@@ -108,9 +108,9 @@ func _ready() -> void:
 		status_label.text = "Connecting to the app…"
 		BridgeClient.start_live()
 	else:
-		status_label.text = "DEMO • sample pawns and player state • no game connected"
+		status_label.text = "OFFLINE • DragonRealms reference rooms • no game connected"
 		if WorldManifestLoader.load_from_path("res://mock/crossing_mock_world.json"):
-			BridgeClient.start_mock("crossing", "1-14", true)
+			BridgeClient.start_mock("crossing", "1-14")
 	_update_camera()
 
 func _connection_changed(state: String) -> void:
@@ -134,8 +134,12 @@ func _update_source_status() -> void:
 		return
 	source_signature = signature
 	if BridgeClient.mock_mode:
-		source_badge.text = "DR COMPANION  /  DEMO SAMPLE WORLD"
-		status_label.text = "DEMO • illustrative sample state • no game connected"
+		if source is Dictionary and source.get("sample") == true:
+			source_badge.text = "DR COMPANION  /  EXPLICIT SAMPLE FIXTURE"
+			status_label.text = "DEMO • illustrative sample state • no game connected"
+		else:
+			source_badge.text = "DR COMPANION  /  DRAGONREALMS REFERENCE"
+			status_label.text = "OFFLINE • reference room descriptions and exits • no live inhabitants or events"
 	elif source is Dictionary and source.get("kind") == "demo":
 		source_badge.text = "DR COMPANION  /  DEMO FROM APP"
 		status_label.text = "Demo from app • no live game • travel unavailable • bridge %s" % connection_state
@@ -544,7 +548,7 @@ func _rebuild_board() -> void:
 			links[link_id] = true
 			_link(at, _point(WorldManifestLoader.get_cell(target)), GOLD.darkened(0.25) if id == current_room or target == current_room else Color("526f82"))
 	var origin := _point(WorldManifestLoader.get_cell(current_room))
-	_token(origin, "You", GOLD, 0, "player", "player")
+	_token(origin, "Preview position" if BridgeClient.mock_mode and not snapshot.get("source", {}).get("sample", false) else "You", GOLD, 0, "player", "player")
 	var index := 1
 	for entity in snapshot.get("entities", []):
 		if str(entity.get("roomId", "")) == current_room and not str(entity.get("id", "")).is_empty():

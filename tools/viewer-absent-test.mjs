@@ -271,7 +271,7 @@ content.load = async () => {
   return null
 }
 const snapshots = []
-backend.invoke = (_cmd, args) => { snapshots.push(args.snapshot); return Promise.resolve() }
+backend.invoke = (_cmd, args) => { snapshots.push(args.snapshot); return Promise.resolve(null) }
 m.resetPresentationBridgePublishState()
 const firstRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: LIVE_HERE, character: null })
 const secondRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: { ...LIVE_HERE, id: 13 }, character: null })
@@ -285,7 +285,7 @@ let rejectSnapshot = true
 backend.invoke = (_cmd, args) => {
   snapshots.push(args.snapshot)
   if (rejectSnapshot) { rejectSnapshot = false; return Promise.reject(new Error('snapshot failed')) }
-  return Promise.resolve()
+  return Promise.resolve(null)
 }
 const rejectedRoom = m.publishWorldSnapshotIfChanged({ zone: LIVE_ZONE, here: LIVE_HERE, character: null })
 const rejectedResult = rejectedRoom.then(() => false, () => true)

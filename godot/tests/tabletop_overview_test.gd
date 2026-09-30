@@ -81,7 +81,7 @@ func _run() -> void:
 	await process_frame
 	var reader_position: int = scene.information_scroll.scroll_vertical
 	var health_only: Dictionary = original.duplicate(true)
-	health_only.player.health = 0.55
+	health_only.player = {"health": 0.55, "roundtime": 0, "situation": [], "cannotAct": false}
 	scene.render_snapshot(health_only)
 	await process_frame
 	await process_frame

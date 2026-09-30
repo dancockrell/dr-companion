@@ -10,16 +10,17 @@
  * two suites would be asserting things about different worlds while appearing
  * to agree.
  *
- * A minimal, realistic three-exit zone: Town Green North (14), with a real
- * link south to 13 and a zone-leaving exit ("go gate") that has no local
- * target — the exact shape `mapData.ts`'s `toZoneRoom` produces when
+ * A deliberately synthetic contract fixture, not DragonRealms map data.
+ * Its south link from14 to13 is artificial (the actual Crossing exit is north).
+ * Never use it as a recorded session or a real-world navigation fixture.
+ * A zone-leaving exit ("go gate") has no local target — the exact shape `mapData.ts`'s `toZoneRoom` produces when
  * `moves.length` exceeds `links.length`. That zone-leaving exit is the
  * load-bearing part: it is the only reason a compiled snapshot carries a
  * `targetCellId: null`, which is the honest-absence form the whole exit
  * contract turns on.
  */
 
-/** The zone as `mapData.ts` reports it to the store. */
+/** Synthetic data in the shape mapData.ts reports; topology is not real. */
 export const LIVE_ZONE = {
   ok: true,
   zone: '1',

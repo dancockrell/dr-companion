@@ -14,6 +14,9 @@ func _run() -> void:
 	var scene: Node3D = load("res://scenes/tabletop.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
+	_ok("default standalone view uses actual reference rooms without invented occupants", scene.status_label.text.contains("OFFLINE") and bridge.current_snapshot.entities.is_empty() and bridge.current_snapshot.player == null)
+	bridge.start_mock("fixture", "1-14", true)
+	await process_frame
 	_ok("standalone demo explicitly identifies its sample state", scene.status_label.text.contains("DEMO") and scene.status_label.text.contains("sample"))
 	_ok("standalone demo provides sample pawns and an item to inspect", bridge.current_snapshot.entities.size() == 2 and bridge.current_snapshot.groundItems.size() == 1 and scene.pick_bodies.has("entity:demo:town-guard") and scene.pick_bodies.has("item:demo:copper-coin"))
 	_ok("unselected sample pawn names cannot overlap the player label", scene.token_labels["player:player"].visible and not scene.token_labels["entity:demo:town-guard"].visible and not scene.token_labels["entity:demo:practice-opponent"].visible)

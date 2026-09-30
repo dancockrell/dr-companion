@@ -44,6 +44,8 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useAppStore } from '../store/useAppStore.ts'
 import { justReconnected, publishWorldSnapshotIfChanged } from './presentationBridge.ts'
+import { normalizeIndicatorEvents, type IndicatorEventCursor } from './presentationEvents.ts'
+import { publishPresentationEvent } from './viewerClient.ts'
 import { presentationSourceForState } from './presentationSource.ts'
 import { subscribeGame, streamCharacterState } from './gameLink.ts'
 import { sceneOverridesRevision, subscribeSceneOverrides } from './sceneOverrides.ts'
@@ -71,6 +73,13 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
   // "disconnected" moment to recover from at first mount, `enabled`/the
   // room-changed publish on the first real snapshot already covers that.
   const wasConnected = useRef(false)
+  const indicatorCursor = useRef<IndicatorEventCursor | null>(null)
+  const publishQueue = useRef<Promise<void>>(Promise.resolve())
+  const publisherEnabled = useRef(false)
+  useEffect(() => {
+    publisherEnabled.current = enabled
+    return () => { publisherEnabled.current = false }
+  }, [enabled])
 
   // A scene-editor edit changes no store field the publisher watches - same
   // zone, same room, same character - so without this the player would change
@@ -91,6 +100,35 @@ export function usePresentationBridgePublisher(enabled: boolean): void {
     const force = justReconnected(bridgeConnected, wasConnected.current) || sceneEdited
     wasConnected.current = bridgeConnected
     const source = presentationSourceForState({ mode: bridgeMode, connected: bridgeConnected, hasCharacter: character !== null, staleSince: bridgeStaleSince, bridgeGeneration: bridgeSourceGeneration, characterGeneration: characterSourceGeneration })
-    void publishWorldSnapshotIfChanged({ zone, here, character, characterAt, inventory, liveRoom, source }, force)
-  }, [enabled, zone, here, character, characterAt, inventory, liveRoom, bridgeConnected, bridgeMode, bridgeStaleSince, bridgeSourceGeneration, characterSourceGeneration, sceneRevision])
+    const roomId = zone?.ok && zone.zone && here && zone.rooms?.some((room) => room.id === here.id)
+      ? `${zone.zone}-${here.id}` : ''
+    const normalized = normalizeIndicatorEvents(indicatorCursor.current, {
+      roomId, generation: bridgeSourceGeneration,
+      ready: source.kind === 'live' && source.connected && String(character?.location?.roomId ?? '') === String(here?.id ?? ''),
+      indicators: stream.indicators,
+    })
+    indicatorCursor.current = normalized.cursor
+    // Snapshot precedes events, so native validation knows their confirmed room.
+    // Independent of the AI host; a disabled AI must never mute game facts.
+    const stillCurrent = () => {
+      if (!publisherEnabled.current) return false
+      const latest = useAppStore.getState()
+      const latestSource = presentationSourceForState({ mode: latest.bridgeMode, connected: latest.bridgeConnected,
+        hasCharacter: latest.character !== null, staleSince: latest.bridgeStaleSince,
+        bridgeGeneration: latest.bridgeSourceGeneration, characterGeneration: latest.characterSourceGeneration })
+      return latest.bridgeMode === bridgeMode && latest.bridgeSourceGeneration === bridgeSourceGeneration &&
+        latest.characterSourceGeneration === characterSourceGeneration && latestSource.connected === source.connected &&
+        latest.mapZone?.zone === zone?.zone && latest.mapHere?.id === here?.id &&
+        String(latest.character?.location?.roomId ?? '') === String(character?.location?.roomId ?? '')
+    }
+    publishQueue.current = publishQueue.current.catch(() => {}).then(async () => {
+      if (!stillCurrent()) return
+      const published = await publishWorldSnapshotIfChanged({ zone, here, character, characterAt, inventory, liveRoom, source }, force, stillCurrent)
+      if (!published) return
+      for (const event of normalized.events) {
+        if (!stillCurrent()) return
+        await publishPresentationEvent(event)
+      }
+    }).catch((error) => console.warn('presentation publication failed', error))
+  }, [enabled, zone, here, character, characterAt, inventory, liveRoom, bridgeConnected, bridgeMode, bridgeStaleSince, bridgeSourceGeneration, characterSourceGeneration, sceneRevision, stream.indicators])
 }

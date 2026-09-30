@@ -404,7 +404,7 @@ func _build_snapshot(world_id: String, room_id: String) -> Dictionary:
 		"protocol": PROTOCOL,
 		"sequence": _sequence,
 		"worldId": world_id,
-		"source": {"kind": "demo", "connected": false},
+		"source": {"kind": "demo", "connected": false, "sample": not _demo_session.is_empty()},
 		"currentRoomId": room_id,
 		"cells": WorldManifestLoader.cells.values(),
 		"activeRoom": active_room,

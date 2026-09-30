@@ -15,7 +15,7 @@ func _run() -> void:
 	_ok("main scene loads the explicit demo fixture", bridge.mock_mode and scene.current_room == "1-14")
 	_ok("tabletop builds visible geometry", scene.geometry.get_child_count() > 0)
 	_ok("room camera centers on confirmed room", scene.focus == scene._point(root.get_node("WorldManifestLoader").get_cell("1-14")))
-	_ok("demo is clearly labeled", scene.status_label.text.contains("DEMO"))
+	_ok("offline reference data is clearly labeled", scene.status_label.text.contains("OFFLINE"))
 	_ok("confirmed exits are reachable buttons", scene.exits.get_child_count() > 0)
 	var original_snapshot: Dictionary = bridge.current_snapshot.duplicate(true)
 	var original_color: Color = scene.geometry.get_child(0).material_override.albedo_color

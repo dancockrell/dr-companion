@@ -579,13 +579,16 @@ export async function publishWorldSnapshotIfChanged(
   source?: PresentationSource
     inventory?: InventorySummary | null
   },
-  force = false
-): Promise<void> {
+  force = false,
+  stillCurrent: () => boolean = () => true
+): Promise<boolean> {
   // Reserve publication order before loading zone content. Otherwise a slow
   // earlier zone load can finish after a later room update and restore stale
   // state in the viewer despite serialized native invocations.
   const nextParams = { ...params }
+  let delivered = false
   publishQueue = publishQueue.catch(() => undefined).then(async () => {
+    if (!stillCurrent()) return
     // Awaited before compiling, and cached per zone by `worldContent.ts`, so this
     // is one fetch the first time a zone is entered and a Map lookup every time
     // after. A zone with no content file resolves to null and the snapshot goes
@@ -609,6 +612,7 @@ export async function publishWorldSnapshotIfChanged(
     const content = zoneId
       ? await (await import('./worldContent.ts')).loadWorldContent(zoneId)
       : null
+    if (!stillCurrent()) return
     const snapshot = compileWorldSnapshot({ ...nextParams, content, sequence: sequence + 1 })
       ?? (nextParams.source ? unavailableWorldSnapshot(nextParams.source, sequence + 1) : null)
     if (!snapshot) return
@@ -619,7 +623,7 @@ export async function publishWorldSnapshotIfChanged(
     // after a newer one. Recover the queue before the next item so one rejected
     // native call remains retryable instead of poisoning every future publish.
     const zoneChanged = nextZone !== lastPublishedZone
-    if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) return
+    if (!zoneChanged && !shouldPublish(nextProjectionKey, lastPublishedProjectionKey, force)) { delivered = true; return }
     const nextSequence = sequence + 1
     // `diagnostics` is the compiler's report to the panel and not part of the
     // wire protocol, so it is dropped here by name rather than carried and
@@ -627,7 +631,10 @@ export async function publishWorldSnapshotIfChanged(
     // and an undeclared field there would be dropped in transit anyway, which
     // is a thing that looks like a delivery.
     const { diagnostics: _diagnostics, ...wire } = snapshot
-    await invokeTauri('publish_world_snapshot', { snapshot: { ...wire, sequence: nextSequence } })
+    if (!stillCurrent()) return
+    const accepted = await invokeTauri('publish_world_snapshot', { snapshot: { ...wire, sequence: nextSequence } })
+    if (accepted === undefined) return
+    delivered = true
     // A failed native call throws. Only advance the deduplication state after
     // the bridge accepted the publish, so the next update can retry honestly.
     sequence = nextSequence
@@ -635,6 +642,7 @@ export async function publishWorldSnapshotIfChanged(
     lastPublishedZone = nextZone
   })
   await publishQueue
+  return delivered
 }
 
 /** Test-only: lets `tools/presentation-bridge-test.mjs` (and, if it's ever
