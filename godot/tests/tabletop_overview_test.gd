@@ -18,6 +18,10 @@ func _run() -> void:
 	sender.intent_created.connect(func(intent): intents.append(intent))
 	var original: Dictionary = bridge.current_snapshot.duplicate(true)
 	scene.set_view("world")
+	# Let real font shaping/layout finish; no manual camera update is allowed
+	# to hide an initially stale label collision calculation.
+	await process_frame
+	await process_frame
 	_ok("overview has a graph marker and pick body for each mounted room", scene.overview_markers.size() == scene.rendered_ids.size() and scene.overview_pick_bodies.size() == scene.rendered_ids.size())
 	var marker: MeshInstance3D = scene.overview_markers[scene.current_room]
 	var half: Vector3 = scene.camera.global_basis.x * marker.scale.x * 0.5
@@ -35,7 +39,19 @@ func _run() -> void:
 		for other in placed:
 			nonoverlapping = nonoverlapping and not rect.intersects(other)
 		placed.append(rect)
-	_ok("overview places readable labels without overlapping each other", nonoverlapping and placed.size() > 0)
+	_ok("overview places readable labels without overlapping each other after layout", nonoverlapping and placed.size() > 0)
+	var clear_nodes := true
+	for id in scene.graph_labels:
+		var label: Label = scene.graph_labels[id]
+		if not label.visible:
+			continue
+		for other_id in scene.overview_markers:
+			if other_id == id:
+				continue
+			var center: Vector2 = scene.camera.unproject_position(scene.overview_markers[other_id].position)
+			clear_nodes = clear_nodes and not label.get_global_rect().intersects(Rect2(center - Vector2(10, 10), Vector2(20, 20)))
+	_ok("overview text avoids covering unrelated node markers", clear_nodes)
+	_ok("duplicate place names remain distinguishable by room ID", scene.graph_labels["1-12"].text.contains("[1-12]") and scene.graph_labels["1-13"].text.contains("[1-13]"))
 	_ok("overview exposes the known-room picker", scene.destination_filter.visible and scene.destination_list.visible and scene.destination_list.item_count == loader.cells.size())
 	var previous_size: float = scene.camera_size
 	scene.zoom_by(0.8)
@@ -50,6 +66,27 @@ func _run() -> void:
 	scene.destination_list.item_selected.emit(0)
 	_ok("list selection picks the actual known room without travel", scene.selected_kind == "room" and scene.selected_id == "1-191" and intents.is_empty())
 	_ok("focus selected frames the exact destination without movement", scene.focus_selected_room() and scene.focus == scene._point(loader.get_cell("1-191")) and scene.camera_size == 14.0 and scene.current_room == original.currentRoomId and intents.is_empty())
+	await process_frame
+	await process_frame
+	scene.information_scroll.scroll_vertical = 200
+	await process_frame
+	scene.destination_list.item_selected.emit(0)
+	await process_frame
+	await process_frame
+	var scroll_rect: Rect2 = scene.information_scroll.get_global_rect()
+	_ok("explicit destination selection reveals its heading inside the actual scroll area", scroll_rect.encloses(scene.selection_title.get_global_rect()))
+	_ok("selected destination travel action is above the scroll fold", scene.travel_button.visible and scroll_rect.encloses(scene.travel_button.get_global_rect()))
+	_ok("revealing selection leaves destination search and results intact", scene.destination_filter.text == "1-191" and scene.destination_list.item_count == 1)
+	scene.information_scroll.scroll_vertical = 80
+	await process_frame
+	var reader_position: int = scene.information_scroll.scroll_vertical
+	var health_only: Dictionary = original.duplicate(true)
+	health_only.player.health = 0.55
+	scene.render_snapshot(health_only)
+	await process_frame
+	await process_frame
+	_ok("status-only snapshots preserve the reader's scroll position", reader_position > 0 and scene.information_scroll.scroll_vertical == reader_position)
+
 	scene.destination_filter.text = "no matching room exists"
 	scene.destination_filter.text_changed.emit(scene.destination_filter.text)
 	_ok("unmatched searches expose no invented destination", scene.destination_list.item_count == 0)

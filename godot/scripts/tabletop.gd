@@ -26,6 +26,7 @@ var exits := HBoxContainer.new()
 var snapshot: Dictionary = {}
 var player_summary := Label.new()
 var room_description := Label.new()
+var information_scroll := ScrollContainer.new()
 var selection_title := Label.new()
 var selection_description := Label.new()
 var travel_button := Button.new()
@@ -35,6 +36,7 @@ var graph_labels: Dictionary = {}
 var overview_markers: Dictionary = {}
 var overview_pick_bodies: Dictionary = {}
 var overview_links: Array[MeshInstance3D] = []
+var overview_layout_pending := false
 var destination_filter := LineEdit.new()
 var destination_list := ItemList.new()
 var destination_hint := Label.new()
@@ -51,6 +53,7 @@ var selected_id := ""
 var connection_state := "demo"
 var selection_ring: MeshInstance3D
 var token_positions: Dictionary = {}
+var token_labels: Dictionary = {}
 var pick_bodies: Dictionary = {}
 var event_history: Array[Dictionary] = []
 var pending_effects: Array[Dictionary] = []
@@ -100,9 +103,9 @@ func _ready() -> void:
 		status_label.text = "Connecting to the app…"
 		BridgeClient.start_live()
 	else:
-		status_label.text = "DEMO • local fixture • no game connected"
+		status_label.text = "DEMO • sample pawns and player state • no game connected"
 		if WorldManifestLoader.load_from_path("res://mock/crossing_mock_world.json"):
-			BridgeClient.start_mock("crossing", "1-14")
+			BridgeClient.start_mock("crossing", "1-14", true)
 	_update_camera()
 
 func _connection_changed(state: String) -> void:
@@ -191,7 +194,7 @@ func _build_hud() -> void:
 	var titles := VBoxContainer.new()
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(titles)
-	titles.add_child(_small_label("DR COMPANION  /  CONFIRMED WORLD"))
+	titles.add_child(_small_label("DR COMPANION  /  LIVE WORLD" if wants_live() else "DR COMPANION  /  DEMO SAMPLE WORLD"))
 	title_label.text = "Waiting for confirmed room"
 	title_label.add_theme_font_size_override("font_size", 22)
 	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -250,7 +253,7 @@ func _build_hud() -> void:
 	destination_hint.add_theme_color_override("font_color", MUTED)
 	destination_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	side_content.add_child(destination_hint)
-	var scroll := ScrollContainer.new()
+	var scroll := information_scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	side_content.add_child(scroll)
@@ -258,24 +261,26 @@ func _build_hud() -> void:
 	information.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	information.add_theme_constant_override("separation", 10)
 	scroll.add_child(information)
+	# Explicit selections get priority above the current-room background.
+	selection_title.add_theme_font_size_override("font_size", 16)
+	selection_title.add_theme_color_override("font_color", GOLD)
+	selection_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	information.add_child(selection_title)
+	travel_button.text = "Request travel here"
+	travel_button.custom_minimum_size.y = 36
+	travel_button.pressed.connect(request_selected_travel)
+	information.add_child(travel_button)
+	selection_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	selection_description.add_theme_font_size_override("font_size", 13)
+	information.add_child(selection_description)
+	information.add_child(HSeparator.new())
+	information.add_child(_small_label("CURRENT ROOM"))
 	room_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	room_description.add_theme_font_size_override("font_size", 13)
 	room_description.add_theme_color_override("font_color", MUTED)
 	information.add_child(room_description)
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	information.add_child(details)
-	information.add_child(HSeparator.new())
-	selection_title.add_theme_font_size_override("font_size", 16)
-	selection_title.add_theme_color_override("font_color", GOLD)
-	selection_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	information.add_child(selection_title)
-	selection_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	selection_description.add_theme_font_size_override("font_size", 13)
-	information.add_child(selection_description)
-	travel_button.text = "Request travel here"
-	travel_button.custom_minimum_size.y = 36
-	travel_button.pressed.connect(request_selected_travel)
-	information.add_child(travel_button)
 	information.add_child(HSeparator.new())
 	information.add_child(_small_label("CONFIRMED EVENTS"))
 	event_label.text = "Waiting for game events"
@@ -472,7 +477,7 @@ func _rebuild_board() -> void:
 		if view_mode != "room":
 			_overview_marker(at, str(id), GOLD if id == current_room else Color("8ab8cc"))
 			var graph_label := Label.new()
-			graph_label.text = _board_title(cell)
+			graph_label.text = "%s [%s]" % [_board_title(cell), id]
 			graph_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			graph_label.add_theme_font_size_override("font_size", 14)
 			graph_label.add_theme_color_override("font_color", GOLD if id == current_room else Color("e3edf2"))
@@ -480,7 +485,10 @@ func _rebuild_board() -> void:
 			graph_label.add_theme_constant_override("shadow_offset_x", 1)
 			graph_label.add_theme_constant_override("shadow_offset_y", 2)
 			graph_overlay.add_child(graph_label)
+			graph_label.resized.connect(_queue_overview_layout)
+			graph_label.minimum_size_changed.connect(_queue_overview_layout)
 			graph_labels[id] = graph_label
+			overview_layout_pending = true
 		if _spatial_mode(cell) == "interior-cutaway":
 			_box(geometry, at + Vector3(0, 0.6, -depth / 2), Vector3(width, 1.2, 0.18), color.darkened(0.25))
 		if view_mode == "room":
@@ -532,6 +540,7 @@ func _clear_geometry() -> void:
 	overview_links.clear()
 	selection_ring = null
 	token_positions.clear()
+	token_labels.clear()
 	pick_bodies.clear()
 	for child in geometry.get_children():
 		child.free()
@@ -594,7 +603,9 @@ func _token(origin: Vector3, text: String, color: Color, index: int, kind: Strin
 	token_positions["%s:%s" % [kind, id]] = at
 	_pick_body(at + Vector3(0, 0.55, 0), Vector3(0.55, 1.1, 0.55), kind, id)
 	if view_mode == "room":
-		_label(geometry, at + Vector3(0, 1.3, 0), text, color.lightened(0.2))
+		var name_label := _label(geometry, at + Vector3(0, 1.3, 0), text, color.lightened(0.2))
+		name_label.visible = kind == "player"
+		token_labels["%s:%s" % [kind, id]] = name_label
 
 func _rebuild_details() -> void:
 	_update_player_summary()
@@ -687,7 +698,13 @@ func select_visible_target(kind: String, id: String) -> bool:
 	if view_mode == "route" and kind == "room":
 		_rebuild_board()
 	_update_selection()
+	_reveal_selection()
 	return true
+
+func _reveal_selection() -> void:
+	# Only direct user selection scrolls. Health/status-only publishes leave
+	# the reader's scroll position and the separate search/list unchanged.
+	information_scroll.set_deferred("scroll_vertical", 0)
 
 func clear_selection() -> void:
 	selected_kind = ""
@@ -732,7 +749,16 @@ func _update_selection() -> void:
 		selection_description.text = CombatPresentation.tactical_tooltip(entry) if selected_kind == "entity" else "Confirmed on the floor in %s.\nInspection is read-only." % current_room
 	_update_action_availability()
 	_update_selection_ring()
+	_update_token_labels()
 	_update_overview()
+
+func _update_token_labels() -> void:
+	# The inspector always lists every confirmed name. On the physical board,
+	# label only the selected pawn (or You) so nearby names cannot collide.
+	var selected_key := "%s:%s" % [selected_kind, selected_id]
+	var visible_key := selected_key if selected_kind == "entity" and token_labels.has(selected_key) else "player:player"
+	for key in token_labels:
+		token_labels[key].visible = key == visible_key
 
 func _update_selection_ring() -> void:
 	if is_instance_valid(selection_ring):
@@ -852,6 +878,7 @@ func _destination_selected(index: int) -> void:
 	selected_id = id
 	_rebuild_board()
 	_update_selection()
+	_reveal_selection()
 	_update_mode_controls()
 
 func _overview_marker(at: Vector3, id: String, color: Color) -> void:
@@ -879,6 +906,9 @@ func _overview_marker(at: Vector3, id: String, color: Color) -> void:
 	geometry.add_child(body)
 	overview_pick_bodies[id] = body
 
+func _queue_overview_layout() -> void:
+	overview_layout_pending = true
+
 func _update_overview() -> void:
 	if view_mode == "room" or overview_markers.is_empty():
 		return
@@ -901,12 +931,23 @@ func _update_overview() -> void:
 		return rank_a < rank_b if rank_a != rank_b else str(a) < str(b)
 	)
 	var placed: Array[Rect2] = []
+	var node_bounds: Dictionary = {}
+	for id in overview_markers:
+		var screen := camera.unproject_position(overview_markers[id].position)
+		var radius := diameter / units_per_pixel * 0.5 + 2.0
+		node_bounds[id] = Rect2(screen - Vector2.ONE * radius, Vector2.ONE * radius * 2.0)
 	var safe := Rect2(20, 132, maxf(1, canvas.x - 352), maxf(1, canvas.y - 270))
 	for id in order:
 		var label: Label = graph_labels[id]
 		label.visible = false
 		var screen := camera.unproject_position(overview_markers[id].position)
-		var size := label.get_combined_minimum_size()
+		# Labels added this frame may not have shaped yet. Measure the same
+		# font explicitly and honor final minimum/actual size after layout.
+		var font := label.get_theme_font("font")
+		var font_size := label.get_theme_font_size("font_size")
+		var measured := Vector2(ceilf(font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x), ceilf(font.get_height(font_size)))
+		var size := measured.max(label.get_combined_minimum_size()).max(label.size)
+		label.size = size
 		for offset in [Vector2(15, -size.y / 2), Vector2(-size.x - 15, -size.y / 2), Vector2(-size.x / 2, -size.y - 15), Vector2(-size.x / 2, 15)]:
 			var rect := Rect2(screen + offset, size)
 			if not safe.encloses(rect):
@@ -916,6 +957,11 @@ func _update_overview() -> void:
 				if rect.grow(4).intersects(other):
 					overlaps = true
 					break
+			if not overlaps:
+				for other_id in node_bounds:
+					if other_id != id and rect.intersects(node_bounds[other_id]):
+						overlaps = true
+						break
 			if overlaps:
 				continue
 			label.position = rect.position
@@ -993,6 +1039,9 @@ func _play_effect(event: Dictionary) -> void:
 	)
 
 func _process(delta: float) -> void:
+	if overview_layout_pending:
+		overview_layout_pending = false
+		_update_overview()
 	_update_player_summary()
 	effect_wait = maxf(0.0, effect_wait - delta)
 	if effect_wait <= 0.0 and not pending_effects.is_empty():

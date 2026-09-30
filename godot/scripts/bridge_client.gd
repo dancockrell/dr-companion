@@ -49,6 +49,8 @@ var _config_dir := ""
 var _retry_at_ms := 0
 var _reconnect_attempt := 0
 var _recovering := false
+# Opt-in sample data is never used by ordinary mock clients or live mode.
+var _demo_session: Dictionary = {}
 
 func _ready() -> void:
 	set_process(false)
@@ -87,6 +89,7 @@ func _process(_delta: float) -> void:
 ## port/token files. The token is shape-checked and is never emitted or logged.
 func start_live(config_dir: String = "") -> bool:
 	disconnect_live()
+	_demo_session.clear()
 	# Selecting live mode must never retain a previous demo session, even
 	# when local configuration is missing and the connection cannot begin.
 	mock_mode = false
@@ -152,9 +155,14 @@ func _close_live_socket() -> void:
 ## is "connect and receive the first WorldSnapshot from Tauri" — this is the
 ## same event from the rest of the viewer's point of view, just sourced
 ## locally instead of over the socket.
-func start_mock(world_id: String, starting_room_id: String) -> bool:
+func start_mock(world_id: String, starting_room_id: String, demo_samples: bool = false) -> bool:
 	disconnect_live()
 	mock_mode = true
+	_demo_session.clear()
+	if demo_samples:
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string("res://mock/demo_session.json"))
+		if parsed is Dictionary:
+			_demo_session = parsed
 	if not WorldManifestLoader.is_loaded():
 		push_error("BridgeClient.start_mock called before a manifest was loaded")
 		return false
@@ -381,7 +389,10 @@ func _find_exit(cell_id: String, exit_move: String) -> Dictionary:
 
 func _build_snapshot(world_id: String, room_id: String) -> Dictionary:
 	_sequence += 1
-	var active_room: Dictionary = WorldManifestLoader.get_cell(room_id)
+	var active_room: Dictionary = WorldManifestLoader.get_cell(room_id).duplicate(true)
+	var sample: Dictionary = _demo_session.get("rooms", {}).get(room_id, {}) if mock_mode else {}
+	if sample.has("description"):
+		active_room.description = sample.description
 	return {
 		"protocol": PROTOCOL,
 		"sequence": _sequence,
@@ -389,8 +400,9 @@ func _build_snapshot(world_id: String, room_id: String) -> Dictionary:
 		"currentRoomId": room_id,
 		"cells": WorldManifestLoader.cells.values(),
 		"activeRoom": active_room,
-		# No live entity/ground-item source exists yet in this slice — an
-		# empty array is the honest state, never an invented occupant.
-		"entities": [],
-		"groundItems": [],
+		# Sample occupants are explicitly opted into by the standalone demo.
+		# Ordinary mock clients remain empty; live snapshots come from TCP.
+		"entities": sample.get("entities", []).duplicate(true),
+		"groundItems": sample.get("groundItems", []).duplicate(true),
+		"player": _demo_session.get("player") if mock_mode else null,
 	}

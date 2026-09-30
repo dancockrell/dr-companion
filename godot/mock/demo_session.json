@@ -1,0 +1,22 @@
+{
+  "label": "Explicit local sample session. These are not live game facts.",
+  "player": { "health": 0.82, "roundtime": 0, "cannotAct": false, "situation": [] },
+  "rooms": {
+    "1-14": {
+      "description": "Demo scene: select either sample pawn or the sample coin to explore the inspector. Use the real fixture exits below to explore the board. No game is connected.",
+      "entities": [
+        {
+          "id": "demo:town-guard", "roomId": "1-14", "name": "Sample town guard", "deck": "allied",
+          "tactical": { "range": "melee", "relation": "beside you", "enrichedAgeSeconds": 10, "statuses": [], "conditions": [] }
+        },
+        {
+          "id": "demo:practice-opponent", "roomId": "1-14", "name": "Sample opponent", "deck": "hostile",
+          "tactical": { "range": "missile", "enrichedAgeSeconds": 100, "statuses": [], "conditions": ["off balance"] }
+        }
+      ],
+      "groundItems": [
+        { "id": "demo:copper-coin", "roomId": "1-14", "name": "Sample copper coin" }
+      ]
+    }
+  }
+}
