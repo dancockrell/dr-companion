@@ -4,10 +4,12 @@ extends Node3D
 const LIVE_FLAG := "--live-presentation"
 const VisibilityPolicy := preload("res://scripts/cell_visibility_policy.gd")
 const CombatPresentation := preload("res://scripts/combat_presentation.gd")
+const TabletopMaterials := preload("res://scripts/tabletop_materials.gd")
 const GOLD := Color("edc578")
 const INK := Color("101923")
 const MUTED := Color("a8bdca")
 const TERRAIN := {"street": Color("737e88"), "path": Color("91765a"), "grass": Color("557450"), "water": Color("387e9c"), "cave": Color("625b71"), "forest": Color("385e48"), "interior": Color("82716a"), "snow": Color("cbd8df"), "sand": Color("c5ab78"), "swamp": Color("506350"), "rock": Color("7b8088"), "farmland": Color("8c7954")}
+var surface_art := TabletopMaterials.new()
 var geometry := Node3D.new()
 var effects := Node3D.new()
 var camera := Camera3D.new()
@@ -411,19 +413,22 @@ func _rebuild_board() -> void:
 		var color: Color = TERRAIN.get(_ground_kind(cell), Color("7e735e"))
 		# Layered plinths and restrained surface seams read as a tabletop,
 		# without inventing buildings, terrain features, or tactical positions.
-		_box(geometry, at + Vector3(0, -0.3, 0), Vector3(width, 0.6, depth), color)
+		var ground := _box(geometry, at + Vector3(0, -0.3, 0), Vector3(width, 0.6, depth), color)
+		ground.material_override = surface_art.terrain(_ground_kind(cell), color)
 		_box(geometry, at + Vector3(0, -0.64, 0), Vector3(width + 0.18, 0.12, depth + 0.18), GOLD.darkened(0.18) if id == current_room else Color("243a46"))
 		_pick_body(at + Vector3(0, -0.25, 0), Vector3(width, 0.65, depth), "room", id)
 		if id == current_room:
 			for x in range(4):
 				for z in range(4):
 					var tile_at := at + Vector3((float(x) - 1.5) * width / 4.0, 0.018, (float(z) - 1.5) * depth / 4.0)
-					_box(geometry, tile_at, Vector3(width / 4.0 - 0.025, 0.036, depth / 4.0 - 0.025), color.lightened(0.055 if (x + z) % 2 == 0 else 0.015))
+					var tile_color := color.lightened(0.055 if (x + z) % 2 == 0 else 0.015)
+					var tile := _box(geometry, tile_at, Vector3(width / 4.0 - 0.025, 0.036, depth / 4.0 - 0.025), tile_color)
+					tile.material_override = surface_art.terrain(_ground_kind(cell), tile_color)
 			_ring(geometry, at + Vector3(0, 0.06, 0), 0.55, GOLD)
-		if view_mode != "room":
-			# Keep dense overviews readable. Selection always reveals the name.
-			var text: String = str(cell.get("title", id)) if ids.size() <= 28 else str(id)
-			_label(geometry, at + Vector3(0, 1.55, 0), text, GOLD if id == current_room else Color("cedce4"))
+		if view_mode != "room" and (ids.size() <= 40 or id == current_room):
+			# Full titles are in the inspector. Repeated zone prefixes and a
+			# forest of hundreds of labels would obscure the actual board.
+			_label(geometry, at + Vector3(0, 1.55, 0), _board_title(cell), GOLD if id == current_room else Color("cedce4"))
 		if _spatial_mode(cell) == "interior-cutaway":
 			_box(geometry, at + Vector3(0, 0.6, -depth / 2), Vector3(width, 1.2, 0.18), color.darkened(0.25))
 		if view_mode == "room":
@@ -444,7 +449,7 @@ func _rebuild_board() -> void:
 	var index := 1
 	for entity in snapshot.get("entities", []):
 		if str(entity.get("roomId", "")) == current_room and not str(entity.get("id", "")).is_empty():
-			_token(origin, str(entity.get("name", "Unknown")), CombatPresentation.token_color(entity), index, "entity", str(entity.id))
+			_token(origin, str(entity.get("name", "Unknown")), CombatPresentation.token_color(entity), index, "entity", str(entity.id), entity)
 			index += 1
 	var item_index := 0
 	for item in snapshot.get("groundItems", []):
@@ -458,6 +463,12 @@ func _rebuild_board() -> void:
 		token_positions["item:" + str(item.id)] = at
 		item_index += 1
 	_update_selection_ring()
+
+func _board_title(cell: Dictionary) -> String:
+	var full := str(cell.get("title", cell.get("id", "Room")))
+	var parts := full.split(",", false)
+	var title := str(parts[-1]).strip_edges() if parts.size() > 1 else full
+	return title if title.length() <= 28 else title.left(25) + "…"
 
 func _clear_geometry() -> void:
 	selection_ring = null
@@ -480,7 +491,7 @@ func _link(start: Vector3, end: Vector3, color: Color) -> void:
 	line.position = (start + end) / 2.0 - Vector3(0, 0.18, 0)
 	line.quaternion = Quaternion(Vector3.UP, (end - start).normalized())
 
-func _token(origin: Vector3, text: String, color: Color, index: int, kind: String, id: String) -> void:
+func _token(origin: Vector3, text: String, color: Color, index: int, kind: String, id: String, entity: Dictionary = {}) -> void:
 	var at := origin
 	if index > 0:
 		var angle := float(index) * 2.4
@@ -490,19 +501,36 @@ func _token(origin: Vector3, text: String, color: Color, index: int, kind: Strin
 	pedestal.top_radius = 0.31
 	pedestal.bottom_radius = 0.35
 	pedestal.height = 0.14
+	pedestal.radial_segments = 32
 	base.mesh = pedestal
 	base.position = at + Vector3(0, 0.11, 0)
-	base.material_override = _material(color.darkened(0.35))
+	base.material_override = surface_art.pawn(color.darkened(0.35))
 	geometry.add_child(base)
-	var mesh := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.19
-	capsule.height = 0.74
-	mesh.mesh = capsule
-	mesh.position = at + Vector3(0, 0.52, 0)
-	mesh.material_override = _material(color)
-	geometry.add_child(mesh)
+	# Abstract lacquered pawns stay readable without claiming a person's body,
+	# equipment, precise position, or a creature species we have not received.
+	var body := MeshInstance3D.new()
+	var taper := CylinderMesh.new()
+	taper.top_radius = 0.11
+	taper.bottom_radius = 0.23
+	taper.height = 0.42
+	taper.radial_segments = 24
+	body.mesh = taper
+	body.position = at + Vector3(0, 0.39, 0)
+	body.material_override = surface_art.pawn(color)
+	geometry.add_child(body)
+	var head := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.18
+	sphere.height = 0.36
+	sphere.radial_segments = 24
+	sphere.rings = 12
+	head.mesh = sphere
+	head.position = at + Vector3(0, 0.74, 0)
+	head.material_override = surface_art.pawn(color.lightened(0.08))
+	geometry.add_child(head)
 	_ring(geometry, at + Vector3(0, 0.19, 0), 0.29, color)
+	if kind == "entity":
+		_ring(geometry, at + Vector3(0, 0.08, 0), 0.39, CombatPresentation.assessment_color(CombatPresentation.assessment_state(entity)))
 	token_positions["%s:%s" % [kind, id]] = at
 	_pick_body(at + Vector3(0, 0.55, 0), Vector3(0.55, 1.1, 0.55), kind, id)
 	if view_mode == "room":
@@ -646,6 +674,8 @@ func _update_selection_ring() -> void:
 		var cell := WorldManifestLoader.get_cell(selected_id)
 		var width := float(cell.get("board", {}).get("footprint", {}).get("width", 4.4))
 		selection_ring = _ring(geometry, _point(cell) + Vector3(0, 0.08, 0), width * 0.53, Color("91deed"))
+		if view_mode != "room" and rendered_ids.size() > 40 and selected_id != current_room:
+			_label(selection_ring, Vector3(0, 1.6, 0), _board_title(cell), Color("91deed"))
 	elif token_positions.has("%s:%s" % [selected_kind, selected_id]):
 		selection_ring = _ring(geometry, token_positions["%s:%s" % [selected_kind, selected_id]] + Vector3(0, 0.23, 0), 0.42, Color("91deed"))
 
