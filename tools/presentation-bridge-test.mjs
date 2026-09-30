@@ -12,7 +12,7 @@
  *
  *   node --experimental-strip-types tools/presentation-bridge-test.mjs
  */
-import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish, unavailableWorldSnapshot } from '../src/lib/presentationBridge.ts'
+import { cannotAct, compileWorldSnapshot, justReconnected, projectionKey, shouldPublish, unavailableWorldSnapshot, confirmedRoomDescription } from '../src/lib/presentationBridge.ts'
 // Imported rather than retyped: a test that hardcodes the number it checks
 // only proves somebody remembered to edit two places.
 import { CELL_BLOCK_METRES, CELL_GAP_METRES, CELL_PITCH_METRES } from '../src/lib/isometric-board-layout.mjs'
@@ -96,6 +96,18 @@ console.log('-- compileWorldSnapshot: the honest-null cases --')
   const unavailable = unavailableWorldSnapshot({ kind: 'live', connected: true }, 2)
   ok('missing topology clears prior demo geometry explicitly', unavailable.cells.length === 0 && unavailable.currentRoomId === '' && unavailable.entities.length === 0)
   ok('unavailable world cannot advertise a ready source', unavailable.source.connected === false && unavailable.player === null)
+}
+
+{
+  const look = { roomUid: '230008', title: 'Game title variation', description: 'Current game prose.' }
+  ok('matching game UID permits genuine live title variation', confirmedRoomDescription(look, { ...HERE, uid: 230008 }, 'Cartographic title') === look.description)
+  const matchedLook = compileWorldSnapshot({ zone: ZONE, here: { ...HERE, uid: 230008 }, character: CHARACTER, liveRoom: look, sequence: 1 })
+  ok('confirmed live title and prose travel together', matchedLook?.activeRoom.title === look.title && matchedLook?.activeRoom.description === look.description)
+  ok('matching Lich map id is not mistaken for game UID', confirmedRoomDescription(look, { ...HERE, id: 230008, uid: 7 }, look.title) === undefined)
+  ok('conflicting UID rejects even matching titles', confirmedRoomDescription(look, { ...HERE, uid: 7 }, look.title) === undefined)
+  ok('one-sided game identity waits for correlation', confirmedRoomDescription(look, { ...HERE, uid: null }, look.title) === undefined)
+  ok('missing live UID cannot reuse a known mapped UID', confirmedRoomDescription({ title: look.title, description: look.description }, { ...HERE, uid: 230008 }, look.title) === undefined)
+  ok('navigation clear cannot carry old live prose', confirmedRoomDescription(null, { ...HERE, uid: 230008 }, look.title) === undefined)
 }
 
 console.log('\n-- compileWorldSnapshot: a real snapshot --')

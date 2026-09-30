@@ -243,6 +243,17 @@ export interface CompiledWorldSnapshot extends WorldSnapshot {
  * publish one honestly (see each guard's own comment). Never throws, never
  * fills a gap with a guess.
  */
+/** Match the game's room UID to the bridge's game UID, never its Lich map ID.
+ * Legacy sources with neither UID retain exact-title matching; one-sided or
+ * conflicting identity stays unresolved rather than attaching prose to a room. */
+export function confirmedRoomDescription(live: LiveRoomPresentation | null | undefined, here: MapRoom | null, mappedTitle: string): string | undefined {
+  if (!live?.description.trim()) return undefined
+  const liveUid = live.roomUid?.trim() || null
+  const mapUid = here?.uid == null ? null : String(here.uid)
+  if (liveUid !== null || mapUid !== null) return liveUid !== null && liveUid === mapUid ? live.description : undefined
+  return live.title?.trim() === mappedTitle.trim() ? live.description : undefined
+}
+
 export function compileWorldSnapshot(params: {
   zone: MapZone | null
   here: MapRoom | null
@@ -409,6 +420,8 @@ export function compileWorldSnapshot(params: {
       }
     : null
 
+  const liveDescription = confirmedRoomDescription(params.liveRoom, here, currentCell.title)
+
   return {
     protocol: 1,
     sequence,
@@ -422,11 +435,8 @@ export function compileWorldSnapshot(params: {
     cells,
     activeRoom: {
       id: currentCellId,
-      title: currentCell.title,
-      // The stream clears at navigation. Withhold description while its title
-      // and the independently arriving map room disagree during a transition.
-      ...(params.liveRoom?.title?.trim() === currentCell.title.trim() && params.liveRoom.description.trim()
-        ? { description: params.liveRoom.description } : {}),
+      title: liveDescription !== undefined ? (params.liveRoom?.title ?? currentCell.title) : currentCell.title,
+      ...(liveDescription !== undefined ? { description: liveDescription } : {}),
     },
     entities,
     groundItems,

@@ -357,7 +357,7 @@ func render_snapshot(next: Dictionary) -> void:
 	if room_description.text.is_empty():
 		room_description.text = _description(cell)
 	if room_description.text.is_empty():
-		room_description.text = "Room description has not been received."
+		room_description.text = "Waiting for confirmed room description."
 	if moved:
 		_clear_events()
 		if selected_kind != "room" or selected_id == current_room:
