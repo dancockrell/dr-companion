@@ -39,7 +39,7 @@ sha1 = "0.11"
 # (script_api.rs). Tiny, audited, no_std-friendly - not pulling in a full
 # `rand` for one call to getrandom().
 getrandom = "0.4"
-zip = { version = "8", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 # "rt" for spawn_blocking, which keeps the multi-second lich_status off the
 # UI thread - see lich.rs. "macros" for tokio::join!. Tauri supplies the
 # runtime itself; these are the pieces this crate names directly.
